@@ -41,3 +41,20 @@ var CORE_APIS = map[string]string{
 	"/api/plugin/articles/summary":         "概述/大纲/观点",
 	"/api/plugin/articles/summary/list_v2": "刷新模型生成内容",
 }
+
+// 需要计算权重的维度
+const (
+	ERROR_RATE_PARAMETER       = "error_rate"
+	SLOW_SEARCH_RATE_PARAMETER = "slow_search_rate"
+	PROBE_ERROR_RATE_PARAMETER = "probe_error_rate"
+)
+
+// 计算权重相关
+const (
+	//错误率权重
+	ERROR_WEIGHT = 0.3
+	//慢查询权重
+	SLOW_SEARCH_WEIGHT = 0.3
+	//探针权重
+	PROBE_WEIGHT = 0.4
+)

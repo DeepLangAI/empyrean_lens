@@ -59,10 +59,10 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 		Nginx:    nginxmonthReport,
 		Business: businessMonthReport,
 	}
-	tpl := template.New("retention.html").Funcs(template.FuncMap{
-		"getColor": getColor,
-	})
-	tpl, _ = tpl.ParseFiles("templates/rentention.html")
-	tpl.ExecuteTemplate(rw, "rentention.html", report)
-	//tpl.Execute(rw, report)
+	tpl, err := template.ParseFiles("templates/rentention.html")
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
+	tpl.Execute(rw, report)
 }

@@ -1,0 +1,400 @@
+<!-- Write HTML code here -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>
+        灵狗稳定性
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            background-color: #f0f2f5; /* 更柔和的浅灰色背景 */
+            color: #333; /* 深灰色文本 */
+            font-family: 'Helvetica Neue', Arial, sans-serif; /* 更具吸引力的字体 */
+            font-size: 14px; /* 基础字体大小 */
+            text-align: left; /* 全局左对齐 */
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            color: #444; /* 更柔和的深灰色标题 */
+            text-align: center; /* 标题居中对齐 */
+            margin-top: 20px;
+        }
+
+        .container {
+            width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        table {
+            border-collapse: collapse; /* 合并边框 */
+            width: 100%; /* 表格宽度为100% */
+            margin: 20px 0; /* 表格上下间距 */
+            background-color: #fff; /* 白色背景 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 轻微的阴影效果 */
+        }
+
+        th, td {
+            border: 1px solid #ddd; /* 更柔和的边框颜色 */
+            padding: 10px; /* 增加内边距 */
+            text-align: center; /* 单元格内容居中对齐 */
+            font-size: 12px; /* 调整字体大小 */
+        }
+
+        th {
+            background-color: #f2f2f2; /* 表头背景颜色 */
+            font-weight: bold; /* 表头加粗 */
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9; /* 隔行变色 */
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 2px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pagination button.disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                font-size: 10px; /* 较小的基础字体大小 */
+            }
+
+            .container {
+                width: 800px;
+            }
+
+            th, td {
+                font-size: 0.8em;
+                padding: 8px; /* 较小的内边距 */
+            }
+        }
+    </style>
+</head>
+<body>
+<h1 >灵狗稳定性</h1>
+<div class="container">
+    <h2>灵狗接口稳定性</h2>
+    <table id="nginx-table">
+        <thead>
+        <tr>
+            <th>日期</th>
+            <th>核心接口名称</th>
+            <th>请求异常数量</th>
+            <!--                <th>超时请求数</th>-->
+            <th>总请求数</th>
+            <th>异常请求占比</th>
+            <th>异常码4xx数量</th>
+            <th>异常码5xx数量</th>
+            <th>出现异常码</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .Nginx }}
+        <tr>
+            <td>{{ .Date }}</td>
+            <td>{{ .CoreApiName }}</td>
+            <td>{{ .FailCount }}</td>
+            <td>{{ .TotalCount }}</td>
+            <td class="color-cell" data-value="{{ .FailRate }}" data-type="rate">{{ printf "%.2f" .FailRate }}%</td>
+            <td>{{ .FailStatus4xx }}</td>
+            <td>{{ .FailStatus5xx }}</td>
+            <td>{{ .FailStatus }}</td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+    <div class="pagination" id="nginx-pagination"></div>
+</div>
+
+<div class="container">
+    <h2>灵狗接口耗时</h2>
+    <table id="logstore-table">
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>核心接口名称</th>
+                <th>平均耗时</th>
+                <th>耗时占比[0, 1)s</th>
+                <th>耗时占比[1, 3)s</th>
+                <th>耗时占比[3, 5)s</th>
+                <th>耗时占比[5, 10)s</th>
+                <th>耗时占比[10, 20)s</th>
+                <th>耗时占比[20, 30)s</th>
+                <th>耗时占比[30, 50)s</th>
+                <th>耗时占比[50, 100)s</th>
+                <th>耗时占比[100, ∞)s</th>
+<!--                <th>异常请求占比</th>-->
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .Business }}
+            <tr>
+                <td>{{ .Date }}</td>
+                <td>{{ .Node }}</td>
+                <td>{{ printf "%.2f" .AvgCost }}</td>
+                <td class="color-cell" data-value="{{ .CostDistribution0_1 }}" data-type="rate">{{ printf "%.2f" .CostDistribution0_1 }}%</td>
+                <td class="color-cell" data-value="{{ .CostDistribution1_3 }}" data-type="rate">{{ printf "%.2f" .CostDistribution1_3 }}%</td>
+                <td class="color-cell" data-value="{{ .CostDistribution3_5 }}" data-type="rate">{{ printf "%.2f" .CostDistribution3_5 }}%</td>
+                <td class="color-cell" data-value="{{ .CostDistribution5_10 }}" data-type="rate">{{ printf "%.2f" .CostDistribution5_10 }}%</td>
+                <td class="color-cell" data-value="{{ .CostDistribution10_20 }}" data-type="rate">{{ printf "%.2f" .CostDistribution10_20 }}%</td>
+                <td class="color-cell" data-value="{{ .CostDistribution20_30 }}" data-type="rate">{{ printf "%.2f" .CostDistribution20_30 }}%</td>
+                <td class="color-cell" data-value="{{ .CostDistribution30_50 }}" data-type="rate">{{ printf "%.2f" .CostDistribution30_50 }}%</td>
+                <td class="color-cell" data-value="{{ .CostDistribution50_100 }}" data-type="rate">{{ printf "%.2f" .CostDistribution50_100 }}%</td>
+                <td class="color-cell" data-value="{{ .CostDistribution100_inf }}" data-type="rate">{{ printf "%.2f" .CostDistribution100_inf }}%</td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+    <div class="pagination" id="logstore-pagination"></div>
+</div>
+
+<script>
+    // function paginateTable(tableId, rowsPerPage, paginationId) {
+    //     let currentPage = 1;
+    //     const table = document.getElementById(tableId);
+    //     const tbody = table.querySelector('tbody');
+    //     const paginationControls = document.getElementById(paginationId);
+    //     const rows = Array.from(tbody.rows);
+    //
+    //     function renderTable() {
+    //         const start = (currentPage - 1) * rowsPerPage;
+    //         const end = start + rowsPerPage;
+    //         rows.forEach((row, index) => {
+    //             row.style.display = index >= start && index < end ? '' : 'none';
+    //         });
+    //         renderPaginationControls();
+    //     }
+    //
+    //     function renderPaginationControls() {
+    //         const totalPages = Math.ceil(rows.length / rowsPerPage);
+    //         paginationControls.innerHTML = '';
+    //
+    //         function createButton(page) {
+    //             const button = document.createElement('button');
+    //             button.textContent = page;
+    //             button.className = page === currentPage ? 'disabled' : '';
+    //             button.disabled = page === currentPage;
+    //             button.addEventListener('click', () => {
+    //                 currentPage = page;
+    //                 renderTable();
+    //             });
+    //             paginationControls.appendChild(button);
+    //         }
+    //
+    //         function createEllipsis() {
+    //             const ellipsis = document.createElement('span');
+    //             ellipsis.textContent = '...';
+    //             paginationControls.appendChild(ellipsis);
+    //         }
+    //
+    //         if (totalPages <= 5) {
+    //             for (let i = 1; i <= totalPages; i++) {
+    //                 createButton(i);
+    //             }
+    //         } else {
+    //             createButton(1);
+    //             if (currentPage > 3) {
+    //                 createEllipsis();
+    //             }
+    //
+    //             let startPage = Math.max(2, currentPage - 1);
+    //             let endPage = Math.min(totalPages - 1, currentPage + 1);
+    //
+    //             if (currentPage <= 3) {
+    //                 endPage = 4;
+    //             }
+    //
+    //             if (currentPage >= totalPages - 2) {
+    //                 startPage = totalPages - 3;
+    //             }
+    //
+    //             for (let i = startPage; i <= endPage; i++) {
+    //                 createButton(i);
+    //             }
+    //
+    //             if (currentPage < totalPages - 2) {
+    //                 createEllipsis();
+    //             }
+    //             createButton(totalPages);
+    //         }
+    //     }
+    //
+    //     renderTable();
+    // }
+
+    function paginateTable(tableId, rowsPerPage, paginationId) {
+        let currentPage = 1;
+        const table = document.getElementById(tableId);
+        const tbody = table.querySelector('tbody');
+        const paginationControls = document.getElementById(paginationId);
+        const rows = Array.from(tbody.rows);
+
+        // 添加日期信息到行数据中
+        rows.forEach((row, index) => {
+            row.dataset.date = table.rows[index + 1].cells[0].textContent;
+        });
+
+        function renderTable() {
+            let currentDate = '';
+            let rowSpan = 1;
+
+            let i = 0;
+            for (let j = 0; j < rows.length; j++) {
+                const row = rows[j];
+                const rowDate = row.dataset.date;
+
+                if (rowDate === currentDate) {
+                    rows[i].cells[0].rowSpan = ++rowSpan
+                    row.cells[0].style.display = 'none'
+                    // row.cells[0].rowSpan = ++rowSpan;
+                    // row.cells[0].style.textAlign = 'center';
+                    // delete row.cells[1]
+                    // for (let k = 1; k < row.cells.length; k++) {
+                    //     row.cells[k].style.display = 'none';
+                    // }
+                } else {
+                    i = j
+                    rowSpan = 1;
+                    currentDate = rowDate;
+                    for (let k = 1; k < row.cells.length; k++) {
+                        row.cells[k].style.display = '';
+                    }
+                }
+
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+                row.style.display = i >= start && i < end ? '' : 'none';
+            }
+
+            renderPaginationControls();
+        }
+
+        function renderPaginationControls() {
+            const totalPages = Math.ceil(rows.length / rowsPerPage);
+            paginationControls.innerHTML = '';
+
+            function createButton(page) {
+                const button = document.createElement('button');
+                button.textContent = page;
+                button.className = page === currentPage ? 'disabled' : '';
+                button.disabled = page === currentPage;
+                button.addEventListener('click', () => {
+                    currentPage = page;
+                    renderTable();
+                });
+                paginationControls.appendChild(button);
+            }
+
+            function createEllipsis() {
+                const ellipsis = document.createElement('span');
+                ellipsis.textContent = '...';
+                paginationControls.appendChild(ellipsis);
+            }
+
+            if (totalPages <= 5) {
+                for (let i = 1; i <= totalPages; i++) {
+                    createButton(i);
+                }
+            } else {
+                createButton(1);
+                if (currentPage > 3) {
+                    createEllipsis();
+                }
+
+                let startPage = Math.max(2, currentPage - 1);
+                let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+                if (currentPage <= 3) {
+                    endPage = 4;
+                }
+
+                if (currentPage >= totalPages - 2) {
+                    startPage = totalPages - 3;
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    createButton(i);
+                }
+
+                if (currentPage < totalPages - 2) {
+                    createEllipsis();
+                }
+                createButton(totalPages);
+            }
+        }
+
+        renderTable();
+    }
+
+    function getColor(value, type) {
+        let normalizedValue;
+
+        switch(type) {
+            case 'rate':
+                // 假设失败率范围是 0-100%
+                normalizedValue = value / 100;
+                break;
+            case 'count':
+                // 假设失败次数范围是 0-1000
+                normalizedValue = value / 1000;
+                break;
+            // 可以添加更多的类型
+            default:
+                normalizedValue = 0;
+        }
+
+        // 确保 normalizedValue 在 0-1 之间
+        normalizedValue = Math.max(0, Math.min(1, normalizedValue));
+        normalizedValue = Math.ceil(normalizedValue * 10) / 10
+        return `rgb(255, 0, 0, ${normalizedValue})`
+
+        // const red = Math.round(128 + (127 * normalizedValue));
+        // const green = Math.round(255 * (1 - normalizedValue));
+        // const blue = Math.round(255 * (1 - normalizedValue));
+        //
+        // // const green = 0;
+        // // const blue = 0;
+        //
+        // return `rgb(${red}, ${green}, ${blue})`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        paginateTable('nginx-table', 10, 'nginx-pagination');
+        paginateTable('logstore-table', 10, 'logstore-pagination');
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const colorCells = document.querySelectorAll('.color-cell');
+
+        colorCells.forEach(cell => {
+            const value = parseFloat(cell.dataset.value);
+            const type = cell.dataset.type;
+            cell.style.backgroundColor = getColor(value, type);
+        });
+    });
+</script>
+
+</body>
+</html>

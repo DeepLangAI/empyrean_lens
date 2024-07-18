@@ -12,7 +12,8 @@ import (
 var conf Config
 
 type Config struct {
-	Server Server `yaml:"server"`
+	Server          Server `yaml:"server"`
+	LogTemplatePath string `yaml:"logTemplatePath"`
 }
 
 type Server struct {
@@ -43,6 +44,11 @@ func InitConfig() {
 	if err = yaml.Unmarshal(dataBytes, &conf); err != nil {
 		panic("conf.yaml配置文件读取失败:" + err.Error())
 	}
+	pd, err := getProjectPath()
+	if err != nil {
+		panic(err)
+	}
+	conf.LogTemplatePath = filepath.Join(pd, "templates/rentention.html")
 }
 
 func TestInit() {

@@ -4,10 +4,13 @@ package empyrean_lens
 
 import (
 	"context"
+	"empyrean_lens/conf"
 	"empyrean_lens/service"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/adaptor"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"html/template"
+	"os"
 
 	empyrean_lens "empyrean_lens/biz/model/empyrean_lens"
 	"github.com/cloudwego/hertz/pkg/app"
@@ -59,9 +62,11 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 		Nginx:    nginxmonthReport,
 		Business: businessMonthReport,
 	}
-	tpl, err := template.ParseFiles("templates/rentention.html")
+	tpl, err := template.ParseFiles(conf.GetConfig().LogTemplatePath)
+	wd, _ := os.Getwd()
+	hlog.CtxInfof(ctx, "template path: %v. wd: %v", conf.GetConfig().LogTemplatePath, wd)
 	if err != nil {
-		c.String(consts.StatusInternalServerError, err.Error())
+		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
 		return
 	}
 	tpl.Execute(rw, report)

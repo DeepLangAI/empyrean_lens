@@ -3,15 +3,36 @@
 package main
 
 import (
+	"context"
+	"empyrean_lens/conf"
 	"empyrean_lens/dal"
+	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 func main() {
-	h := server.Default()
 
+	conf.InitConfig()
 	dal.Init()
+	h := server.Default(server.WithHostPorts(conf.GetConfig().Server.Port))
+
+	// Recovery 兜底策略
+	h.Use(recovery.Recovery(recovery.WithRecoveryHandler(RecoveryHandler)))
 
 	register(h)
 	h.Spin()
+}
+func RecoveryHandler(c context.Context, ctx *app.RequestContext, err interface{}, stack []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			hlog.CtxErrorf(c, "[Recovery] panic recovered: %v", r)
+		}
+	}()
+	hlog.CtxErrorf(c, "[Recovery] err=%v\nstack=%s", err, stack)
+	hlog.CtxErrorf(c, "Client: %s", ctx.Request.Header.UserAgent())
+	//base := handler.BaseHandler{}
+	//base.ErrorResponse(c, ctx, &consts2.SystemErr, nil)
+	ctx.Abort()
 }

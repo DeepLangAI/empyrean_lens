@@ -5,14 +5,15 @@ go 1.20
 replace github.com/apache/thrift => github.com/apache/thrift v0.13.0
 
 require (
+	codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib v1.0.11
 	github.com/aliyun/aliyun-log-go-sdk v0.1.80
 	github.com/apache/thrift v0.13.0
 	github.com/bytedance/sonic v1.8.1
 	github.com/cloudwego/hertz v0.8.1
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib v1.0.11 // indirect
 	github.com/bytedance/go-tagexpr/v2 v2.9.2 // indirect
 	github.com/bytedance/gopkg v0.0.0-20220413063733-65bf48ffb3a7 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect

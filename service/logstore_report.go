@@ -15,6 +15,7 @@ type CoreLogMonthReportModel struct {
 	Core                    string
 	Node                    string
 	TotalCost               float64
+	NumReq                  int64
 	Costs                   []float64
 	AvgCost                 float64
 	CostDistribution0_1     float64
@@ -33,6 +34,7 @@ func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error)
 	cores := []string{
 		consts.CORE_NAME_OUTLINE,
 		consts.CORE_NAME_ABSTRACT,
+		consts.CORE_NAME_VIEWPOINT,
 	}
 	var mutex sync.Mutex
 	wg := sync.WaitGroup{}
@@ -43,6 +45,8 @@ func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error)
 		consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST,
 		consts.ALIYUN_LOG_NODE_ABSTRACT_AI_COST,
 		consts.ALIYUN_LOG_NODE_ABSTRACT_ETE_COST,
+		consts.ALIYUN_LOG_NODE_QA_DONE_COST,
+		consts.ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST,
 	}
 
 	for i := 0; i < len(cores); i++ {
@@ -54,17 +58,17 @@ func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error)
 				return
 			}
 			mutex.Lock()
-			var aiStart float64
+			//var aiStart float64
 			for _, log := range logs {
-				if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_START {
-					aiStart = log.Cost
-				}
+				//if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_START {
+				//	aiStart = log.Cost
+				//}
 				if !utils.Contains(nodes, log.Node) {
 					continue
 				}
-				if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST {
-					log.Cost = log.Cost - aiStart
-				}
+				//if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST {
+				//	log.Cost = log.Cost
+				//}
 				day := log.Time.Day()
 				dayReports, ok := monthReports[day]
 				if !ok {
@@ -82,6 +86,7 @@ func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error)
 					}
 				}
 				report.Costs = append(report.Costs, log.Cost)
+				report.NumReq += 1
 				report.TotalCost += log.Cost
 				if log.Cost < 1 {
 					report.CostDistribution0_1 += 1

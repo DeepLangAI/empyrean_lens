@@ -101,10 +101,12 @@
         <tr>
             <th>日期</th>
             <th>核心接口名称</th>
+            <th>主机地址</th>
             <th>请求异常数量</th>
             <!--                <th>超时请求数</th>-->
             <th>总请求数</th>
             <th>异常请求占比</th>
+            <th>异常码3xx数量</th>
             <th>异常码4xx数量</th>
             <th>异常码5xx数量</th>
 <!--            <th>出现异常码</th>-->
@@ -115,9 +117,11 @@
         <tr>
             <td>{{ .Date }}</td>
             <td>{{ .CoreApiName }}</td>
+            <td style="text-align:left">{{ .HostName }}</td>
             <td>{{ .FailCount }}</td>
             <td>{{ .TotalCount }}</td>
             <td class="color-cell" data-value="{{ .FailRate }}" data-type="rate">{{ printf "%.2f" .FailRate }}%</td>
+            <td>{{ .FailStatus3xx }}</td>
             <td>{{ .FailStatus4xx }}</td>
             <td>{{ .FailStatus5xx }}</td>
 <!--            <td>{{ .FailStatus }}</td>-->
@@ -135,6 +139,7 @@
             <tr>
                 <th>日期</th>
                 <th>核心接口名称</th>
+                <th>请求次数</th>
                 <th>平均耗时</th>
 <!--                <th>耗时占比[0, 1)s</th>-->
                 <th>耗时占比[1, 3)s</th>
@@ -153,6 +158,7 @@
             <tr>
                 <td>{{ .Date }}</td>
                 <td>{{ .Node }}</td>
+                <td>{{ .NumReq }}</td>
                 <td>{{ printf "%.2f" .AvgCost }}</td>
 <!--                <td class="color-cell" data-value="{{ .CostDistribution0_1 }}" data-type="rate">{{ printf "%.2f" .CostDistribution0_1 }}%</td>-->
                 <td class="color-cell" data-value="{{ .CostDistribution1_3 }}" data-type="rate">{{ printf "%.2f" .CostDistribution1_3 }}%</td>
@@ -272,6 +278,8 @@
                     i = j
                     rowSpan = 1;
                     currentDate = rowDate;
+                    row.cells[1].style.fontWeight = "bold"
+                    row.cells[1].style.color = "rebeccapurple"
                     for (let k = 1; k < row.cells.length; k++) {
                         row.cells[k].style.display = '';
                     }

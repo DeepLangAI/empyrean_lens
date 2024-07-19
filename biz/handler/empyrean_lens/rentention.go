@@ -22,20 +22,6 @@ type Report struct {
 	Business []service.CoreLogMonthReportModel
 }
 
-func getColor(rate float64) template.HTMLAttr {
-	// 将百分比转换为 0-1 之间的值
-	normalizedRate := rate / 100
-
-	// 红色分量，随着率值增加而增加
-	red := uint8(255 * normalizedRate)
-
-	// 绿色和蓝色分量，随着率值增加而减少
-	green := uint8(255 * (1 - normalizedRate))
-	blue := uint8(255 * (1 - normalizedRate))
-
-	return template.HTMLAttr(fmt.Sprintf("rgb(%d, %d, %d)", red, green, blue))
-}
-
 // LogRender .
 // @router /api/log/report [GET]
 func LogRender(ctx context.Context, c *app.RequestContext) {

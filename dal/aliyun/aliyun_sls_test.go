@@ -54,22 +54,46 @@ func TestNginxIngressLogQuery(t *testing.T) {
 		t.Error(err)
 	} else {
 		for _, log := range logs {
+			if log.CleanUrl != "/edu_parse" {
+				continue
+			}
 			fmt.Println(log)
 		}
 	}
-
 }
 
 func TestOutlineLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	//logs, e := CoreLogQuery(ctx, 0, consts.CORE_NAME_OUTLINE)
-	logs, e := CoreLogQuery(ctx, 0, consts.CORE_NAME_OUTLINE)
+	//logs, e := SummaryCoreLogQuery(ctx, 0, consts.CORE_NAME_OUTLINE)
+	logs, e := SummaryCoreLogQuery(ctx, 1, consts.CORE_NAME_OUTLINE)
 	if e != nil {
 		t.Error(e)
 	} else {
+		cnt := 0
 		for _, log := range logs {
-			fmt.Println(log)
+			if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST {
+				cnt += 1
+				fmt.Println(cnt, log)
+			}
+		}
+	}
+}
+func TestOutlineLogQueryViewpoint(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	//logs, e := SummaryCoreLogQuery(ctx, 0, consts.CORE_NAME_OUTLINE)
+	logs, e := SummaryCoreLogQuery(ctx, 1, consts.CORE_NAME_VIEWPOINT)
+	if e != nil {
+		t.Error(e)
+	} else {
+		cnt := 0
+		for _, log := range logs {
+			fmt.Println(cnt, log)
+			if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST {
+				cnt += 1
+				fmt.Println(cnt, log)
+			}
 		}
 	}
 }
@@ -84,7 +108,7 @@ func TestCoreLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
 
-	coreLogs, err := CoreLogQuery(ctx, 0, consts.CORE_NAME_OUTLINE)
+	coreLogs, err := SummaryCoreLogQuery(ctx, 0, consts.CORE_NAME_OUTLINE)
 	if err != nil {
 		t.Error(err)
 	}
@@ -103,8 +127,10 @@ func TestCoreLogQuery(t *testing.T) {
 func TestCoreReportThisMonth(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	CoreReportThisMonth(ctx, consts.CORE_NAME_OUTLINE)
-
+	logs, _ := CoreReportThisMonth(ctx, consts.CORE_NAME_OUTLINE)
+	for _, l := range logs {
+		fmt.Println(l)
+	}
 }
 
 func TestStatusCodeUpdate(t *testing.T) {
@@ -115,4 +141,108 @@ func TestStatusCodeUpdate(t *testing.T) {
 		s = strings.Join(codes, ",")
 	}
 	fmt.Println(s)
+}
+
+func TestNginxIngressBasicQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs, err := NginxIngressBasicQuery(ctx, 1, consts.HOST_LINGO_BACKEND)
+	if err != nil {
+
+		t.Error(err)
+	} else {
+		cnt := 0
+		for _, log := range logs {
+			if log.CleanUrl == "/api/plugin/articles/summary" {
+				cnt += 1
+				fmt.Println(cnt, log)
+			}
+		}
+	}
+}
+
+func TestModelNginxIngressBasicQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	if logs, err := ModelNginxIngressBasicQuery(ctx, 0, consts.HOST_ABSTRACT); err != nil {
+
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
+}
+
+func TestMetrLogQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	daysLookback := 1
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+(__tag__:_container_name_: lingo-chat-go-prod and message: "问答模型,") |  
+select 
+regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 1) as node, 
+regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 2) as cnt, 
+regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 3) as cost,trace_id,user_id, time 
+from log order by time desc
+`
+	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
+	if err != nil {
+		t.Error(err)
+	}
+	for _, log := range logs.Logs {
+		fmt.Println(log)
+	}
+}
+
+func TestQaCoreLogQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs, err := QaCoreLogQuery(ctx, 0)
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
+
+}
+
+func TestModelNginxIngressLogQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs, err := ModelNginxIngressLogQuery(ctx, 0)
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
+
+}
+
+func TestCommonCoreLogQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs, err := CommonCoreLogQuery(ctx, 1, consts.CORE_NAME_VIEWPOINT)
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
 }

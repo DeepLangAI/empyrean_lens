@@ -60,3 +60,7 @@ func compute_satability_score(data map[string]float64) int {
 func ComputeStability(data map[string]float64) int {
 	return compute_satability_score(data)
 }
+
+func ComputeRevent(data map[string]int) {
+
+}

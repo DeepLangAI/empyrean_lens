@@ -11,6 +11,8 @@ _cgo_defun.c
 _cgo_gotypes.go
 _cgo_export.*
 _testmain.go
+*.xlsx
+*.jsonl
 *.exe
 *.exe~
 *.test
@@ -22,7 +24,7 @@ _testmain.go
 *.bmd
 *.cfg
 *.pptx
-*.log
+*.log*
 *nohup.out
 *settings.pyc
 *.sublime-project
@@ -32,6 +34,6 @@ _testmain.go
 /.idea
 /.vscode
 /output
+/logs
 *.local.yml
 dumped_hertz_remote_config.json
-		  

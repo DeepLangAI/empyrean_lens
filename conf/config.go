@@ -61,6 +61,17 @@ func InitConfig() {
 	if err != nil {
 		panic(err)
 	}
+	// 确保日志文件所在目录已创建
+	ensureDirExists(filepath.Dir(conf.Logger.LogPath))
+}
+
+func ensureDirExists(dir string) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err := os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func TestInit() {

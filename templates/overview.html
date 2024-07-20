@@ -129,13 +129,66 @@
     <a href="/api/log/report">灵狗接口稳定性</a>
 </nav>
 <h1 >灵狗稳定性</h1>
+
 <div class="container">
-    <h2>灵狗系统可用性 天级数据</h2>
+    <h2 id="realtime-heading">灵狗系统可用性 实时数据</h2>
+    <table id="realtime-overview-table">
+        <thead>
+            <tr>
+                <th>指标</th>
+                <th>值</th>
+                <th>环比</th>
+                <th>同比</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>稳定性打分</td>
+                <td>{{.RealtimeOverview.Availability.Value }}</td>
+                <td>{{ printf "%.2f" .RealtimeOverview.Availability.DayOverDay}}%</td>
+                <td>{{ printf "%.2f" .RealtimeOverview.Availability.WeekOverWeek}}%</td>
+            </tr>
+            <tr>
+                <td>总请求量</td>
+                <td>{{.RealtimeOverview.TotalRequest.Value }}</td>
+                <td>{{ printf "%.2f" .RealtimeOverview.TotalRequest.DayOverDay}}%</td>
+                <td>{{ printf "%.2f" .RealtimeOverview.TotalRequest.WeekOverWeek}}%</td>
+            </tr>
+            <tr>
+                <td>错误数</td>
+                <td>{{.RealtimeOverview.ErrorRequest.Value }}</td>
+                <td>{{ printf "%.2f" .RealtimeOverview.ErrorRequest.DayOverDay}}%</td>
+                <td>{{ printf "%.2f" .RealtimeOverview.ErrorRequest.WeekOverWeek}}%</td>
+            </tr>
+            <tr>
+                <td>平均处理时长</td>
+                <td>-</td>
+                <td>0%</td>
+                <td>0%</td>
+            </tr>
+            <tr>
+                <td>慢查询比例</td>
+                <td>-</td>
+                <td>0%</td>
+                <td>0%</td>
+            </tr>
+            <tr>
+                <td>监控探针错误数</td>
+                <td>-</td>
+                <td>0%</td>
+                <td>0%</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+<div class="container">
+    <h2 id="daily-heading">灵狗系统可用性 天级数据</h2>
     <table id="daily-overview-table">
         <thead>
         <tr>
             <th>日期</th>
-            <th></th>
             <th>稳定性打分</th>
             <th>环比</th>
             <th>同比</th>
@@ -145,7 +198,6 @@
         {{ range .DailyOverview  }}
         <tr>
             <td>{{ .Date }}</td>
-            <td>系统可用性</td>
             <td>{{ .Score }}</td>
             <td>{{ printf "%.2f"  .DayOverDay }}%</td>
             <td>{{ printf "%.2f"  .WeekOverWeek }}%</td>
@@ -307,6 +359,54 @@
             cell.style.backgroundColor = getColor(value, type);
         });
     });
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取当前日期
+        var currentDate = new Date();
+        var formattedDate = currentDate.getFullYear() + '-' +
+            ('0' + (currentDate.getMonth() + 1)).slice(-2) + '-' +
+            ('0' + currentDate.getDate()).slice(-2);
+
+        // 获取h2标签
+        var heading = document.getElementById('realtime-heading');
+
+        // 修改h2标签的文本，并追加当前日期
+        heading.textContent += ' ' + formattedDate;
+    });
+
+    function updateHeading(dateQueryPath, headingId){
+        // 获取所有日期单元格
+        var dateCells = document.querySelectorAll(dateQueryPath);
+
+        if (dateCells.length === 0) {
+            return;
+        }
+
+        // 提取所有日期并转换为Date对象
+        var dates = Array.from(dateCells).map(function(cell) {
+            return new Date(cell.textContent);
+        });
+
+        // 找到最小和最大日期
+        var minDate = new Date(Math.min.apply(null, dates));
+        var maxDate = new Date(Math.max.apply(null, dates));
+
+        // 格式化日期
+        function formatDate(date) {
+            var year = date.getFullYear();
+            var month = ('0' + (date.getMonth() + 1)).slice(-2);
+            var day = ('0' + date.getDate()).slice(-2);
+            return year + '-' + month + '-' + day;
+        }
+
+        // 获取h2标签
+        var heading = document.getElementById(headingId);
+        heading.textContent += ' (' + formatDate(minDate) + ' 至 ' + formatDate(maxDate) + ')';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateHeading('#daily-overview-table tbody tr td:first-child', 'daily-heading');
+    });
+
 </script>
 
 </body>

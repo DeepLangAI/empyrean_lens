@@ -23,11 +23,17 @@ type NginxMonthReportModel struct {
 }
 
 func NginxMonthReport(ctx context.Context) ([]NginxMonthReportModel, error) {
+	//monthLogs := []aliyun.NginxLog{}
+	//nlogs, _ := aliyun.NginxIngressLogQuery(ctx, 0)
+	//mlogs, _ := aliyun.ModelNginxIngressLogQuery(ctx, 0)
+	//monthLogs = append(monthLogs, nlogs...)
+	//monthLogs = append(monthLogs, mlogs...)
 
 	monthLogs, err := aliyun.NginxReportThisMonth(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	// day-host-api
 	monthReports := map[int]map[string]map[string]NginxMonthReportModel{}
 	for _, log := range monthLogs {

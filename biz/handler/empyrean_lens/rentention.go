@@ -62,7 +62,8 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 }
 
 type Overview struct {
-	DailyOverview []utils.ReventResult
+	DailyOverview    []utils.ReventResult
+	RealtimeOverview service.RealtimeReport
 }
 
 // OverviewRender .
@@ -75,6 +76,12 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		c.String(consts.StatusBadRequest, err.Error())
 		return
 	}
+	realtimeOverview, err := service.RealtimeAvailability(ctx)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
+
 	dailyOverview, err := service.SystemAvailability(ctx)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())
@@ -82,7 +89,8 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 	}
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{
-		DailyOverview: dailyOverview,
+		DailyOverview:    dailyOverview,
+		RealtimeOverview: realtimeOverview,
 	}
 
 	tpl, err := template.ParseFiles(filepath.Join(utils.GetProjectPath(), consts2.OVERVIEW_TEMPLATE_PATH))

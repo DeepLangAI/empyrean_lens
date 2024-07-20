@@ -131,7 +131,7 @@
 </nav>
 <h1 >灵狗稳定性</h1>
 <div class="container">
-    <h2>灵狗接口稳定性</h2>
+    <h2 id="nginx-heading">灵狗接口稳定性</h2>
     <table id="nginx-table">
         <thead>
         <tr>
@@ -169,7 +169,7 @@
 </div>
 
 <div class="container">
-    <h2>灵狗接口耗时</h2>
+    <h2 id="logstore-heading">灵狗接口耗时</h2>
     <table id="logstore-table">
         <thead>
             <tr>
@@ -214,78 +214,6 @@
 
 
 <script>
-    // function paginateTable(tableId, rowsPerPage, paginationId) {
-    //     let currentPage = 1;
-    //     const table = document.getElementById(tableId);
-    //     const tbody = table.querySelector('tbody');
-    //     const paginationControls = document.getElementById(paginationId);
-    //     const rows = Array.from(tbody.rows);
-    //
-    //     function renderTable() {
-    //         const start = (currentPage - 1) * rowsPerPage;
-    //         const end = start + rowsPerPage;
-    //         rows.forEach((row, index) => {
-    //             row.style.display = index >= start && index < end ? '' : 'none';
-    //         });
-    //         renderPaginationControls();
-    //     }
-    //
-    //     function renderPaginationControls() {
-    //         const totalPages = Math.ceil(rows.length / rowsPerPage);
-    //         paginationControls.innerHTML = '';
-    //
-    //         function createButton(page) {
-    //             const button = document.createElement('button');
-    //             button.textContent = page;
-    //             button.className = page === currentPage ? 'disabled' : '';
-    //             button.disabled = page === currentPage;
-    //             button.addEventListener('click', () => {
-    //                 currentPage = page;
-    //                 renderTable();
-    //             });
-    //             paginationControls.appendChild(button);
-    //         }
-    //
-    //         function createEllipsis() {
-    //             const ellipsis = document.createElement('span');
-    //             ellipsis.textContent = '...';
-    //             paginationControls.appendChild(ellipsis);
-    //         }
-    //
-    //         if (totalPages <= 5) {
-    //             for (let i = 1; i <= totalPages; i++) {
-    //                 createButton(i);
-    //             }
-    //         } else {
-    //             createButton(1);
-    //             if (currentPage > 3) {
-    //                 createEllipsis();
-    //             }
-    //
-    //             let startPage = Math.max(2, currentPage - 1);
-    //             let endPage = Math.min(totalPages - 1, currentPage + 1);
-    //
-    //             if (currentPage <= 3) {
-    //                 endPage = 4;
-    //             }
-    //
-    //             if (currentPage >= totalPages - 2) {
-    //                 startPage = totalPages - 3;
-    //             }
-    //
-    //             for (let i = startPage; i <= endPage; i++) {
-    //                 createButton(i);
-    //             }
-    //
-    //             if (currentPage < totalPages - 2) {
-    //                 createEllipsis();
-    //             }
-    //             createButton(totalPages);
-    //         }
-    //     }
-    //
-    //     renderTable();
-    // }
 
     function paginateTable(tableId, rowsPerPage, paginationId) {
         let currentPage = 1;
@@ -432,6 +360,41 @@
             const type = cell.dataset.type;
             cell.style.backgroundColor = getColor(value, type);
         });
+    });
+
+    function updateHeading(dateQueryPath, headingId){
+        // 获取所有日期单元格
+        var dateCells = document.querySelectorAll(dateQueryPath);
+
+        if (dateCells.length === 0) {
+            return;
+        }
+
+        // 提取所有日期并转换为Date对象
+        var dates = Array.from(dateCells).map(function(cell) {
+            return new Date(cell.textContent);
+        });
+
+        // 找到最小和最大日期
+        var minDate = new Date(Math.min.apply(null, dates));
+        var maxDate = new Date(Math.max.apply(null, dates));
+
+        // 格式化日期
+        function formatDate(date) {
+            var year = date.getFullYear();
+            var month = ('0' + (date.getMonth() + 1)).slice(-2);
+            var day = ('0' + date.getDate()).slice(-2);
+            return year + '-' + month + '-' + day;
+        }
+
+        // 获取h2标签
+        var heading = document.getElementById(headingId);
+        heading.textContent += ' (' + formatDate(minDate) + ' 至 ' + formatDate(maxDate) + ')';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateHeading('#nginx-table tbody tr td:first-child', 'nginx-heading');
+        updateHeading('#logstore-table tbody tr td:first-child', 'logstore-heading');
     });
 </script>
 

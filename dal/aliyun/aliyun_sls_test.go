@@ -61,6 +61,16 @@ func TestNginxIngressLogQuery(t *testing.T) {
 		}
 	}
 }
+func TestNginxLogQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs := []NginxLog{}
+	nlogs, _ := NginxIngressLogQuery(ctx, 0)
+	mlogs, _ := ModelNginxIngressLogQuery(ctx, 0)
+	logs = append(logs, nlogs...)
+	logs = append(logs, mlogs...)
+	fmt.Println(len(logs))
+}
 
 func TestOutlineLogQuery(t *testing.T) {
 	ctx := context.Background()

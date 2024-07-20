@@ -3,6 +3,7 @@
 package main
 
 import (
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/logger"
 	"context"
 	"empyrean_lens/conf"
 	"empyrean_lens/dal"
@@ -15,7 +16,9 @@ import (
 func main() {
 
 	conf.InitConfig()
+	logger.Init(conf.GetConfig().Logger)
 	dal.Init()
+
 	h := server.Default(server.WithHostPorts(conf.GetConfig().Server.Port))
 
 	// Recovery 兜底策略

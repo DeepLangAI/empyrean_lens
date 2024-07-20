@@ -110,12 +110,12 @@ func ComputeRevent(scores map[string]int) []ReventResult {
 
 		// 计算日环比
 		if prevScore, exists := scores[prevDay]; exists {
-			dayOverDay = float64(score-prevScore) / float64(prevScore)
+			dayOverDay = float64(score-prevScore) / float64(prevScore) * 100
 		}
 
 		// 计算周同比
 		if prevWeekScore, exists := scores[prevWeek]; exists {
-			weekOverWeek = float64(score-prevWeekScore) / float64(prevWeekScore)
+			weekOverWeek = float64(score-prevWeekScore) / float64(prevWeekScore) * 100
 		}
 
 		// 填充结果

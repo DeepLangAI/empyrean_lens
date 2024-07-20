@@ -18,3 +18,15 @@ func TestSystemAvailability(t *testing.T) {
 		t.Log(s)
 	}
 }
+
+func TestRealtimeAvailability(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	dal.Init()
+	if report, err := RealtimeAvailability(ctx); err != nil {
+		t.Error(err)
+	} else {
+		t.Log(report)
+	}
+
+}

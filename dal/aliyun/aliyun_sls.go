@@ -347,7 +347,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	}
 
 	// 打印查询结果
-	hlog.CtxInfof(ctx, "日期%v，共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
+	hlog.CtxInfof(ctx, "日期%v，查SummaryCore，coreName: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), coreName, resp.Count)
 	coreLogs := []CoreLog{}
 	for _, log := range resp.Logs {
 		cost, e := strconv.ParseFloat(log["cost"], 64)
@@ -375,7 +375,8 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 
 func NginxReportThisMonth(ctx context.Context) ([]NginxLog, error) {
 	now := time.Now()
-	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	//startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	startOfMonth := time.Date(2024, 7, 1, 0, 0, 0, 0, now.Location())
 	totalDays := int(time.Since(startOfMonth).Hours() / 24)
 
 	var mutex sync.Mutex
@@ -408,7 +409,8 @@ func NginxReportThisMonth(ctx context.Context) ([]NginxLog, error) {
 
 func CoreReportThisMonth(ctx context.Context, coreName string) ([]CoreLog, error) {
 	now := time.Now()
-	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	//startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	startOfMonth := time.Date(2024, 7, 1, 0, 0, 0, 0, now.Location())
 	totalDays := int(time.Since(startOfMonth).Hours() / 24)
 
 	var mutex sync.Mutex

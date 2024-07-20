@@ -33,6 +33,8 @@ require (
 	github.com/hertz-contrib/logger/zap v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
+	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f // indirect
+	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/nyaruka/phonenumbers v1.0.55 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect

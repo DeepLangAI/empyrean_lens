@@ -4,6 +4,8 @@ import (
 	"empyrean_lens/consts"
 	"fmt"
 	"math"
+	"sort"
+	"time"
 )
 
 // 指标归一化处理
@@ -52,15 +54,66 @@ func compute_satability_score(data map[string]float64) int {
 		return 0
 	}
 
-	return int(log_norm(data[consts.ERROR_RATE_PARAMETER], 0, 0)*consts.ERROR_WEIGHT +
+	return int((log_norm(data[consts.ERROR_RATE_PARAMETER], 0, 0)*consts.ERROR_WEIGHT +
 		log_norm(data[consts.PROBE_ERROR_RATE_PARAMETER], 0, 0)*consts.PROBE_WEIGHT +
-		log_norm(data[consts.SLOW_SEARCH_RATE_PARAMETER], 0, 0)*consts.SLOW_SEARCH_WEIGHT)
+		log_norm(data[consts.SLOW_SEARCH_RATE_PARAMETER], 0, 0)*consts.SLOW_SEARCH_WEIGHT) * 100)
 }
 
 func ComputeStability(data map[string]float64) int {
 	return compute_satability_score(data)
 }
 
-func ComputeRevent(data map[string]int) {
+func ComputeRevent(scores map[string]int) map[string][3]float64 {
+	result := make(map[string][3]float64)
+	// 解析输入日期，并创建辅助 map
+	parsedDates := make(map[string]time.Time)
+	for dateStr := range scores {
+		date, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			fmt.Println("Error parsing date:", err)
+			continue
+		}
+		parsedDates[dateStr] = date
+	}
 
+	for dateStr, score := range scores {
+		date := parsedDates[dateStr]
+
+		// 计算前一天和前一周的日期
+		prevDay := date.AddDate(0, 0, -1).Format("2006-01-02")
+		prevWeek := date.AddDate(0, 0, -7).Format("2006-01-02")
+
+		// 初始化日环比和周同比
+		dayOverDay := 0.0
+		weekOverWeek := 0.0
+
+		// 计算日环比
+		if prevScore, exists := scores[prevDay]; exists {
+			dayOverDay = float64(score-prevScore) / float64(prevScore)
+		}
+
+		// 计算周同比
+		if prevWeekScore, exists := scores[prevWeek]; exists {
+			weekOverWeek = float64(score-prevWeekScore) / float64(prevWeekScore)
+		}
+
+		// 填充结果
+		result[dateStr] = [3]float64{float64(score), dayOverDay, weekOverWeek}
+	}
+
+	// 按日期排序
+	sortedResult := make(map[string][3]float64)
+	var dates []string
+	for date := range result {
+		dates = append(dates, date)
+	}
+	sort.Slice(dates, func(i, j int) bool {
+		return dates[i] < dates[j]
+	})
+
+	for _, date := range dates {
+		sortedResult[date] = result[date]
+	}
+
+	return sortedResult
 }

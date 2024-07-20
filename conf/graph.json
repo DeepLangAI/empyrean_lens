@@ -1,0 +1,15 @@
+{
+  "edges": [
+    {"from": "0", "to": "1"},
+    {"from": "1", "to": "3"},
+    {"from": "1", "to": "4"},
+    {"from": "0", "to": "2"}
+  ],
+  "functions": {
+    "0": {"f_name": "Root", "label": "root", "status": 1},
+    "1": {"f_name": "Login", "label": "login"},
+    "2": {"f_name": "Logout", "label": "logout"},
+    "3": {"f_name": "UploadPDF", "label": "上传PDF"},
+    "4": {"f_name": "UploadURL", "label": "上传URL"}
+  }
+}

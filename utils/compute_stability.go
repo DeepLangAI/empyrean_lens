@@ -3,13 +3,14 @@ package utils
 import (
 	"empyrean_lens/consts"
 	"fmt"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"math"
 	"sort"
 	"time"
 )
 
 // 指标归一化处理
-func log_norm(data float64, minVal float64, maxVal float64) float64 {
+func LogNorm(data float64, minVal float64, maxVal float64) float64 {
 	//设置默认值
 	if minVal == 0 {
 		minVal = 0.0001
@@ -39,6 +40,19 @@ func log_norm(data float64, minVal float64, maxVal float64) float64 {
 	return normalizedData
 }
 
+type SystemStablityFactor struct {
+	ApiFailRate   float64
+	SlowQueryRate float64
+	ProbeFailRate float64
+}
+
+// 计算稳定性得分
+func ComputeStablityScore(factor SystemStablityFactor) int {
+	return int(((1-LogNorm(factor.ApiFailRate, 0, 0))*consts.ERROR_WEIGHT +
+		(1-LogNorm(factor.ProbeFailRate, 0, 0))*consts.PROBE_WEIGHT +
+		(1-LogNorm(factor.SlowQueryRate, 0, 0))*consts.SLOW_SEARCH_WEIGHT) * 100)
+}
+
 // 计算稳定性得分
 func compute_satability_score(data map[string]float64) int {
 	if _, ok := data[consts.ERROR_RATE_PARAMETER]; !ok {
@@ -54,23 +68,30 @@ func compute_satability_score(data map[string]float64) int {
 		return 0
 	}
 
-	return int((log_norm(data[consts.ERROR_RATE_PARAMETER], 0, 0)*consts.ERROR_WEIGHT +
-		log_norm(data[consts.PROBE_ERROR_RATE_PARAMETER], 0, 0)*consts.PROBE_WEIGHT +
-		log_norm(data[consts.SLOW_SEARCH_RATE_PARAMETER], 0, 0)*consts.SLOW_SEARCH_WEIGHT) * 100)
+	return int((LogNorm(data[consts.ERROR_RATE_PARAMETER], 0, 0)*consts.ERROR_WEIGHT +
+		LogNorm(data[consts.PROBE_ERROR_RATE_PARAMETER], 0, 0)*consts.PROBE_WEIGHT +
+		LogNorm(data[consts.SLOW_SEARCH_RATE_PARAMETER], 0, 0)*consts.SLOW_SEARCH_WEIGHT) * 100)
 }
 
 func ComputeStability(data map[string]float64) int {
 	return compute_satability_score(data)
 }
 
-func ComputeRevent(scores map[string]int) map[string][3]float64 {
-	result := make(map[string][3]float64)
+type ReventResult struct {
+	Date         string  // 日期，如2006-01-02
+	Score        float64 // 系统得分
+	DayOverDay   float64 // 环比
+	WeekOverWeek float64 // 同比
+}
+
+func ComputeRevent(scores map[string]int) []ReventResult {
+	reventResults := []ReventResult{}
 	// 解析输入日期，并创建辅助 map
 	parsedDates := make(map[string]time.Time)
 	for dateStr := range scores {
 		date, err := time.Parse("2006-01-02", dateStr)
 		if err != nil {
-			fmt.Println("Error parsing date:", err)
+			hlog.CtxErrorf(nil, "Error parsing date: %v", err)
 			continue
 		}
 		parsedDates[dateStr] = date
@@ -98,22 +119,17 @@ func ComputeRevent(scores map[string]int) map[string][3]float64 {
 		}
 
 		// 填充结果
-		result[dateStr] = [3]float64{float64(score), dayOverDay, weekOverWeek}
+		reventResults = append(reventResults, ReventResult{
+			Date:         dateStr,
+			Score:        float64(score),
+			DayOverDay:   dayOverDay,
+			WeekOverWeek: weekOverWeek,
+		})
 	}
 
 	// 按日期排序
-	sortedResult := make(map[string][3]float64)
-	var dates []string
-	for date := range result {
-		dates = append(dates, date)
-	}
-	sort.Slice(dates, func(i, j int) bool {
-		return dates[i] < dates[j]
+	sort.Slice(reventResults, func(i, j int) bool {
+		return reventResults[i].Date > reventResults[j].Date
 	})
-
-	for _, date := range dates {
-		sortedResult[date] = result[date]
-	}
-
-	return sortedResult
+	return reventResults
 }

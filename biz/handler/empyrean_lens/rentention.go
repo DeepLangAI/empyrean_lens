@@ -5,12 +5,15 @@ package empyrean_lens
 import (
 	"context"
 	"empyrean_lens/conf"
+	consts2 "empyrean_lens/consts"
 	"empyrean_lens/service"
+	"empyrean_lens/utils"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/adaptor"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"html/template"
 	"os"
+	"path/filepath"
 
 	empyrean_lens "empyrean_lens/biz/model/empyrean_lens"
 	"github.com/cloudwego/hertz/pkg/app"
@@ -56,4 +59,41 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	tpl.Execute(rw, report)
+}
+
+type Overview struct {
+	DailyOverview []utils.ReventResult
+}
+
+// OverviewRender .
+// @router /api/log/overview [GET]
+func OverviewRender(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.RenderReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+	dailyOverview, err := service.SystemAvailability(ctx)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
+	rw := adaptor.GetCompatResponseWriter(&c.Response)
+	overview := Overview{
+		DailyOverview: dailyOverview,
+	}
+
+	tpl, err := template.ParseFiles(filepath.Join(utils.GetProjectPath(), consts2.OVERVIEW_TEMPLATE_PATH))
+	wd, _ := os.Getwd()
+	hlog.CtxInfof(ctx, "template path: %v. wd: %v", conf.GetConfig().LogTemplatePath, wd)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
+		return
+	}
+	if err := tpl.Execute(rw, overview); err != nil {
+		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
+		return
+	}
 }

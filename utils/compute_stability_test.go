@@ -23,8 +23,8 @@ func TestComputeRevent(t *testing.T) {
 	}
 
 	result := ComputeRevent(data)
-	for date, value := range result {
-		fmt.Printf("Date: %s, Score: %d, Day-Over-Day: %.2f, Week-Over-Week: %.2f\n", date, int(value[0]), value[1], value[2])
+	for _, value := range result {
+		fmt.Printf("Date: %s, Score: %.0f, Day-Over-Day: %.2f, Week-Over-Week: %.2f\n", value.Date, value.Score, value.DayOverDay, value.WeekOverWeek)
 	}
 
 }
@@ -36,4 +36,14 @@ func TestComputeStability(t *testing.T) {
 		consts.PROBE_ERROR_RATE_PARAMETER: 0.3,
 	}
 	fmt.Println(ComputeStability(data))
+}
+
+func TestComputeStablityScore(t *testing.T) {
+	f := SystemStablityFactor{
+		ApiFailRate:   0.04,
+		SlowQueryRate: 0,
+		ProbeFailRate: 0,
+	}
+	score := ComputeStablityScore(f)
+	fmt.Println(score)
 }

@@ -2,3 +2,9 @@
 server:
   port: ":19001"
   name: "empyreanLens"
+
+mongo:
+  addr: "mongodb://svr_empyrean_lens:D2xcKpc_Umk838U@dds-8vb43194a1bfeef42.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef41.mongodb.zhangbei.rds.aliyuncs.com:3717/empyrean_lens?replicaSet=mgset-518525368"
+  databaseName: empyrean_lens
+  maxPoolSize: 1000
+  shadow: ""

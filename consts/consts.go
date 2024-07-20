@@ -38,8 +38,6 @@ var NODE_MAP = map[string]string{
 	ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST: "生成关键信息模型耗时",
 }
 
-//var LOG_QUERY_LIMIT int64 = 100000
-
 const (
 	HOST_LINGO_BACKEND = "api.lingoreader.cn"
 	HOST_CRAWLER       = "crawler.shenyandayi.com"
@@ -177,3 +175,9 @@ const (
 	//探针权重
 	PROBE_WEIGHT = 0.4
 )
+
+const PASSPORT_HOST = "https://api-passport.lingoreader.cn"
+const LINGO_HOST = "https://api.lingoreader.cn"
+const PDF_TO_UPLOAD = "assets/1810.04805v2.pdf"
+const GRAPH_CONFIG_PATH = "conf/graph.json"
+const OVERVIEW_TEMPLATE_PATH = "templates/overview.html"

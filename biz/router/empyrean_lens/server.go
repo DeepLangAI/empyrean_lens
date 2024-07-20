@@ -21,6 +21,7 @@ func Register(r *server.Hertz) {
 		_api := root.Group("/api", _apiMw()...)
 		{
 			_log := _api.Group("/log", _logMw()...)
+			_log.GET("/overview", append(_overviewrenderMw(), empyrean_lens.OverviewRender)...)
 			_log.GET("/report", append(_logrenderMw(), empyrean_lens.LogRender)...)
 		}
 	}

@@ -11,4 +11,5 @@ struct RenderResp{}
 
 service Rentention{
    RenderResp LogRender(1: RenderReq req) (api.get="/api/log/report")
+   RenderResp OverviewRender(1: RenderReq req) (api.get="/api/log/overview")
 }

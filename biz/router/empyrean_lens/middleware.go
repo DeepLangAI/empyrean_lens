@@ -25,3 +25,8 @@ func _logrenderMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _overviewrenderMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

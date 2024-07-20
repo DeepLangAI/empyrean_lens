@@ -1,6 +1,7 @@
 package conf
 
 import (
+	conflib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/conf"
 	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"empyrean_lens/utils"
 	"fmt"
@@ -13,9 +14,9 @@ import (
 var conf Config
 
 type Config struct {
-	Server          Server `yaml:"server"`
-	Mongo           Mongo  `yaml:"mongo"`
-	LogTemplatePath string `yaml:"logTemplatePath"`
+	Server Server         `yaml:"server"`
+	Mongo  Mongo          `yaml:"mongo"`
+	Logger conflib.Logger `yaml:"logger"`
 }
 
 type Mongo struct {
@@ -60,7 +61,6 @@ func InitConfig() {
 	if err != nil {
 		panic(err)
 	}
-	conf.LogTemplatePath = filepath.Join(utils.GetProjectPath(), "templates/rentention.html")
 }
 
 func TestInit() {

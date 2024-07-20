@@ -4,7 +4,6 @@ import (
 	"context"
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/utils"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -79,9 +78,9 @@ func NginxMonthReport(ctx context.Context) ([]NginxMonthReportModel, error) {
 	finalReports := []NginxMonthReportModel{}
 	daySumReports := map[string]NginxMonthReportModel{}
 	for _, dayReports := range monthReports {
-		for host, hostReports := range dayReports {
-			for url, report := range hostReports {
-				fmt.Println("==========", host, url)
+		for _, hostReports := range dayReports {
+			for _, report := range hostReports {
+				//fmt.Println("==========", host, url)
 				report.CoreApiName = utils.GetApiAlias(report.HostName, report.CoreApiName)
 				finalReports = append(finalReports, report)
 

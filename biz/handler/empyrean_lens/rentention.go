@@ -4,7 +4,6 @@ package empyrean_lens
 
 import (
 	"context"
-	"empyrean_lens/conf"
 	consts2 "empyrean_lens/consts"
 	"empyrean_lens/service"
 	"empyrean_lens/utils"
@@ -51,9 +50,10 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 		Nginx:    nginxmonthReport,
 		Business: businessMonthReport,
 	}
-	tpl, err := template.ParseFiles(conf.GetConfig().LogTemplatePath)
+	templatePath := filepath.Join(utils.GetProjectPath(), consts2.LOG_DETAIL_TEMPLATE_PATH)
+	tpl, err := template.ParseFiles(templatePath)
 	wd, _ := os.Getwd()
-	hlog.CtxInfof(ctx, "template path: %v. wd: %v", conf.GetConfig().LogTemplatePath, wd)
+	hlog.CtxInfof(ctx, "template path: %v. wd: %v", templatePath, wd)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
 		return
@@ -87,7 +87,6 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 
 	tpl, err := template.ParseFiles(filepath.Join(utils.GetProjectPath(), consts2.OVERVIEW_TEMPLATE_PATH))
 	wd, _ := os.Getwd()
-	hlog.CtxInfof(ctx, "template path: %v. wd: %v", conf.GetConfig().LogTemplatePath, wd)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
 		return

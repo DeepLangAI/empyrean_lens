@@ -3,13 +3,19 @@
 package main
 
 import (
+	"context"
 	handler "empyrean_lens/biz/handler"
+	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/cloudwego/hertz/pkg/protocol/consts"
 )
 
 // customizeRegister registers customize routers.
 func customizedRegister(r *server.Hertz) {
 	r.GET("/ping", handler.Ping)
+	r.NoRoute(func(c context.Context, ctx *app.RequestContext) {
+		ctx.Redirect(consts.StatusOK, []byte("/api/log/overview"))
+	})
 
 	// your code ...
 }

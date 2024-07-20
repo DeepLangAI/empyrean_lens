@@ -11,5 +11,7 @@ mongo:
   databaseName: empyrean_lens
   maxPoolSize: 1000
 
-
-
+# 日志配置
+logger:
+  log_path: './logs/system'
+  log_level: "debug"

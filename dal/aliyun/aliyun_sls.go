@@ -94,7 +94,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 		}
 		nlogs = append(nlogs, nlog)
 	}
-	hlog.CtxInfof(ctx, "日期%v，共%v条日志", time.Unix(from, 0).Format("2006-01-02"), len(nlogs))
+	hlog.CtxInfof(ctx, "日期%v，查modelIngress，host: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), host, len(nlogs))
 	return nlogs, nil
 }
 
@@ -136,7 +136,7 @@ LIMIT %d
 		return nil, err
 	}
 
-	hlog.CtxInfof(ctx, "日期%v，共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
+	hlog.CtxInfof(ctx, "日期%v，查nginxIngress，host: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), host, resp.Count)
 	nlogs := []NginxLog{}
 	for _, log := range resp.Logs {
 		t, e := time.Parse("02/Jan/2006:15:04:05", log["time"])

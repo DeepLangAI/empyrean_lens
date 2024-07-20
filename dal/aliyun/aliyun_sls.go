@@ -383,7 +383,7 @@ func NginxReportThisMonth(ctx context.Context) ([]NginxLog, error) {
 	wg := sync.WaitGroup{}
 
 	nginxLogs := []NginxLog{}
-	for i := 0; i <= totalDays; i++ {
+	for i := 1; i <= totalDays; i++ {
 		wg.Add(1)
 		go func(daysLookback int) {
 			defer wg.Done()
@@ -417,7 +417,7 @@ func CoreReportThisMonth(ctx context.Context, coreName string) ([]CoreLog, error
 	wg := sync.WaitGroup{}
 
 	coreLogs := []CoreLog{}
-	for i := 0; i <= totalDays; i++ {
+	for i := 1; i <= totalDays; i++ {
 		wg.Add(1)
 		go func(daysLookback int) {
 			defer wg.Done()

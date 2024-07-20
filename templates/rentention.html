@@ -177,7 +177,7 @@
                 <th>核心接口名称</th>
                 <th>请求次数</th>
                 <th>平均耗时</th>
-<!--                <th>耗时占比[0, 1)s</th>-->
+                <th>耗时占比[0, 1)s</th>
                 <th>耗时占比[1, 3)s</th>
                 <th>耗时占比[3, 5)s</th>
                 <th>耗时占比[5, 10)s</th>
@@ -196,7 +196,7 @@
                 <td>{{ .Node }}</td>
                 <td>{{ .NumReq }}</td>
                 <td>{{ printf "%.2f" .AvgCost }}</td>
-<!--                <td class="color-cell" data-value="{{ .CostDistribution0_1 }}" data-type="rate">{{ printf "%.2f" .CostDistribution0_1 }}%</td>-->
+                <td class="color-cell" data-value="{{ .CostDistribution0_1 }}" data-type="rate">{{ printf "%.2f" .CostDistribution0_1 }}%</td>
                 <td class="color-cell" data-value="{{ .CostDistribution1_3 }}" data-type="rate">{{ printf "%.2f" .CostDistribution1_3 }}%</td>
                 <td class="color-cell" data-value="{{ .CostDistribution3_5 }}" data-type="rate">{{ printf "%.2f" .CostDistribution3_5 }}%</td>
                 <td class="color-cell" data-value="{{ .CostDistribution5_10 }}" data-type="rate">{{ printf "%.2f" .CostDistribution5_10 }}%</td>

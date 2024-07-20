@@ -18,8 +18,8 @@ const (
 )
 
 const (
-	ALIYUN_LOG_NODE_OUTLINE_AI_COST = "模型生成大纲-结束(模型)"
-	//ALIYUN_LOG_NODE_OUTLINE_AI_COST    = "模型生成大纲-结束"
+	//ALIYUN_LOG_NODE_OUTLINE_AI_COST = "模型生成大纲-结束(模型)"
+	ALIYUN_LOG_NODE_OUTLINE_AI_COST    = "模型生成大纲-结束"
 	ALIYUN_LOG_NODE_OUTLINE_ETOE_COST  = "大纲生成完成"
 	ALIYUN_LOG_NODE_ABSTRACT_ETOE_COST = "生成概述结束"
 	ALIYUN_LOG_NODE_OUTLINE_AI_START   = "后端-开始请求大纲模型"

@@ -82,7 +82,7 @@ func TestOutlineLogQuery(t *testing.T) {
 	} else {
 		cnt := 0
 		for _, log := range logs {
-			if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST {
+			if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST || log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST {
 				cnt += 1
 				fmt.Println(cnt, log)
 			}

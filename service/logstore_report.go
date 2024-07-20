@@ -58,17 +58,17 @@ func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error)
 				return
 			}
 			mutex.Lock()
-			//var aiStart float64
+			var aiStart float64
 			for _, log := range logs {
-				//if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_START {
-				//	aiStart = log.Cost
-				//}
+				if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_START {
+					aiStart = log.Cost
+				}
 				if !utils.Contains(nodes, log.Node) {
 					continue
 				}
-				//if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST {
-				//	log.Cost = log.Cost
-				//}
+				if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST {
+					log.Cost = log.Cost - aiStart
+				}
 				day := log.Time.Day()
 				dayReports, ok := monthReports[day]
 				if !ok {

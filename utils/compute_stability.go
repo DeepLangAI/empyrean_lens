@@ -133,3 +133,10 @@ func ComputeRevent(scores map[string]int) []ReventResult {
 	})
 	return reventResults
 }
+
+func DeltaPercent(oldValue, newValue float64) float64 {
+	if oldValue == 0 {
+		return 0
+	}
+	return (newValue - oldValue) / oldValue * 100
+}

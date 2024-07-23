@@ -1,16 +1,18 @@
-package service
+package aliyun
 
 import (
 	"context"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/utils"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"fmt"
 	"sort"
 	"sync"
+
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
-type CoreLogMonthReportModel struct {
+type CoreLogTimeSpanReportModel struct {
 	Date                    string
 	Core                    string
 	Node                    string
@@ -29,7 +31,7 @@ type CoreLogMonthReportModel struct {
 	CostDistribution100_inf float64
 }
 
-func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error) {
+func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpanReportModel, error) {
 
 	cores := []string{
 		consts.CORE_NAME_OUTLINE,
@@ -39,7 +41,7 @@ func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error)
 	var mutex sync.Mutex
 	wg := sync.WaitGroup{}
 	wg.Add(len(cores))
-	monthReports := map[int]map[string]CoreLogMonthReportModel{}
+	timespanReports := map[int]map[string]CoreLogTimeSpanReportModel{}
 	nodes := []string{
 		consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST,
 		consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST,
@@ -47,14 +49,48 @@ func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error)
 		consts.ALIYUN_LOG_NODE_ABSTRACT_ETE_COST,
 		consts.ALIYUN_LOG_NODE_QA_DONE_COST,
 		consts.ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST,
+
+		consts.ALIYUN_LOG_NODE_MULTI_ETE_COST,
+		consts.ALIYUN_LOG_NODE_ANALYSIS_REPEATER,
+		consts.ALIYUN_LOG_NODE_MERGE_REPEATER,
+		consts.ALIYUN_LOG_NODE_SUMMARY_REPEATER,
+
+		//consts.ALIYUN_LOG_NODE_ANALYSIS,
+		//consts.ALIYUN_LOG_NODE_ANALYSIS_ALL,
+		//consts.ALIYUN_LOG_NODE_MERGE,
+		//consts.ALIYUN_LOG_NODE_MULTI_ALL_SUCCESS,
+		//consts.ALIYUN_LOG_NODE_THEME_ALL_SUMMARY,
+		//consts.ALIYUN_LOG_NODE_THEME_SUMMARY,
 	}
 
 	for i := 0; i < len(cores); i++ {
 		go func(coreName string) {
 			defer wg.Done()
-			logs, err := aliyun.CoreReportThisMonth(ctx, coreName)
-			if err != nil {
-				hlog.CtxErrorf(ctx, "CoreReportThisMonth failed, core: %v err: %v", cores[i], err)
+			logs := []aliyun.CoreLog{}
+			if timespan == consts.TIMESPAN_LONGTIME {
+				_logs, err := aliyun.CoreReportLongTime(ctx, coreName)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "CoreReportLongTime failed, core: %v err: %v", cores[i], err)
+					return
+				}
+				logs = _logs
+			} else if timespan == consts.TIMESPAN_WEEK {
+				_logs, err := aliyun.CoreReportOneWeek(ctx, coreName)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "CoreReportLongTime failed, core: %v err: %v", cores[i], err)
+					return
+				}
+				logs = _logs
+			} else if timespan == consts.TIMESPAN_TODAY {
+				_logs, err := aliyun.CoreReportToday(ctx, coreName)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "CoreReportLongTime failed, core: %v err: %v", cores[i], err)
+					return
+				}
+				logs = _logs
+			}
+			if len(logs) == 0 {
+				hlog.CtxErrorf(ctx, "CoreReportLongTime failed, core: %v err: %v", cores[i], "no logs")
 				return
 			}
 			mutex.Lock()
@@ -70,15 +106,15 @@ func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error)
 					log.Cost = log.Cost - aiStart
 				}
 				day := log.Time.Day()
-				dayReports, ok := monthReports[day]
+				dayReports, ok := timespanReports[day]
 				if !ok {
-					dayReports = map[string]CoreLogMonthReportModel{}
-					monthReports[day] = dayReports
+					dayReports = map[string]CoreLogTimeSpanReportModel{}
+					timespanReports[day] = dayReports
 				}
 
 				report, ok := dayReports[log.Node]
 				if !ok {
-					report = CoreLogMonthReportModel{
+					report = CoreLogTimeSpanReportModel{
 						Date:  log.Time.Format("2006-01-02"),
 						Core:  log.CoreName,
 						Node:  log.Node,
@@ -108,19 +144,24 @@ func LogStoreMonthReport(ctx context.Context) ([]CoreLogMonthReportModel, error)
 					report.CostDistribution100_inf += 1
 				}
 				dayReports[log.Node] = report
+				timespanReports[day] = dayReports
 
 			}
 			mutex.Unlock()
 		}(cores[i])
 	}
 	wg.Wait()
-	finalReports := []CoreLogMonthReportModel{}
-	for _, dayReports := range monthReports {
+	finalReports := []CoreLogTimeSpanReportModel{}
+	for _, dayReports := range timespanReports {
 		for _, report := range dayReports {
+			if report.Node == consts.ALIYUN_LOG_NODE_THEME_SUMMARY {
+				fmt.Println(report)
+			}
 			if alias, ok := consts.NODE_MAP[report.Node]; ok {
 				report.Node = alias
 			}
-			report.AvgCost = report.TotalCost / float64(len(report.Costs))
+			//report.AvgCost = report.TotalCost / float64(len(report.Costs))
+			report.AvgCost = utils.Avg(report.Costs)
 			report.CostDistribution0_1 = report.CostDistribution0_1 / float64(len(report.Costs)) * 100
 			report.CostDistribution1_3 = report.CostDistribution1_3 / float64(len(report.Costs)) * 100
 			report.CostDistribution3_5 = report.CostDistribution3_5 / float64(len(report.Costs)) * 100

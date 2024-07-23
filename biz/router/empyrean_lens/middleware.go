@@ -30,3 +30,48 @@ func _overviewrenderMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _v1Mw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _reportMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _systemrealtimescoreMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _dailyMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _systemdailyscoreMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _systemdailyapifailureinfoMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _systemdailyapicostMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _dbMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _systemdbrefreshMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

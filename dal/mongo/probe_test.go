@@ -31,3 +31,16 @@ func TestProbeLogModelDao_Save(t *testing.T) {
 		t.Log("success")
 	}
 }
+
+func TestProbeLogModelDao_FindTimespanProbeLog(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	dao := NewProbeLogModelDao()
+	logs, err := dao.FindTimespanProbeLog(ctx, time.Now().Add(-time.Hour*24), time.Now())
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Log(logs)
+	}
+}

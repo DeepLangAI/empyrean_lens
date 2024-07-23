@@ -4,12 +4,13 @@ import (
 	"context"
 	"empyrean_lens/consts"
 	"fmt"
-	sls "github.com/aliyun/aliyun-log-go-sdk"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	sls "github.com/aliyun/aliyun-log-go-sdk"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 var client sls.ClientInterface
@@ -81,6 +82,9 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 		}
 		//fmt.Println(log)
 		t, e := time.Parse(time.RFC3339, log["time"])
+		if t.Unix() <= from {
+			continue
+		}
 		if e != nil {
 			hlog.CtxErrorf(ctx, "parse time error: %v", e)
 			continue
@@ -140,6 +144,9 @@ LIMIT %d
 	nlogs := []NginxLog{}
 	for _, log := range resp.Logs {
 		t, e := time.Parse("02/Jan/2006:15:04:05", log["time"])
+		if t.Unix() < from {
+			continue
+		}
 		if e != nil {
 			hlog.CtxErrorf(ctx, "parse time error: %v", e)
 			continue
@@ -210,6 +217,54 @@ type CoreLog struct {
 	TraceId  string
 	Time     time.Time
 	UserId   string
+}
+
+func MultiCoreLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+((__tag__:_container_name_: lingo-python-pre and message: "multi core node node_name")) |  
+select  
+regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 1) as node_name,  
+regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 2) as multi_id,  
+regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 3) as entry_id,  
+regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 4) as cost,  trace_id, user_id, asctime time from log order by time desc
+`
+	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
+	if err != nil {
+		return nil, err
+	}
+	coreLogs := []CoreLog{}
+	for _, log := range logs.Logs {
+		cost, e := strconv.ParseFloat(log["cost"], 64)
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
+			continue
+		}
+		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			continue
+		}
+		coreLog := CoreLog{
+			CoreName: "多文档",
+			Node:     log["node_name"],
+			Cost:     cost,
+			TraceId:  log["trace_id"],
+			Time:     t,
+			UserId:   log["user_id"],
+		}
+		coreLogs = append(coreLogs, coreLog)
+	}
+	return coreLogs, nil
 }
 
 func QaCoreLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error) {
@@ -373,7 +428,72 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	return coreLogs, nil
 }
 
-func NginxReportThisMonth(ctx context.Context) ([]NginxLog, error) {
+func NginxLogsToday(ctx context.Context) ([]NginxLog, error) {
+	//now := time.Now()
+	//startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	//endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999999999, now.Location())
+	nginxLogs := []NginxLog{}
+	logs, err := NginxIngressLogQuery(ctx, 0)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "NginxIngressLogQuery failed: %v", err)
+		return nil, err
+	}
+	mlogs, err := ModelNginxIngressLogQuery(ctx, 0)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "NginxIngressLogQuery failed: %v", err)
+		return nil, err
+	}
+	nginxLogs = append(nginxLogs, logs...)
+	nginxLogs = append(nginxLogs, mlogs...)
+
+	startingDay := time.Now()
+	from := time.Date(startingDay.Year(), startingDay.Month(), startingDay.Day(), 0, 0, 0, 0, startingDay.Location()).Format("2006-01-02")
+	filteredLogs := []NginxLog{}
+	// 由于采集日志有时延，当天的日志可能被落在第二天
+	for _, log := range nginxLogs {
+		//if log.Time.Unix() >= from {
+		if log.Time.Format("2006-01-02") == from {
+			filteredLogs = append(filteredLogs, log)
+		}
+	}
+
+	return filteredLogs, nil
+}
+
+func NginxReportOneWeek(ctx context.Context) ([]NginxLog, error) {
+	//startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	//startingDay := time.Now().AddDate(0, 0, -7)
+	//from := time.Date(startingDay.Year(), startingDay.Month(), startingDay.Day(), 0, 0, 0, 0, startingDay.Location()).Unix()
+	//totalDays := int(time.Since(startingDay).Hours() / 24)
+
+	var mutex sync.Mutex
+	wg := sync.WaitGroup{}
+
+	nginxLogs := []NginxLog{}
+	for i := 0; i <= 7; i++ {
+		wg.Add(1)
+		go func(daysLookback int) {
+			defer wg.Done()
+			logs, err := NginxIngressLogQuery(ctx, daysLookback)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "NginxIngressLogQuery failed: %v", err)
+				return
+			}
+			mlogs, err := ModelNginxIngressLogQuery(ctx, daysLookback)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "NginxIngressLogQuery failed: %v", err)
+				return
+			}
+			mutex.Lock()
+			nginxLogs = append(nginxLogs, logs...)
+			nginxLogs = append(nginxLogs, mlogs...)
+			mutex.Unlock()
+		}(i)
+	}
+	wg.Wait()
+	return nginxLogs, nil
+}
+func NginxReportLongTime(ctx context.Context) ([]NginxLog, error) {
 	now := time.Now()
 	//startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	startOfMonth := time.Date(2024, 7, 1, 0, 0, 0, 0, now.Location())
@@ -383,7 +503,7 @@ func NginxReportThisMonth(ctx context.Context) ([]NginxLog, error) {
 	wg := sync.WaitGroup{}
 
 	nginxLogs := []NginxLog{}
-	for i := 1; i <= totalDays; i++ {
+	for i := 0; i <= totalDays; i++ {
 		wg.Add(1)
 		go func(daysLookback int) {
 			defer wg.Done()
@@ -407,17 +527,12 @@ func NginxReportThisMonth(ctx context.Context) ([]NginxLog, error) {
 	return nginxLogs, nil
 }
 
-func CoreReportThisMonth(ctx context.Context, coreName string) ([]CoreLog, error) {
-	now := time.Now()
-	//startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	startOfMonth := time.Date(2024, 7, 1, 0, 0, 0, 0, now.Location())
-	totalDays := int(time.Since(startOfMonth).Hours() / 24)
-
+func coreReportOfDays(ctx context.Context, coreName string, days []int) ([]CoreLog, error) {
 	var mutex sync.Mutex
 	wg := sync.WaitGroup{}
 
 	coreLogs := []CoreLog{}
-	for i := 1; i <= totalDays; i++ {
+	for _, day := range days {
 		wg.Add(1)
 		go func(daysLookback int) {
 			defer wg.Done()
@@ -436,14 +551,49 @@ func CoreReportThisMonth(ctx context.Context, coreName string) ([]CoreLog, error
 				hlog.CtxErrorf(ctx, "QaCoreLogQuery failed: %v")
 				return
 			}
+			multiLogs, err := MultiCoreLogQuery(ctx, daysLookback)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "QaCoreLogQuery failed: %v")
+				return
+			}
 			mutex.Lock()
 			coreLogs = append(coreLogs, vlogs...)
 			coreLogs = append(coreLogs, logs...)
 			coreLogs = append(coreLogs, qaLogs...)
+			coreLogs = append(coreLogs, multiLogs...)
 			mutex.Unlock()
-		}(i)
+		}(day)
 	}
 	wg.Wait()
 	return coreLogs, nil
 
+}
+
+func CoreReportToday(ctx context.Context, coreName string) ([]CoreLog, error) {
+	days := []int{0}
+	//for i := 0; i <= 7; i++ {
+	//	days = append(days, i)
+	//}
+	logs, err := coreReportOfDays(ctx, coreName, days)
+	return logs, err
+}
+func CoreReportOneWeek(ctx context.Context, coreName string) ([]CoreLog, error) {
+	days := []int{}
+	for i := 0; i <= 7; i++ {
+		days = append(days, i)
+	}
+	logs, err := coreReportOfDays(ctx, coreName, days)
+	return logs, err
+}
+
+func CoreReportLongTime(ctx context.Context, coreName string) ([]CoreLog, error) {
+	now := time.Now()
+	startOfMonth := time.Date(2024, 7, 1, 0, 0, 0, 0, now.Location())
+	totalDays := int(time.Since(startOfMonth).Hours() / 24)
+
+	days := []int{}
+	for i := 0; i <= totalDays; i++ {
+		days = append(days, i)
+	}
+	return coreReportOfDays(ctx, coreName, days)
 }

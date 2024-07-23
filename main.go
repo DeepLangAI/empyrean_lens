@@ -7,6 +7,7 @@ import (
 	"context"
 	"empyrean_lens/conf"
 	"empyrean_lens/dal"
+	"empyrean_lens/tools"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
 	"github.com/cloudwego/hertz/pkg/app/server"
@@ -18,6 +19,9 @@ func main() {
 	conf.InitConfig()
 	logger.Init(conf.GetConfig().Logger)
 	dal.Init()
+
+	runner := tools.ProbeRunner{}
+	runner.Run(context.Background())
 
 	h := server.Default(server.WithHostPorts(conf.GetConfig().Server.Port))
 

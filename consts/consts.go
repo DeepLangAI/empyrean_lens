@@ -27,6 +27,17 @@ const (
 	ALIYUN_LOG_NODE_ABSTRACT_AI_COST   = "模型生成概述"
 	ALIYUN_LOG_NODE_QA_DONE_COST       = "回答结束"
 	ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST = "观点模型输出完成"
+
+	ALIYUN_LOG_NODE_MULTI_ETE_COST    = "MULTI_ALL_SUCCESS"
+	ALIYUN_LOG_NODE_ANALYSIS          = "ANALYSIS"
+	ALIYUN_LOG_NODE_ANALYSIS_ALL      = "ANALYSIS_ALL"
+	ALIYUN_LOG_NODE_ANALYSIS_REPEATER = "ANALYSIS_REPEATER"
+	ALIYUN_LOG_NODE_MERGE             = "MERGE"
+	ALIYUN_LOG_NODE_MERGE_REPEATER    = "MERGE_REPEATER"
+	ALIYUN_LOG_NODE_MULTI_ALL_SUCCESS = "MULTI_ALL_SUCCESS"
+	ALIYUN_LOG_NODE_SUMMARY_REPEATER  = "SUMMARY_REPEATER"
+	ALIYUN_LOG_NODE_THEME_ALL_SUMMARY = "THEME_ALL_SUMMARY"
+	ALIYUN_LOG_NODE_THEME_SUMMARY     = "THEME_SUMMARY"
 )
 
 var NODE_MAP = map[string]string{
@@ -36,6 +47,11 @@ var NODE_MAP = map[string]string{
 	ALIYUN_LOG_NODE_ABSTRACT_ETE_COST:  "生成全文速览端到端耗时",
 	ALIYUN_LOG_NODE_QA_DONE_COST:       "回答问题端到端耗时",
 	ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST: "生成关键信息模型耗时",
+
+	ALIYUN_LOG_NODE_MULTI_ETE_COST:    "【多文档】多文档生成端到端",
+	ALIYUN_LOG_NODE_ANALYSIS_REPEATER: "【多文档】模型-单文档解析",
+	ALIYUN_LOG_NODE_MERGE_REPEATER:    "【多文档】模型-多文档合并分析",
+	ALIYUN_LOG_NODE_SUMMARY_REPEATER:  "【多文档】模型-多文档总结",
 }
 
 const (
@@ -51,6 +67,7 @@ const (
 	HOST_SUQIN           = "qaucloud-pdfparser.shenyandayi.com"
 	HOST_QA_RECOMMEND    = "qa-recommend.shenyandayi.com"
 	HOST_QA_MAIN         = "qa-main.shenyandayi.com"
+	HOST_REPEATER        = "api-repeater.lingoreader.cn"
 	HOST_QUERY_EMBEDDING = "search-embedding-v2.shenyandayi.com"
 )
 
@@ -109,6 +126,20 @@ var NGINX_INGRESS_APIS = map[string][]API{
 		{
 			Api:   "/api/chat/recommend",
 			Alias: "问题推荐后端",
+		},
+	},
+	HOST_REPEATER: {
+		{
+			Api:   "/doc/single/analyze",
+			Alias: "【多文档】中继服务单文档分析",
+		},
+		{
+			Api:   "/doc/multi/analyze",
+			Alias: "【多文档】中继服务多文档整合",
+		},
+		{
+			Api:   "/doc/multi/outline",
+			Alias: "【多文档】中继服务多文档总结",
 		},
 	},
 }
@@ -182,3 +213,9 @@ const PDF_TO_UPLOAD = "assets/1810.04805v2.pdf"
 const GRAPH_CONFIG_PATH = "conf/graph.json"
 const LOG_DETAIL_TEMPLATE_PATH = "templates/rentention.html"
 const OVERVIEW_TEMPLATE_PATH = "templates/overview.html"
+const (
+	TIMESPAN_TODAY    = 0
+	TIMESPAN_WEEK     = 1
+	TIMESPAN_MONTH    = 2
+	TIMESPAN_LONGTIME = 3
+)

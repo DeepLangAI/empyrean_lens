@@ -2,22 +2,23 @@ package mongo
 
 import (
 	"context"
-	"empyrean_lens/conf"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sync"
 	"time"
 )
 
-var TableNameProbeLog = "probe" + conf.GetConfig().Mongo.Shadow
+const TableNameProbeLog = "probe"
 
 const (
 	StatusValid = 0 //有效
 	StatusDel   = 1 // 删除
 )
 const (
-	RESULT_FAIL    = 0
-	RESULT_SUCCESS = 1
+	RESULT_NOT_STARTED = 0
+	RESULT_SUCCESS     = 1
+	RESULT_FAIL        = 2
 )
 
 type NodeDetail struct {
@@ -48,10 +49,39 @@ func NewProbeLogModelDao() *ProbeLogModelDao {
 	return probeLogModelDao
 }
 
+func (self *ProbeLogModelDao) DropTable(ctx context.Context) error {
+	err := probeDatabase.Collection(TableNameProbeLog).Drop(ctx)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "mongo drop table error:%v", err)
+	}
+	return err
+}
+
 func (self *ProbeLogModelDao) Save(ctx context.Context, model ProbeLogModel) error {
 	_, err := probeDatabase.Collection(TableNameProbeLog).InsertOne(ctx, model)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "mongo insert one error:%v", err)
 	}
 	return err
+}
+
+func (self *ProbeLogModelDao) FindTimespanProbeLog(ctx context.Context, timeBegin, timeEnd time.Time) ([]ProbeLogModel, error) {
+	/*
+	   查询指定时间范围内的探针日志,
+	   查询条件为create_time在[timeBegin, timeEnd)区间，且status为StatusValid
+	*/
+	var result []ProbeLogModel
+	cur, err := probeDatabase.
+		Collection(TableNameProbeLog).
+		Find(ctx, bson.M{"create_time": bson.M{"$gte": timeBegin, "$lt": timeEnd}, "status": StatusValid})
+	if err != nil {
+		hlog.CtxErrorf(ctx, "mongo find error:%v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if err = cur.All(ctx, &result); err != nil {
+		hlog.CtxErrorf(ctx, "mongo all error:%v", err)
+		return nil, err
+	}
+	return result, nil
 }

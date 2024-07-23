@@ -24,5 +24,22 @@ func Register(r *server.Hertz) {
 			_log.GET("/overview", append(_overviewrenderMw(), empyrean_lens.OverviewRender)...)
 			_log.GET("/report", append(_logrenderMw(), empyrean_lens.LogRender)...)
 		}
+		{
+			_v1 := _api.Group("/v1", _v1Mw()...)
+			{
+				_report := _v1.Group("/report", _reportMw()...)
+				_report.GET("/realtime", append(_systemrealtimescoreMw(), empyrean_lens.SystemRealtimeScore)...)
+				{
+					_daily := _report.Group("/daily", _dailyMw()...)
+					_daily.GET("/cost", append(_systemdailyapicostMw(), empyrean_lens.SystemDailyApiCost)...)
+					_daily.GET("/failure", append(_systemdailyapifailureinfoMw(), empyrean_lens.SystemDailyApiFailureInfo)...)
+					_daily.GET("/score", append(_systemdailyscoreMw(), empyrean_lens.SystemDailyScore)...)
+				}
+				{
+					_db := _report.Group("/db", _dbMw()...)
+					_db.POST("/refresh", append(_systemdbrefreshMw(), empyrean_lens.SystemDbRefresh)...)
+				}
+			}
+		}
 	}
 }

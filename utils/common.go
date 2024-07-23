@@ -88,3 +88,24 @@ func GetProjectPath() string {
 	// 不应达到这里，但为了编译器的满意度，返回一个空字符串
 	return ""
 }
+
+func Avg(arr []float64) float64 {
+	if len(arr) == 0 {
+		return 0
+	}
+	sum := 0.0
+	maxVal := 0.0
+	minVal := 0.0
+	for _, v := range arr {
+		sum += v
+
+		if v > maxVal {
+			maxVal = v
+		}
+		if v < minVal {
+			minVal = v
+		}
+	}
+	sum = sum - maxVal - minVal
+	return sum / float64(len(arr))
+}

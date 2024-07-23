@@ -4,31 +4,36 @@ package empyrean_lens
 
 import (
 	"context"
+	"empyrean_lens/aliyun"
+	"empyrean_lens/biz/handler"
 	consts2 "empyrean_lens/consts"
 	"empyrean_lens/service"
 	"empyrean_lens/utils"
 	"fmt"
-	"github.com/cloudwego/hertz/pkg/common/adaptor"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"html/template"
 	"os"
 	"path/filepath"
+	"time"
+
+	"github.com/cloudwego/hertz/pkg/common/adaptor"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 
 	empyrean_lens "empyrean_lens/biz/model/empyrean_lens"
+
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 )
 
 type Report struct {
-	Nginx    []service.NginxMonthReportModel
-	Business []service.CoreLogMonthReportModel
+	Nginx    []aliyun.NginxTimeSpanReportModel
+	Business []aliyun.CoreLogTimeSpanReportModel
 }
 
 // LogRender .
 // @router /api/log/report [GET]
 func LogRender(ctx context.Context, c *app.RequestContext) {
 	var err error
-	var req empyrean_lens.RenderReq
+	var req empyrean_lens.EmptyReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
 		c.String(consts.StatusBadRequest, err.Error())
@@ -36,19 +41,29 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 	}
 
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
-	nginxmonthReport, err := service.NginxMonthReport(ctx)
+	//nginxtimespanReport, err := aliyun.NginxTimespanReport(ctx, consts2.TIMESPAN_LONGTIME)
+	nginxtimespanReport, err := service.ApiFailResult(
+		ctx,
+		time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
+		time.Now(),
+	)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())
 		return
 	}
-	businessMonthReport, err := service.LogStoreMonthReport(ctx)
+	//businessTimeSpanReport, err := aliyun.LogStoreTimeSpanReport(ctx, consts2.TIMESPAN_LONGTIME)
+	businessTimeSpanReport, err := service.ApiCostResult(
+		ctx,
+		time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
+		time.Now(),
+	)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())
 		return
 	}
 	report := Report{
-		Nginx:    nginxmonthReport,
-		Business: businessMonthReport,
+		Nginx:    nginxtimespanReport,
+		Business: businessTimeSpanReport,
 	}
 	templatePath := filepath.Join(utils.GetProjectPath(), consts2.LOG_DETAIL_TEMPLATE_PATH)
 	tpl, err := template.ParseFiles(templatePath)
@@ -63,26 +78,32 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 
 type Overview struct {
 	DailyOverview    []utils.ReventResult
-	RealtimeOverview service.RealtimeReport
+	RealtimeOverview aliyun.RealtimeReport
 }
 
 // OverviewRender .
 // @router /api/log/overview [GET]
 func OverviewRender(ctx context.Context, c *app.RequestContext) {
 	var err error
-	var req empyrean_lens.RenderReq
+	var req empyrean_lens.EmptyReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
 		c.String(consts.StatusBadRequest, err.Error())
 		return
 	}
-	realtimeOverview, err := service.RealtimeAvailability(ctx)
+	//realtimeOverview, err := aliyun.RealtimeAvailability(ctx)
+	realtimeOverview, err := service.SystemRealtimeReport(ctx)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())
 		return
 	}
 
-	dailyOverview, err := service.SystemAvailability(ctx)
+	//dailyOverview, err := aliyun.SystemTimespanAvailability(ctx, consts2.TIMESPAN_LONGTIME)
+	dailyOverview, err := service.SystemScoreResult(
+		ctx,
+		time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
+		time.Now(),
+	)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())
 		return
@@ -90,7 +111,7 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{
 		DailyOverview:    dailyOverview,
-		RealtimeOverview: realtimeOverview,
+		RealtimeOverview: *realtimeOverview,
 	}
 
 	tpl, err := template.ParseFiles(filepath.Join(utils.GetProjectPath(), consts2.OVERVIEW_TEMPLATE_PATH))
@@ -103,4 +124,90 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
 		return
 	}
+}
+
+// SystemRealtimeScore .
+// @router /api/v1/report/realtime [GET]
+func SystemRealtimeScore(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.EmptyReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.RealtimeScoreResp)
+
+	c.JSON(consts.StatusOK, resp)
+}
+
+// SystemDailyScore .
+// @router /api/v1/report/daily/score [GET]
+func SystemDailyScore(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.DailyScoreReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.DailyScoreResp)
+
+	c.JSON(consts.StatusOK, resp)
+}
+
+// SystemDailyApiFailureInfo .
+// @router /api/v1/report/daily/failure [GET]
+func SystemDailyApiFailureInfo(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.DailyApiFailureInfoReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.ApiFailureInfoResp)
+
+	c.JSON(consts.StatusOK, resp)
+}
+
+// SystemDailyApiCost .
+// @router /api/v1/report/daily/cost [GET]
+func SystemDailyApiCost(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.ApiCostReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.ApiCostResp)
+
+	c.JSON(consts.StatusOK, resp)
+}
+
+// SystemDbRefresh .
+// @router /api/v1/report/db/refresh [POST]
+func SystemDbRefresh(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.DbRefreshReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.DbRefreshResp)
+	base := handler.BaseHandler{}
+	err = aliyun.CreateOrUpdateDatabase(ctx, int(req.Timespan))
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	c.JSON(consts.StatusOK, resp)
 }

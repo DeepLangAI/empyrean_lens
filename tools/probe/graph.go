@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"regexp"
 	"time"
 )
 
@@ -32,33 +33,41 @@ type Graph struct {
 	Nodes map[string]*Node // id to node
 }
 
-func trace(ctx context.Context, node *Node, reports *[]mongo.NodeDetail) {
+func trace(ctx context.Context, node *Node, reports *[]mongo.NodeDetail, skip bool) {
 	for _, adjacent := range node.Adjacent {
 		hlog.CtxInfof(ctx, "[TRACE] Tracing from `%s` to `%s`", node.Label, adjacent.Label)
 		if adjacent.Status == StatusExecute {
 			report := mongo.NodeDetail{}
 			report.Name = adjacent.Label
 			startTime := time.Now()
-			res := adjacent.Function(ctx)
-			report.Cost = time.Since(startTime).Seconds()
-			if res {
-				report.Result = mongo.RESULT_SUCCESS
-				hlog.CtxInfof(ctx, "[TRACE] Tracing from `%s` to `%s success", node.Label, adjacent.Label)
-				trace(ctx, adjacent, reports)
+			if !skip {
+				res := adjacent.Function(ctx)
+				report.Cost = time.Since(startTime).Seconds()
+				if res {
+					report.Result = mongo.RESULT_SUCCESS
+					hlog.CtxInfof(ctx, "[TRACE] Tracing from `%s` to `%s success", node.Label, adjacent.Label)
+					trace(ctx, adjacent, reports, false)
+				} else {
+					report.Result = mongo.RESULT_FAIL
+					trace(ctx, adjacent, reports, true)
+					hlog.CtxInfof(ctx, "[TRACE] Tracing from `%s` to `%s` failed", node.Label, adjacent.Label)
+				}
 			} else {
-				hlog.CtxInfof(ctx, "[TRACE] Tracing from `%s` to `%s` failed", node.Label, adjacent.Label)
+				hlog.CtxInfof(ctx, "[TRACE] Skip tracing from `%s` to `%s`", node.Label, adjacent.Label)
+				trace(ctx, adjacent, reports, true)
+				report.Result = mongo.RESULT_NOT_STARTED
 			}
 			*reports = append(*reports, report)
 		} else if adjacent.Status == StatusDummy {
 			hlog.CtxInfof(ctx, "[TRACE] `%s` is dummy node", adjacent.Label)
-			trace(ctx, adjacent, reports)
+			trace(ctx, adjacent, reports, skip)
 		}
 	}
 }
 
 func (g *Graph) Trace(ctx context.Context) {
 	nodeDetails := []mongo.NodeDetail{}
-	trace(ctx, g.Nodes["0"], &nodeDetails)
+	trace(ctx, g.Nodes["0"], &nodeDetails, false)
 	totalNodes := 0
 	successNodes := 0
 	for _, node := range g.Nodes {
@@ -73,7 +82,7 @@ func (g *Graph) Trace(ctx context.Context) {
 	}
 	probeLog := mongo.ProbeLogModel{
 		Id:           primitive.NewObjectID(),
-		TotalNodes:   totalNodes,
+		TotalNodes:   len(nodeDetails),
 		SuccessNodes: successNodes,
 		NodesDetail:  nodeDetails,
 		CreateTime:   time.Now(),
@@ -117,15 +126,30 @@ func (g *Graph) SetStatus(id string, status int) {
 	}
 }
 
+func printGraph(node *Node, hasNext []bool) {
+	for i, child := range node.Adjacent {
+		// 缩进打印文件/目录名
+		indent := ""
+		for _, has := range hasNext {
+			if has {
+				//indent += "│   "
+				indent += "|   "
+			} else {
+				indent += "    "
+			}
+		}
+		//fmt.Printf("%s├── %s\n", indent, child.Label)
+		fmt.Printf("%s|__ %s, id:%v\n", indent, child.Label, child.Id)
+		if len(child.Adjacent) >= 1 {
+			printGraph(child, append(hasNext, i != len(node.Adjacent)-1))
+		}
+	}
+}
+
 // PrintGraph prints the graph
 func (g *Graph) PrintGraph() {
-	for _, node := range g.Nodes {
-		fmt.Printf("Node %10v:", node.Label)
-		for _, adjacent := range node.Adjacent {
-			fmt.Printf(" %10v", adjacent.Label)
-		}
-		fmt.Println()
-	}
+	fmt.Println("ROOT")
+	printGraph(g.Nodes["0"], []bool{})
 }
 
 type GraphConfig struct {
@@ -150,6 +174,9 @@ func LoadGraphFromConfig(filename string, functionMap map[string]func(ctx contex
 	defer file.Close()
 
 	byteValue, _ := io.ReadAll(file)
+	// 去除所有行中，以#开始的内容
+	re := regexp.MustCompile(`//.*(\n|$)`)
+	byteValue = re.ReplaceAll(byteValue, []byte(""))
 
 	config := GraphConfig{}
 	err = json.Unmarshal(byteValue, &config)

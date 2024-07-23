@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"net/url"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -58,13 +60,6 @@ func NewAgent() *Agent {
 	return &agent
 }
 
-func apiFailed(err error, resp *RestResp) bool {
-	if err != nil || resp.Code != 0 {
-		return true
-	}
-	return false
-}
-
 func (self *Agent) Login(ctx context.Context) bool {
 	jsonData := struct {
 		Account   string `json:"account"`
@@ -101,7 +96,7 @@ func (self *Agent) searchFile(ctx context.Context) bool {
 		FileNames []string `json:"filenames"`
 	}{}
 	resp := RestResp{}
-	jsonData.FileNames = append(jsonData.FileNames, consts.PDF_TO_UPLOAD)
+	jsonData.FileNames = append(jsonData.FileNames, filepath.Base(consts.PDF_TO_UPLOAD))
 	url := consts.LINGO_HOST + "/api/plugin/file/batch/name/search"
 	return !apiFailed(utils.DoPost(ctx, url, self.Headers, nil, &resp), &resp)
 }
@@ -112,6 +107,18 @@ func (self *Agent) uploadFile(ctx context.Context) bool {
 
 func (self *Agent) UploadPDF(ctx context.Context) bool {
 	return self.searchFile(ctx) && self.uploadFile(ctx)
+}
+func (self *Agent) PdfParse(ctx context.Context) bool {
+	return false
+}
+func (self *Agent) PdfAbstract(ctx context.Context) bool {
+	return false
+}
+func (self *Agent) PdfViewpoint(ctx context.Context) bool {
+	return false
+}
+func (self *Agent) PdfOutline(ctx context.Context) bool {
+	return false
 }
 
 func (self *Agent) Root(ctx context.Context) bool {
@@ -169,8 +176,144 @@ func (self *Agent) uploadURL_waitStatus(ctx context.Context) bool {
 	return false
 }
 
+func (self *Agent) uploadURL_getDetail(ctx context.Context) bool {
+	params := url.Values{
+		"entry_id":   {self.UrlId},
+		"entry_type": {"7"},
+	}
+
+	resp := RestResp{}
+	return !apiFailed(utils.DoGet(ctx, consts.LINGO_HOST+"/api/entry/detail", params, self.Headers, &resp), &resp)
+}
+
 func (self *Agent) UploadURL(ctx context.Context) bool {
 	url := fmt.Sprintf("http://www.news.cn/20240712/a0f88cded3bb48d29772e8b7bb797695/c.html?sign=%s", primitive.NewObjectID().Hex())
 	self.Url = url
-	return self.uploadURL_check(ctx) && self.uploadURL_upload(ctx) && self.uploadURL_waitStatus(ctx)
+	return self.uploadURL_check(ctx) &&
+		self.uploadURL_upload(ctx)
+}
+
+func (self *Agent) UrlDldParse(ctx context.Context) bool {
+	return self.uploadURL_waitStatus(ctx) &&
+		self.uploadURL_getDetail(ctx)
+
+}
+
+func (self *Agent) UrlAbstract(ctx context.Context) bool {
+	jsonData := struct {
+		ID            string `json:"id"`
+		URL           string `json:"url"`
+		Title         string `json:"title"`
+		Author        string `json:"author"`
+		OutlineType   int    `json:"outline_type"`
+		Content       string `json:"content"`
+		ContentLength int    `json:"contentLength"`
+		URLId         string `json:"url_id"`
+		EntryType     int    `json:"entry_type"`
+		GenerateType  int    `json:"generate_type"`
+		PairID        string `json:"pair_id"`
+		ChannelType   int    `json:"channel_type"`
+		ModeStage     int    `json:"mode_stage"`
+	}{
+		ID:            self.UrlId,
+		URL:           "",
+		Title:         "",
+		Author:        "",
+		OutlineType:   1,
+		Content:       "",
+		ContentLength: 2284,
+		URLId:         self.UrlId,
+		EntryType:     5,
+		GenerateType:  0,
+		PairID:        "Cqz98jiT84t9KAQNBLiuu",
+		ChannelType:   20,
+		ModeStage:     3,
+	}
+	resp := RestResp{}
+	return !apiFailed(utils.DoPost(ctx, consts.LINGO_HOST+"/api/plugin/articles/summary", self.Headers, jsonData, &resp), &resp)
+}
+
+func (self *Agent) UrlViewpoint(ctx context.Context) bool {
+
+	jsonData := struct {
+		ID            string `json:"id"`
+		URL           string `json:"url"`
+		Title         string `json:"title"`
+		Author        string `json:"author"`
+		OutlineType   int    `json:"outline_type"`
+		Content       string `json:"content"`
+		ContentLength int    `json:"contentLength"`
+		URLId         string `json:"url_id"`
+		EntryType     int    `json:"entry_type"`
+		GenerateType  int    `json:"generate_type"`
+		PairID        string `json:"pair_id"`
+		ChannelType   int    `json:"channel_type"`
+		ModeStage     int    `json:"mode_stage"`
+		Version       string `json:"version"`
+	}{
+		ID:            self.UrlId,
+		URL:           "",
+		Title:         "",
+		Author:        "",
+		OutlineType:   1,
+		Content:       "",
+		ContentLength: 2204,
+		URLId:         self.UrlId,
+		EntryType:     11,
+		GenerateType:  3,
+		PairID:        "R_XBMTpkr9hT0hVijyhW6",
+		ChannelType:   20,
+		ModeStage:     3,
+		Version:       "v1.0.6",
+	}
+	lines, err := utils.DoStreamPost(ctx, consts.LINGO_HOST+"/api/plugin/articles/summary", self.Headers, jsonData)
+	if err != nil {
+		return false
+	}
+	return len(lines) >= 3
+}
+
+func (self *Agent) urlOutline(ctx context.Context, outlineType int) bool {
+	jsonData := struct {
+		ID            string `json:"id"`
+		URL           string `json:"url"`
+		Title         string `json:"title"`
+		Author        string `json:"author"`
+		OutlineType   int    `json:"outline_type"`
+		Content       string `json:"content"`
+		ContentLength int    `json:"contentLength"`
+		UrlId         string `json:"url_id"`
+		EntryType     int    `json:"entry_type"`
+		GenerateType  int    `json:"generate_type"`
+		PairID        string `json:"pair_id"`
+		ChannelType   int    `json:"channel_type"`
+		ModeStage     int    `json:"mode_stage"`
+		Version       string `json:"version"`
+	}{
+		ID:            self.UrlId,
+		URL:           "",
+		Title:         "",
+		Author:        "",
+		OutlineType:   outlineType,
+		Content:       "",
+		ContentLength: 2204,
+		UrlId:         self.UrlId,
+		EntryType:     6,
+		GenerateType:  1,
+		PairID:        "1DzK5ijyi6JjEbOWy7SJH",
+		ChannelType:   20,
+		ModeStage:     3,
+		Version:       "v1.0.6",
+	}
+	lines, err := utils.DoStreamPost(ctx, consts.LINGO_HOST+"/api/plugin/articles/summary", self.Headers, jsonData)
+	if err != nil {
+		return false
+	}
+	return len(lines) >= 3
+}
+
+func (self *Agent) UrlOutline(ctx context.Context) bool {
+	OUTLINE_SIMPLE := 1
+	OUTLINE_COMPLEX := 2
+	return self.urlOutline(ctx, OUTLINE_SIMPLE) && self.urlOutline(ctx, OUTLINE_COMPLEX)
 }

@@ -5,10 +5,11 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
 	"fmt"
-	sls "github.com/aliyun/aliyun-log-go-sdk"
 	"strings"
 	"testing"
 	"time"
+
+	sls "github.com/aliyun/aliyun-log-go-sdk"
 )
 
 func TestQueryLog(t *testing.T) {
@@ -108,10 +109,10 @@ func TestOutlineLogQueryViewpoint(t *testing.T) {
 	}
 }
 
-func TestNginxReportThisMonth(t *testing.T) {
+func TestNginxReportLongTime(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	NginxReportThisMonth(ctx)
+	NginxReportLongTime(ctx)
 }
 
 func TestCoreLogQuery(t *testing.T) {
@@ -134,10 +135,10 @@ func TestCoreLogQuery(t *testing.T) {
 
 }
 
-func TestCoreReportThisMonth(t *testing.T) {
+func TestCoreReportLongTime(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, _ := CoreReportThisMonth(ctx, consts.CORE_NAME_OUTLINE)
+	logs, _ := CoreReportLongTime(ctx, consts.CORE_NAME_OUTLINE)
 	for _, l := range logs {
 		fmt.Println(l)
 	}
@@ -255,4 +256,45 @@ func TestCommonCoreLogQuery(t *testing.T) {
 			fmt.Println(log)
 		}
 	}
+}
+
+func TestMultiCoreLogQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs, err := MultiCoreLogQuery(ctx, 0)
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
+}
+
+func Test_coreReportOfDays(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs, err := coreReportOfDays(ctx, "多文档端到端", []int{0, 1, 2})
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
+
+}
+
+func TestNginxLogsToday(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs, err := NginxLogsToday(ctx)
+	if err != nil {
+		t.Error(err)
+	} else {
+		for i, log := range logs {
+			fmt.Println(i+1, log)
+		}
+	}
+
 }

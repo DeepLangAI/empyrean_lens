@@ -217,6 +217,8 @@
 
     function paginateTable(tableId, rowsPerPage, paginationId) {
         let currentPage = 1;
+        var dates = []
+        var dateGroups = {}
         const table = document.getElementById(tableId);
         const tbody = table.querySelector('tbody');
         const paginationControls = document.getElementById(paginationId);
@@ -225,6 +227,11 @@
         // 添加日期信息到行数据中
         rows.forEach((row, index) => {
             row.dataset.date = table.rows[index + 1].cells[0].textContent;
+            if (!dateGroups[row.dataset.date]){
+                dateGroups[row.dataset.date] = []
+                dates.push(row.dataset.date)
+            }
+            dateGroups[row.dataset.date].push(row)
         });
 
         function renderTable() {
@@ -250,16 +257,15 @@
                     }
                 }
 
-                const start = (currentPage - 1) * rowsPerPage;
-                const end = start + rowsPerPage;
-                row.style.display = i >= start && i < end ? '' : 'none';
+                row.style.display = dates[currentPage-1] == rowDate ? '' : 'none';
             }
 
             renderPaginationControls();
         }
 
         function renderPaginationControls() {
-            const totalPages = Math.ceil(rows.length / rowsPerPage);
+            // const totalPages = Math.ceil(rows.length / rowsPerPage);
+            const totalPages = dates.length
             paginationControls.innerHTML = '';
 
             function createButton(page) {

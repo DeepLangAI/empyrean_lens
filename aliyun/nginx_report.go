@@ -115,7 +115,7 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 				daySumReport.TotalCount += report.TotalCount
 				daySumReport.FailRate = float64(daySumReport.FailCount) / float64(daySumReport.TotalCount) * 100
 				daySumReport.FailStatus3xx += report.FailStatus3xx
-				daySumReport.FailStatus3xx += report.FailStatus4xx
+				daySumReport.FailStatus4xx += report.FailStatus4xx
 				daySumReport.FailStatus5xx += report.FailStatus5xx
 				daySumReports[report.Date] = daySumReport
 			}

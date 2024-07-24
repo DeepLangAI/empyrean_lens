@@ -4,7 +4,7 @@ server:
   name: "empyreanLens"
 
 mongo:
-  # addr: "mongodb://svr_empyrean_lens:D2xcKpc_Umk838U@dds-8vb43194a1bfeef42.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef41.mongodb.zhangbei.rds.aliyuncs.com:3717/empyrean_lens?replicaSet=mgset-518525368"
+#  addr: "mongodb://svr_empyrean_lens:D2xcKpc_Umk838U@dds-8vb43194a1bfeef42.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef41.mongodb.zhangbei.rds.aliyuncs.com:3717/empyrean_lens?replicaSet=mgset-518525368"
   addr: "mongodb://svr_yanxubin:9fck23!g$i7k1%40eA@10.0.6.1:27017/empyrean_lens?authSource=admin&directConnection=true"
   databaseName: empyrean_lens
   maxPoolSize: 1000

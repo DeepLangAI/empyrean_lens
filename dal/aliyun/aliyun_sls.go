@@ -231,7 +231,7 @@ func MultiCoreLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error)
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-((__tag__:_container_name_: lingo-python-pre and message: "multi core node node_name")) |  
+((__tag__:_container_name_: lingo-python-pre or __tag__:_container_name_: lingo-python-prod) and message: "multi core node node_name") |
 select  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 1) as node_name,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 2) as multi_id,  

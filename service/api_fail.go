@@ -31,7 +31,16 @@ func ApiFailResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]aliyun.
 	}
 	sort.Slice(reports, func(i, j int) bool {
 		if reports[i].Date == reports[j].Date {
-			return reports[i].CoreApiName < reports[j].CoreApiName
+			if reports[i].CoreApiName == "当日总览" {
+				return true
+			} else if reports[j].CoreApiName == "当日总览" {
+				return false
+			}
+			if reports[i].HostName == reports[j].HostName {
+				return reports[i].CoreApiName < reports[j].CoreApiName
+			} else {
+				return reports[i].HostName < reports[j].HostName
+			}
 		}
 		return reports[i].Date > reports[j].Date
 	})

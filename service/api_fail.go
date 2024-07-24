@@ -4,6 +4,7 @@ import (
 	"context"
 	"empyrean_lens/aliyun"
 	"empyrean_lens/dal/mongo"
+	"sort"
 	"time"
 )
 
@@ -28,6 +29,12 @@ func ApiFailResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]aliyun.
 			FailStatus5xx: int(model.ErrCode5xxCnt),
 		})
 	}
+	sort.Slice(reports, func(i, j int) bool {
+		if reports[i].Date == reports[j].Date {
+			return reports[i].CoreApiName < reports[j].CoreApiName
+		}
+		return reports[i].Date > reports[j].Date
+	})
 
 	return reports, nil
 }

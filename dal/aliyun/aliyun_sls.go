@@ -237,8 +237,10 @@ regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entr
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 2) as multi_id,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 3) as entry_id,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 4) as cost,  trace_id, user_id, asctime time from log order by time desc
+limit %v
 `
-	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
 		return nil, err
 	}

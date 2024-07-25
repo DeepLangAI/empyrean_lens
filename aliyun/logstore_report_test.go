@@ -14,7 +14,7 @@ func TestLogStoreTimeSpanReport(t *testing.T) {
 	conf.InitConfig()
 	dal.Init()
 
-	report, err := LogStoreTimeSpanReport(ctx, consts.TIMESPAN_WEEK)
+	report, err := LogStoreTimeSpanReport(ctx, consts.TIMESPAN_TODAY)
 	if err != nil {
 		t.Error(err)
 	}

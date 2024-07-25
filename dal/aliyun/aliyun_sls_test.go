@@ -77,16 +77,17 @@ func TestOutlineLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
 	//logs, e := SummaryCoreLogQuery(ctx, 0, consts.CORE_NAME_OUTLINE)
-	logs, e := SummaryCoreLogQuery(ctx, 1, consts.CORE_NAME_OUTLINE)
+	logs, e := SummaryCoreLogQuery(ctx, 1, consts.CORE_NAME_ABSTRACT)
 	if e != nil {
 		t.Error(e)
 	} else {
-		cnt := 0
+		//cnt := 0
 		for _, log := range logs {
-			if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST || log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST {
-				cnt += 1
-				fmt.Println(cnt, log)
-			}
+			fmt.Println(log)
+			//if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST || log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST {
+			//	cnt += 1
+			//	fmt.Println(cnt, log)
+			//}
 		}
 	}
 }
@@ -157,17 +158,17 @@ func TestStatusCodeUpdate(t *testing.T) {
 func TestNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := NginxIngressBasicQuery(ctx, 1, consts.HOST_LINGO_BACKEND)
+	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_EDU)
 	if err != nil {
-
 		t.Error(err)
 	} else {
 		cnt := 0
 		for _, log := range logs {
-			if log.CleanUrl == "/api/plugin/articles/summary" {
-				cnt += 1
-				fmt.Println(cnt, log)
-			}
+			fmt.Println(cnt, log)
+			//if log.CleanUrl == "/api/plugin/articles/summary" {
+			//	cnt += 1
+			//	fmt.Println(cnt, log)
+			//}
 		}
 	}
 }
@@ -175,12 +176,11 @@ func TestNginxIngressBasicQuery(t *testing.T) {
 func TestModelNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	if logs, err := ModelNginxIngressBasicQuery(ctx, 0, consts.HOST_ABSTRACT); err != nil {
-
+	if logs, err := ModelNginxIngressBasicQuery(ctx, 1, consts.HOST_SUQIN); err != nil {
 		t.Error(err)
 	} else {
-		for _, log := range logs {
-			fmt.Println(log)
+		for i, log := range logs {
+			fmt.Println(i, log)
 		}
 	}
 }
@@ -220,7 +220,7 @@ from log order by time desc
 func TestQaCoreLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := QaCoreLogQuery(ctx, 0)
+	logs, err := QaCoreLogQuery(ctx, 0, consts.HOST_REPEATER)
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -261,7 +261,7 @@ func TestCommonCoreLogQuery(t *testing.T) {
 func TestMultiCoreLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := MultiCoreLogQuery(ctx, 0)
+	logs, err := MultiCoreLogQuery(ctx, 0, "multi")
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -274,7 +274,9 @@ func TestMultiCoreLogQuery(t *testing.T) {
 func Test_coreReportOfDays(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := coreReportOfDays(ctx, "多文档端到端", []int{0, 1, 2})
+	//logs, err := coreReportOfDays(ctx, "多文档端到端", []int{0, 1, 2})
+	//logs, err := coreReportOfDays(ctx, "问答模型", []int{1})
+	logs, err := coreReportOfDays(ctx, consts.CORE_NAME_ABSTRACT, []int{1})
 	if err != nil {
 		t.Error(err)
 	} else {

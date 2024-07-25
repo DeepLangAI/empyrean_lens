@@ -41,12 +41,12 @@ const (
 )
 
 var NODE_MAP = map[string]string{
-	ALIYUN_LOG_NODE_OUTLINE_AI_COST:    "生成智能大纲模型耗时",
-	ALIYUN_LOG_NODE_OUTLINE_ETOE_COST:  "生成智能大纲端到端耗时",
-	ALIYUN_LOG_NODE_ABSTRACT_AI_COST:   "生成概述模型耗时",
-	ALIYUN_LOG_NODE_ABSTRACT_ETE_COST:  "生成全文速览端到端耗时",
-	ALIYUN_LOG_NODE_QA_DONE_COST:       "回答问题端到端耗时",
-	ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST: "生成关键信息模型耗时",
+	ALIYUN_LOG_NODE_OUTLINE_AI_COST:    "【模型】生成智能大纲模型耗时",
+	ALIYUN_LOG_NODE_OUTLINE_ETOE_COST:  "【后端】生成智能大纲端到端耗时",
+	ALIYUN_LOG_NODE_ABSTRACT_AI_COST:   "【模型】生成全文速览模型耗时",
+	ALIYUN_LOG_NODE_ABSTRACT_ETE_COST:  "【后端】生成全文速览端到端耗时",
+	ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST: "【模型】生成关键信息模型耗时",
+	ALIYUN_LOG_NODE_QA_DONE_COST:       "【后端】回答问题端到端耗时",
 
 	ALIYUN_LOG_NODE_MULTI_ETE_COST:    "【多文档】多文档生成端到端",
 	ALIYUN_LOG_NODE_ANALYSIS_REPEATER: "【多文档】模型-单文档解析",
@@ -81,20 +81,20 @@ var NGINX_INGRESS_APIS = map[string][]API{
 	HOST_LINGO_BACKEND: {
 		{
 			Api:   "/api/plugin/file/add",
-			Alias: "上传PDF",
+			Alias: "【后端】上传PDF",
 		},
 		{
 			Api:   "/api/readers/url/upload",
-			Alias: "上传URL",
+			Alias: "【后端】上传URL",
 		},
 
 		{
 			Api:   "/api/plugin/articles/summary",
-			Alias: "全文速览/智能大纲/关键信息",
+			Alias: "【后端】全文速览/智能大纲/关键信息",
 		},
 		{
 			Api:   "/api/plugin/articles/summary/list_v2",
-			Alias: "刷新模型生成内容",
+			Alias: "【后端】刷新模型生成内容(list_v2)",
 		},
 	},
 	HOST_CRAWLER: {
@@ -114,33 +114,33 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Api:   "/edu_parse",
 			Alias: "最小信息单元",
 		},
-		{
-			Api:   "/positions/list",
-			Alias: "最小信息单元位置信息获取",
-		},
+		//{
+		//	Api:   "/positions/list",
+		//	Alias: "最小信息单元位置信息获取",
+		//},
 	},
 	HOST_QA_BACKEND: {
 		{
 			Api:   "/api/chat/qa",
-			Alias: "问答后端",
+			Alias: "【后端】问答",
 		},
 		{
 			Api:   "/api/chat/recommend",
-			Alias: "问题推荐后端",
+			Alias: "【后端】问题推荐",
 		},
 	},
 	HOST_REPEATER: {
 		{
 			Api:   "/doc/single/analyze",
-			Alias: "【多文档】中继服务单文档分析",
+			Alias: "【多文档】1中继服务单文档分析",
 		},
 		{
 			Api:   "/doc/multi/analyze",
-			Alias: "【多文档】中继服务多文档整合",
+			Alias: "【多文档】2中继服务多文档整合",
 		},
 		{
 			Api:   "/doc/multi/outline",
-			Alias: "【多文档】中继服务多文档总结",
+			Alias: "【多文档】3中继服务多文档总结",
 		},
 	},
 }
@@ -150,37 +150,37 @@ var MODEL_NGINX_INGRESS_APIS = map[string][]API{
 	HOST_ABSTRACT: {
 		{
 			Api:   "/generate",
-			Alias: "生成全文速览",
+			Alias: "【模型】生成全文速览",
 		},
 	},
 	HOST_OURLINE: {
 		{
 			Api:   "/generate",
-			Alias: "生成智能大纲",
+			Alias: "【模型】生成智能大纲",
 		},
 	},
 	HOST_OPINION: {
 		{
 			Api:   "/generate",
-			Alias: "生成关键信息",
+			Alias: "【模型】生成关键信息",
 		},
 	},
 	HOST_SUQIN: {
 		{
 			Api:   "/pdfparser",
-			Alias: "苏秦PDF解析",
+			Alias: "【解析】苏秦PDF解析",
 		},
 	},
 	HOST_QA_RECOMMEND: {
 		{
 			Api:   "/qa/query_recommend",
-			Alias: "问题推荐模型",
+			Alias: "【模型】问题推荐模型",
 		},
 	},
 	HOST_QA_MAIN: {
 		{
 			Api:   "/qa/main",
-			Alias: "问答模型",
+			Alias: "【模型】问答模型",
 		},
 	},
 	//HOST_QUERY_EMBEDDING: {

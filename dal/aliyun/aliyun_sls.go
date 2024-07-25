@@ -47,6 +47,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	hlog.CtxInfof(ctx, "get logstore: %v success", consts.MODEL_NGINX_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	//fromdayStr := lookbackDay.Format("2006-01-02")
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
@@ -56,7 +57,8 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	"content.method" method, 
 	"content.status" status, 
 	"content.time" time, 
-	"content.vhost" host
+	"content.vhost" host,
+	"content.http_user_agent" ua
 	FROM log WHERE
 	"content.path" in(
 		%v
@@ -81,7 +83,14 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 			continue
 		}
 		//fmt.Println(log)
+		//if log["ua"] != "hertz" {
+		//	continue
+		//}
+		//fmt.Println(log)
 		t, e := time.Parse(time.RFC3339, log["time"])
+		//if t.Format("2006-01-02") != fromdayStr {
+		//	continue
+		//}
 		if t.Unix() <= from {
 			continue
 		}
@@ -118,7 +127,7 @@ func NginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) 
 host: %v |
 SELECT  * FROM  (
   SELECT 
-    REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host
+    REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host, http_referer
   FROM log WHERE method IN ('GET', 'POST')
 ) t
 WHERE clean_url IN (
@@ -144,9 +153,18 @@ LIMIT %d
 	nlogs := []NginxLog{}
 	for _, log := range resp.Logs {
 		t, e := time.Parse("02/Jan/2006:15:04:05", log["time"])
-		if t.Unix() < from {
+		if t.Format("2006-01-02") != lookbackDay.Format("2006-01-02") {
 			continue
 		}
+		//if t.Unix() < from {
+		//	continue
+		//}
+		if host == "api-repeater.lingoreader.cn" && log["clean_url"] == "/doc/multi/outline" {
+			if log["http_referer"] != "https://lingowhale.com/" {
+				continue
+			}
+		}
+
 		if e != nil {
 			hlog.CtxErrorf(ctx, "parse time error: %v", e)
 			continue
@@ -219,7 +237,7 @@ type CoreLog struct {
 	UserId   string
 }
 
-func MultiCoreLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error) {
+func MultiCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
 
 	if err != nil {
@@ -231,7 +249,7 @@ func MultiCoreLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error)
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-((__tag__:_container_name_: lingo-python-pre or __tag__:_container_name_: lingo-python-prod) and message: "multi core node node_name") |
+((__tag__:_container_name_: lingo-python-prod) and message: "%v core node node_name") |
 select  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 1) as node_name,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 2) as multi_id,  
@@ -239,7 +257,7 @@ regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entr
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 4) as cost,  trace_id, user_id, asctime time from log order by time desc
 limit %v
 `
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
 	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
 		return nil, err
@@ -269,7 +287,7 @@ limit %v
 	return coreLogs, nil
 }
 
-func QaCoreLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error) {
+func QaCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
 
 	if err != nil {
@@ -281,13 +299,16 @@ func QaCoreLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error) {
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod and message: "问答模型,") |  
+(__tag__:_container_name_: lingo-chat-go-prod and message: "%v,") |  
 select 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 1) as node, 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 2) as cnt, 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 3) as cost,trace_id,user_id, time 
 from log order by time desc
+limit %v
 `
+	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
 	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
 	if err != nil {
 		return nil, err
@@ -385,7 +406,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
-	query := `__tag__:_container_name_ : lingowhale-python-prod and  message : "summary core core_name:%s" |
+	query := `__tag__:_container_name_ : lingo-python-prod and  message : "summary core core_name:%s" |
 	select
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 1) as core_name,
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 2) as node,
@@ -548,12 +569,12 @@ func coreReportOfDays(ctx context.Context, coreName string, days []int) ([]CoreL
 				hlog.CtxErrorf(ctx, "SummaryCoreLogQuery failed: %v")
 				return
 			}
-			qaLogs, err := QaCoreLogQuery(ctx, daysLookback)
+			qaLogs, err := QaCoreLogQuery(ctx, daysLookback, coreName)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "QaCoreLogQuery failed: %v")
 				return
 			}
-			multiLogs, err := MultiCoreLogQuery(ctx, daysLookback)
+			multiLogs, err := MultiCoreLogQuery(ctx, daysLookback, coreName)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "QaCoreLogQuery failed: %v")
 				return

@@ -152,7 +152,7 @@
         {{ range .Nginx }}
         <tr>
             <td>{{ .Date }}</td>
-            <td>{{ .CoreApiName }}</td>
+            <td style="text-align:left">{{ .CoreApiName }}</td>
             <td style="text-align:left">{{ .HostName }}</td>
             <td>{{ .FailCount }}</td>
             <td>{{ .TotalCount }}</td>
@@ -193,7 +193,7 @@
             {{ range .Business }}
             <tr>
                 <td>{{ .Date }}</td>
-                <td>{{ .Node }}</td>
+                <td style="text-align:left">{{ .Node }}</td>
                 <td>{{ .NumReq }}</td>
                 <td>{{ printf "%.2f" .AvgCost }}</td>
                 <td class="color-cell" data-value="{{ .CostDistribution0_1 }}" data-type="rate">{{ printf "%.2f" .CostDistribution0_1 }}%</td>

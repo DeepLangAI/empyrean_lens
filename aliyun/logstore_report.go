@@ -37,6 +37,8 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 		consts.CORE_NAME_OUTLINE,
 		consts.CORE_NAME_ABSTRACT,
 		consts.CORE_NAME_VIEWPOINT,
+		"问答模型",
+		"multi",
 	}
 	var mutex sync.Mutex
 	wg := sync.WaitGroup{}
@@ -67,6 +69,9 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 		go func(coreName string) {
 			defer wg.Done()
 			logs := []aliyun.CoreLog{}
+			if coreName == consts.CORE_NAME_ABSTRACT {
+				fmt.Println(coreName)
+			}
 			if timespan == consts.TIMESPAN_LONGTIME {
 				_logs, err := aliyun.CoreReportLongTime(ctx, coreName)
 				if err != nil {
@@ -90,12 +95,15 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 				logs = _logs
 			}
 			if len(logs) == 0 {
-				hlog.CtxErrorf(ctx, "CoreReportLongTime failed, core: %v err: %v", cores[i], "no logs")
+				//hlog.CtxErrorf(ctx, "CoreReportLongTime failed, core: %v err: %v", cores[i], "no logs")
 				return
 			}
 			mutex.Lock()
 			var aiStart float64
 			for _, log := range logs {
+				if log.Node == consts.ALIYUN_LOG_NODE_ABSTRACT_ETE_COST && log.Time.Format("2006-01-02") == "2024-07-24" {
+					fmt.Println("概述端到端======", log)
+				}
 				if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_START {
 					aiStart = log.Cost
 				}
@@ -111,6 +119,9 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 					dayReports = map[string]CoreLogTimeSpanReportModel{}
 					timespanReports[day] = dayReports
 				}
+				//if log.Node == consts.ALIYUN_LOG_NODE_MULTI_ETE_COST {
+				//	fmt.Println("======", log)
+				//}
 
 				report, ok := dayReports[log.Node]
 				if !ok {
@@ -154,9 +165,9 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 	finalReports := []CoreLogTimeSpanReportModel{}
 	for _, dayReports := range timespanReports {
 		for _, report := range dayReports {
-			if report.Node == consts.ALIYUN_LOG_NODE_THEME_SUMMARY {
-				fmt.Println(report)
-			}
+			//if report.Node == consts.ALIYUN_LOG_NODE_ABSTRACT_ETE_COST {
+			//	fmt.Println("abstract:======", report)
+			//}
 			if alias, ok := consts.NODE_MAP[report.Node]; ok {
 				report.Node = alias
 			}

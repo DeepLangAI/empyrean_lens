@@ -36,11 +36,12 @@ func ApiFailResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]aliyun.
 			} else if reports[j].CoreApiName == "当日总览" {
 				return false
 			}
-			if reports[i].HostName == reports[j].HostName {
-				return reports[i].CoreApiName < reports[j].CoreApiName
-			} else {
-				return reports[i].HostName < reports[j].HostName
-			}
+			return reports[i].CoreApiName < reports[j].CoreApiName
+			//if reports[i].HostName == reports[j].HostName {
+			//	return reports[i].CoreApiName < reports[j].CoreApiName
+			//} else {
+			//	return reports[i].HostName < reports[j].HostName
+			//}
 		}
 		return reports[i].Date > reports[j].Date
 	})

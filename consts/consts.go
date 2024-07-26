@@ -70,6 +70,7 @@ const (
 	HOST_QA_MAIN         = "qa-main.shenyandayi.com"
 	HOST_REPEATER        = "api-repeater.lingoreader.cn"
 	HOST_QUERY_EMBEDDING = "search-embedding-v2.shenyandayi.com"
+	HOST_MULTI_MODEL     = "ai-infra-service.shenyandayi.com"
 )
 
 type API struct {
@@ -135,15 +136,15 @@ var NGINX_INGRESS_APIS = map[string][]API{
 	HOST_REPEATER: {
 		{
 			Api:   "/doc/single/analyze",
-			Alias: "【多文档】1中继服务单文档分析",
+			Alias: "【多文档】1[中继服务]单文档分析",
 		},
 		{
 			Api:   "/doc/multi/analyze",
-			Alias: "【多文档】2中继服务多文档整合",
+			Alias: "【多文档】2[中继服务]多文档整合",
 		},
 		{
 			Api:   "/doc/multi/outline",
-			Alias: "【多文档】3中继服务多文档总结",
+			Alias: "【多文档】3[中继服务]多文档总结",
 		},
 	},
 }
@@ -192,6 +193,20 @@ var MODEL_NGINX_INGRESS_APIS = map[string][]API{
 	//		Alias: "问句嵌入",
 	//	},
 	//},
+	HOST_MULTI_MODEL: {
+		{
+			Api:   "/multi-doc/single-doc-analysis",
+			Alias: "【多文档】1[模型服务]单文档分析",
+		},
+		{
+			Api:   "/multi-doc/doc-merge",
+			Alias: "【多文档】2[模型服务]多文档整合",
+		},
+		{
+			Api:   "/multi-doc/doc-summary",
+			Alias: "【多文档】3[模型服务]多文档总结",
+		},
+	},
 }
 
 // 需要计算权重的维度

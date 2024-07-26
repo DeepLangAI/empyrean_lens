@@ -88,6 +88,8 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 		//}
 		//fmt.Println(log)
 		t, e := time.Parse(time.RFC3339, log["time"])
+		// 时间是UTC时间，需要+8小时
+		t = t.Add(time.Hour * 8)
 		//if t.Format("2006-01-02") != fromdayStr {
 		//	continue
 		//}

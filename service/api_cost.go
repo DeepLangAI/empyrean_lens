@@ -4,6 +4,7 @@ import (
 	"context"
 	"empyrean_lens/aliyun"
 	"empyrean_lens/dal/mongo"
+	"fmt"
 	"sort"
 	"time"
 )
@@ -45,6 +46,23 @@ func ApiCostResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]aliyun.
 	return reports, nil
 }
 
-func DailyPerformanceResult(ctx context.Context, timeBegin, timeEnd time.Time) {
-
+func DailyPerformanceResult(ctx context.Context, timeBegin, timeEnd time.Time) error {
+	apiCostModels, err := mongo.NewApicostModelDao().FindTimespanCost(ctx, timeBegin, timeEnd)
+	if err != nil {
+		return err
+	}
+	apiFailModels, err := mongo.NewApifailureModelDao().FindTimespanFailure(ctx, timeBegin, timeEnd)
+	if err != nil {
+		return err
+	}
+	for _, model := range apiFailModels {
+		if model.ApiName == "【后端】问题推荐" {
+			fmt.Println(model)
+		}
+	}
+	fmt.Println("====================")
+	for _, model := range apiCostModels {
+		fmt.Println(model)
+	}
+	return nil
 }

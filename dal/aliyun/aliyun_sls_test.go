@@ -176,7 +176,7 @@ func TestNginxIngressBasicQuery(t *testing.T) {
 func TestModelNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	if logs, err := ModelNginxIngressBasicQuery(ctx, 1, consts.HOST_SUQIN); err != nil {
+	if logs, err := ModelNginxIngressBasicQuery(ctx, 0, consts.HOST_MULTI_MODEL); err != nil {
 		t.Error(err)
 	} else {
 		for i, log := range logs {

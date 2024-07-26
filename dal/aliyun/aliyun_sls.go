@@ -4,6 +4,7 @@ import (
 	"context"
 	"empyrean_lens/consts"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -353,7 +354,7 @@ func CommonCoreLogQuery(ctx context.Context, daysLookback int, coreName string) 
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-"core link core_name:%v" |
+__tag__:_container_name_:lingo-python-prod and "core link core_name:%v" |
 SELECT 
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 1) as core_name,
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 2) as core_node,
@@ -394,6 +395,45 @@ FROM log LIMIT %v
 		coreLogs = append(coreLogs, coreLog)
 	}
 	return coreLogs, nil
+}
+
+func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, error) {
+	cnts := map[string]int{}
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+__tag__:_container_name_:lingo-python-prod and summary start | select * from (
+    select 
+    regexp_extract(message, 'summary start, uid:(.*), generate_type:(.*).', 1) uid, 
+    regexp_extract(message, 'summary start, uid:(.*), generate_type:(.*).', 2) generate_type 
+    from log limit %v
+)
+`
+
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	// 查询日志
+	hlog.CtxDebugf(ctx, "summary sql query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// 打印查询结果
+	hlog.CtxInfof(ctx, "日期%v，查SummaryCore，共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
+	for _, log := range resp.Logs {
+		cnts[log["generate_type"]] += 1
+	}
+	return cnts, nil
 }
 
 func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
@@ -621,4 +661,103 @@ func CoreReportLongTime(ctx context.Context, coreName string) ([]CoreLog, error)
 		days = append(days, i)
 	}
 	return coreReportOfDays(ctx, coreName, days)
+}
+
+type SceneOverview struct {
+	Name     string
+	Costs    []float64
+	TotalReq int64
+	FailReq  int64
+	SlowReq  int64
+
+	FailRate float64
+	SlowRate float64
+}
+
+type SceneOverviews struct {
+	Date              string
+	AbstractOverview  SceneOverview
+	OutlineOverview   SceneOverview
+	ViewpointOverview SceneOverview
+}
+
+func aigcCostAnlz(report SceneOverview, slowQueryThreshold int) SceneOverview {
+	report.FailReq = report.TotalReq - int64(len(report.Costs))
+	report.FailRate = float64(report.FailReq) / float64(report.TotalReq) * 100
+
+	for _, cost := range report.Costs {
+		if cost > float64(slowQueryThreshold) {
+			report.SlowReq++
+		}
+	}
+	report.SlowRate = float64(report.SlowReq) / float64(report.TotalReq) * 100
+	return report
+}
+
+func SummaryGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, error) {
+	overviews := &SceneOverviews{}
+	cnts, err := SummreqCntQuery(ctx, daysLookback)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "err: %v", err)
+		return nil, err
+	}
+	abstractOverview := SceneOverview{Name: "单文档：全文速览", Costs: []float64{}, TotalReq: int64(cnts["0"]), FailReq: 0}
+	outlineOverview := SceneOverview{Name: "单文档：智能大纲", Costs: []float64{}, TotalReq: int64(cnts["1"]), FailReq: 0}
+	viewpointOverview := SceneOverview{Name: "单文档：关键信息", Costs: []float64{}, TotalReq: int64(cnts["3"]), FailReq: 0}
+
+	coreLogs, _ := CommonCoreLogQuery(ctx, daysLookback, consts.CORE_NAME_VIEWPOINT)
+	for _, log := range coreLogs {
+		if log.Node == consts.ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST {
+			viewpointOverview.Costs = append(viewpointOverview.Costs, log.Cost)
+		}
+	}
+	abstractLogs, err := SummaryCoreLogQuery(ctx, daysLookback, consts.CORE_NAME_ABSTRACT)
+	for _, log := range abstractLogs {
+		if log.Node == consts.ALIYUN_LOG_NODE_ABSTRACT_ETE_COST {
+			abstractOverview.Costs = append(abstractOverview.Costs, log.Cost)
+		}
+	}
+
+	outlineLogs, err := SummaryCoreLogQuery(ctx, daysLookback, consts.CORE_NAME_OUTLINE)
+	for _, log := range outlineLogs {
+		if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST {
+			outlineOverview.Costs = append(outlineOverview.Costs, log.Cost)
+		}
+	}
+	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT)
+	outlineOverview = aigcCostAnlz(outlineOverview, consts.SLOWQUERY_THRESHOLD_OUTLINE)
+	viewpointOverview = aigcCostAnlz(viewpointOverview, consts.SLOWQUERY_THRESHOLD_VIEWPOINT)
+
+	overviews.AbstractOverview = abstractOverview
+	overviews.OutlineOverview = outlineOverview
+	overviews.ViewpointOverview = viewpointOverview
+	overviews.Date = time.Now().AddDate(0, 0, -daysLookback).Format("2006-01-02")
+
+	return overviews, nil
+}
+
+func SummaryGeneralOverview(ctx context.Context, days []int) []SceneOverviews {
+	var mutex sync.Mutex
+	wg := sync.WaitGroup{}
+
+	overviews := []SceneOverviews{}
+	for _, day := range days {
+		wg.Add(1)
+		go func(lookbackDay int) {
+			defer wg.Done()
+			ov, err := SummaryGeneralOfDay(ctx, lookbackDay)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "err: %v", err)
+				return
+			}
+			mutex.Lock()
+			overviews = append(overviews, *ov)
+			mutex.Unlock()
+		}(day)
+	}
+	wg.Wait()
+	sort.Slice(overviews, func(i, j int) bool {
+		return overviews[i].Date > overviews[j].Date
+	})
+	return overviews
 }

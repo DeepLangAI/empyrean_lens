@@ -9,7 +9,10 @@ const (
 	LOG_STORE_NAME             = "business-pod"
 	NGINX_LOG_STORE_NAME       = "nginx-ingress"
 	MODEL_NGINX_LOG_STORE_NAME = "model-nginx-ingress"
+	METRIC_SOTRE_NAME          = "prod-metrics"
 	LOG_QUERY_LIMIT            = 100000
+	ALIYUN_SLS_API_KEY         = "REDACTED"
+	ALIYUN_SLS_API_SECRET      = "REDACTED"
 
 	CORE_NAME_ABSTRACT  = "概述"
 	CORE_NAME_OUTLINE   = "大纲"
@@ -237,4 +240,10 @@ const (
 	TIMESPAN_WEEK     = 1
 	TIMESPAN_MONTH    = 2
 	TIMESPAN_LONGTIME = 3
+)
+
+const (
+	SLOWQUERY_THRESHOLD_ABSTRACT  = 10.0
+	SLOWQUERY_THRESHOLD_OUTLINE   = 20.0
+	SLOWQUERY_THRESHOLD_VIEWPOINT = 10.0
 )

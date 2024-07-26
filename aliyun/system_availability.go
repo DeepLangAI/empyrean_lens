@@ -16,18 +16,18 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]utils.Reve
 	systemFactors := map[string]utils.SystemStablityFactor{}
 	availabilityScores := map[string]int{}
 	nginxLogs := []NginxTimeSpanReportModel{}
-	probeFailRates := map[string]float64{}
+	//probeFailRates := map[string]float64{}
 
 	nginxLogs, err := NginxTimespanReport(ctx, timespan)
 	if err != nil {
 		return nil, err
 	}
 
-	_probeFailRates, err := ProbeTimespanFailRate(ctx, timespan)
-	if err != nil {
-		return nil, err
-	}
-	probeFailRates = _probeFailRates
+	//_probeFailRates, err := ProbeTimespanFailRate(ctx, timespan)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//probeFailRates = _probeFailRates
 
 	for _, log := range nginxLogs {
 		if log.CoreApiName != "当日总览" {
@@ -38,7 +38,9 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]utils.Reve
 			systemFactors[log.Date] = utils.SystemStablityFactor{}
 		}
 		factor.ApiFailRate = log.FailRate / 100.0
-		factor.ProbeFailRate = probeFailRates[log.Date]
+		//factor.ProbeFailRate = probeFailRates[log.Date]
+		factor.ProbeFailRate = 1
+		factor.SlowQueryRate = 1
 		systemFactors[log.Date] = factor
 	}
 	for date, factor := range systemFactors {

@@ -71,8 +71,8 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun.RealtimeReport, error) {
 
 	systemScoreFactor := utils.SystemStablityFactor{
 		ApiFailRate:   float64(report.ErrorRequest.Value) / float64(report.TotalRequest.Value),
-		SlowQueryRate: 0,
-		ProbeFailRate: 0,
+		SlowQueryRate: 1,
+		ProbeFailRate: 1,
 	}
 	score_0 := utils.ComputeStablityScore(systemScoreFactor)
 	scoreModel_1, err := mongo.NewSystemScoreDao().FindScoreByTime(ctx, beginTime.AddDate(0, 0, -1))

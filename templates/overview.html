@@ -208,6 +208,55 @@
 </div>
 <div class="pagination" id="daily-overview-pagination"></div>
 
+<div class="container">
+    <h2 id="metric-heading">灵狗系统可用性 天级数据</h2>
+    <table id="metric-overview-table">
+        <thead>
+        <tr>
+            <th>日期</th>
+            <th>核心功能</th>
+            <th>请求数</th>
+            <th>错误数</th>
+            <th>错误率</th>
+
+            <th>慢查询数</th>
+            <th>慢查询率</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .SceneOverviews  }}
+        <tr>
+            <td>{{ .Date }}</td>
+            <td>{{ .AbstractOverview.Name }}</td>
+            <td>{{ .AbstractOverview.TotalReq }}</td>
+            <td>{{ .AbstractOverview.FailReq }}</td>
+            <td>{{ printf "%.2f"  .AbstractOverview.FailRate }}%</td>
+            <td>{{ .AbstractOverview.SlowReq }}</td>
+            <td>{{ printf "%.2f"  .AbstractOverview.SlowRate }}%</td>
+        </tr>
+        <tr>
+            <td>{{ .Date }}</td>
+            <td>{{ .OutlineOverview.Name }}</td>
+            <td>{{ .OutlineOverview.TotalReq }}</td>
+            <td>{{ .OutlineOverview.FailReq }}</td>
+            <td>{{ printf "%.2f"  .OutlineOverview.FailRate }}%</td>
+            <td>{{ .OutlineOverview.SlowReq }}</td>
+            <td>{{ printf "%.2f"  .OutlineOverview.SlowRate }}%</td>
+        </tr>
+        <tr>
+            <td>{{ .Date }}</td>
+            <td>{{ .ViewpointOverview.Name }}</td>
+            <td>{{ .ViewpointOverview.TotalReq }}</td>
+            <td>{{ .ViewpointOverview.FailReq }}</td>
+            <td>{{ printf "%.2f"  .ViewpointOverview.FailRate }}%</td>
+            <td>{{ .ViewpointOverview.SlowReq }}</td>
+            <td>{{ printf "%.2f"  .ViewpointOverview.SlowRate }}%</td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</div>
+<div class="pagination" id="metric-overview-pagination"></div>
 
 
 <script>
@@ -347,6 +396,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         paginateTable('daily-overview-table', 12, 'daily-overview-pagination');
+        paginateTable('metric-overview-table', 12, 'metric-overview-pagination');
         // paginateTable('nginx-table', 12, 'nginx-pagination');
         // paginateTable('logstore-table', 12, 'logstore-pagination');
     });

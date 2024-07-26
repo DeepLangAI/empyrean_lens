@@ -300,3 +300,21 @@ func TestNginxLogsToday(t *testing.T) {
 	}
 
 }
+
+func TestSummreqCntQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	ov := SummaryGeneralOverview(ctx, []int{1})
+	for _, o := range ov {
+		fmt.Println(o.AbstractOverview.TotalReq, o.AbstractOverview.FailReq)
+		fmt.Println(o.OutlineOverview.TotalReq, o.OutlineOverview.FailReq)
+		fmt.Println(o.ViewpointOverview.TotalReq, o.ViewpointOverview.FailReq)
+	}
+}
+
+func TestSummaryGeneralOfDay(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	ov, _ := SummaryGeneralOfDay(ctx, 1)
+	fmt.Println(ov.AbstractOverview.TotalReq, ov.AbstractOverview.FailReq)
+}

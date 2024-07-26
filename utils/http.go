@@ -134,6 +134,17 @@ func DoGet(
 	headers map[string]string,
 	res any,
 ) error {
+	return DoGetWithAuth(ctx, baseUrl, params, headers, res, "", "")
+}
+
+func DoGetWithAuth(
+	ctx context.Context,
+	baseUrl string,
+	params url.Values,
+	headers map[string]string,
+	res any,
+	authKey, authValue string,
+) error {
 	start := time.Now()
 	uri := baseUrl
 	if params != nil {
@@ -155,6 +166,9 @@ func DoGet(
 			req.Header.Set(k, v)
 		}
 	}
+	if authKey != "" && authValue != "" {
+		req.SetBasicAuth(authKey, authValue)
+	}
 
 	// 发起请求
 	resp, err := client.Do(req)
@@ -163,12 +177,12 @@ func DoGet(
 		return err
 	}
 	defer resp.Body.Close()
+	// 读取响应
+	body, err := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
 		hlog.CtxErrorf(ctx, "[Http Get] status code not 200,  code:%d, params:%v", resp.StatusCode, params)
 		return errors.New("status code not 200")
 	}
-	// 读取响应
-	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[Http Get] read body fail, err:%v, params:%v", err, params)
 		return err

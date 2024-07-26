@@ -85,9 +85,12 @@ var NGINX_INGRESS_APIS = map[string][]API{
 		},
 		{
 			Api:   "/api/readers/url/upload",
-			Alias: "【后端】上传URL",
+			Alias: "【后端】上传URL[web,小程序,插件]",
 		},
-
+		{
+			Api:   "/api/readers/url/content/upload",
+			Alias: "【后端】上传URL[小助手等]",
+		},
 		{
 			Api:   "/api/plugin/articles/summary",
 			Alias: "【后端】全文速览/智能大纲/关键信息",

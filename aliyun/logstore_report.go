@@ -101,9 +101,6 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 			mutex.Lock()
 			var aiStart float64
 			for _, log := range logs {
-				if log.Node == consts.ALIYUN_LOG_NODE_ABSTRACT_ETE_COST && log.Time.Format("2006-01-02") == "2024-07-24" {
-					fmt.Println("概述端到端======", log)
-				}
 				if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_START {
 					aiStart = log.Cost
 				}
@@ -133,6 +130,9 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 					}
 				}
 				report.Costs = append(report.Costs, log.Cost)
+				//if log.Node == consts.ALIYUN_LOG_NODE_ABSTRACT_ETE_COST && log.Time.Format("2006-01-02") == "2024-07-24" {
+				//	fmt.Println("概述端到端======", log.Time.Day(), log.Node, len(report.Costs), log)
+				//}
 				report.NumReq += 1
 				report.TotalCost += log.Cost
 				if log.Cost < 1 {

@@ -44,3 +44,7 @@ func ApiCostResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]aliyun.
 
 	return reports, nil
 }
+
+func DailyPerformanceResult(ctx context.Context, timeBegin, timeEnd time.Time) {
+
+}

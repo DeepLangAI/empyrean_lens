@@ -7,7 +7,6 @@ import (
 	"empyrean_lens/aliyun"
 	"empyrean_lens/biz/handler"
 	consts2 "empyrean_lens/consts"
-	aliyun2 "empyrean_lens/dal/aliyun"
 	"empyrean_lens/service"
 	"empyrean_lens/utils"
 	"fmt"
@@ -80,7 +79,7 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 type Overview struct {
 	DailyOverview    []utils.ReventResult
 	RealtimeOverview aliyun.RealtimeReport
-	SceneOverviews   []aliyun2.SceneOverviews
+	SceneOverviews   []map[string]string
 }
 
 // OverviewRender .
@@ -99,7 +98,7 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		c.String(consts.StatusInternalServerError, err.Error())
 		return
 	}
-
+	timeBegin := time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC)
 	//dailyOverview, err := aliyun.SystemTimespanAvailability(ctx, consts2.TIMESPAN_LONGTIME)
 	dailyOverview, err := service.SystemScoreResult(
 		ctx,
@@ -111,13 +110,14 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
-	totalDays := int((time.Now().Sub(time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC)).Hours()) / 24.0)
-	days := []int{}
-	for i := 0; i < totalDays; i++ {
-		days = append(days, i)
-	}
+	//totalDays := int((time.Now().Sub(timeBegin).Hours()) / 24.0)
+	//days := []int{}
+	//for i := 0; i < totalDays; i++ {
+	//	days = append(days, i)
+	//}
 	//aigcCostMetricOverview := aliyun.AigcCostMetricOfDays(ctx, days)
-	aigcCostOverview := aliyun2.SummaryGeneralOverview(ctx, days)
+	//aigcCostOverview := aliyun2.SummaryGeneralOverview(ctx, days)
+	aigcCostOverview, err := service.SceneResult(ctx, timeBegin, time.Now())
 
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{

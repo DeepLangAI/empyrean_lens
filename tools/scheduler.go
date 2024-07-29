@@ -25,8 +25,8 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	//	graph.PrintGraph()
 	//	graph.Trace(ctx)
 	//})
-	// 每10分钟刷新一下当天的最新数据
-	s.Every(10).Minutes().Do(func() {
+	// 每1分钟刷新一下当天的最新数据
+	s.Every(1).Minutes().Do(func() {
 		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_TODAY)
 	})
 	// 由于采集日志不及时，需要晚上刷一下近一周的数据

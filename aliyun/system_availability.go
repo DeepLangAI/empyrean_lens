@@ -106,31 +106,6 @@ func realtimeNginxLogs(ctx context.Context) map[int][]aliyun.NginxLog {
 				hlog.CtxErrorf(ctx, "failed to get nginx logs: %v", err)
 				return
 			}
-			//anchorDay := time.Now().AddDate(0, 0, -daysLookback).Format("2006-01-02")
-			//
-			//logs := []aliyun.NginxLog{}
-			//businessLogs, err := aliyun.NginxIngressLogQuery(ctx, daysLookback)
-			//if err != nil {
-			//	return
-			//}
-			//modelLogs, err := aliyun.ModelNginxIngressLogQuery(ctx, daysLookback)
-			//if err != nil {
-			//	return
-			//}
-			//// 上报日志的时间，与阿里云将日志入库的时间有可能不同，会导致当天最后一段时间的日志可能落在了第二天内
-			//// 这里需要用真实的日志时间来调整
-			//for _, log := range businessLogs {
-			//	if log.Time.Format("2006-01-02") == anchorDay {
-			//		logs = append(logs, log)
-			//	}
-			//}
-			//for _, log := range modelLogs {
-			//	if log.Time.Format("2006-01-02") == anchorDay {
-			//		logs = append(logs, log)
-			//	}
-			//}
-			//logs = append(logs, businessLogs...)
-			//logs = append(logs, modelLogs...)
 			mu.Lock()
 			nginxLogs[daysLookback] = logs
 			mu.Unlock()
@@ -201,6 +176,29 @@ func RealtimeAvailability(ctx context.Context) (RealtimeReport, error) {
 	return report, nil
 }
 
+func SceneTimespanReport(ctx context.Context, timespan int) ([]aliyun.SceneOverviews, error) {
+	days := []int{}
+	if timespan == consts.TIMESPAN_TODAY {
+		days = append(days, 0)
+	} else if timespan == consts.TIMESPAN_WEEK {
+		for i := 0; i < 7; i++ {
+			days = append(days, i)
+		}
+	} else if timespan == consts.TIMESPAN_LONGTIME {
+		now := time.Now()
+		start := time.Date(2024, 7, 1, 0, 0, 0, 0, now.Location())
+		totalDays := int(time.Since(start).Hours() / 24)
+
+		for i := 0; i < totalDays; i++ {
+
+			days = append(days, i)
+		}
+	}
+	overviews := aliyun.SummaryGeneralOverview(ctx, days)
+
+	return overviews, nil
+}
+
 func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 	nginxReport, err := NginxTimespanReport(ctx, timespan)
 	if err != nil {
@@ -214,6 +212,11 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 	if err != nil {
 		return err
 	}
+	sceneOverview, err := SceneTimespanReport(ctx, timespan)
+	if err != nil {
+		return err
+	}
+
 	if timespan == consts.TIMESPAN_LONGTIME {
 		if err := mongo.NewApifailureModelDao().DropTable(ctx); err != nil {
 			return err
@@ -222,6 +225,9 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 			return err
 		}
 		if err := mongo.NewSystemScoreDao().DropTable(ctx); err != nil {
+			return err
+		}
+		if err := mongo.NewSceneModelDao().DropTable(ctx); err != nil {
 			return err
 		}
 	}
@@ -295,6 +301,126 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 			return err
 		}
 	}
+
+	for _, report := range sceneOverview {
+		dao := mongo.NewSceneModelDao()
+		date, err := time.Parse("2006-01-02", report.Date)
+		if err != nil {
+			return err
+		}
+		model := mongo.SceneModel{
+			Date:       date,
+			Scene:      report.AbstractOverview.Name,
+			TotalCnt:   int32(report.AbstractOverview.TotalReq),
+			FailCnt:    int32(report.AbstractOverview.FailReq),
+			SlowCnt:    int32(report.AbstractOverview.SlowReq),
+			Status:     0,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
+			return err
+		}
+
+		model = mongo.SceneModel{
+			Date:       date,
+			Scene:      report.OutlineOverview.Name,
+			TotalCnt:   int32(report.OutlineOverview.TotalReq),
+			FailCnt:    int32(report.OutlineOverview.FailReq),
+			SlowCnt:    int32(report.OutlineOverview.SlowReq),
+			Status:     0,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
+			return err
+		}
+
+		model = mongo.SceneModel{
+			Date:       date,
+			Scene:      report.ViewpointOverview.Name,
+			TotalCnt:   int32(report.ViewpointOverview.TotalReq),
+			FailCnt:    int32(report.ViewpointOverview.FailReq),
+			SlowCnt:    int32(report.ViewpointOverview.SlowReq),
+			Status:     0,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
+			return err
+		}
+
+		model = mongo.SceneModel{
+			Date:       date,
+			Scene:      report.MultiOverview.Name,
+			TotalCnt:   int32(report.MultiOverview.TotalReq),
+			FailCnt:    int32(report.MultiOverview.FailReq),
+			SlowCnt:    int32(report.MultiOverview.SlowReq),
+			Status:     0,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
+			return err
+		}
+
+		model = mongo.SceneModel{
+			Date:       date,
+			Scene:      report.MultiAnalysisOverview.Name,
+			TotalCnt:   int32(report.MultiAnalysisOverview.TotalReq),
+			FailCnt:    int32(report.MultiAnalysisOverview.FailReq),
+			SlowCnt:    int32(report.MultiAnalysisOverview.SlowReq),
+			Status:     0,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
+			return err
+		}
+
+		model = mongo.SceneModel{
+			Date:       date,
+			Scene:      report.MultiMergeOverview.Name,
+			TotalCnt:   int32(report.MultiMergeOverview.TotalReq),
+			FailCnt:    int32(report.MultiMergeOverview.FailReq),
+			SlowCnt:    int32(report.MultiMergeOverview.SlowReq),
+			Status:     0,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
+			return err
+		}
+
+		model = mongo.SceneModel{
+			Date:       date,
+			Scene:      report.QaOverview.Name,
+			TotalCnt:   int32(report.QaOverview.TotalReq),
+			FailCnt:    int32(report.QaOverview.FailReq),
+			SlowCnt:    int32(report.QaOverview.SlowReq),
+			Status:     0,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
+			return err
+		}
+
+		model = mongo.SceneModel{
+			Date:       date,
+			Scene:      report.QaRecommendOverview.Name,
+			TotalCnt:   int32(report.QaRecommendOverview.TotalReq),
+			FailCnt:    int32(report.QaRecommendOverview.FailReq),
+			SlowCnt:    int32(report.QaRecommendOverview.SlowReq),
+			Status:     0,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
+			return err
+		}
+	}
+
 	return nil
 
 }

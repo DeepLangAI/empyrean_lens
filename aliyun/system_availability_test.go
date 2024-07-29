@@ -38,4 +38,5 @@ func TestCreateOrUpdateDatabase(t *testing.T) {
 	dal.Init()
 	//CreateOrUpdateDatabase(ctx, consts.TIMESPAN_LONGTIME)
 	CreateOrUpdateDatabase(ctx, consts.TIMESPAN_WEEK)
+	//CreateOrUpdateDatabase(ctx, consts.TIMESPAN_TODAY)
 }

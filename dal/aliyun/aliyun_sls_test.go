@@ -321,6 +321,8 @@ func TestSummaryGeneralOfDay(t *testing.T) {
 	fmt.Println(ov.MultiOverview.TotalReq, ov.MultiOverview.FailReq)
 	fmt.Println(ov.QaOverview.TotalReq, ov.QaOverview.FailReq)
 	fmt.Println(ov.QaRecommendOverview.TotalReq, ov.QaRecommendOverview.FailReq)
+	fmt.Println(ov.MultiAnalysisOverview.TotalReq, ov.MultiAnalysisOverview.FailReq)
+	fmt.Println(ov.MultiMergeOverview.TotalReq, ov.MultiMergeOverview.FailReq)
 }
 
 func TestMultidocGeneralOverview(t *testing.T) {
@@ -332,11 +334,13 @@ func TestMultiTotalRequestQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
 
-	ov, err := MultiGeneralOfDay(ctx, 1)
+	ov_ete, ov_analysis, ov_merge, err := MultiGeneralOfDay(ctx, 0)
 	if err != nil {
 		t.Error(err)
 	} else {
-		fmt.Println(ov.TotalReq, ov.FailReq, ov.SlowReq, ov.FailRate, ov.SlowRate)
+		fmt.Println(ov_ete.TotalReq, ov_ete.FailReq, ov_ete.SlowReq, ov_ete.FailRate, ov_ete.SlowRate)
+		fmt.Println(ov_analysis.TotalReq, ov_analysis.FailReq, ov_analysis.SlowReq, ov_analysis.FailRate, ov_analysis.SlowRate)
+		fmt.Println(ov_merge.TotalReq, ov_merge.FailReq, ov_merge.SlowReq, ov_merge.FailRate, ov_merge.SlowRate)
 	}
 }
 
@@ -348,7 +352,7 @@ func TestQaMiddlewareLogQuery(t *testing.T) {
 		"/api/chat/qa",
 		"/api/chat/recommend",
 	}
-	logs, err := QaMiddlewareLogQuery(ctx, 0, apis)
+	logs, err := QaMiddlewareLogQuery(ctx, 1, apis)
 	counts := map[string]int{}
 	if err != nil {
 		t.Error(err)
@@ -366,4 +370,17 @@ func TestQaErrorCntQuery(t *testing.T) {
 	Init(ctx)
 	cnt := QaErrorCntQuery(ctx, 0)
 	fmt.Println(cnt)
+}
+
+func TestMultiNodeLogQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs, err := MultiNodeLogQuery(ctx, 0)
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
 }

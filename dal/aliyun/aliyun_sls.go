@@ -265,6 +265,49 @@ limit %v
 	return cnt, nil
 }
 
+func MultiNodeLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+__tag__:_container_name_ : lingo-python-prod and multi_node | select * from (
+    select regexp_extract(message, 'multi_node (.*?)(\.|,|\s)', 1) node_name, asctime time, user_id, trace_id
+    from log
+) order by time desc limit %v
+`
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	if err != nil {
+		return nil, err
+	}
+	coreLogs := []CoreLog{}
+	for _, log := range logs.Logs {
+		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			continue
+		}
+		coreLog := CoreLog{
+			CoreName: "多文档",
+			Node:     log["node_name"],
+			//Cost:     cost,
+			TraceId: log["trace_id"],
+			Time:    t,
+			UserId:  log["user_id"],
+		}
+		coreLogs = append(coreLogs, coreLog)
+	}
+	return coreLogs, nil
+
+}
+
 type CoreLog struct {
 	CoreName string
 	Node     string
@@ -387,13 +430,14 @@ func QaCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]C
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod and message: "%v,") |  
+(__tag__:_container_name_: lingo-chat-go-prod and message: "%v,") |  select * from (
 select 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 1) as node, 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 2) as cnt, 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 3) as cost,trace_id,user_id, time 
 from log order by time desc
 limit %v
+) where node != 'null'
 `
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
@@ -800,13 +844,15 @@ type SceneOverview struct {
 }
 
 type SceneOverviews struct {
-	Date                string
-	AbstractOverview    SceneOverview
-	OutlineOverview     SceneOverview
-	ViewpointOverview   SceneOverview
-	MultiOverview       SceneOverview
-	QaOverview          SceneOverview
-	QaRecommendOverview SceneOverview
+	Date                  string
+	AbstractOverview      SceneOverview
+	OutlineOverview       SceneOverview
+	ViewpointOverview     SceneOverview
+	MultiOverview         SceneOverview
+	MultiAnalysisOverview SceneOverview
+	MultiMergeOverview    SceneOverview
+	QaOverview            SceneOverview
+	QaRecommendOverview   SceneOverview
 }
 
 func aigcCostAnlz(report SceneOverview, slowQueryThreshold int) SceneOverview {
@@ -837,8 +883,10 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		hlog.CtxErrorf(ctx, "err: %v", err)
 		return nil, err
 	}
-	multiOv, err := MultiGeneralOfDay(ctx, daysLookback)
-	overviews.MultiOverview = *multiOv
+	multiEteOv, multiAnalysisOv, multiMergeOv, err := MultiGeneralOfDay(ctx, daysLookback)
+	overviews.MultiOverview = *multiEteOv
+	overviews.MultiAnalysisOverview = *multiAnalysisOv
+	overviews.MultiMergeOverview = *multiMergeOv
 
 	abstractOverview := SceneOverview{Name: "单文档：全文速览", Costs: []float64{}, TotalReq: int64(cnts["0"]), FailReq: 0}
 	outlineOverview := SceneOverview{Name: "单文档：智能大纲", Costs: []float64{}, TotalReq: int64(cnts["1"]), FailReq: 0}
@@ -898,22 +946,43 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	return overviews, nil
 }
 
-func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverview, error) {
-	ov := &SceneOverview{}
-	ov.Name = "多文档：总结"
+func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverview, *SceneOverview, *SceneOverview, error) {
+	ov_multi_ete := &SceneOverview{Name: "多文档：总结端到端"}
+	ov_multi_analysis := &SceneOverview{Name: "多文档：单文档分析"}
+	ov_multi_merge := &SceneOverview{Name: "多文档：多文档整合"}
+	//ov_multi_summary := &SceneOverview{Name: "多文档：多文档总结"}
 	total, err := MultiTotalRequestQuery(ctx, daysLookback)
 	if err != nil {
-		return ov, err
+		return ov_multi_ete, nil, nil, err
 	}
-	ov.TotalReq = int64(total)
+	ov_multi_ete.TotalReq = int64(total)
+	ov_multi_analysis.TotalReq = int64(total)
+	ov_multi_merge.TotalReq = int64(total)
+
 	logs, err := MultiCoreLogQuery(ctx, daysLookback, "multi")
 	for _, log := range logs {
 		if log.Node == consts.ALIYUN_LOG_NODE_MULTI_ALL_SUCCESS {
-			ov.Costs = append(ov.Costs, log.Cost)
+			ov_multi_ete.Costs = append(ov_multi_ete.Costs, log.Cost)
+		} else if log.Node == consts.ALIYUN_LOG_NODE_ANALYSIS_ALL {
+			ov_multi_analysis.Costs = append(ov_multi_analysis.Costs, log.Cost)
+		} else if log.Node == consts.ALIYUN_LOG_NODE_MERGE {
+			ov_multi_merge.Costs = append(ov_multi_merge.Costs, log.Cost)
 		}
 	}
-	anlz := aigcCostAnlz(*ov, consts.SLOWQUERY_THRESHOLD_MULTIDOC)
-	return &anlz, nil
+	//logs, err = MultiNodeLogQuery(ctx, daysLookback)
+	//for _, log := range logs {
+	//	if log.Node == consts.ALIYUN_LOG_NODE_ANALYSIS_START {
+	//		ov_multi_analysis.TotalReq += 1
+	//	} else if log.Node == consts.ALIYUN_LOG_NODE_MERGE_START {
+	//		ov_multi_merge.TotalReq += 1
+	//	}
+	//}
+
+	ete_anlz := aigcCostAnlz(*ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTIDOC)
+	analysis_anlz := aigcCostAnlz(*ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_ANALYSIS)
+	merge_anlz := aigcCostAnlz(*ov_multi_merge, consts.SLOWQUERY_THRESHOLD_MERGE)
+	//summary_anlz := aigcCostAnlz(*ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTIDOC)
+	return &ete_anlz, &analysis_anlz, &merge_anlz, nil
 }
 
 func SummaryGeneralOverview(ctx context.Context, days []int) []SceneOverviews {

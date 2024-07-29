@@ -227,6 +227,15 @@
         {{ range .SceneOverviews  }}
         <tr>
             <td>{{ .Date }}</td>
+            <td>{{ .MultiOverview.Name }}</td>
+            <td>{{ .MultiOverview.TotalReq }}</td>
+            <td>{{ .MultiOverview.FailReq }}</td>
+            <td>{{ printf "%.2f"  .MultiOverview.FailRate }}%</td>
+            <td>{{ .MultiOverview.SlowReq }}</td>
+            <td>{{ printf "%.2f"  .MultiOverview.SlowRate }}%</td>
+        </tr>
+        <tr>
+            <td>{{ .Date }}</td>
             <td>{{ .AbstractOverview.Name }}</td>
             <td>{{ .AbstractOverview.TotalReq }}</td>
             <td>{{ .AbstractOverview.FailReq }}</td>
@@ -251,6 +260,24 @@
             <td>{{ printf "%.2f"  .ViewpointOverview.FailRate }}%</td>
             <td>{{ .ViewpointOverview.SlowReq }}</td>
             <td>{{ printf "%.2f"  .ViewpointOverview.SlowRate }}%</td>
+        </tr>
+        <tr>
+            <td>{{ .Date }}</td>
+            <td>{{ .QaOverview.Name }}</td>
+            <td>{{ .QaOverview.TotalReq }}</td>
+            <td>{{ .QaOverview.FailReq }}</td>
+            <td>{{ printf "%.2f"  .QaOverview.FailRate }}%</td>
+            <td>{{ .QaOverview.SlowReq }}</td>
+            <td>{{ printf "%.2f"  .QaOverview.SlowRate }}%</td>
+        </tr>
+        <tr>
+            <td>{{ .Date }}</td>
+            <td>{{ .QaRecommendOverview.Name }}</td>
+            <td>{{ .QaRecommendOverview.TotalReq }}</td>
+            <td>{{ .QaRecommendOverview.FailReq }}</td>
+            <td>{{ printf "%.2f"  .QaRecommendOverview.FailRate }}%</td>
+            <td>{{ .QaRecommendOverview.SlowReq }}</td>
+            <td>{{ printf "%.2f"  .QaRecommendOverview.SlowRate }}%</td>
         </tr>
         {{ end }}
         </tbody>

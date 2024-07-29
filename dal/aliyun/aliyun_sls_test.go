@@ -158,13 +158,14 @@ func TestStatusCodeUpdate(t *testing.T) {
 func TestNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_EDU)
+	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_QA_BACKEND)
 	if err != nil {
 		t.Error(err)
 	} else {
 		cnt := 0
 		for _, log := range logs {
 			fmt.Println(cnt, log)
+			cnt += 1
 			//if log.CleanUrl == "/api/plugin/articles/summary" {
 			//	cnt += 1
 			//	fmt.Println(cnt, log)
@@ -315,6 +316,54 @@ func TestSummreqCntQuery(t *testing.T) {
 func TestSummaryGeneralOfDay(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	ov, _ := SummaryGeneralOfDay(ctx, 1)
+	ov, _ := SceneGeneralOfDay(ctx, 0)
 	fmt.Println(ov.AbstractOverview.TotalReq, ov.AbstractOverview.FailReq)
+	fmt.Println(ov.MultiOverview.TotalReq, ov.MultiOverview.FailReq)
+	fmt.Println(ov.QaOverview.TotalReq, ov.QaOverview.FailReq)
+	fmt.Println(ov.QaRecommendOverview.TotalReq, ov.QaRecommendOverview.FailReq)
+}
+
+func TestMultidocGeneralOverview(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+}
+
+func TestMultiTotalRequestQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+
+	ov, err := MultiGeneralOfDay(ctx, 1)
+	if err != nil {
+		t.Error(err)
+	} else {
+		fmt.Println(ov.TotalReq, ov.FailReq, ov.SlowReq, ov.FailRate, ov.SlowRate)
+	}
+}
+
+func TestQaMiddlewareLogQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+
+	apis := []string{
+		"/api/chat/qa",
+		"/api/chat/recommend",
+	}
+	logs, err := QaMiddlewareLogQuery(ctx, 0, apis)
+	counts := map[string]int{}
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+			counts[log.Node] += 1
+		}
+	}
+	fmt.Println(counts)
+}
+
+func TestQaErrorCntQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	cnt := QaErrorCntQuery(ctx, 0)
+	fmt.Println(cnt)
 }

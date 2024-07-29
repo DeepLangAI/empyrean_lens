@@ -37,6 +37,7 @@ type NginxLog struct {
 	Method   string    `json:"method"`
 	Status   string    `json:"status"`
 	Host     string    `json:"host"`
+	Cost     float64   `json:"cost"`
 }
 
 func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) ([]NginxLog, error) {
@@ -107,6 +108,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 			Method:   log["method"],
 			Status:   log["status"],
 			Host:     log["host"],
+			//Cost:     cost,
 		}
 		nlogs = append(nlogs, nlog)
 	}
@@ -130,7 +132,7 @@ func NginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) 
 host: %v |
 SELECT  * FROM  (
   SELECT 
-    REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host, http_referer
+    REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host, http_referer, request_time cost
   FROM log WHERE method IN ('GET', 'POST')
 ) t
 WHERE clean_url IN (
@@ -172,12 +174,18 @@ LIMIT %d
 			hlog.CtxErrorf(ctx, "parse time error: %v", e)
 			continue
 		}
+		cost, e := strconv.ParseFloat(log["cost"], 64)
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
+			continue
+		}
 		nlog := NginxLog{
 			CleanUrl: log["clean_url"],
 			Time:     t,
 			Method:   log["method"],
 			Status:   log["status"],
 			Host:     log["host"],
+			Cost:     cost,
 		}
 		nlogs = append(nlogs, nlog)
 	}
@@ -229,6 +237,32 @@ func NginxIngressLogQuery(ctx context.Context, daysLookback int) ([]NginxLog, er
 	}
 	wg.Wait()
 	return nlogs, nil
+}
+
+func MultiTotalRequestQuery(ctx context.Context, daysLookback int) (int, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+
+	if err != nil {
+		return 0, err
+	}
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+	query := `
+	__tag__:_container_name_ : lingo-python-prod and files merge multi. article_list | select * from log
+limit %v
+	`
+
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+
+	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	if err != nil {
+		return 0, err
+	}
+	cnt := len(logs.Logs)
+
+	return cnt, nil
 }
 
 type CoreLog struct {
@@ -284,6 +318,57 @@ limit %v
 			TraceId:  log["trace_id"],
 			Time:     t,
 			UserId:   log["user_id"],
+		}
+		coreLogs = append(coreLogs, coreLog)
+	}
+	return coreLogs, nil
+}
+
+func QaMiddlewareLogQuery(ctx context.Context, daysLookback int, apis []string) ([]CoreLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+(__tag__:_container_name_: lingo-chat-go-prod) and "Request rout" | 
+select * from ( 
+select  regexp_extract(message, 'Request rout:(.*), Method:POST, RequestBody:.*', 1) url,
+time, trace_id, user_id
+from log  
+) where url in (
+%v
+) limit %v
+`
+	formatedApis := []string{}
+	for _, api := range apis {
+		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api))
+	}
+	query = fmt.Sprintf(query, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
+	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
+	if err != nil {
+		return nil, err
+	}
+	coreLogs := []CoreLog{}
+	for _, log := range logs.Logs {
+		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			continue
+		}
+		coreLog := CoreLog{
+			CoreName: "问答后端",
+			Node:     log["url"],
+			//Cost:     cost,
+			TraceId: log["trace_id"],
+			Time:    t,
+			UserId:  log["user_id"],
 		}
 		coreLogs = append(coreLogs, coreLog)
 	}
@@ -434,6 +519,46 @@ __tag__:_container_name_:lingo-python-prod and summary start | select * from (
 		cnts[log["generate_type"]] += 1
 	}
 	return cnts, nil
+}
+
+func QaErrorCntQuery(ctx context.Context, daysLookback int) int64 {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	if err != nil {
+		return 0
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+(__tag__:_container_name_: lingo-chat-go-prod and "%v") |  
+select count(*) cnt from log
+limit %v
+`
+	coreName := "模型返回异常"
+	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	// 查询日志
+	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+
+	// 打印查询结果
+	hlog.CtxInfof(ctx, "日期%v，查QaError: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), coreName, resp.Count)
+	for _, log := range resp.Logs {
+		cnt, e := strconv.ParseInt(log["cnt"], 10, 64)
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse cnt error: %v", e)
+			return 0
+		}
+		return cnt
+	}
+	return 0
 }
 
 func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
@@ -675,35 +800,51 @@ type SceneOverview struct {
 }
 
 type SceneOverviews struct {
-	Date              string
-	AbstractOverview  SceneOverview
-	OutlineOverview   SceneOverview
-	ViewpointOverview SceneOverview
+	Date                string
+	AbstractOverview    SceneOverview
+	OutlineOverview     SceneOverview
+	ViewpointOverview   SceneOverview
+	MultiOverview       SceneOverview
+	QaOverview          SceneOverview
+	QaRecommendOverview SceneOverview
 }
 
 func aigcCostAnlz(report SceneOverview, slowQueryThreshold int) SceneOverview {
 	report.FailReq = report.TotalReq - int64(len(report.Costs))
-	report.FailRate = float64(report.FailReq) / float64(report.TotalReq) * 100
+	if report.FailReq < 0 {
+		report.FailReq = 0
+	}
+	if report.FailReq != 0 {
+		report.FailRate = float64(report.FailReq) / float64(report.TotalReq) * 100
+	}
 
 	for _, cost := range report.Costs {
 		if cost > float64(slowQueryThreshold) {
 			report.SlowReq++
 		}
 	}
-	report.SlowRate = float64(report.SlowReq) / float64(report.TotalReq) * 100
+	// 慢查询率，即成功的响应中，慢查询的比例
+	if report.SlowReq != 0 {
+		report.SlowRate = float64(report.SlowReq) / float64(report.TotalReq-report.FailReq) * 100
+	}
 	return report
 }
 
-func SummaryGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, error) {
+func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, error) {
 	overviews := &SceneOverviews{}
 	cnts, err := SummreqCntQuery(ctx, daysLookback)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "err: %v", err)
 		return nil, err
 	}
+	multiOv, err := MultiGeneralOfDay(ctx, daysLookback)
+	overviews.MultiOverview = *multiOv
+
 	abstractOverview := SceneOverview{Name: "单文档：全文速览", Costs: []float64{}, TotalReq: int64(cnts["0"]), FailReq: 0}
 	outlineOverview := SceneOverview{Name: "单文档：智能大纲", Costs: []float64{}, TotalReq: int64(cnts["1"]), FailReq: 0}
 	viewpointOverview := SceneOverview{Name: "单文档：关键信息", Costs: []float64{}, TotalReq: int64(cnts["3"]), FailReq: 0}
+	qaOverview := SceneOverview{Name: "问答：问答", Costs: []float64{}, TotalReq: 0, FailReq: 0}
+	qaRecommendOverview := SceneOverview{Name: "问答：问题推荐", Costs: []float64{}, TotalReq: 0, FailReq: 0}
 
 	coreLogs, _ := CommonCoreLogQuery(ctx, daysLookback, consts.CORE_NAME_VIEWPOINT)
 	for _, log := range coreLogs {
@@ -724,16 +865,55 @@ func SummaryGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews
 			outlineOverview.Costs = append(outlineOverview.Costs, log.Cost)
 		}
 	}
+
+	qaLogs, err := NginxIngressBasicQuery(ctx, daysLookback, consts.HOST_QA_BACKEND)
+	for _, log := range qaLogs {
+		if log.CleanUrl == "/api/chat/qa" {
+			qaOverview.TotalReq += 1
+			if log.Status == "200" {
+				qaOverview.Costs = append(qaOverview.Costs, log.Cost)
+			}
+		} else if log.CleanUrl == "/api/chat/recommend" {
+			qaRecommendOverview.TotalReq += 1
+			if log.Status == "200" {
+				qaRecommendOverview.Costs = append(qaRecommendOverview.Costs, log.Cost)
+			}
+		}
+	}
+
 	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT)
 	outlineOverview = aigcCostAnlz(outlineOverview, consts.SLOWQUERY_THRESHOLD_OUTLINE)
 	viewpointOverview = aigcCostAnlz(viewpointOverview, consts.SLOWQUERY_THRESHOLD_VIEWPOINT)
+	qaOverview = aigcCostAnlz(qaOverview, consts.SLOWQUERY_THRESHOLD_QA)
+	qaRecommendOverview = aigcCostAnlz(qaRecommendOverview, consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND)
 
 	overviews.AbstractOverview = abstractOverview
 	overviews.OutlineOverview = outlineOverview
 	overviews.ViewpointOverview = viewpointOverview
+	overviews.QaOverview = qaOverview
+	overviews.QaRecommendOverview = qaRecommendOverview
+
 	overviews.Date = time.Now().AddDate(0, 0, -daysLookback).Format("2006-01-02")
 
 	return overviews, nil
+}
+
+func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverview, error) {
+	ov := &SceneOverview{}
+	ov.Name = "多文档：总结"
+	total, err := MultiTotalRequestQuery(ctx, daysLookback)
+	if err != nil {
+		return ov, err
+	}
+	ov.TotalReq = int64(total)
+	logs, err := MultiCoreLogQuery(ctx, daysLookback, "multi")
+	for _, log := range logs {
+		if log.Node == consts.ALIYUN_LOG_NODE_MULTI_ALL_SUCCESS {
+			ov.Costs = append(ov.Costs, log.Cost)
+		}
+	}
+	anlz := aigcCostAnlz(*ov, consts.SLOWQUERY_THRESHOLD_MULTIDOC)
+	return &anlz, nil
 }
 
 func SummaryGeneralOverview(ctx context.Context, days []int) []SceneOverviews {
@@ -745,7 +925,7 @@ func SummaryGeneralOverview(ctx context.Context, days []int) []SceneOverviews {
 		wg.Add(1)
 		go func(lookbackDay int) {
 			defer wg.Done()
-			ov, err := SummaryGeneralOfDay(ctx, lookbackDay)
+			ov, err := SceneGeneralOfDay(ctx, lookbackDay)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "err: %v", err)
 				return

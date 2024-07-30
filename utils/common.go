@@ -89,13 +89,36 @@ func GetProjectPath() string {
 	return ""
 }
 
+func AvgSimple(arr []float64) float64 {
+	if len(arr) == 0 {
+		return 0
+	}
+	if len(arr) == 1 {
+		return arr[0]
+	}
+	if len(arr) == 2 {
+		return (arr[0] + arr[1]) / 2
+	}
+	sum := 0.0
+	for _, v := range arr {
+		sum += v
+	}
+	return sum / float64(len(arr))
+}
+
 func Avg(arr []float64) float64 {
 	if len(arr) == 0 {
 		return 0
 	}
+	if len(arr) == 1 {
+		return arr[0]
+	}
+	if len(arr) == 2 {
+		return (arr[0] + arr[1]) / 2
+	}
 	sum := 0.0
-	maxVal := 0.0
-	minVal := 0.0
+	maxVal := -123456.0
+	minVal := 123456.0
 	for _, v := range arr {
 		sum += v
 
@@ -107,5 +130,5 @@ func Avg(arr []float64) float64 {
 		}
 	}
 	sum = sum - maxVal - minVal
-	return sum / float64(len(arr))
+	return sum / (float64(len(arr)) - 2)
 }

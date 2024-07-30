@@ -5,6 +5,7 @@ import (
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal"
+	"fmt"
 	"testing"
 )
 
@@ -50,5 +51,29 @@ func TestSystemTimespanAvailability(t *testing.T) {
 		t.Error(err)
 	} else {
 		t.Log(availability)
+	}
+}
+
+func TestSlowQueryRate(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	dal.Init()
+	rates, err := SlowQueryRate(ctx, consts.TIMESPAN_WEEK)
+	if err != nil {
+		t.Error(err)
+	} else {
+		fmt.Println(rates)
+	}
+}
+
+func TestRealtimeSlowqueryLoganlz(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	dal.Init()
+	loganlz, err := RealtimeSlowqueryLoganlz(ctx)
+	if err != nil {
+		t.Error(err)
+	} else {
+		fmt.Println(loganlz)
 	}
 }

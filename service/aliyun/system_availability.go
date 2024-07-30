@@ -6,10 +6,7 @@ import (
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/dal/mongo"
 	"empyrean_lens/utils"
-	"sync"
 	"time"
-
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 func SystemTimespanAvailability(ctx context.Context, timespan int) ([]utils.ReventResult, error) {
@@ -27,6 +24,11 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]utils.Reve
 		return nil, err
 	}
 
+	slowqueryRates, err := SlowQueryRate(ctx, timespan)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, log := range nginxLogs {
 		if log.CoreApiName != "当日总览" {
 			continue
@@ -38,7 +40,7 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]utils.Reve
 		factor.ApiFailRate = log.FailRate / 100.0
 		//factor.ProbeFailRate = probeFailRates[log.Date]
 		factor.ProbeFailRate = probeFailRates[log.Date] / 100.0
-		factor.SlowQueryRate = 1
+		factor.SlowQueryRate = slowqueryRates[log.Date] / 100.0
 		systemFactors[log.Date] = factor
 	}
 	for date, factor := range systemFactors {
@@ -48,55 +50,60 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]utils.Reve
 	return reventResults, nil
 }
 
-func NginxLogsOfDay(ctx context.Context, daysLookback int) ([]aliyun.NginxLog, error) {
-	anchorDay := time.Now().AddDate(0, 0, -daysLookback).Format("2006-01-02")
-
-	logs := []aliyun.NginxLog{}
-	businessLogs, err := aliyun.NginxIngressLogQuery(ctx, daysLookback)
+func RealtimeSlowqueryLoganlz(ctx context.Context) (*MetricFloat, error) {
+	slowRates, err := SlowQueryRate(ctx, consts.TIMESPAN_WEEK)
 	if err != nil {
 		return nil, err
 	}
-	modelLogs, err := aliyun.ModelNginxIngressLogQuery(ctx, daysLookback)
-	if err != nil {
-		return nil, nil
+	slowRates_0 := slowRates[time.Now().AddDate(0, 0, 0).Format("2006-01-02")]
+	slowRates_1 := slowRates[time.Now().AddDate(0, 0, -1).Format("2006-01-02")]
+	slowRates_7 := slowRates[time.Now().AddDate(0, 0, -7).Format("2006-01-02")]
+	metric := &MetricFloat{
+		Value:        0,
+		DayOverDay:   0,
+		WeekOverWeek: 0,
 	}
-	// 上报日志的时间，与阿里云将日志入库的时间有可能不同，会导致当天最后一段时间的日志可能落在了第二天内
-	// 这里需要用真实的日志时间来调整
-	for _, log := range businessLogs {
-		if log.Time.Format("2006-01-02") == anchorDay {
-			logs = append(logs, log)
-		}
-	}
-	for _, log := range modelLogs {
-		if log.Time.Format("2006-01-02") == anchorDay {
-			logs = append(logs, log)
-		}
-	}
-	return logs, nil
-
+	metric.Value = slowRates_0
+	metric.DayOverDay = utils.DeltaPercent(slowRates_1, slowRates_0)
+	metric.WeekOverWeek = utils.DeltaPercent(slowRates_7, slowRates_0)
+	return metric, nil
 }
 
-func realtimeNginxLogs(ctx context.Context) map[int][]aliyun.NginxLog {
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	nginxLogs := map[int][]aliyun.NginxLog{}
-	days := []int{0, 1, 7}
-	for _, day := range days {
-		wg.Add(1)
-		go func(daysLookback int) {
-			defer wg.Done()
-			logs, err := NginxLogsOfDay(ctx, daysLookback)
-			if err != nil {
-				hlog.CtxErrorf(ctx, "failed to get nginx logs: %v", err)
-				return
-			}
-			mu.Lock()
-			nginxLogs[daysLookback] = logs
-			mu.Unlock()
-		}(day)
+func SlowQueryRate(ctx context.Context, timespan int) (map[string]float64, error) {
+	timeBegin := time.Now()
+	timeEnd := time.Date(timeBegin.Year(), timeBegin.Month(), timeBegin.Day(), 23, 59, 59, 0, timeBegin.Location())
+
+	if timespan == consts.TIMESPAN_TODAY {
+		anchorDay := time.Now()
+		timeBegin = time.Date(anchorDay.Year(), anchorDay.Month(), anchorDay.Day(), 0, 0, 0, 0, anchorDay.Location())
+	} else if timespan == consts.TIMESPAN_WEEK {
+		anchorDay := time.Now().AddDate(0, 0, -7)
+		timeBegin = time.Date(anchorDay.Year(), anchorDay.Month(), anchorDay.Day(), 0, 0, 0, 0, anchorDay.Location())
+	} else if timespan == consts.TIMESPAN_LONGTIME {
+		timeBegin = time.Date(2024, 7, 1, 0, 0, 0, 0, timeBegin.Location())
 	}
-	wg.Wait()
-	return nginxLogs
+	dao := mongo.NewSceneModelDao()
+	sceneLogs, err := dao.FindTimespanScene(ctx, timeBegin, timeEnd)
+	if err != nil {
+		return nil, err
+	}
+	totalCnts := map[string]int32{}
+	slowCnts := map[string]int32{}
+	result := map[string]float64{}
+	for _, log := range sceneLogs {
+		date := log.Date.Format("2006-01-02")
+		totalCnts[date] += log.TotalCnt
+		slowCnts[date] += log.SlowCnt
+	}
+	for date, slowCnt := range slowCnts {
+		totalCnt := totalCnts[date]
+		if totalCnt == 0 {
+			result[date] = 0
+		} else {
+			result[date] = float64(slowCnt) / float64(totalCnt) * 100
+		}
+	}
+	return result, nil
 }
 
 type Metric struct {
@@ -105,60 +112,19 @@ type Metric struct {
 	WeekOverWeek float64
 }
 
+type MetricFloat struct {
+	Value        float64
+	DayOverDay   float64
+	WeekOverWeek float64
+}
+
 type RealtimeReport struct {
 	Availability Metric
 	TotalRequest Metric
 	ErrorRequest Metric
+	SlowRequest  MetricFloat
 	ProbeFailCnt Metric
 }
-
-//func RealtimeAvailability(ctx context.Context) (RealtimeReport, error) {
-//	report := RealtimeReport{}
-//	systemFactors := map[int]utils.SystemStablityFactor{}
-//	nginxLogs := realtimeNginxLogs(ctx)
-//	probeAnlz, err := RealtimeProbeLoganlz(ctx)
-//	if err != nil {
-//		hlog.CtxErrorf(ctx, "failed to get probe logs: %v", err)
-//	}
-//
-//	totalRequests := map[int]int{}
-//	errorRequests := map[int]int{}
-//	for day, logs := range nginxLogs {
-//		totalRequests[day] = len(logs)
-//
-//		errorRequests[day] = 0
-//
-//		for _, log := range logs {
-//			if log.Status != "200" {
-//				errorRequests[day]++
-//			}
-//		}
-//	}
-//
-//	report.TotalRequest.Value = totalRequests[0]
-//	report.TotalRequest.DayOverDay = utils.DeltaPercent(float64(totalRequests[1]), float64(totalRequests[0]))
-//	report.TotalRequest.WeekOverWeek = utils.DeltaPercent(float64(totalRequests[7]), float64(totalRequests[0]))
-//
-//	report.ErrorRequest.Value = errorRequests[0]
-//	report.ErrorRequest.DayOverDay = utils.DeltaPercent(float64(errorRequests[1]), float64(errorRequests[0]))
-//	report.ErrorRequest.WeekOverWeek = utils.DeltaPercent(float64(errorRequests[7]), float64(errorRequests[0]))
-//
-//	systemFactors[0] = utils.SystemStablityFactor{
-//		ApiFailRate:   float64(errorRequests[0]) / float64(totalRequests[0]),
-//		ProbeFailRate: float64(probeAnlz.FailNodes.Value) / float64(probeAnlz.TotalNodes.Value),
-//	}
-//	systemFactors[1] = utils.SystemStablityFactor{ApiFailRate: float64(errorRequests[1]) / float64(totalRequests[1])}
-//	systemFactors[7] = utils.SystemStablityFactor{ApiFailRate: float64(errorRequests[7]) / float64(totalRequests[7])}
-//	report.Availability.Value = utils.ComputeStablityScore(systemFactors[0])
-//	report.Availability.DayOverDay = utils.DeltaPercent(float64(utils.ComputeStablityScore(systemFactors[1])), float64(utils.ComputeStablityScore(systemFactors[0])))
-//	report.Availability.WeekOverWeek = utils.DeltaPercent(float64(utils.ComputeStablityScore(systemFactors[7])), float64(utils.ComputeStablityScore(systemFactors[0])))
-//
-//	report.ProbeFailCnt.Value = probeAnlz.FailNodes.Value
-//	report.ProbeFailCnt.DayOverDay = probeAnlz.FailNodes.DayOverDay
-//	report.ProbeFailCnt.WeekOverWeek = probeAnlz.FailNodes.WeekOverWeek
-//
-//	return report, nil
-//}
 
 func SceneTimespanReport(ctx context.Context, timespan int) ([]aliyun.SceneOverviews, error) {
 	days := []int{}
@@ -404,7 +370,5 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 			return err
 		}
 	}
-
 	return nil
-
 }

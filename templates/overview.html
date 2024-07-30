@@ -168,9 +168,9 @@
             </tr>
             <tr>
                 <td>慢查询比例</td>
-                <td>-</td>
-                <td>0%</td>
-                <td>0%</td>
+                <td>{{ printf "%.2f" .RealtimeOverview.SlowRequest.Value }}%</td>
+                <td>{{ printf "%.2f" .RealtimeOverview.SlowRequest.DayOverDay}}%</td>
+                <td>{{ printf "%.2f" .RealtimeOverview.SlowRequest.WeekOverWeek}}%</td>
             </tr>
             <tr>
                 <td>监控探针错误数</td>
@@ -239,6 +239,7 @@
     </table>
 </div>
 <div class="pagination" id="metric-overview-pagination"></div>
+
 
 
 <script>

@@ -212,6 +212,32 @@
     <div class="pagination" id="logstore-pagination"></div>
 </div>
 
+<div class="container">
+    <h2 id="probe-heading">灵狗探针 天级数据</h2>
+    <table id="probe-table">
+        <thead>
+        <tr>
+            <th>日期</th>
+            <th>场景</th>
+            <th>平均耗时</th>
+            <th>成功率</th>
+            <th>正确率</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .Probe  }}
+        <tr>
+            <td>{{ .Date }}</td>
+            <td>{{ .Scene }}</td>
+            <td>{{ .AvgCost }}秒</td>
+            <td>{{ .CorrectRate }}%</td>
+            <td>{{ .SuccessRate }}%</td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+    <div class="pagination" id="probe-pagination"></div>
+</div>
 
 <script>
 
@@ -356,6 +382,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         paginateTable('nginx-table', 12, 'nginx-pagination');
         paginateTable('logstore-table', 12, 'logstore-pagination');
+        paginateTable('probe-table', 12, 'probe-pagination');
     });
 
     document.addEventListener('DOMContentLoaded', function() {

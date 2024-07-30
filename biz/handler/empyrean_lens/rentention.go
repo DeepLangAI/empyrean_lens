@@ -4,10 +4,10 @@ package empyrean_lens
 
 import (
 	"context"
-	"empyrean_lens/aliyun"
 	"empyrean_lens/biz/handler"
 	consts2 "empyrean_lens/consts"
-	"empyrean_lens/service"
+	aliyun2 "empyrean_lens/service/aliyun"
+	"empyrean_lens/service/mongo"
 	"empyrean_lens/utils"
 	"fmt"
 	"html/template"
@@ -25,8 +25,9 @@ import (
 )
 
 type Report struct {
-	Nginx    []aliyun.NginxTimeSpanReportModel
-	Business []aliyun.CoreLogTimeSpanReportModel
+	Nginx    []aliyun2.NginxTimeSpanReportModel
+	Business []aliyun2.CoreLogTimeSpanReportModel
+	Probe    []map[string]string
 }
 
 // LogRender .
@@ -42,7 +43,7 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	//nginxtimespanReport, err := aliyun.NginxTimespanReport(ctx, consts2.TIMESPAN_LONGTIME)
-	nginxtimespanReport, err := service.ApiFailResult(
+	nginxtimespanReport, err := mongo.ApiFailResult(
 		ctx,
 		time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
 		time.Now(),
@@ -52,7 +53,7 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	//businessTimeSpanReport, err := aliyun.LogStoreTimeSpanReport(ctx, consts2.TIMESPAN_LONGTIME)
-	businessTimeSpanReport, err := service.ApiCostResult(
+	businessTimeSpanReport, err := mongo.ApiCostResult(
 		ctx,
 		time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
 		time.Now(),
@@ -61,9 +62,15 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 		c.String(consts.StatusInternalServerError, err.Error())
 		return
 	}
+	probeReport, err := mongo.ProbeReport(ctx)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
 	report := Report{
 		Nginx:    nginxtimespanReport,
 		Business: businessTimeSpanReport,
+		Probe:    probeReport,
 	}
 	templatePath := filepath.Join(utils.GetProjectPath(), consts2.LOG_DETAIL_TEMPLATE_PATH)
 	tpl, err := template.ParseFiles(templatePath)
@@ -78,7 +85,7 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 
 type Overview struct {
 	DailyOverview    []utils.ReventResult
-	RealtimeOverview aliyun.RealtimeReport
+	RealtimeOverview aliyun2.RealtimeReport
 	SceneOverviews   []map[string]string
 }
 
@@ -93,14 +100,14 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	//realtimeOverview, err := aliyun.RealtimeAvailability(ctx)
-	realtimeOverview, err := service.SystemRealtimeReport(ctx)
+	realtimeOverview, err := mongo.SystemRealtimeReport(ctx)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())
 		return
 	}
 	timeBegin := time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC)
 	//dailyOverview, err := aliyun.SystemTimespanAvailability(ctx, consts2.TIMESPAN_LONGTIME)
-	dailyOverview, err := service.SystemScoreResult(
+	dailyOverview, err := mongo.SystemScoreResult(
 		ctx,
 		time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
 		time.Now(),
@@ -117,7 +124,7 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 	//}
 	//aigcCostMetricOverview := aliyun.AigcCostMetricOfDays(ctx, days)
 	//aigcCostOverview := aliyun2.SummaryGeneralOverview(ctx, days)
-	aigcCostOverview, err := service.SceneResult(ctx, timeBegin, time.Now())
+	aigcCostOverview, err := mongo.SceneResult(ctx, timeBegin, time.Now())
 
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{
@@ -215,7 +222,7 @@ func SystemDbRefresh(ctx context.Context, c *app.RequestContext) {
 
 	resp := new(empyrean_lens.DbRefreshResp)
 	base := handler.BaseHandler{}
-	err = aliyun.CreateOrUpdateDatabase(ctx, int(req.Timespan))
+	err = aliyun2.CreateOrUpdateDatabase(ctx, int(req.Timespan))
 	if err != nil {
 		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
 		return
@@ -235,7 +242,7 @@ func WriteProbeLogs(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	base := handler.BaseHandler{}
-	if err := service.SaveBatch(ctx, req); err != nil {
+	if err := mongo.SaveBatch(ctx, req); err != nil {
 		base.ErrorResponse(ctx, c, &consts2.SystemErr, nil)
 		return
 	}

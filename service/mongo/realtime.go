@@ -1,11 +1,11 @@
-package service
+package mongo
 
 import (
 	"context"
-	"empyrean_lens/aliyun"
 	"empyrean_lens/consts"
 	aliyun2 "empyrean_lens/dal/aliyun"
 	"empyrean_lens/dal/mongo"
+	aliyun3 "empyrean_lens/service/aliyun"
 	"empyrean_lens/utils"
 	"time"
 )
@@ -27,12 +27,12 @@ func apiFailureRate(ctx context.Context, beginTime, endTime time.Time) (int, int
 	return errReq, totalReq
 }
 
-func SystemRealtimeReport(ctx context.Context) (*aliyun.RealtimeReport, error) {
-	report := &aliyun.RealtimeReport{
-		Availability: aliyun.Metric{},
-		TotalRequest: aliyun.Metric{},
-		ErrorRequest: aliyun.Metric{},
-		ProbeFailCnt: aliyun.Metric{},
+func SystemRealtimeReport(ctx context.Context) (*aliyun3.RealtimeReport, error) {
+	report := &aliyun3.RealtimeReport{
+		Availability: aliyun3.Metric{},
+		TotalRequest: aliyun3.Metric{},
+		ErrorRequest: aliyun3.Metric{},
+		ProbeFailCnt: aliyun3.Metric{},
 	}
 
 	now := time.Now()
@@ -41,10 +41,15 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun.RealtimeReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	probeFailRates, err := aliyun.ProbeTimespanFailRate(ctx, consts.TIMESPAN_TODAY)
+	probeFailRates, err := aliyun3.ProbeTimespanFailRate(ctx, consts.TIMESPAN_TODAY)
 	if err != nil {
 		return nil, err
 	}
+	slowQueryRates, err := aliyun3.RealtimeSlowqueryLoganlz(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, model := range failureModels {
 		if model.ApiName != "当日总览" {
 			continue
@@ -76,7 +81,7 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun.RealtimeReport, error) {
 
 	systemScoreFactor := utils.SystemStablityFactor{
 		ApiFailRate:   float64(report.ErrorRequest.Value) / float64(report.TotalRequest.Value),
-		SlowQueryRate: 1,
+		SlowQueryRate: slowQueryRates.Value / 100.0,
 		ProbeFailRate: probeFailRates[time.Now().Format("2006-01-02")] / 100.0,
 	}
 	score_0 := utils.ComputeStablityScore(systemScoreFactor)
@@ -95,13 +100,17 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun.RealtimeReport, error) {
 	report.Availability.DayOverDay = utils.DeltaPercent(score_1, float64(score_0))
 	report.Availability.WeekOverWeek = utils.DeltaPercent(score_7, float64(score_0))
 
-	probeLogAnlz := aliyun.RealtimeProbeLoganlz(ctx)
+	probeLogAnlz := aliyun3.RealtimeProbeLoganlz(ctx)
 	if err != nil {
 		return nil, err
 	}
 	report.ProbeFailCnt.Value = probeLogAnlz.Value
 	report.ProbeFailCnt.DayOverDay = probeLogAnlz.DayOverDay
 	report.ProbeFailCnt.WeekOverWeek = probeLogAnlz.WeekOverWeek
+
+	report.SlowRequest.Value = slowQueryRates.Value
+	report.SlowRequest.DayOverDay = slowQueryRates.DayOverDay
+	report.SlowRequest.WeekOverWeek = slowQueryRates.WeekOverWeek
 
 	return report, nil
 }

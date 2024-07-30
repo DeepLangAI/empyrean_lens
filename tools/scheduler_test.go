@@ -2,11 +2,11 @@ package tools
 
 import (
 	"context"
-	aliyun1 "empyrean_lens/aliyun"
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/dal/mongo"
+	aliyun2 "empyrean_lens/service/aliyun"
 	"testing"
 	"time"
 )
@@ -16,19 +16,19 @@ func TestUpdateDatabase(t *testing.T) {
 	conf.InitConfig()
 	aliyun.Init(ctx)
 	mongo.Init(ctx)
-	nginxReports, err := aliyun1.NginxTimespanReport(ctx, consts.TIMESPAN_WEEK)
+	nginxReports, err := aliyun2.NginxTimespanReport(ctx, consts.TIMESPAN_WEEK)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	businessTimeSpanReports, err := aliyun1.LogStoreTimeSpanReport(ctx, consts.TIMESPAN_WEEK)
+	businessTimeSpanReports, err := aliyun2.LogStoreTimeSpanReport(ctx, consts.TIMESPAN_WEEK)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	sysRevent, err := aliyun1.SystemTimespanAvailability(ctx, consts.TIMESPAN_WEEK)
+	sysRevent, err := aliyun2.SystemTimespanAvailability(ctx, consts.TIMESPAN_WEEK)
 	if err != nil {
 		t.Error(err)
 		return
@@ -116,17 +116,17 @@ func TestInitDatabase(t *testing.T) {
 	aliyun.Init(ctx)
 	mongo.Init(ctx)
 
-	nginxReport, err := aliyun1.NginxTimespanReport(ctx, consts.TIMESPAN_LONGTIME)
+	nginxReport, err := aliyun2.NginxTimespanReport(ctx, consts.TIMESPAN_LONGTIME)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	businessTimeSpanReport, err := aliyun1.LogStoreTimeSpanReport(ctx, consts.TIMESPAN_LONGTIME)
+	businessTimeSpanReport, err := aliyun2.LogStoreTimeSpanReport(ctx, consts.TIMESPAN_LONGTIME)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	dailyOverview, err := aliyun1.SystemTimespanAvailability(ctx, consts.TIMESPAN_LONGTIME)
+	dailyOverview, err := aliyun2.SystemTimespanAvailability(ctx, consts.TIMESPAN_LONGTIME)
 	if err != nil {
 		t.Error(err)
 		return

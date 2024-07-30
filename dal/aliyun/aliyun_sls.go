@@ -367,7 +367,7 @@ limit %v
 	return coreLogs, nil
 }
 
-func QaMiddlewareLogQuery(ctx context.Context, daysLookback int, apis []string) ([]CoreLog, error) {
+func QaMiddlewareReqLogQuery(ctx context.Context, daysLookback int, apis []string) ([]CoreLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
 
 	if err != nil {
@@ -412,6 +412,64 @@ from log
 			TraceId: log["trace_id"],
 			Time:    t,
 			UserId:  log["user_id"],
+		}
+		coreLogs = append(coreLogs, coreLog)
+	}
+	return coreLogs, nil
+}
+func QaMiddlewareRespLogQuery(ctx context.Context, daysLookback int, apis []string) ([]NginxLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+(__tag__:_container_name_: lingo-chat-go-prod) and "Response rout" | 
+select * from ( 
+select  
+regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 1) url,
+regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 2) status,
+regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 3) cost,
+time, trace_id, user_id
+from log  
+) where url in (
+%v
+) limit %v
+`
+	formatedApis := []string{}
+	for _, api := range apis {
+		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api))
+	}
+	query = fmt.Sprintf(query, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
+	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
+	if err != nil {
+		return nil, err
+	}
+	coreLogs := []NginxLog{}
+	for _, log := range logs.Logs {
+		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			continue
+		}
+		cost, e := strconv.ParseFloat(log["cost"], 64)
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
+			continue
+		}
+		coreLog := NginxLog{
+			CleanUrl: log["url"],
+			Time:     t,
+			Method:   "POST",
+			Status:   log["status"],
+			Cost:     cost,
+			//UserId:   log["user_id"],
 		}
 		coreLogs = append(coreLogs, coreLog)
 	}
@@ -914,7 +972,12 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		}
 	}
 
-	qaLogs, err := NginxIngressBasicQuery(ctx, daysLookback, consts.HOST_QA_BACKEND)
+	//qaLogs, err := NginxIngressBasicQuery(ctx, daysLookback, consts.HOST_QA_BACKEND)
+	apis := []string{}
+	for _, val := range consts.NGINX_INGRESS_APIS[consts.HOST_QA_BACKEND] {
+		apis = append(apis, val.Api)
+	}
+	qaLogs, err := QaMiddlewareRespLogQuery(ctx, daysLookback, apis)
 	for _, log := range qaLogs {
 		if log.CleanUrl == "/api/chat/qa" {
 			qaOverview.TotalReq += 1

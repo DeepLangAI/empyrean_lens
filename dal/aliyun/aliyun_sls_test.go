@@ -352,7 +352,7 @@ func TestQaMiddlewareLogQuery(t *testing.T) {
 		"/api/chat/qa",
 		"/api/chat/recommend",
 	}
-	logs, err := QaMiddlewareLogQuery(ctx, 1, apis)
+	logs, err := QaMiddlewareReqLogQuery(ctx, 1, apis)
 	counts := map[string]int{}
 	if err != nil {
 		t.Error(err)
@@ -383,4 +383,22 @@ func TestMultiNodeLogQuery(t *testing.T) {
 			fmt.Println(log)
 		}
 	}
+}
+
+func TestQaMiddlewareRespLogQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	urls := []string{
+		"/api/chat/qa",
+		"/api/chat/recommend",
+	}
+	logs, err := QaMiddlewareRespLogQuery(ctx, 0, urls)
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
+
 }

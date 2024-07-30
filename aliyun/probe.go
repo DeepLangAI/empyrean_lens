@@ -5,110 +5,73 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/mongo"
 	"empyrean_lens/utils"
-	"errors"
-	"fmt"
-	"sync"
 	"time"
 )
 
-type ProbeAnlz struct {
-	TotalNodes   Metric
-	SuccessNodes Metric
-	FailNodes    Metric
-}
-
 func ProbeTimespanFailRate(ctx context.Context, timespan int) (map[string]float64, error) {
-	now := time.Now()
-	if timespan == consts.TIMESPAN_LONGTIME {
-		from := time.Date(2024, 7, 0, 0, 0, 0, 0, now.Location())
-		return ProbeErrorRate(ctx, from, now)
-	} else if timespan == consts.TIMESPAN_WEEK {
-		fromDay := now.AddDate(0, 0, -7)
-		from := time.Date(fromDay.Year(), fromDay.Month(), fromDay.Day(), 0, 0, 0, 0, fromDay.Location())
-		return ProbeErrorRate(ctx, from, now)
-	} else if timespan == consts.TIMESPAN_TODAY {
-		fromDay := now.AddDate(0, 0, 0)
-		from := time.Date(fromDay.Year(), fromDay.Month(), fromDay.Day(), 0, 0, 0, 0, fromDay.Location())
-		return ProbeErrorRate(ctx, from, now)
-	}
-	return nil, errors.New("timespan not support")
-}
+	timeBegin := time.Now()
+	timeEnd := time.Date(timeBegin.Year(), timeBegin.Month(), timeBegin.Day(), 23, 59, 59, 0, timeBegin.Location())
 
-func ProbeErrorRate(ctx context.Context, timeBegin, timeEnd time.Time) (map[string]float64, error) {
-	probeAnlz := map[string]ProbeAnlz{}
-	logs, err := mongo.NewProbeLogModelDao().FindTimespanProbeLog(
-		ctx,
-		timeBegin,
-		timeEnd,
-	)
+	if timespan == consts.TIMESPAN_TODAY {
+		anchorDay := time.Now()
+		timeBegin = time.Date(anchorDay.Year(), anchorDay.Month(), anchorDay.Day(), 0, 0, 0, 0, anchorDay.Location())
+	} else if timespan == consts.TIMESPAN_WEEK {
+		anchorDay := time.Now().AddDate(0, 0, -7)
+		timeBegin = time.Date(anchorDay.Year(), anchorDay.Month(), anchorDay.Day(), 0, 0, 0, 0, anchorDay.Location())
+	} else if timespan == consts.TIMESPAN_LONGTIME {
+		timeBegin = time.Date(2024, 7, 1, 0, 0, 0, 0, timeBegin.Location())
+	}
+	models, err := mongo.NewApiProbeLogModelDao().FindTimespanApiProbeLog(ctx, timeBegin, timeEnd)
 	if err != nil {
 		return nil, err
 	}
-	for _, log := range logs {
-		date := log.CreateTime.Format("2006-01-02")
-		if anlz, ok := probeAnlz[date]; ok {
-			anlz.TotalNodes.Value += log.TotalNodes
-			anlz.SuccessNodes.Value += log.SuccessNodes
-			anlz.FailNodes.Value += log.TotalNodes - log.SuccessNodes
-		} else {
-			probeAnlz[date] = ProbeAnlz{TotalNodes: Metric{Value: log.TotalNodes}, SuccessNodes: Metric{Value: log.SuccessNodes}, FailNodes: Metric{Value: log.TotalNodes - log.SuccessNodes}}
+	failReq := map[string]int32{}
+	totalReq := map[string]int32{}
+	failRate := map[string]float64{}
+	for _, model := range models {
+		date := model.CreateTime.Format("2006-01-02")
+		totalReq[date] += 1
+		if !model.Correct {
+			failReq[date] += 1
 		}
 	}
-	probeErrorRate := map[string]float64{}
-	for date, anlz := range probeAnlz {
-		probeErrorRate[date] = float64(anlz.FailNodes.Value) / float64(anlz.TotalNodes.Value) * 100
+	for date, failCnt := range failReq {
+		failRate[date] = float64(failCnt) / float64(totalReq[date]) * 100
 	}
-	return probeErrorRate, nil
+	return failRate, nil
 }
 
-func RealtimeProbeLoganlz(ctx context.Context) (ProbeAnlz, error) {
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	probeLogs := map[int][]mongo.ProbeLogModel{}
-	probeAnlz := map[int]ProbeAnlz{}
+func RealtimeProbeLoganlz(ctx context.Context) *Metric {
 
-	days := []int{0, 1, 7}
-	for _, day := range days {
-		wg.Add(1)
-
-		go func(daysLookback int) {
-			defer wg.Done()
-			anchorDay := time.Now().AddDate(0, 0, -daysLookback)
-			if daysLookback == 1 {
-				fmt.Println(daysLookback)
-			}
-
-			logs, err := mongo.NewProbeLogModelDao().FindTimespanProbeLog(
-				ctx,
-				time.Date(anchorDay.Year(), anchorDay.Month(), anchorDay.Day(), 0, 0, 0, 0, anchorDay.Location()),
-				time.Date(anchorDay.Year(), anchorDay.Month(), anchorDay.Day(), 23, 59, 59, 999999999, anchorDay.Location()),
-			)
-			if err != nil {
-				return
-			}
-			mu.Lock()
-			probeLogs[daysLookback] = logs
-			totalNodes := 0
-			successNodes := 0
-			for _, log := range logs {
-				totalNodes += log.TotalNodes
-				successNodes += log.SuccessNodes
-			}
-			failNodes := totalNodes - successNodes
-			probeAnlz[daysLookback] = ProbeAnlz{TotalNodes: Metric{Value: totalNodes}, SuccessNodes: Metric{Value: successNodes}, FailNodes: Metric{Value: failNodes}}
-			mu.Unlock()
-		}(day)
+	timeBegin := time.Now()
+	timeEnd := time.Date(timeBegin.Year(), timeBegin.Month(), timeBegin.Day(), 23, 59, 59, 0, timeBegin.Location())
+	anchorDay := time.Now().AddDate(0, 0, -7)
+	timeBegin = time.Date(anchorDay.Year(), anchorDay.Month(), anchorDay.Day(), 0, 0, 0, 0, anchorDay.Location())
+	models, err := mongo.NewApiProbeLogModelDao().FindTimespanApiProbeLog(ctx, timeBegin, timeEnd)
+	if err != nil {
+		return nil
 	}
-	wg.Wait()
-	if anlz, ok := probeAnlz[0]; ok {
-		anlz.FailNodes.DayOverDay = utils.DeltaPercent(float64(probeAnlz[1].FailNodes.Value), float64(probeAnlz[0].FailNodes.Value))
-		anlz.FailNodes.WeekOverWeek = utils.DeltaPercent(float64(probeAnlz[7].FailNodes.Value), float64(probeAnlz[0].FailNodes.Value))
-
-		anlz.TotalNodes.DayOverDay = utils.DeltaPercent(float64(probeAnlz[1].TotalNodes.Value), float64(probeAnlz[0].TotalNodes.Value))
-		anlz.TotalNodes.WeekOverWeek = utils.DeltaPercent(float64(probeAnlz[7].TotalNodes.Value), float64(probeAnlz[0].TotalNodes.Value))
-
-		anlz.SuccessNodes.DayOverDay = utils.DeltaPercent(float64(probeAnlz[1].SuccessNodes.Value), float64(probeAnlz[0].SuccessNodes.Value))
-		anlz.SuccessNodes.WeekOverWeek = utils.DeltaPercent(float64(probeAnlz[7].SuccessNodes.Value), float64(probeAnlz[0].SuccessNodes.Value))
+	probeFailCnts_0 := 0
+	probeFailCnts_1 := 0
+	probeFailCnts_7 := 0
+	failCnts := map[string]int{}
+	probeMetric := &Metric{
+		Value:        0,
+		DayOverDay:   0,
+		WeekOverWeek: 0,
 	}
-	return probeAnlz[0], nil
+
+	for _, model := range models {
+		date := model.CreateTime.Format("2006-01-02")
+		if !model.Correct {
+			failCnts[date] += 1
+		}
+	}
+	probeFailCnts_0 = failCnts[time.Now().AddDate(0, 0, 0).Format("2006-01-02")]
+	probeFailCnts_1 = failCnts[time.Now().AddDate(0, 0, -1).Format("2006-01-02")]
+	probeFailCnts_7 = failCnts[time.Now().AddDate(0, 0, -7).Format("2006-01-02")]
+	probeMetric.Value = probeFailCnts_0
+	probeMetric.DayOverDay = utils.DeltaPercent(float64(probeFailCnts_1), float64(probeFailCnts_0))
+	probeMetric.WeekOverWeek = utils.DeltaPercent(float64(probeFailCnts_7), float64(probeFailCnts_0))
+	return probeMetric
 }

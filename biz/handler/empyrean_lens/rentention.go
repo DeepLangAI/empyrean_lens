@@ -223,3 +223,23 @@ func SystemDbRefresh(ctx context.Context, c *app.RequestContext) {
 
 	c.JSON(consts.StatusOK, resp)
 }
+
+// WriteProbeLogs .
+// @router /api/v1/report/db/write_probe [POST]
+func WriteProbeLogs(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.WriteProbeReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+	base := handler.BaseHandler{}
+	if err := service.SaveBatch(ctx, req); err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, nil)
+		return
+	}
+
+	resp := new(empyrean_lens.WriteProbeResp)
+	c.JSON(consts.StatusOK, resp)
+}

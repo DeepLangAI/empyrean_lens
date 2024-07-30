@@ -24,14 +24,20 @@ func SceneResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]map[strin
 	})
 	results := []map[string]string{}
 	for _, model := range models {
+		failRate := 0.0
+		slowRate := 0.0
+		if model.TotalCnt > 0 {
+			failRate = float64(model.FailCnt) / float64(model.TotalCnt) * 100
+			slowRate = float64(model.SlowCnt) / float64(model.TotalCnt) * 100
+		}
 		result := map[string]string{
 			"Date":     model.Date.Format("2006-01-02"),
 			"Scene":    model.Scene,
 			"TotalCnt": fmt.Sprintf("%v", model.TotalCnt),
 			"FailCnt":  fmt.Sprintf("%v", model.FailCnt),
 			"SlowCnt":  fmt.Sprintf("%v", model.SlowCnt),
-			"FailRate": fmt.Sprintf("%.2f", float64(model.FailCnt)/float64(model.TotalCnt)*100),
-			"SlowRate": fmt.Sprintf("%.2f", float64(model.SlowCnt)/float64(model.TotalCnt)*100),
+			"FailRate": fmt.Sprintf("%.2f", failRate),
+			"SlowRate": fmt.Sprintf("%.2f", slowRate),
 		}
 		results = append(results, result)
 	}

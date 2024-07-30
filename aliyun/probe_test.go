@@ -3,32 +3,16 @@ package aliyun
 import (
 	"context"
 	"empyrean_lens/conf"
-	"empyrean_lens/dal/mongo"
+	"empyrean_lens/consts"
+	"empyrean_lens/dal"
 	"fmt"
 	"testing"
-	"time"
 )
 
-func TestProbeLogAnlz(t *testing.T) {
+func TestProbeTimespanFailRate(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
-	mongo.Init(ctx)
-	ans, _ := RealtimeProbeLoganlz(ctx)
-	fmt.Println(ans)
-}
-
-func TestProbeErrorRate(t *testing.T) {
-	ctx := context.Background()
-	conf.InitConfig()
-	mongo.Init(ctx)
-	now := time.Now()
-	begin := time.Date(2024, 7, 1, 0, 0, 0, 0, now.Location())
-	errRates, err := ProbeErrorRate(ctx, begin, now)
-	if err != nil {
-		t.Errorf("ProbeErrorRate error: %v", err)
-	} else {
-		for key, val := range errRates {
-			fmt.Println(key, val)
-		}
-	}
+	dal.Init()
+	rate, _ := ProbeTimespanFailRate(ctx, consts.TIMESPAN_WEEK)
+	fmt.Println(rate)
 }

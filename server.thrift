@@ -114,10 +114,30 @@ struct DbRefreshResp{
 struct DbRefreshData{
 }
 
+# 写入探针日志
+struct ProbeLog{
+    1: string scene
+    2: string api
+    3: string host
+    4: bool is_core
+    5: bool success
+    6: bool correct
+    7: double cost
+}
+
+struct WriteProbeReq{
+    1: list<ProbeLog> data
+}
+struct WriteProbeResp{
+    1: i32 code
+    2: string msg
+}
+
 service Rentention{
    EmptyResp LogRender(1: EmptyReq req) (api.get="/api/log/report")
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
 
+   //  用于提供前后端分离接口
    RealtimeScoreResp SystemRealtimeScore(1: EmptyReq req) (
        api.get="/api/v1/report/realtime"
    )
@@ -130,7 +150,11 @@ service Rentention{
    ApiCostResp SystemDailyApiCost(1: ApiCostReq req) (
        api.get="/api/v1/report/daily/cost"
    )
+
    DbRefreshResp SystemDbRefresh(1: DbRefreshReq req) (
        api.post="/api/v1/report/db/refresh"
+   )
+   WriteProbeResp WriteProbeLogs(1: WriteProbeReq req) (
+       api.post="/api/v1/report/db/write_probe"
    )
 }

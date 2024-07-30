@@ -75,3 +75,8 @@ func _systemdbrefreshMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _writeprobelogsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

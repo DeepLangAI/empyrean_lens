@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"empyrean_lens/aliyun"
+	"empyrean_lens/consts"
 	aliyun2 "empyrean_lens/dal/aliyun"
 	"empyrean_lens/dal/mongo"
 	"empyrean_lens/utils"
@@ -40,6 +41,10 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun.RealtimeReport, error) {
 	if err != nil {
 		return nil, err
 	}
+	probeFailRates, err := aliyun.ProbeTimespanFailRate(ctx, consts.TIMESPAN_TODAY)
+	if err != nil {
+		return nil, err
+	}
 	for _, model := range failureModels {
 		if model.ApiName != "当日总览" {
 			continue
@@ -72,7 +77,7 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun.RealtimeReport, error) {
 	systemScoreFactor := utils.SystemStablityFactor{
 		ApiFailRate:   float64(report.ErrorRequest.Value) / float64(report.TotalRequest.Value),
 		SlowQueryRate: 1,
-		ProbeFailRate: 1,
+		ProbeFailRate: probeFailRates[time.Now().Format("2006-01-02")] / 100.0,
 	}
 	score_0 := utils.ComputeStablityScore(systemScoreFactor)
 	scoreModel_1, err := mongo.NewSystemScoreDao().FindScoreByTime(ctx, beginTime.AddDate(0, 0, -1))
@@ -90,13 +95,13 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun.RealtimeReport, error) {
 	report.Availability.DayOverDay = utils.DeltaPercent(score_1, float64(score_0))
 	report.Availability.WeekOverWeek = utils.DeltaPercent(score_7, float64(score_0))
 
-	probeLogAnlz, err := aliyun.RealtimeProbeLoganlz(ctx)
+	probeLogAnlz := aliyun.RealtimeProbeLoganlz(ctx)
 	if err != nil {
 		return nil, err
 	}
-	report.ProbeFailCnt.Value = probeLogAnlz.FailNodes.Value
-	report.ProbeFailCnt.DayOverDay = probeLogAnlz.FailNodes.DayOverDay
-	report.ProbeFailCnt.WeekOverWeek = probeLogAnlz.FailNodes.WeekOverWeek
+	report.ProbeFailCnt.Value = probeLogAnlz.Value
+	report.ProbeFailCnt.DayOverDay = probeLogAnlz.DayOverDay
+	report.ProbeFailCnt.WeekOverWeek = probeLogAnlz.WeekOverWeek
 
 	return report, nil
 }

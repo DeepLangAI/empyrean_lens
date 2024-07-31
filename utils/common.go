@@ -90,21 +90,31 @@ func GetProjectPath() string {
 	return ""
 }
 
-func AvgSimple(arr []float64) float64 {
+func AvgSimple(arr []float64, filterZero bool) float64 {
 	if len(arr) == 0 {
 		return 0
 	}
 	if len(arr) == 1 {
 		return arr[0]
 	}
-	if len(arr) == 2 {
-		return (arr[0] + arr[1]) / 2
-	}
 	sum := 0.0
+	zeroCnt := 0
 	for _, v := range arr {
 		sum += v
+		if v == 0 {
+			zeroCnt += 1
+		}
 	}
-	return sum / float64(len(arr))
+	if sum == 0 {
+		return 0
+	}
+	if !filterZero {
+		return sum / float64(len(arr))
+	}
+	if zeroCnt == len(arr) {
+		return 0
+	}
+	return sum / float64(len(arr)-zeroCnt)
 }
 
 func Avg(arr []float64) float64 {

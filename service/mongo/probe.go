@@ -84,9 +84,9 @@ func ProbeReport(ctx context.Context) ([]map[string]string, error) {
 			"Api":         val.API,
 			"Host":        val.Host,
 			"ReqCount":    fmt.Sprintf("%v", len(val.Costs)),
-			"AvgCost":     fmt.Sprintf("%.2f", utils.AvgSimple(val.Costs)),
-			"CorrectRate": fmt.Sprintf("%.2f", utils.AvgSimple(val.Corrects)*100),
-			"SuccessRate": fmt.Sprintf("%.2f", utils.AvgSimple(val.Successes)*100),
+			"AvgCost":     fmt.Sprintf("%.2f", utils.AvgSimple(val.Costs, true)),
+			"CorrectRate": fmt.Sprintf("%.2f", utils.AvgSimple(val.Corrects, false)*100),
+			"SuccessRate": fmt.Sprintf("%.2f", utils.AvgSimple(val.Successes, false)*100),
 		})
 	}
 	sort.Slice(results, func(i, j int) bool {

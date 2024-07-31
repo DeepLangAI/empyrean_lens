@@ -133,6 +133,10 @@ struct WriteProbeResp{
     2: string msg
 }
 
+# 数据库清理操作
+struct DbTidyReq{
+//    1: i32 timespan
+}
 service Rentention{
    EmptyResp LogRender(1: EmptyReq req) (api.get="/api/log/report")
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
@@ -151,6 +155,9 @@ service Rentention{
        api.get="/api/v1/report/daily/cost"
    )
 
+   DbRefreshResp SystemDbTidy(1: DbTidyReq req) (
+       api.post="/api/v1/report/db/tidy"
+   )
    DbRefreshResp SystemDbRefresh(1: DbRefreshReq req) (
        api.post="/api/v1/report/db/refresh"
    )

@@ -38,6 +38,7 @@ func Register(r *server.Hertz) {
 				{
 					_db := _report.Group("/db", _dbMw()...)
 					_db.POST("/refresh", append(_systemdbrefreshMw(), empyrean_lens.SystemDbRefresh)...)
+					_db.POST("/tidy", append(_systemdbtidyMw(), empyrean_lens.SystemDbTidy)...)
 					_db.POST("/write_probe", append(_writeprobelogsMw(), empyrean_lens.WriteProbeLogs)...)
 				}
 			}

@@ -3,6 +3,7 @@ package aliyun
 import (
 	"context"
 	"empyrean_lens/consts"
+	"empyrean_lens/utils"
 	"fmt"
 	"sort"
 	"strconv"
@@ -1026,8 +1027,9 @@ type SceneOverview struct {
 	FailReq  int64
 	SlowReq  int64
 
-	FailRate float64
-	SlowRate float64
+	FailRate   float64
+	SlowRate   float64
+	FailReason string
 }
 
 type SceneOverviews struct {
@@ -1042,12 +1044,14 @@ type SceneOverviews struct {
 	QaRecommendOverview   SceneOverview
 }
 
-func aigcCostAnlz(report SceneOverview, slowQueryThreshold int) SceneOverview {
-	if report.FailReq == 0 {
-		report.FailReq = report.TotalReq - int64(len(report.Costs))
-	}
-	if report.FailReq < 0 {
-		report.FailReq = 0
+func aigcCostAnlz(report SceneOverview, slowQueryThreshold int, autoModify bool) SceneOverview {
+	if autoModify {
+		if report.FailReq == 0 {
+			report.FailReq = report.TotalReq - int64(len(report.Costs))
+		}
+		if report.FailReq < 0 {
+			report.FailReq = 0
+		}
 	}
 	if report.FailReq != 0 {
 		report.FailRate = float64(report.FailReq) / float64(report.TotalReq) * 100
@@ -1087,12 +1091,18 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	for _, log := range lingoCoreErrLogs {
 		if log.CoreName == consts.CORE_NAME_ABSTRACT {
 			abstractOverview.FailReq += 1
+			abstractOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
 		} else if log.CoreName == consts.CORE_NAME_OUTLINE {
 			outlineOverview.FailReq += 1
+			outlineOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
 		} else if log.CoreName == consts.CORE_NAME_VIEWPOINT {
 			viewpointOverview.FailReq += 1
+			viewpointOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
 		}
 	}
+	abstractOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(abstractOverview.FailReason, "\t"))), "、")
+	outlineOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(outlineOverview.FailReason, "\t"))), "、")
+	viewpointOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(viewpointOverview.FailReason, "\t"))), "、")
 
 	coreLogs, _ := CommonCoreLogQuery(ctx, daysLookback, consts.CORE_NAME_VIEWPOINT)
 	for _, log := range coreLogs {
@@ -1120,10 +1130,14 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	for _, log := range chatCoreErrLogs {
 		if log.CoreName == consts.CORE_NAME_CHAT {
 			qaOverview.FailReq += 1
+			qaOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
 		} else if log.CoreName == consts.CORE_NAME_CHAT_RECOMMEND {
 			qaRecommendOverview.FailReq += 1
+			qaRecommendOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
 		}
 	}
+	qaOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(qaOverview.FailReason, "\t"))), "、")
+	qaRecommendOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(qaRecommendOverview.FailReason, "\t"))), "、")
 
 	apis := []string{}
 	for _, val := range consts.NGINX_INGRESS_APIS[consts.HOST_QA_BACKEND] {
@@ -1144,11 +1158,11 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		}
 	}
 
-	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT)
-	outlineOverview = aigcCostAnlz(outlineOverview, consts.SLOWQUERY_THRESHOLD_OUTLINE)
-	viewpointOverview = aigcCostAnlz(viewpointOverview, consts.SLOWQUERY_THRESHOLD_VIEWPOINT)
-	qaOverview = aigcCostAnlz(qaOverview, consts.SLOWQUERY_THRESHOLD_QA)
-	qaRecommendOverview = aigcCostAnlz(qaRecommendOverview, consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND)
+	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT, false)
+	outlineOverview = aigcCostAnlz(outlineOverview, consts.SLOWQUERY_THRESHOLD_OUTLINE, false)
+	viewpointOverview = aigcCostAnlz(viewpointOverview, consts.SLOWQUERY_THRESHOLD_VIEWPOINT, false)
+	qaOverview = aigcCostAnlz(qaOverview, consts.SLOWQUERY_THRESHOLD_QA, false)
+	qaRecommendOverview = aigcCostAnlz(qaRecommendOverview, consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND, false)
 
 	overviews.AbstractOverview = abstractOverview
 	overviews.OutlineOverview = outlineOverview
@@ -1185,9 +1199,9 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverview, *
 		}
 	}
 
-	ete_anlz := aigcCostAnlz(*ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTIDOC)
-	analysis_anlz := aigcCostAnlz(*ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_ANALYSIS)
-	merge_anlz := aigcCostAnlz(*ov_multi_merge, consts.SLOWQUERY_THRESHOLD_MERGE)
+	ete_anlz := aigcCostAnlz(*ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTIDOC, true)
+	analysis_anlz := aigcCostAnlz(*ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_ANALYSIS, true)
+	merge_anlz := aigcCostAnlz(*ov_multi_merge, consts.SLOWQUERY_THRESHOLD_MERGE, true)
 	//summary_anlz := aigcCostAnlz(*ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTIDOC)
 	return &ete_anlz, &analysis_anlz, &merge_anlz, nil
 }

@@ -97,3 +97,8 @@ func ProbeReport(ctx context.Context) ([]map[string]string, error) {
 	})
 	return results, err
 }
+
+func ProbeLogTidy(ctx context.Context) error {
+	dao := mongo.NewApiProbeLogModelDao()
+	return dao.Tidy(ctx)
+}

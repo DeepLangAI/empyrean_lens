@@ -250,3 +250,24 @@ func WriteProbeLogs(ctx context.Context, c *app.RequestContext) {
 	resp := new(empyrean_lens.WriteProbeResp)
 	c.JSON(consts.StatusOK, resp)
 }
+
+// SystemDbTidy .
+// @router /api/v1/report/db/tidy [POST]
+func SystemDbTidy(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.DbTidyReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+	base := handler.BaseHandler{}
+	if err := mongo.ProbeLogTidy(ctx); err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, nil)
+		return
+	}
+
+	resp := new(empyrean_lens.DbRefreshResp)
+
+	c.JSON(consts.StatusOK, resp)
+}

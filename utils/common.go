@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -131,4 +132,26 @@ func Avg(arr []float64) float64 {
 	}
 	sum = sum - maxVal - minVal
 	return sum / (float64(len(arr)) - 2)
+}
+
+func Set(arr []string) []string {
+	cache := map[string]int{}
+	for _, v := range arr {
+		cache[v] = 1
+	}
+	result := []string{}
+	for k := range cache {
+		result = append(result, k)
+	}
+	return result
+}
+func FilterEmpty(arr []string) []string {
+	result := []string{}
+	for _, v := range arr {
+		v = strings.TrimSpace(v)
+		if v != "" {
+			result = append(result, v)
+		}
+	}
+	return result
 }

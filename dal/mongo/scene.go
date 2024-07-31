@@ -12,11 +12,12 @@ import (
 const TableNameScene = "scene"
 
 type SceneModel struct {
-	Date     time.Time `bson:"date"`
-	Scene    string    `bson:"scene"`
-	TotalCnt int32     `bson:"total_cnt"`
-	FailCnt  int32     `bson:"fail_cnt"`
-	SlowCnt  int32     `bson:"slow_cnt"`
+	Date       time.Time `bson:"date"`
+	Scene      string    `bson:"scene"`
+	TotalCnt   int32     `bson:"total_cnt"`
+	FailCnt    int32     `bson:"fail_cnt"`
+	SlowCnt    int32     `bson:"slow_cnt"`
+	FailReason string    `bson:"fail_reason"`
 
 	Status     int32     `json:"status" bson:"status"`
 	CreateTime time.Time `bson:"create_time" json:"create_time"`

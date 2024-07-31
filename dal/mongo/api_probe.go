@@ -72,3 +72,14 @@ func (self *ApiProbeLogModelDao) FindTimespanApiProbeLog(ctx context.Context, ti
 	}
 	return result, nil
 }
+
+func (self *ApiProbeLogModelDao) Tidy(ctx context.Context) error {
+	// 找到所有scene为场景1或场景2或场景3的，删除
+	_, err := probeDatabase.
+		Collection(TableNameApiProbeLog).
+		DeleteMany(ctx, bson.M{"scene": bson.M{"$in": []string{"场景1", "场景2", "场景3"}}})
+	if err != nil {
+		hlog.CtxErrorf(ctx, "mongo delete many error:%v", err)
+	}
+	return err
+}

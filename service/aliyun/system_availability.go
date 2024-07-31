@@ -144,7 +144,7 @@ func SceneTimespanReport(ctx context.Context, timespan int) ([]aliyun.SceneOverv
 			days = append(days, i)
 		}
 	}
-	overviews := aliyun.SummaryGeneralOverview(ctx, days)
+	overviews := aliyun.SceneGeneralOverview(ctx, days)
 
 	return overviews, nil
 }

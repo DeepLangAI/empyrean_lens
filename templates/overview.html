@@ -90,6 +90,61 @@
                 padding: 8px; /* 较小的内边距 */
             }
         }
+        /* 移动端样式 */
+        @media (max-width: 767px) {
+            .table-container {
+                max-height: 60vh; /* 设置最大高度为视口高度的60% */
+                overflow-y: auto; /* 添加垂直滚动 */
+            }
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            tr {
+                border: 1px solid #ccc;
+                margin-bottom: 10px;
+            }
+
+            td {
+                border: none;
+                border-bottom: 1px solid #eee;
+                position: relative;
+                padding-left: 50%;
+                font-size: 20px; /* 增大移动端字体大小 */
+            }
+            h2 {
+                font-size: 25px; /* 增大移动端h2字体大小 */
+            }
+
+            td:before {
+                position: absolute;
+                top: 6px;
+                left: 6px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                content: attr(data-label);
+                font-weight: bold;
+            }
+
+            nav a {
+                font-size: 18px; /* 增大移动端字体大小 */
+                margin: 5px 0;
+            }
+        }
+
         /* CSS styles for the navigation bar */
         nav {
             background-color: #333;
@@ -132,7 +187,7 @@
 
 <div class="container">
     <h2 id="realtime-heading">灵狗系统可用性 实时数据</h2>
-    <table id="realtime-overview-table">
+    <table id="realtime-overview-table" class="table-container">
         <thead>
             <tr>
                 <th>指标</th>
@@ -143,40 +198,40 @@
         </thead>
         <tbody>
             <tr>
-                <td>稳定性打分</td>
-                <td>{{.RealtimeOverview.Availability.Value }}</td>
-                <td>{{ printf "%.2f" .RealtimeOverview.Availability.DayOverDay}}%</td>
-                <td>{{ printf "%.2f" .RealtimeOverview.Availability.WeekOverWeek}}%</td>
+                <td data-label="稳定性打分">稳定性打分</td>
+                <td data-label="值"  >{{.RealtimeOverview.Availability.Value }}</td>
+                <td data-label="环比">{{ printf "%.2f" .RealtimeOverview.Availability.DayOverDay}}%</td>
+                <td data-label="同比">{{ printf "%.2f" .RealtimeOverview.Availability.WeekOverWeek}}%</td>
             </tr>
             <tr>
-                <td>总请求量</td>
-                <td>{{.RealtimeOverview.TotalRequest.Value }}</td>
-                <td>{{ printf "%.2f" .RealtimeOverview.TotalRequest.DayOverDay}}%</td>
-                <td>{{ printf "%.2f" .RealtimeOverview.TotalRequest.WeekOverWeek}}%</td>
+                <td data-label="总请求量">总请求量</td>
+                <td data-label="值"  >{{.RealtimeOverview.TotalRequest.Value }}</td>
+                <td data-label="环比">{{ printf "%.2f" .RealtimeOverview.TotalRequest.DayOverDay}}%</td>
+                <td data-label="同比">{{ printf "%.2f" .RealtimeOverview.TotalRequest.WeekOverWeek}}%</td>
             </tr>
             <tr>
-                <td>错误数</td>
-                <td>{{.RealtimeOverview.ErrorRequest.Value }}</td>
-                <td>{{ printf "%.2f" .RealtimeOverview.ErrorRequest.DayOverDay}}%</td>
-                <td>{{ printf "%.2f" .RealtimeOverview.ErrorRequest.WeekOverWeek}}%</td>
+                <td data-label="错误数">错误数</td>
+                <td data-label="值"  >{{.RealtimeOverview.ErrorRequest.Value }}</td>
+                <td data-label="环比">{{ printf "%.2f" .RealtimeOverview.ErrorRequest.DayOverDay}}%</td>
+                <td data-label="同比">{{ printf "%.2f" .RealtimeOverview.ErrorRequest.WeekOverWeek}}%</td>
             </tr>
             <tr>
-                <td>平均处理时长</td>
-                <td>-</td>
-                <td>0%</td>
-                <td>0%</td>
+                <td data-label="平均处理时长">平均处理时长</td>
+                <td data-label="值"  >-</td>
+                <td data-label="环比">0%</td>
+                <td data-label="同比">0%</td>
             </tr>
             <tr>
-                <td>慢查询比例</td>
-                <td>{{ printf "%.2f" .RealtimeOverview.SlowRequest.Value }}%</td>
-                <td>{{ printf "%.2f" .RealtimeOverview.SlowRequest.DayOverDay}}%</td>
-                <td>{{ printf "%.2f" .RealtimeOverview.SlowRequest.WeekOverWeek}}%</td>
+                <td data-label="慢查询比例">慢查询比例</td>
+                <td data-label="值"  >{{ printf "%.2f" .RealtimeOverview.SlowRequest.Value }}%</td>
+                <td data-label="环比">{{ printf "%.2f" .RealtimeOverview.SlowRequest.DayOverDay}}%</td>
+                <td data-label="同比">{{ printf "%.2f" .RealtimeOverview.SlowRequest.WeekOverWeek}}%</td>
             </tr>
             <tr>
-                <td>监控探针错误数</td>
-                <td>{{.RealtimeOverview.ProbeFailCnt.Value}}</td>
-                <td>0%</td>
-                <td>0%</td>
+                <td data-label="监控探针错误数">监控探针错误数</td>
+                <td data-label="值"  >{{.RealtimeOverview.ProbeFailCnt.Value}}</td>
+                <td data-label="环比">0%</td>
+                <td data-label="同比">0%</td>
             </tr>
         </tbody>
     </table>
@@ -185,7 +240,7 @@
 
 <div class="container">
     <h2 id="daily-heading">灵狗系统可用性 天级数据</h2>
-    <table id="daily-overview-table">
+    <table id="daily-overview-table" class="table-container">
         <thead>
         <tr>
             <th>日期</th>
@@ -197,10 +252,10 @@
         <tbody>
         {{ range .DailyOverview  }}
         <tr>
-            <td>{{ .Date }}</td>
-            <td>{{ .Score }}</td>
-            <td>{{ printf "%.2f"  .DayOverDay }}%</td>
-            <td>{{ printf "%.2f"  .WeekOverWeek }}%</td>
+            <td data-label="日期">{{ .Date }}</td>
+            <td data-label="稳定性打分">{{ .Score }}</td>
+            <td data-label="环比">{{ printf "%.2f"  .DayOverDay }}%</td>
+            <td data-label="同比">{{ printf "%.2f"  .WeekOverWeek }}%</td>
         </tr>
         {{ end }}
         </tbody>
@@ -209,8 +264,8 @@
 <div class="pagination" id="daily-overview-pagination"></div>
 
 <div class="container">
-    <h2 id="metric-heading">灵狗系统可用性 天级数据</h2>
-    <table id="metric-overview-table">
+    <h2 id="metric-heading">灵狗系统核心场景可用性 天级数据</h2>
+    <table id="metric-overview-table" class="table-container">
         <thead>
         <tr>
             <th>日期</th>
@@ -226,21 +281,19 @@
         <tbody>
         {{ range .SceneOverviews  }}
         <tr>
-            <td>{{ .Date }}</td>
-            <td>{{ .Scene }}</td>
-            <td>{{ .TotalCnt }}</td>
-            <td>{{ .FailCnt }}</td>
-            <td>{{ .FailRate }}%</td>
-            <td>{{ .SlowCnt }}</td>
-            <td>{{ .SlowRate }}%</td>
+            <td data-label="日期">{{ .Date }}</td>
+            <td data-label="核心功能">{{ .Scene }}</td>
+            <td data-label="请求数">{{ .TotalCnt }}</td>
+            <td data-label="错误数">{{ .FailCnt }}</td>
+            <td data-label="错误率">{{ .FailRate }}%</td>
+            <td data-label="慢查询数">{{ .SlowCnt }}</td>
+            <td data-label="慢查询率">{{ .SlowRate }}%</td>
         </tr>
         {{ end }}
         </tbody>
     </table>
 </div>
 <div class="pagination" id="metric-overview-pagination"></div>
-
-
 
 <script>
 
@@ -439,6 +492,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         updateHeading('#daily-overview-table tbody tr td:first-child', 'daily-heading');
+        updateHeading('#daily-overview-table tbody tr td:first-child', 'metric-heading');
     });
 
 </script>

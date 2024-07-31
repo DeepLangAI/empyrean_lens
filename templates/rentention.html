@@ -90,6 +90,59 @@
                 padding: 8px; /* 较小的内边距 */
             }
         }
+        /* 移动端样式 */
+        @media (max-width: 767px) {
+            .table-container {
+                max-height: 60vh; /* 设置最大高度为视口高度的60% */
+                overflow-y: auto; /* 添加垂直滚动 */
+            }
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            tr {
+                border: 1px solid #ccc;
+                margin-bottom: 10px;
+            }
+
+            td {
+                border: none;
+                border-bottom: 1px solid #eee;
+                position: relative;
+                padding-left: 50%;
+                font-size: 20px; /* 增大移动端字体大小 */
+            }
+            h2 {
+                font-size: 25px; /* 增大移动端h2字体大小 */
+            }
+
+            td:before {
+                position: absolute;
+                top: 6px;
+                left: 6px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                content: attr(data-label);
+                font-weight: bold;
+            }
+            nav a {
+                font-size: 18px; /* 增大移动端字体大小 */
+                margin: 5px 0;
+            }
+        }
         /* CSS styles for the navigation bar */
         nav {
             background-color: #333;
@@ -132,7 +185,7 @@
 <h1 >灵狗稳定性</h1>
 <div class="container">
     <h2 id="nginx-heading">灵狗接口稳定性</h2>
-    <table id="nginx-table">
+    <table id="nginx-table" class="table-container">
         <thead>
         <tr>
             <th>日期</th>
@@ -151,15 +204,15 @@
         <tbody>
         {{ range .Nginx }}
         <tr>
-            <td>{{ .Date }}</td>
-            <td style="text-align:left">{{ .CoreApiName }}</td>
-            <td style="text-align:left">{{ .HostName }}</td>
-            <td>{{ .FailCount }}</td>
-            <td>{{ .TotalCount }}</td>
-            <td class="color-cell" data-value="{{ .FailRate }}" data-type="rate">{{ printf "%.2f" .FailRate }}%</td>
-            <td>{{ .FailStatus3xx }}</td>
-            <td>{{ .FailStatus4xx }}</td>
-            <td>{{ .FailStatus5xx }}</td>
+            <td data-label="日期">{{ .Date }}</td>
+            <td data-label="核心接口名称" style="text-align:left">{{ .CoreApiName }}</td>
+            <td data-label="主机地址" style="text-align:left">{{ .HostName }}</td>
+            <td data-label="请求异常数量">{{ .FailCount }}</td>
+            <td data-label="总请求数">{{ .TotalCount }}</td>
+            <td data-label="异常请求占比" class="color-cell" data-value="{{ .FailRate }}" data-type="rate">{{ printf "%.2f" .FailRate }}%</td>
+            <td data-label="异常码3xx数量">{{ .FailStatus3xx }}</td>
+            <td data-label="异常码4xx数量">{{ .FailStatus4xx }}</td>
+            <td data-label="异常码5xx数量">{{ .FailStatus5xx }}</td>
 <!--            <td>{{ .FailStatus }}</td>-->
         </tr>
         {{ end }}
@@ -170,7 +223,7 @@
 
 <div class="container">
     <h2 id="logstore-heading">灵狗接口耗时</h2>
-    <table id="logstore-table">
+    <table id="logstore-table" class="table-container">
         <thead>
             <tr>
                 <th>日期</th>
@@ -192,19 +245,19 @@
         <tbody>
             {{ range .Business }}
             <tr>
-                <td>{{ .Date }}</td>
-                <td style="text-align:left">{{ .Node }}</td>
-                <td>{{ .NumReq }}</td>
-                <td>{{ printf "%.2f" .AvgCost }}</td>
-                <td class="color-cell" data-value="{{ .CostDistribution0_1 }}" data-type="rate">{{ printf "%.2f" .CostDistribution0_1 }}%</td>
-                <td class="color-cell" data-value="{{ .CostDistribution1_3 }}" data-type="rate">{{ printf "%.2f" .CostDistribution1_3 }}%</td>
-                <td class="color-cell" data-value="{{ .CostDistribution3_5 }}" data-type="rate">{{ printf "%.2f" .CostDistribution3_5 }}%</td>
-                <td class="color-cell" data-value="{{ .CostDistribution5_10 }}" data-type="rate">{{ printf "%.2f" .CostDistribution5_10 }}%</td>
-                <td class="color-cell" data-value="{{ .CostDistribution10_20 }}" data-type="rate">{{ printf "%.2f" .CostDistribution10_20 }}%</td>
-                <td class="color-cell" data-value="{{ .CostDistribution20_30 }}" data-type="rate">{{ printf "%.2f" .CostDistribution20_30 }}%</td>
-                <td class="color-cell" data-value="{{ .CostDistribution30_50 }}" data-type="rate">{{ printf "%.2f" .CostDistribution30_50 }}%</td>
-                <td class="color-cell" data-value="{{ .CostDistribution50_100 }}" data-type="rate">{{ printf "%.2f" .CostDistribution50_100 }}%</td>
-                <td class="color-cell" data-value="{{ .CostDistribution100_inf }}" data-type="rate">{{ printf "%.2f" .CostDistribution100_inf }}%</td>
+                <td  data-label = "日期"              >{{ .Date }}</td>
+                <td  data-label = "核心接口名称"      style="text-align:left">{{ .Node }}</td>
+                <td  data-label = "请求次数"            >{{ .NumReq }}</td>
+                <td  data-label = "平均耗时"            >{{ printf "%.2f" .AvgCost }}</td>
+                <td  data-label = "耗时占比[0, 1)s"      class="color-cell" data-value="{{ .CostDistribution0_1 }}" data-type="rate">{{ printf "%.2f" .CostDistribution0_1 }}%</td>
+                <td  data-label = "耗时占比[1, 3)s"      class="color-cell" data-value="{{ .CostDistribution1_3 }}" data-type="rate">{{ printf "%.2f" .CostDistribution1_3 }}%</td>
+                <td  data-label = "耗时占比[3, 5)s"      class="color-cell" data-value="{{ .CostDistribution3_5 }}" data-type="rate">{{ printf "%.2f" .CostDistribution3_5 }}%</td>
+                <td  data-label = "耗时占比[5, 10)s"     class="color-cell" data-value="{{ .CostDistribution5_10 }}" data-type="rate">{{ printf "%.2f" .CostDistribution5_10 }}%</td>
+                <td  data-label = "耗时占比[10, 20)s"    class="color-cell" data-value="{{ .CostDistribution10_20 }}" data-type="rate">{{ printf "%.2f" .CostDistribution10_20 }}%</td>
+                <td  data-label = "耗时占比[20, 30)s"    class="color-cell" data-value="{{ .CostDistribution20_30 }}" data-type="rate">{{ printf "%.2f" .CostDistribution20_30 }}%</td>
+                <td  data-label = "耗时占比[30, 50)s"    class="color-cell" data-value="{{ .CostDistribution30_50 }}" data-type="rate">{{ printf "%.2f" .CostDistribution30_50 }}%</td>
+                <td  data-label = "耗时占比[50, 100)s"   class="color-cell" data-value="{{ .CostDistribution50_100 }}" data-type="rate">{{ printf "%.2f" .CostDistribution50_100 }}%</td>
+                <td  data-label = "耗时占比[100, ∞)s"    class="color-cell" data-value="{{ .CostDistribution100_inf }}" data-type="rate">{{ printf "%.2f" .CostDistribution100_inf }}%</td>
             </tr>
             {{ end }}
         </tbody>
@@ -214,11 +267,12 @@
 
 <div class="container">
     <h2 id="probe-heading">灵狗探针 天级数据</h2>
-    <table id="probe-table">
+    <table id="probe-table" class="table-container">
         <thead>
         <tr>
             <th>日期</th>
             <th>场景</th>
+            <th>探测次数</th>
             <th>平均耗时</th>
             <th>成功率</th>
             <th>正确率</th>
@@ -227,11 +281,12 @@
         <tbody>
         {{ range .Probe  }}
         <tr>
-            <td>{{ .Date }}</td>
-            <td>{{ .Scene }}</td>
-            <td>{{ .AvgCost }}秒</td>
-            <td>{{ .CorrectRate }}%</td>
-            <td>{{ .SuccessRate }}%</td>
+            <td data-label="日期">{{ .Date }}</td>
+            <td data-label="场景">{{ .Scene }}</td>
+            <td data-label="探测次数">{{ .ReqCount }}</td>
+            <td data-label="平均耗时">{{ .AvgCost }}秒</td>
+            <td data-label="成功率">{{ .CorrectRate }}%</td>
+            <td data-label="正确率">{{ .SuccessRate }}%</td>
         </tr>
         {{ end }}
         </tbody>
@@ -428,6 +483,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         updateHeading('#nginx-table tbody tr td:first-child', 'nginx-heading');
         updateHeading('#logstore-table tbody tr td:first-child', 'logstore-heading');
+        updateHeading('#logstore-table tbody tr td:first-child', 'probe-heading');
     });
 </script>
 

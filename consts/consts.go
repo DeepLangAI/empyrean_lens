@@ -18,6 +18,9 @@ const (
 	CORE_NAME_OUTLINE   = "大纲"
 	CORE_NAME_VIEWPOINT = "viewpoint"
 	CORE_NAME_PDFPARSER = "PDFParser"
+
+	CORE_NAME_CHAT           = "chat"
+	CORE_NAME_CHAT_RECOMMEND = "chat_recommend"
 )
 
 const (

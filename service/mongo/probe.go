@@ -83,6 +83,7 @@ func ProbeReport(ctx context.Context) ([]map[string]string, error) {
 			"Scene":       val.Scene,
 			"Api":         val.API,
 			"Host":        val.Host,
+			"ReqCount":    fmt.Sprintf("%v", len(val.Costs)),
 			"AvgCost":     fmt.Sprintf("%.2f", utils.AvgSimple(val.Costs)),
 			"CorrectRate": fmt.Sprintf("%.2f", utils.AvgSimple(val.Corrects)*100),
 			"SuccessRate": fmt.Sprintf("%.2f", utils.AvgSimple(val.Successes)*100),

@@ -584,6 +584,133 @@ FROM log LIMIT %v
 	return coreLogs, nil
 }
 
+type CoreErrorLogs struct {
+	CoreName string
+	Code     int64
+	Msg      string
+	Time     time.Time
+	TraceId  string
+	UserId   string
+}
+
+func LingoChatCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs, error) {
+	logs := []CoreErrorLogs{}
+
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+chat core api response error and __tag__:_container_name_: lingo-chat-go-prod | select * from (
+    select 
+    regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name,
+    regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code,
+    regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 3) msg,
+	asctime time, trace_id, user_id
+    from log limit %v
+)
+`
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	// 查询日志
+	hlog.CtxDebugf(ctx, "lingo-chat core error sql query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// 打印查询结果
+	hlog.CtxInfof(ctx, "日期%v，查lingo-chat core error 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
+	for _, log := range resp.Logs {
+		code, err := strconv.ParseInt(log["code"], 10, 64)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse code to int error: %v", err)
+			continue
+		}
+		t, err := time.Parse("2006-01-02 15:04:05,999", log["time"])
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+		logs = append(logs, CoreErrorLogs{
+			Code:     code,
+			Msg:      log["msg"],
+			CoreName: log["core_name"],
+			Time:     t,
+			UserId:   log["user_id"],
+			TraceId:  log["trace_id"],
+		})
+	}
+	return logs, nil
+
+}
+
+func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs, error) {
+	logs := []CoreErrorLogs{}
+
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+__tag__:_container_name_:lingo-python-prod and extend core api response error core_name| select * from (
+    select 
+    regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name, 
+    regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code, 
+    regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 3) msg ,
+	asctime time, trace_id, user_id
+    from log limit %v
+)
+`
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	// 查询日志
+	hlog.CtxDebugf(ctx, "lingo core error sql query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// 打印查询结果
+	hlog.CtxInfof(ctx, "日期%v，查lingo core error 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
+	for _, log := range resp.Logs {
+		code, err := strconv.ParseInt(log["code"], 10, 64)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse code to int error: %v", err)
+			continue
+		}
+		// 解析如2024-07-31 14:31:13,916的时间
+		t, err := time.Parse("2006-01-02 15:04:05,999", log["time"])
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+		logs = append(logs, CoreErrorLogs{
+			Code:     code,
+			Msg:      log["msg"],
+			CoreName: log["core_name"],
+			Time:     t,
+			UserId:   log["user_id"],
+			TraceId:  log["trace_id"],
+		})
+	}
+	return logs, nil
+}
+
 func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, error) {
 	cnts := map[string]int{}
 	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
@@ -600,8 +727,10 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 	query := `
 __tag__:_container_name_:lingo-python-prod and summary start | select * from (
     select 
-    regexp_extract(message, 'summary start, uid:(.*), generate_type:(.*).', 1) uid, 
-    regexp_extract(message, 'summary start, uid:(.*), generate_type:(.*).', 2) generate_type 
+    regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 1) file_id, 
+    regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 2) url_id, 
+    regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 3) generate_type,
+    trace_id, user_id, asctime time
     from log limit %v
 )
 `
@@ -914,7 +1043,9 @@ type SceneOverviews struct {
 }
 
 func aigcCostAnlz(report SceneOverview, slowQueryThreshold int) SceneOverview {
-	report.FailReq = report.TotalReq - int64(len(report.Costs))
+	if report.FailReq == 0 {
+		report.FailReq = report.TotalReq - int64(len(report.Costs))
+	}
 	if report.FailReq < 0 {
 		report.FailReq = 0
 	}
@@ -952,12 +1083,24 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	qaOverview := SceneOverview{Name: "问答：问答", Costs: []float64{}, TotalReq: 0, FailReq: 0}
 	qaRecommendOverview := SceneOverview{Name: "问答：问题推荐", Costs: []float64{}, TotalReq: 0, FailReq: 0}
 
+	lingoCoreErrLogs, err := LingoCoreErrorLogs(ctx, daysLookback)
+	for _, log := range lingoCoreErrLogs {
+		if log.CoreName == consts.CORE_NAME_ABSTRACT {
+			abstractOverview.FailReq += 1
+		} else if log.CoreName == consts.CORE_NAME_OUTLINE {
+			outlineOverview.FailReq += 1
+		} else if log.CoreName == consts.CORE_NAME_VIEWPOINT {
+			viewpointOverview.FailReq += 1
+		}
+	}
+
 	coreLogs, _ := CommonCoreLogQuery(ctx, daysLookback, consts.CORE_NAME_VIEWPOINT)
 	for _, log := range coreLogs {
 		if log.Node == consts.ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST {
 			viewpointOverview.Costs = append(viewpointOverview.Costs, log.Cost)
 		}
 	}
+
 	abstractLogs, err := SummaryCoreLogQuery(ctx, daysLookback, consts.CORE_NAME_ABSTRACT)
 	for _, log := range abstractLogs {
 		if log.Node == consts.ALIYUN_LOG_NODE_ABSTRACT_ETE_COST {
@@ -973,6 +1116,15 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	}
 
 	//qaLogs, err := NginxIngressBasicQuery(ctx, daysLookback, consts.HOST_QA_BACKEND)
+	chatCoreErrLogs, err := LingoChatCoreErrorLogs(ctx, daysLookback)
+	for _, log := range chatCoreErrLogs {
+		if log.CoreName == consts.CORE_NAME_CHAT {
+			qaOverview.FailReq += 1
+		} else if log.CoreName == consts.CORE_NAME_CHAT_RECOMMEND {
+			qaRecommendOverview.FailReq += 1
+		}
+	}
+
 	apis := []string{}
 	for _, val := range consts.NGINX_INGRESS_APIS[consts.HOST_QA_BACKEND] {
 		apis = append(apis, val.Api)
@@ -1040,7 +1192,7 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverview, *
 	return &ete_anlz, &analysis_anlz, &merge_anlz, nil
 }
 
-func SummaryGeneralOverview(ctx context.Context, days []int) []SceneOverviews {
+func SceneGeneralOverview(ctx context.Context, days []int) []SceneOverviews {
 	var mutex sync.Mutex
 	wg := sync.WaitGroup{}
 

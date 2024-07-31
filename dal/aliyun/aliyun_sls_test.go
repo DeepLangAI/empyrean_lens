@@ -305,7 +305,7 @@ func TestNginxLogsToday(t *testing.T) {
 func TestSummreqCntQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	ov := SummaryGeneralOverview(ctx, []int{1})
+	ov := SceneGeneralOverview(ctx, []int{1})
 	for _, o := range ov {
 		fmt.Println(o.AbstractOverview.TotalReq, o.AbstractOverview.FailReq)
 		fmt.Println(o.OutlineOverview.TotalReq, o.OutlineOverview.FailReq)
@@ -318,6 +318,8 @@ func TestSummaryGeneralOfDay(t *testing.T) {
 	Init(ctx)
 	ov, _ := SceneGeneralOfDay(ctx, 0)
 	fmt.Println(ov.AbstractOverview.TotalReq, ov.AbstractOverview.FailReq)
+	fmt.Println(ov.OutlineOverview.TotalReq, ov.OutlineOverview.FailReq)
+	fmt.Println(ov.ViewpointOverview.TotalReq, ov.ViewpointOverview.FailReq)
 	fmt.Println(ov.MultiOverview.TotalReq, ov.MultiOverview.FailReq)
 	fmt.Println(ov.QaOverview.TotalReq, ov.QaOverview.FailReq)
 	fmt.Println(ov.QaRecommendOverview.TotalReq, ov.QaRecommendOverview.FailReq)
@@ -401,4 +403,27 @@ func TestQaMiddlewareRespLogQuery(t *testing.T) {
 		}
 	}
 
+}
+
+func TestLingoCoreErrorLogs(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs, err := LingoCoreErrorLogs(ctx, 0)
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
+}
+
+func TestSummreqCntQuery1(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	query, err := SummreqCntQuery(ctx, 0)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(query)
 }

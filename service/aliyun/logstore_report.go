@@ -43,7 +43,7 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 	var mutex sync.Mutex
 	wg := sync.WaitGroup{}
 	wg.Add(len(cores))
-	timespanReports := map[int]map[string]CoreLogTimeSpanReportModel{}
+	timespanReports := map[string]map[string]CoreLogTimeSpanReportModel{}
 	nodes := []string{
 		consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST,
 		consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST,
@@ -110,7 +110,7 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 				if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_AI_COST {
 					log.Cost = log.Cost - aiStart
 				}
-				day := log.Time.Day()
+				day := log.Time.Format("2006-01-02")
 				dayReports, ok := timespanReports[day]
 				if !ok {
 					dayReports = map[string]CoreLogTimeSpanReportModel{}

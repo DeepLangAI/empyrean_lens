@@ -50,9 +50,9 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 	}
 
 	// day-host-api
-	timespanReports := map[int]map[string]map[string]NginxTimeSpanReportModel{}
+	timespanReports := map[string]map[string]map[string]NginxTimeSpanReportModel{}
 	for _, log := range nginxLogs {
-		day := log.Time.Day()
+		day := log.Time.Format("2006-01-02")
 		dayReports, ok := timespanReports[day]
 		if !ok {
 			dayReports = map[string]map[string]NginxTimeSpanReportModel{}

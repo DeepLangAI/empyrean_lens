@@ -1032,14 +1032,6 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverview, *
 			ov_multi_merge.Costs = append(ov_multi_merge.Costs, log.Cost)
 		}
 	}
-	//logs, err = MultiNodeLogQuery(ctx, daysLookback)
-	//for _, log := range logs {
-	//	if log.Node == consts.ALIYUN_LOG_NODE_ANALYSIS_START {
-	//		ov_multi_analysis.TotalReq += 1
-	//	} else if log.Node == consts.ALIYUN_LOG_NODE_MERGE_START {
-	//		ov_multi_merge.TotalReq += 1
-	//	}
-	//}
 
 	ete_anlz := aigcCostAnlz(*ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTIDOC)
 	analysis_anlz := aigcCostAnlz(*ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_ANALYSIS)

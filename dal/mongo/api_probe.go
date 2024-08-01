@@ -80,6 +80,15 @@ func (self *ApiProbeLogModelDao) Tidy(ctx context.Context) error {
 		DeleteMany(ctx, bson.M{"scene": bson.M{"$in": []string{"场景1", "场景2", "场景3"}}})
 	if err != nil {
 		hlog.CtxErrorf(ctx, "mongo delete many error:%v", err)
+		return err
+	}
+	// 找到所有日期<2024-07-31的，删除
+	_, err = probeDatabase.
+		Collection(TableNameApiProbeLog).
+		DeleteMany(ctx, bson.M{"create_time": bson.M{"$lt": time.Date(2024, 7, 31, 0, 0, 0, 0, time.UTC)}})
+	if err != nil {
+		hlog.CtxErrorf(ctx, "mongo delete many error:%v", err)
+		return err
 	}
 	return err
 }

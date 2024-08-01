@@ -149,6 +149,12 @@ func SceneTimespanReport(ctx context.Context, timespan int) ([]aliyun.SceneOverv
 	return overviews, nil
 }
 
+func saveNginxReportWithTransx(ctx context.Context, reports []NginxTimeSpanReportModel) {
+	if len(reports) == 0 {
+		return
+	}
+}
+
 func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 	nginxReport, err := NginxTimespanReport(ctx, timespan)
 	if err != nil {

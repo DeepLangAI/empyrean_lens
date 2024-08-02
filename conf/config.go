@@ -14,9 +14,10 @@ import (
 var conf Config
 
 type Config struct {
-	Server Server         `yaml:"server"`
-	Mongo  Mongo          `yaml:"mongo"`
-	Logger conflib.Logger `yaml:"logger"`
+	Server            Server         `yaml:"server"`
+	MongoEmpyreanlens Mongo          `yaml:"mongo_empyreanlens"`
+	MongoLingo        Mongo          `yaml:"mongo_lingo"`
+	Logger            conflib.Logger `yaml:"logger"`
 }
 
 type Mongo struct {

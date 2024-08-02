@@ -5,7 +5,7 @@ import (
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/aliyun"
-	"empyrean_lens/dal/mongo"
+	"empyrean_lens/dal/mongo/empyrean_lens"
 	aliyun2 "empyrean_lens/service/aliyun"
 	"testing"
 	"time"
@@ -15,7 +15,7 @@ func TestUpdateDatabase(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	aliyun.Init(ctx)
-	mongo.Init(ctx)
+	empyrean_lens.Init(ctx)
 	nginxReports, err := aliyun2.NginxTimespanReport(ctx, consts.TIMESPAN_WEEK)
 	if err != nil {
 		t.Error(err)
@@ -41,7 +41,7 @@ func TestUpdateDatabase(t *testing.T) {
 			t.Errorf("date format error: %s", report.Date)
 			return
 		}
-		model := mongo.ApiFailureModel{
+		model := empyrean_lens.ApiFailureModel{
 			Date:          date,
 			ApiName:       report.CoreApiName,
 			HostName:      report.HostName,
@@ -50,11 +50,11 @@ func TestUpdateDatabase(t *testing.T) {
 			ErrCode3xxCnt: int32(report.FailStatus3xx),
 			ErrCode4xxCnt: int32(report.FailStatus4xx),
 			ErrCode5xxCnt: int32(report.FailStatus5xx),
-			Status:        mongo.StatusValid,
+			Status:        empyrean_lens.StatusValid,
 			CreateTime:    time.Now(),
 			UpdateTime:    time.Now(),
 		}
-		if err := mongo.NewApifailureModelDao().CreateOrUpdate(ctx, model.Date, model.ApiName, model); err != nil {
+		if err := empyrean_lens.NewApifailureModelDao().CreateOrUpdate(ctx, model.Date, model.ApiName, model); err != nil {
 			t.Error(err)
 			return
 		}
@@ -66,7 +66,7 @@ func TestUpdateDatabase(t *testing.T) {
 			t.Errorf("date format error: %s", report.Date)
 			return
 		}
-		model := mongo.ApiCostModel{
+		model := empyrean_lens.ApiCostModel{
 			Date:                    date,
 			ApiName:                 report.Node,
 			ReqCnt:                  report.NumReq,
@@ -80,26 +80,26 @@ func TestUpdateDatabase(t *testing.T) {
 			CostDistribution30_50:   report.CostDistribution30_50,
 			CostDistribution50_100:  report.CostDistribution50_100,
 			CostDistribution100_inf: report.CostDistribution100_inf,
-			Status:                  mongo.StatusValid,
+			Status:                  empyrean_lens.StatusValid,
 			CreateTime:              time.Now(),
 			UpdateTime:              time.Now(),
 		}
-		if err := mongo.NewApicostModelDao().CreateOrUpdate(ctx, model.Date, model.ApiName, model); err != nil {
+		if err := empyrean_lens.NewApicostModelDao().CreateOrUpdate(ctx, model.Date, model.ApiName, model); err != nil {
 			t.Errorf("save api cost model error: %s", err)
 		}
 	}
 
 	for _, report := range sysRevent {
-		dao := mongo.NewSystemScoreDao()
+		dao := empyrean_lens.NewSystemScoreDao()
 		date, err := time.Parse("2006-01-02", report.Date)
 		if err != nil {
 			t.Errorf("date format error: %s", report.Date)
 			return
 		}
-		model := mongo.SystemScoreModel{
+		model := empyrean_lens.SystemScoreModel{
 			Date:       date,
 			Score:      report.Score,
-			Status:     mongo.StatusValid,
+			Status:     empyrean_lens.StatusValid,
 			CreateTime: time.Time{},
 			UpdateTime: time.Time{},
 		}
@@ -114,7 +114,7 @@ func TestInitDatabase(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	aliyun.Init(ctx)
-	mongo.Init(ctx)
+	empyrean_lens.Init(ctx)
 
 	nginxReport, err := aliyun2.NginxTimespanReport(ctx, consts.TIMESPAN_LONGTIME)
 	if err != nil {
@@ -135,14 +135,14 @@ func TestInitDatabase(t *testing.T) {
 	//mongo.NewApifailureModelDao().DropTable(ctx)
 	//mongo.NewApicostModelDao().DropTable(ctx)
 
-	dao := mongo.NewApifailureModelDao()
+	dao := empyrean_lens.NewApifailureModelDao()
 	for _, report := range nginxReport {
 		date, err := time.Parse("2006-01-02", report.Date)
 		if err != nil {
 			t.Errorf("date format error: %s", report.Date)
 			return
 		}
-		model := mongo.ApiFailureModel{
+		model := empyrean_lens.ApiFailureModel{
 			Date:          date,
 			ApiName:       report.CoreApiName,
 			HostName:      report.HostName,
@@ -151,7 +151,7 @@ func TestInitDatabase(t *testing.T) {
 			ErrCode3xxCnt: int32(report.FailStatus3xx),
 			ErrCode4xxCnt: int32(report.FailStatus4xx),
 			ErrCode5xxCnt: int32(report.FailStatus5xx),
-			Status:        mongo.StatusValid,
+			Status:        empyrean_lens.StatusValid,
 			CreateTime:    time.Now(),
 			UpdateTime:    time.Now(),
 		}
@@ -167,7 +167,7 @@ func TestInitDatabase(t *testing.T) {
 			t.Errorf("date format error: %s", report.Date)
 			return
 		}
-		model := mongo.ApiCostModel{
+		model := empyrean_lens.ApiCostModel{
 			Date:                    date,
 			ApiName:                 report.Node,
 			ReqCnt:                  report.NumReq,
@@ -181,26 +181,26 @@ func TestInitDatabase(t *testing.T) {
 			CostDistribution30_50:   report.CostDistribution30_50,
 			CostDistribution50_100:  report.CostDistribution50_100,
 			CostDistribution100_inf: report.CostDistribution100_inf,
-			Status:                  mongo.StatusValid,
+			Status:                  empyrean_lens.StatusValid,
 			CreateTime:              time.Now(),
 			UpdateTime:              time.Now(),
 		}
-		if err := mongo.NewApicostModelDao().CreateOrUpdate(ctx, model.Date, model.ApiName, model); err != nil {
+		if err := empyrean_lens.NewApicostModelDao().CreateOrUpdate(ctx, model.Date, model.ApiName, model); err != nil {
 			t.Errorf("save api cost model error: %s", err)
 		}
 	}
 
 	for _, report := range dailyOverview {
-		dao := mongo.NewSystemScoreDao()
+		dao := empyrean_lens.NewSystemScoreDao()
 		date, err := time.Parse("2006-01-02", report.Date)
 		if err != nil {
 			t.Errorf("date format error: %s", report.Date)
 			return
 		}
-		model := mongo.SystemScoreModel{
+		model := empyrean_lens.SystemScoreModel{
 			Date:       date,
 			Score:      report.Score,
-			Status:     mongo.StatusValid,
+			Status:     empyrean_lens.StatusValid,
 			CreateTime: time.Time{},
 			UpdateTime: time.Time{},
 		}

@@ -27,11 +27,11 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	//})
 	// 每1分钟刷新一下当天的最新数据
 	s.Every(1).Minutes().Do(func() {
-		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_TODAY)
+		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_TODAY, false)
 	})
 	// 由于采集日志不及时，需要晚上刷一下近一周的数据
 	s.Every(1).Day().At("23:50").Do(func() {
-		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_WEEK)
+		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_WEEK, false)
 	})
 	//s.StartBlocking()
 	s.StartAsync()

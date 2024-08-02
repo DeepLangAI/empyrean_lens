@@ -18,6 +18,7 @@ const (
 	CORE_NAME_OUTLINE   = "大纲"
 	CORE_NAME_VIEWPOINT = "viewpoint"
 	CORE_NAME_PDFPARSER = "PDFParser"
+	CORE_NAME_MULTI     = "多文档"
 
 	CORE_NAME_CHAT           = "chat"
 	CORE_NAME_CHAT_RECOMMEND = "chat_recommend"
@@ -37,12 +38,12 @@ const (
 	ALIYUN_LOG_NODE_MULTI_ETE_COST    = "MULTI_ALL_SUCCESS"
 	ALIYUN_LOG_NODE_ANALYSIS          = "ANALYSIS"
 	ALIYUN_LOG_NODE_ANALYSIS_START    = "analysis_start"
-	ALIYUN_LOG_NODE_ANALYSIS_ALL      = "ANALYSIS_ALL"
+	ALIYUN_LOG_NODE_ANALYSIS_ALL      = "ANALYSIS_ALL" // 单文档分析全部完成
 	ALIYUN_LOG_NODE_ANALYSIS_REPEATER = "ANALYSIS_REPEATER"
-	ALIYUN_LOG_NODE_MERGE             = "MERGE"
+	ALIYUN_LOG_NODE_MERGE             = "MERGE" // 多文档整合
 	ALIYUN_LOG_NODE_MERGE_START       = "merge_start"
 	ALIYUN_LOG_NODE_MERGE_REPEATER    = "MERGE_REPEATER"
-	ALIYUN_LOG_NODE_MULTI_ALL_SUCCESS = "MULTI_ALL_SUCCESS"
+	ALIYUN_LOG_NODE_MULTI_ALL_SUCCESS = "MULTI_ALL_SUCCESS" // 所有主题生成完毕
 	ALIYUN_LOG_NODE_SUMMARY_REPEATER  = "SUMMARY_REPEATER"
 	ALIYUN_LOG_NODE_THEME_ALL_SUMMARY = "THEME_ALL_SUMMARY"
 	ALIYUN_LOG_NODE_THEME_SUMMARY     = "THEME_SUMMARY"
@@ -63,11 +64,12 @@ var NODE_MAP = map[string]string{
 }
 
 const (
-	HOST_LINGO_BACKEND = "api.lingoreader.cn"
-	HOST_CRAWLER       = "crawler.shenyandayi.com"
-	HOST_WCD           = "wcd-v2.deeplang.net"
-	HOST_EDU           = "api-edu-arch.shenyandayi.com"
-	HOST_QA_BACKEND    = "api-chat.lingoreader.cn"
+	HOST_LINGO_BACKEND     = "api.lingoreader.cn"
+	HOST_LINGO_PRE_BACKEND = "pre-api.lingoreader.cn"
+	HOST_CRAWLER           = "crawler.shenyandayi.com"
+	HOST_WCD               = "wcd-v2.deeplang.net"
+	HOST_EDU               = "api-edu-arch.shenyandayi.com"
+	HOST_QA_BACKEND        = "api-chat.lingoreader.cn"
 
 	HOST_ABSTRACT = "summary.shenyandayi.com"
 	HOST_OURLINE  = "outlinecata.shenyandayi.com"
@@ -90,41 +92,41 @@ var NGINX_INGRESS_APIS = map[string][]API{
 	HOST_LINGO_BACKEND: {
 		{
 			Api:   "/api/plugin/file/add",
-			Alias: "【后端】上传PDF",
+			Alias: "【数据处理】【后端】上传PDF",
 		},
 		{
 			Api:   "/api/readers/url/upload",
-			Alias: "【后端】上传URL[web,小程序,插件]",
+			Alias: "【数据处理】【后端】上传URL[web,小程序,插件]",
 		},
 		{
 			Api:   "/api/readers/url/content/upload",
-			Alias: "【后端】上传URL[小助手等]",
+			Alias: "【数据处理】【后端】上传URL[小助手等]",
 		},
 		{
 			Api:   "/api/plugin/articles/summary",
-			Alias: "【后端】全文速览/智能大纲/关键信息",
+			Alias: "【单文档】【后端】全文速览/智能大纲/关键信息",
 		},
 		{
 			Api:   "/api/plugin/articles/summary/list_v2",
-			Alias: "【后端】刷新模型生成内容(list_v2)",
+			Alias: "【单文档】【后端】刷新模型生成内容(list_v2)",
 		},
 	},
 	HOST_CRAWLER: {
 		{
 			Api:   "/crawl",
-			Alias: "抓取网页",
+			Alias: "【数据处理】抓取网页",
 		},
 	},
 	HOST_WCD: {
 		{
 			Api:   "/wcd-raw",
-			Alias: "解析URL",
+			Alias: "【数据处理】解析URL",
 		},
 	},
 	HOST_EDU: {
 		{
 			Api:   "/edu_parse",
-			Alias: "最小信息单元",
+			Alias: "【数据处理】最小信息单元",
 		},
 		//{
 		//	Api:   "/positions/list",
@@ -134,11 +136,11 @@ var NGINX_INGRESS_APIS = map[string][]API{
 	HOST_QA_BACKEND: {
 		{
 			Api:   "/api/chat/qa",
-			Alias: "【后端】问答",
+			Alias: "【问答】【后端】问答",
 		},
 		{
 			Api:   "/api/chat/recommend",
-			Alias: "【后端】问题推荐",
+			Alias: "【问答】【后端】问题推荐",
 		},
 	},
 	HOST_REPEATER: {
@@ -162,37 +164,37 @@ var MODEL_NGINX_INGRESS_APIS = map[string][]API{
 	HOST_ABSTRACT: {
 		{
 			Api:   "/generate",
-			Alias: "【模型】生成全文速览",
+			Alias: "【单文档】【模型】生成全文速览",
 		},
 	},
 	HOST_OURLINE: {
 		{
 			Api:   "/generate",
-			Alias: "【模型】生成智能大纲",
+			Alias: "【单文档】【模型】生成智能大纲",
 		},
 	},
 	HOST_OPINION: {
 		{
 			Api:   "/generate",
-			Alias: "【模型】生成关键信息",
+			Alias: "【单文档】【模型】生成关键信息",
 		},
 	},
 	HOST_SUQIN: {
 		{
 			Api:   "/pdfparser",
-			Alias: "【解析】苏秦PDF解析",
+			Alias: "【数据处理】苏秦PDF解析",
 		},
 	},
 	HOST_QA_RECOMMEND: {
 		{
 			Api:   "/qa/query_recommend",
-			Alias: "【模型】问题推荐模型",
+			Alias: "【问答】【模型】问题推荐模型",
 		},
 	},
 	HOST_QA_MAIN: {
 		{
 			Api:   "/qa/main",
-			Alias: "【模型】问答模型",
+			Alias: "【问答】【模型】问答模型",
 		},
 	},
 	//HOST_QUERY_EMBEDDING: {
@@ -239,6 +241,7 @@ const LINGO_HOST = "https://api.lingoreader.cn"
 const PDF_TO_UPLOAD = "assets/1810.04805v2.pdf"
 const GRAPH_CONFIG_PATH = "conf/graph.json"
 const LOG_DETAIL_TEMPLATE_PATH = "templates/rentention.html"
+const REALDATA_TEMPLATE_PATH = "templates/realdata.html"
 const OVERVIEW_TEMPLATE_PATH = "templates/overview.html"
 const (
 	TIMESPAN_TODAY    = 0
@@ -248,6 +251,8 @@ const (
 )
 
 const (
+	SLOWQUERY_THRESHOLD_FAST = 1.0
+
 	SLOWQUERY_THRESHOLD_ABSTRACT  = 15.0
 	SLOWQUERY_THRESHOLD_OUTLINE   = 15.0
 	SLOWQUERY_THRESHOLD_VIEWPOINT = 20.0

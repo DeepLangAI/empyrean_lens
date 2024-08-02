@@ -105,6 +105,7 @@ struct ApiCostRespData{
 # 刷新缓存数据库
 struct DbRefreshReq{
     1: i32 timespan
+    2: bool rm
 }
 struct DbRefreshResp{
     1: i32 code
@@ -137,9 +138,42 @@ struct WriteProbeResp{
 struct DbTidyReq{
 //    1: i32 timespan
 }
+
+
+# 系统真实数据
+struct RealDataReq{
+    1: string date # 2006-01-02
+}
+
+struct RealDataResp{
+    1: i32 code
+    2: string msg
+    3: RealDataRespData data
+}
+
+struct RealDataRespData{
+    1: i32 prebuild_web
+    2: i32 upload_web
+    3: i32 web
+    4: i32 file_in_multi
+    5: i32 file_in_single
+    6: i32 file
+    7: i32 summary_abstract
+    8: i32 summary_outline
+    9: i32 summary_viewpoint
+    10: i32 summary
+    11: i32 question
+    12: i32 answer
+    13: i32 question_recommend
+    14: i32 multi
+    15: i32 multi_by_theme
+}
+
+
 service Rentention{
    EmptyResp LogRender(1: EmptyReq req) (api.get="/api/log/report")
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
+   EmptyResp RealDataRender(1: EmptyReq req) (api.get="/api/log/realdata")
 
    //  用于提供前后端分离接口
    RealtimeScoreResp SystemRealtimeScore(1: EmptyReq req) (
@@ -163,5 +197,8 @@ service Rentention{
    )
    WriteProbeResp WriteProbeLogs(1: WriteProbeReq req) (
        api.post="/api/v1/report/db/write_probe"
+   )
+   RealDataResp SystemRealData(1: RealDataReq req) (
+       api.post="/api/v1/report/db/realdata"
    )
 }

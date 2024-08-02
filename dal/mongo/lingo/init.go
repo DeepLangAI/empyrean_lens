@@ -1,4 +1,4 @@
-package mongo
+package lingo
 
 import (
 	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	probeDatabase *mongo.Database
+	lingoDatabase *mongo.Database
 	mongoClient   *mongo.Client
 )
 
@@ -19,7 +19,7 @@ func Init(ctx context.Context) {
 	var (
 		mode          = os.Getenv(constslib.ModeEnvName)
 		clientOptions *options.ClientOptions
-		cfg           = conf.GetConfig().Mongo
+		cfg           = conf.GetConfig().MongoLingo
 	)
 	if mode == constslib.ModeEnvPre || mode == constslib.ModeEnvProd || cfg.Port == "" {
 		clientOptions = options.Client().ApplyURI(cfg.Addr)
@@ -45,6 +45,6 @@ func Init(ctx context.Context) {
 	if err != nil {
 		panic(fmt.Sprintf("initialize mongodb Ping failed, err: %v", err))
 	}
-	probeDatabase = client.Database(cfg.DatabaseName)
+	lingoDatabase = client.Database(cfg.DatabaseName)
 	mongoClient = client
 }

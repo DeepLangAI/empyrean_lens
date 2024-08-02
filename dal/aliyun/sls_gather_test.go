@@ -158,7 +158,7 @@ func TestStatusCodeUpdate(t *testing.T) {
 func TestNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_LINGO_BACKEND)
+	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_LINGO_PRE_BACKEND)
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -177,7 +177,7 @@ func TestNginxIngressBasicQuery(t *testing.T) {
 func TestModelNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	if logs, err := ModelNginxIngressBasicQuery(ctx, 0, consts.HOST_MULTI_MODEL); err != nil {
+	if logs, err := ModelNginxIngressBasicQuery(ctx, 1, consts.HOST_SUQIN); err != nil {
 		t.Error(err)
 	} else {
 		for i, log := range logs {
@@ -307,9 +307,10 @@ func TestSummreqCntQuery(t *testing.T) {
 	Init(ctx)
 	ov := SceneGeneralOverview(ctx, []int{1})
 	for _, o := range ov {
-		fmt.Println(o.AbstractOverview.TotalReq, o.AbstractOverview.FailReq)
-		fmt.Println(o.OutlineOverview.TotalReq, o.OutlineOverview.FailReq)
-		fmt.Println(o.ViewpointOverview.TotalReq, o.ViewpointOverview.FailReq)
+		//fmt.Println(o.AbstractOverview.TotalReq, o.AbstractOverview.FailReq)
+		//fmt.Println(o.OutlineOverview.TotalReq, o.OutlineOverview.FailReq)
+		//fmt.Println(o.ViewpointOverview.TotalReq, o.ViewpointOverview.FailReq)
+		fmt.Println(o)
 	}
 }
 
@@ -317,14 +318,17 @@ func TestSummaryGeneralOfDay(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
 	ov, _ := SceneGeneralOfDay(ctx, 0)
-	fmt.Println(ov.AbstractOverview.TotalReq, ov.AbstractOverview.FailReq)
-	fmt.Println(ov.OutlineOverview.TotalReq, ov.OutlineOverview.FailReq)
-	fmt.Println(ov.ViewpointOverview.TotalReq, ov.ViewpointOverview.FailReq)
-	fmt.Println(ov.MultiOverview.TotalReq, ov.MultiOverview.FailReq)
-	fmt.Println(ov.QaOverview.TotalReq, ov.QaOverview.FailReq)
-	fmt.Println(ov.QaRecommendOverview.TotalReq, ov.QaRecommendOverview.FailReq)
-	fmt.Println(ov.MultiAnalysisOverview.TotalReq, ov.MultiAnalysisOverview.FailReq)
-	fmt.Println(ov.MultiMergeOverview.TotalReq, ov.MultiMergeOverview.FailReq)
+	for _, o := range ov.Overviews {
+		fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SlowReq)
+	}
+	//fmt.Println(ov.AbstractOverview.TotalReq, ov.AbstractOverview.FailReq)
+	//fmt.Println(ov.OutlineOverview.TotalReq, ov.OutlineOverview.FailReq)
+	//fmt.Println(ov.ViewpointOverview.TotalReq, ov.ViewpointOverview.FailReq)
+	//fmt.Println(ov.MultiOverview.TotalReq, ov.MultiOverview.FailReq)
+	//fmt.Println(ov.QaOverview.TotalReq, ov.QaOverview.FailReq)
+	//fmt.Println(ov.QaRecommendOverview.TotalReq, ov.QaRecommendOverview.FailReq)
+	//fmt.Println(ov.MultiAnalysisOverview.TotalReq, ov.MultiAnalysisOverview.FailReq)
+	//fmt.Println(ov.MultiMergeOverview.TotalReq, ov.MultiMergeOverview.FailReq)
 }
 
 func TestMultidocGeneralOverview(t *testing.T) {
@@ -336,13 +340,14 @@ func TestMultiTotalRequestQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
 
-	ov_ete, ov_analysis, ov_merge, err := MultiGeneralOfDay(ctx, 0)
+	ov, err := MultiGeneralOfDay(ctx, 0)
 	if err != nil {
 		t.Error(err)
 	} else {
-		fmt.Println(ov_ete.TotalReq, ov_ete.FailReq, ov_ete.SlowReq, ov_ete.FailRate, ov_ete.SlowRate)
-		fmt.Println(ov_analysis.TotalReq, ov_analysis.FailReq, ov_analysis.SlowReq, ov_analysis.FailRate, ov_analysis.SlowRate)
-		fmt.Println(ov_merge.TotalReq, ov_merge.FailReq, ov_merge.SlowReq, ov_merge.FailRate, ov_merge.SlowRate)
+		fmt.Println(ov)
+		//fmt.Println(ov_ete.TotalReq, ov_ete.FailReq, ov_ete.SlowReq, ov_ete.FailRate, ov_ete.SlowRate)
+		//fmt.Println(ov_analysis.TotalReq, ov_analysis.FailReq, ov_analysis.SlowReq, ov_analysis.FailRate, ov_analysis.SlowRate)
+		//fmt.Println(ov_merge.TotalReq, ov_merge.FailReq, ov_merge.SlowReq, ov_merge.FailRate, ov_merge.SlowRate)
 	}
 }
 

@@ -2,7 +2,7 @@ package probe
 
 import (
 	"context"
-	"empyrean_lens/dal/mongo"
+	"empyrean_lens/dal/mongo/empyrean_lens"
 	"encoding/json"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -33,29 +33,29 @@ type Graph struct {
 	Nodes map[string]*Node // id to node
 }
 
-func trace(ctx context.Context, node *Node, reports *[]mongo.NodeDetail, skip bool) {
+func trace(ctx context.Context, node *Node, reports *[]empyrean_lens.NodeDetail, skip bool) {
 	for _, adjacent := range node.Adjacent {
 		hlog.CtxInfof(ctx, "[TRACE] Tracing from `%s` to `%s`", node.Label, adjacent.Label)
 		if adjacent.Status == StatusExecute {
-			report := mongo.NodeDetail{}
+			report := empyrean_lens.NodeDetail{}
 			report.Name = adjacent.Label
 			startTime := time.Now()
 			if !skip {
 				res := adjacent.Function(ctx)
 				report.Cost = time.Since(startTime).Seconds()
 				if res {
-					report.Result = mongo.RESULT_SUCCESS
+					report.Result = empyrean_lens.RESULT_SUCCESS
 					hlog.CtxInfof(ctx, "[TRACE] Tracing from `%s` to `%s success", node.Label, adjacent.Label)
 					trace(ctx, adjacent, reports, false)
 				} else {
-					report.Result = mongo.RESULT_FAIL
+					report.Result = empyrean_lens.RESULT_FAIL
 					trace(ctx, adjacent, reports, true)
 					hlog.CtxInfof(ctx, "[TRACE] Tracing from `%s` to `%s` failed", node.Label, adjacent.Label)
 				}
 			} else {
 				hlog.CtxInfof(ctx, "[TRACE] Skip tracing from `%s` to `%s`", node.Label, adjacent.Label)
 				trace(ctx, adjacent, reports, true)
-				report.Result = mongo.RESULT_NOT_STARTED
+				report.Result = empyrean_lens.RESULT_NOT_STARTED
 			}
 			*reports = append(*reports, report)
 		} else if adjacent.Status == StatusDummy {
@@ -66,7 +66,7 @@ func trace(ctx context.Context, node *Node, reports *[]mongo.NodeDetail, skip bo
 }
 
 func (g *Graph) Trace(ctx context.Context) {
-	nodeDetails := []mongo.NodeDetail{}
+	nodeDetails := []empyrean_lens.NodeDetail{}
 	trace(ctx, g.Nodes["0"], &nodeDetails, false)
 	totalNodes := 0
 	successNodes := 0
@@ -76,11 +76,11 @@ func (g *Graph) Trace(ctx context.Context) {
 		}
 	}
 	for _, node := range nodeDetails {
-		if node.Result == mongo.RESULT_SUCCESS {
+		if node.Result == empyrean_lens.RESULT_SUCCESS {
 			successNodes += 1
 		}
 	}
-	probeLog := mongo.ProbeLogModel{
+	probeLog := empyrean_lens.ProbeLogModel{
 		Id:           primitive.NewObjectID(),
 		TotalNodes:   len(nodeDetails),
 		SuccessNodes: successNodes,
@@ -88,7 +88,7 @@ func (g *Graph) Trace(ctx context.Context) {
 		CreateTime:   time.Now(),
 		UpdateTime:   time.Now(),
 	}
-	mongo.NewProbeLogModelDao().Save(ctx, probeLog)
+	empyrean_lens.NewProbeLogModelDao().Save(ctx, probeLog)
 }
 
 // AddNode adds a new node to the graph

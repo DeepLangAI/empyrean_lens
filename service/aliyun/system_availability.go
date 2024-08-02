@@ -4,7 +4,7 @@ import (
 	"context"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/aliyun"
-	"empyrean_lens/dal/mongo"
+	"empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
 	"time"
 )
@@ -82,7 +82,7 @@ func SlowQueryRate(ctx context.Context, timespan int) (map[string]float64, error
 	} else if timespan == consts.TIMESPAN_LONGTIME {
 		timeBegin = time.Date(2024, 7, 1, 0, 0, 0, 0, timeBegin.Location())
 	}
-	dao := mongo.NewSceneModelDao()
+	dao := empyrean_lens.NewSceneModelDao()
 	sceneLogs, err := dao.FindTimespanScene(ctx, timeBegin, timeEnd)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func saveNginxReportWithTransx(ctx context.Context, reports []NginxTimeSpanRepor
 	}
 }
 
-func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
+func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 	nginxReport, err := NginxTimespanReport(ctx, timespan)
 	if err != nil {
 		return err
@@ -174,27 +174,48 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 	}
 
 	if timespan == consts.TIMESPAN_LONGTIME {
-		if err := mongo.NewApifailureModelDao().DropTable(ctx); err != nil {
+		if err := empyrean_lens.NewApifailureModelDao().DropTable(ctx); err != nil {
 			return err
 		}
-		if err := mongo.NewApicostModelDao().DropTable(ctx); err != nil {
+		if err := empyrean_lens.NewApicostModelDao().DropTable(ctx); err != nil {
 			return err
 		}
-		if err := mongo.NewSystemScoreDao().DropTable(ctx); err != nil {
+		if err := empyrean_lens.NewSystemScoreDao().DropTable(ctx); err != nil {
 			return err
 		}
-		if err := mongo.NewSceneModelDao().DropTable(ctx); err != nil {
+		if err := empyrean_lens.NewSceneModelDao().DropTable(ctx); err != nil {
+			return err
+		}
+	} else if rm {
+		days := 0
+		if timespan == consts.TIMESPAN_TODAY {
+			days = 0
+		} else if timespan == consts.TIMESPAN_WEEK {
+			days = 7
+		} else if timespan == consts.TIMESPAN_MONTH {
+			days = 30
+		}
+		if err := empyrean_lens.NewApifailureModelDao().RmRecentDays(ctx, days); err != nil {
+			return err
+		}
+		if err := empyrean_lens.NewApicostModelDao().RmRecentDays(ctx, days); err != nil {
+			return err
+		}
+		if err := empyrean_lens.NewSystemScoreDao().RmRecentDays(ctx, days); err != nil {
+			return err
+		}
+		if err := empyrean_lens.NewSceneModelDao().RmRecentDays(ctx, days); err != nil {
 			return err
 		}
 	}
 
-	dao := mongo.NewApifailureModelDao()
+	dao := empyrean_lens.NewApifailureModelDao()
 	for _, report := range nginxReport {
 		date, err := time.Parse("2006-01-02", report.Date)
 		if err != nil {
 			return err
 		}
-		model := mongo.ApiFailureModel{
+		model := empyrean_lens.ApiFailureModel{
 			Date:          date,
 			ApiName:       report.CoreApiName,
 			HostName:      report.HostName,
@@ -203,7 +224,7 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 			ErrCode3xxCnt: int32(report.FailStatus3xx),
 			ErrCode4xxCnt: int32(report.FailStatus4xx),
 			ErrCode5xxCnt: int32(report.FailStatus5xx),
-			Status:        mongo.StatusValid,
+			Status:        empyrean_lens.StatusValid,
 			CreateTime:    time.Now(),
 			UpdateTime:    time.Now(),
 		}
@@ -217,7 +238,7 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 		if err != nil {
 			return err
 		}
-		model := mongo.ApiCostModel{
+		model := empyrean_lens.ApiCostModel{
 			Date:                    date,
 			ApiName:                 report.Node,
 			ReqCnt:                  report.NumReq,
@@ -231,25 +252,25 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 			CostDistribution30_50:   report.CostDistribution30_50,
 			CostDistribution50_100:  report.CostDistribution50_100,
 			CostDistribution100_inf: report.CostDistribution100_inf,
-			Status:                  mongo.StatusValid,
+			Status:                  empyrean_lens.StatusValid,
 			CreateTime:              time.Now(),
 			UpdateTime:              time.Now(),
 		}
-		if err := mongo.NewApicostModelDao().CreateOrUpdate(ctx, model.Date, model.ApiName, model); err != nil {
+		if err := empyrean_lens.NewApicostModelDao().CreateOrUpdate(ctx, model.Date, model.ApiName, model); err != nil {
 			//t.Errorf("save api cost model error: %s", err)
 		}
 	}
 
 	for _, report := range dailyOverview {
-		dao := mongo.NewSystemScoreDao()
+		dao := empyrean_lens.NewSystemScoreDao()
 		date, err := time.Parse("2006-01-02", report.Date)
 		if err != nil {
 			return err
 		}
-		model := mongo.SystemScoreModel{
+		model := empyrean_lens.SystemScoreModel{
 			Date:       date,
 			Score:      report.Score,
-			Status:     mongo.StatusValid,
+			Status:     empyrean_lens.StatusValid,
 			CreateTime: time.Now(),
 			UpdateTime: time.Now(),
 		}
@@ -259,129 +280,26 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int) error {
 	}
 
 	for _, report := range sceneOverview {
-		dao := mongo.NewSceneModelDao()
+		dao := empyrean_lens.NewSceneModelDao()
 		date, err := time.Parse("2006-01-02", report.Date)
 		if err != nil {
 			return err
 		}
-		model := mongo.SceneModel{
-			Date:       date,
-			Scene:      report.AbstractOverview.Name,
-			TotalCnt:   int32(report.AbstractOverview.TotalReq),
-			FailCnt:    int32(report.AbstractOverview.FailReq),
-			SlowCnt:    int32(report.AbstractOverview.SlowReq),
-			FailReason: report.AbstractOverview.FailReason,
-			Status:     0,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		}
-		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
-			return err
-		}
-
-		model = mongo.SceneModel{
-			Date:       date,
-			Scene:      report.OutlineOverview.Name,
-			TotalCnt:   int32(report.OutlineOverview.TotalReq),
-			FailCnt:    int32(report.OutlineOverview.FailReq),
-			SlowCnt:    int32(report.OutlineOverview.SlowReq),
-			FailReason: report.OutlineOverview.FailReason,
-			Status:     0,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		}
-		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
-			return err
-		}
-
-		model = mongo.SceneModel{
-			Date:       date,
-			Scene:      report.ViewpointOverview.Name,
-			TotalCnt:   int32(report.ViewpointOverview.TotalReq),
-			FailCnt:    int32(report.ViewpointOverview.FailReq),
-			SlowCnt:    int32(report.ViewpointOverview.SlowReq),
-			FailReason: report.ViewpointOverview.FailReason,
-			Status:     0,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		}
-		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
-			return err
-		}
-
-		model = mongo.SceneModel{
-			Date:       date,
-			Scene:      report.MultiOverview.Name,
-			TotalCnt:   int32(report.MultiOverview.TotalReq),
-			FailCnt:    int32(report.MultiOverview.FailReq),
-			SlowCnt:    int32(report.MultiOverview.SlowReq),
-			FailReason: report.MultiOverview.FailReason,
-			Status:     0,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		}
-		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
-			return err
-		}
-
-		model = mongo.SceneModel{
-			Date:       date,
-			Scene:      report.MultiAnalysisOverview.Name,
-			TotalCnt:   int32(report.MultiAnalysisOverview.TotalReq),
-			FailCnt:    int32(report.MultiAnalysisOverview.FailReq),
-			SlowCnt:    int32(report.MultiAnalysisOverview.SlowReq),
-			FailReason: report.MultiAnalysisOverview.FailReason,
-			Status:     0,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		}
-		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
-			return err
-		}
-
-		model = mongo.SceneModel{
-			Date:       date,
-			Scene:      report.MultiMergeOverview.Name,
-			TotalCnt:   int32(report.MultiMergeOverview.TotalReq),
-			FailCnt:    int32(report.MultiMergeOverview.FailReq),
-			SlowCnt:    int32(report.MultiMergeOverview.SlowReq),
-			FailReason: report.MultiMergeOverview.FailReason,
-			Status:     0,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		}
-		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
-			return err
-		}
-
-		model = mongo.SceneModel{
-			Date:       date,
-			Scene:      report.QaOverview.Name,
-			TotalCnt:   int32(report.QaOverview.TotalReq),
-			FailCnt:    int32(report.QaOverview.FailReq),
-			SlowCnt:    int32(report.QaOverview.SlowReq),
-			FailReason: report.QaOverview.FailReason,
-			Status:     0,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		}
-		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
-			return err
-		}
-
-		model = mongo.SceneModel{
-			Date:       date,
-			Scene:      report.QaRecommendOverview.Name,
-			TotalCnt:   int32(report.QaRecommendOverview.TotalReq),
-			FailCnt:    int32(report.QaRecommendOverview.FailReq),
-			SlowCnt:    int32(report.QaRecommendOverview.SlowReq),
-			FailReason: report.QaRecommendOverview.FailReason,
-			Status:     0,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		}
-		if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
-			return err
+		for _, ov := range report.Overviews {
+			model := empyrean_lens.SceneModel{
+				Date:       date,
+				Scene:      ov.Name,
+				TotalCnt:   int32(ov.TotalReq),
+				FailCnt:    int32(ov.FailReq),
+				SlowCnt:    int32(ov.SlowReq),
+				FailReason: ov.FailReason,
+				Status:     0,
+				CreateTime: time.Now(),
+				UpdateTime: time.Now(),
+			}
+			if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

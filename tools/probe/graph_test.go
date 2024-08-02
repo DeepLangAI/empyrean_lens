@@ -3,7 +3,7 @@ package probe
 import (
 	"context"
 	"empyrean_lens/conf"
-	"empyrean_lens/dal/mongo"
+	"empyrean_lens/dal/mongo/empyrean_lens"
 	"fmt"
 	"log"
 	"reflect"
@@ -14,7 +14,7 @@ import (
 func TestInitGraph(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
-	mongo.Init(ctx)
+	empyrean_lens.Init(ctx)
 	functionMap := RegisterFunctions()
 
 	graph, err := LoadGraphFromConfig("/Users/wh/Documents/DeepLang/empyrean_lens/conf/graph.json", functionMap)

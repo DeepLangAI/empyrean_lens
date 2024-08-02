@@ -5,6 +5,7 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/utils"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -50,29 +51,35 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 	}
 
 	// day-host-api
-	timespanReports := map[string]map[string]map[string]NginxTimeSpanReportModel{}
+	//timespanReports := map[string]map[string]map[string]NginxTimeSpanReportModel{}
+	timespanReports := map[string]NginxTimeSpanReportModel{}
 	for _, log := range nginxLogs {
 		day := log.Time.Format("2006-01-02")
-		dayReports, ok := timespanReports[day]
-		if !ok {
-			dayReports = map[string]map[string]NginxTimeSpanReportModel{}
-			timespanReports[day] = dayReports
+		key := fmt.Sprintf("%v\t%v\t%v", day, log.Host, log.CleanUrl)
+		if strings.HasPrefix(log.Host, "pre") {
+			fmt.Println(key)
 		}
-
-		hostReports, ok := dayReports[log.Host]
-		if !ok {
-			hostReports = map[string]NginxTimeSpanReportModel{}
-			dayReports[log.Host] = hostReports
-		}
-
-		apiReport, ok := hostReports[log.CleanUrl]
+		apiReport, ok := timespanReports[key]
+		//dayReports, ok := timespanReports[day]
+		//if !ok {
+		//	dayReports = map[string]map[string]NginxTimeSpanReportModel{}
+		//	timespanReports[day] = dayReports
+		//}
+		//
+		//hostReports, ok := dayReports[log.Host]
+		//if !ok {
+		//	hostReports = map[string]NginxTimeSpanReportModel{}
+		//	dayReports[log.Host] = hostReports
+		//}
+		//
+		//apiReport, ok := hostReports[log.CleanUrl]
 		if !ok {
 			apiReport = NginxTimeSpanReportModel{
 				Date:        log.Time.Format("2006-01-02"),
 				HostName:    log.Host,
 				CoreApiName: log.CleanUrl,
 			}
-			hostReports[log.CleanUrl] = apiReport
+			//hostReports[log.CleanUrl] = apiReport
 		}
 
 		apiReport.TotalCount += 1
@@ -94,34 +101,42 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 			}
 		}
 		apiReport.FailRate = float64(apiReport.FailCount) / float64(apiReport.TotalCount) * 100
-		timespanReports[day][log.Host][log.CleanUrl] = apiReport
+		timespanReports[key] = apiReport
+		//timespanReports[day][log.Host][log.CleanUrl] = apiReport
 	}
 	finalReports := []NginxTimeSpanReportModel{}
 	daySumReports := map[string]NginxTimeSpanReportModel{}
-	for _, dayReports := range timespanReports {
-		for _, hostReports := range dayReports {
-			for _, report := range hostReports {
-				//fmt.Println("==========", host, url)
-				report.CoreApiName = utils.GetApiAlias(report.HostName, report.CoreApiName)
-				finalReports = append(finalReports, report)
-
-				daySumReport, ok := daySumReports[report.Date]
-				if !ok {
-					daySumReport = NginxTimeSpanReportModel{}
-				}
-				daySumReport.Date = report.Date
-				daySumReport.CoreApiName = "当日总览"
-				daySumReport.FailCount += report.FailCount
-				daySumReport.TotalCount += report.TotalCount
-				daySumReport.FailRate = float64(daySumReport.FailCount) / float64(daySumReport.TotalCount) * 100
-				daySumReport.FailStatus3xx += report.FailStatus3xx
-				daySumReport.FailStatus4xx += report.FailStatus4xx
-				daySumReport.FailStatus5xx += report.FailStatus5xx
-				daySumReports[report.Date] = daySumReport
-			}
+	//for _, dayReports := range timespanReports {
+	//	for _, hostReports := range dayReports {
+	//		for _, report := range hostReports {
+	for _, report := range timespanReports {
+		//fmt.Println("==========", host, url)
+		if report.HostName == "pre-api.lingoreader.cn" {
+			fmt.Println(report)
 		}
-		// finalReports按照Date字段降续排序
+		if report.HostName == "api.lingoreader.cn" {
+			fmt.Println(report)
+		}
+		report.CoreApiName = utils.GetApiAlias(report.HostName, report.CoreApiName)
+		finalReports = append(finalReports, report)
+
+		daySumReport, ok := daySumReports[report.Date]
+		if !ok {
+			daySumReport = NginxTimeSpanReportModel{}
+		}
+		daySumReport.Date = report.Date
+		daySumReport.CoreApiName = "当日总览"
+		daySumReport.FailCount += report.FailCount
+		daySumReport.TotalCount += report.TotalCount
+		daySumReport.FailRate = float64(daySumReport.FailCount) / float64(daySumReport.TotalCount) * 100
+		daySumReport.FailStatus3xx += report.FailStatus3xx
+		daySumReport.FailStatus4xx += report.FailStatus4xx
+		daySumReport.FailStatus5xx += report.FailStatus5xx
+		daySumReports[report.Date] = daySumReport
 	}
+	//	}
+	//	// finalReports按照Date字段降续排序
+	//}
 	finalReports = append(finalReports, utils.ValuesOfMap(daySumReports)...)
 	sort.Slice(finalReports, func(i, j int) bool {
 		if finalReports[i].Date == finalReports[j].Date {

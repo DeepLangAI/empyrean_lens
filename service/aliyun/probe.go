@@ -3,7 +3,7 @@ package aliyun
 import (
 	"context"
 	"empyrean_lens/consts"
-	"empyrean_lens/dal/mongo"
+	"empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
 	"time"
 )
@@ -21,7 +21,7 @@ func ProbeTimespanFailRate(ctx context.Context, timespan int) (map[string]float6
 	} else if timespan == consts.TIMESPAN_LONGTIME {
 		timeBegin = time.Date(2024, 7, 1, 0, 0, 0, 0, timeBegin.Location())
 	}
-	models, err := mongo.NewApiProbeLogModelDao().FindTimespanApiProbeLog(ctx, timeBegin, timeEnd)
+	models, err := empyrean_lens.NewApiProbeLogModelDao().FindTimespanApiProbeLog(ctx, timeBegin, timeEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func RealtimeProbeLoganlz(ctx context.Context) *Metric {
 	timeEnd := time.Date(timeBegin.Year(), timeBegin.Month(), timeBegin.Day(), 23, 59, 59, 0, timeBegin.Location())
 	anchorDay := time.Now().AddDate(0, 0, -7)
 	timeBegin = time.Date(anchorDay.Year(), anchorDay.Month(), anchorDay.Day(), 0, 0, 0, 0, anchorDay.Location())
-	models, err := mongo.NewApiProbeLogModelDao().FindTimespanApiProbeLog(ctx, timeBegin, timeEnd)
+	models, err := empyrean_lens.NewApiProbeLogModelDao().FindTimespanApiProbeLog(ctx, timeBegin, timeEnd)
 	if err != nil {
 		return nil
 	}

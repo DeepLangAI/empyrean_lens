@@ -1,4 +1,4 @@
-package mongo
+package lingo
 
 import (
 	"context"
@@ -8,14 +8,14 @@ import (
 	"testing"
 )
 
-func TestSystemRealtimeReport(t *testing.T) {
+func TestRealDataOfDate(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	dal.Init()
-	report, err := SystemRealtimeReport(ctx)
+	date, err := RealDataOfDate(ctx, "2024-08-03")
 	if err != nil {
 		t.Error(err)
 	} else {
-		fmt.Println(report)
+		fmt.Println(date)
 	}
 }

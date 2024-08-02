@@ -85,3 +85,13 @@ func _systemdbtidyMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _realdatarenderMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _systemrealdataMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

@@ -5,7 +5,7 @@ import (
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal"
-	"empyrean_lens/dal/mongo"
+	"empyrean_lens/dal/mongo/empyrean_lens"
 	"fmt"
 	"testing"
 )
@@ -14,7 +14,7 @@ func TestNginxTimeSpanReport(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	dal.Init()
-	mongo.Init(ctx)
+	empyrean_lens.Init(ctx)
 	report, err := NginxTimespanReport(ctx, consts.TIMESPAN_WEEK)
 	if err != nil {
 

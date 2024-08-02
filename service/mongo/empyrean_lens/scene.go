@@ -18,7 +18,7 @@ func SceneResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]map[strin
 		datei := models[i].Date.Format("2006-01-02")
 		datej := models[j].Date.Format("2006-01-02")
 		if datei == datej {
-			return models[i].Scene > models[j].Scene
+			return models[i].Scene < models[j].Scene
 		}
 		return datei > datej
 	})

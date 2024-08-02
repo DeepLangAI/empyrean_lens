@@ -37,4 +37,3 @@ _testmain.go
 /logs
 *.local.yml
 dumped_hertz_remote_config.json
-empyrean_lens

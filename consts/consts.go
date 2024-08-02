@@ -263,3 +263,8 @@ const (
 	SLOWQUERY_THRESHOLD_QA           = 30.0
 	SLOWQUERY_THRESHOLD_QA_RECOMMEND = 10.0
 )
+
+const (
+	StatusValid   = 0
+	StatusDeleted = 1
+)

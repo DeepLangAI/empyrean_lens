@@ -50,7 +50,7 @@ func TestUpdateDatabase(t *testing.T) {
 			ErrCode3xxCnt: int32(report.FailStatus3xx),
 			ErrCode4xxCnt: int32(report.FailStatus4xx),
 			ErrCode5xxCnt: int32(report.FailStatus5xx),
-			Status:        empyrean_lens.StatusValid,
+			Status:        consts.StatusValid,
 			CreateTime:    time.Now(),
 			UpdateTime:    time.Now(),
 		}
@@ -80,7 +80,7 @@ func TestUpdateDatabase(t *testing.T) {
 			CostDistribution30_50:   report.CostDistribution30_50,
 			CostDistribution50_100:  report.CostDistribution50_100,
 			CostDistribution100_inf: report.CostDistribution100_inf,
-			Status:                  empyrean_lens.StatusValid,
+			Status:                  consts.StatusValid,
 			CreateTime:              time.Now(),
 			UpdateTime:              time.Now(),
 		}
@@ -99,7 +99,7 @@ func TestUpdateDatabase(t *testing.T) {
 		model := empyrean_lens.SystemScoreModel{
 			Date:       date,
 			Score:      report.Score,
-			Status:     empyrean_lens.StatusValid,
+			Status:     consts.StatusValid,
 			CreateTime: time.Time{},
 			UpdateTime: time.Time{},
 		}
@@ -151,7 +151,7 @@ func TestInitDatabase(t *testing.T) {
 			ErrCode3xxCnt: int32(report.FailStatus3xx),
 			ErrCode4xxCnt: int32(report.FailStatus4xx),
 			ErrCode5xxCnt: int32(report.FailStatus5xx),
-			Status:        empyrean_lens.StatusValid,
+			Status:        consts.StatusValid,
 			CreateTime:    time.Now(),
 			UpdateTime:    time.Now(),
 		}
@@ -181,7 +181,7 @@ func TestInitDatabase(t *testing.T) {
 			CostDistribution30_50:   report.CostDistribution30_50,
 			CostDistribution50_100:  report.CostDistribution50_100,
 			CostDistribution100_inf: report.CostDistribution100_inf,
-			Status:                  empyrean_lens.StatusValid,
+			Status:                  consts.StatusValid,
 			CreateTime:              time.Now(),
 			UpdateTime:              time.Now(),
 		}
@@ -200,7 +200,7 @@ func TestInitDatabase(t *testing.T) {
 		model := empyrean_lens.SystemScoreModel{
 			Date:       date,
 			Score:      report.Score,
-			Status:     empyrean_lens.StatusValid,
+			Status:     consts.StatusValid,
 			CreateTime: time.Time{},
 			UpdateTime: time.Time{},
 		}

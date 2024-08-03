@@ -345,13 +345,25 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		if log.CoreName == consts.CORE_NAME_CHAT {
 			qaOverview.FailReq += 1
 			qaOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
-		} else if log.CoreName == consts.CORE_NAME_CHAT_RECOMMEND {
-			qaRecommendOverview.FailReq += 1
-			qaRecommendOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
 		}
+		//} else if log.CoreName == consts.CORE_NAME_CHAT_RECOMMEND {
+		//	qaRecommendOverview.FailReq += 1
+		//	qaRecommendOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
+		//}
 	}
 	qaOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(qaOverview.FailReason, "\t"))), "、")
-	qaRecommendOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(qaRecommendOverview.FailReason, "\t"))), "、")
+
+	recommendFailCnt := QaRecommendFailcntQuery(ctx, daysLookback)
+	recommendLogs, err := QaRecommendAllQuerry(ctx, daysLookback)
+	for _, log := range recommendLogs {
+		if log.Status == consts.StatusSuccess {
+			qaRecommendOverview.Costs = append(qaRecommendOverview.Costs, log.Cost)
+		}
+	}
+	qaRecommendOverview.TotalReq = int64(len(recommendLogs))
+	qaRecommendOverview.FailReq = recommendFailCnt
+
+	//qaRecommendOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(qaRecommendOverview.FailReason, "\t"))), "、")
 
 	apis := []string{}
 	for _, val := range consts.NGINX_INGRESS_APIS[consts.HOST_QA_BACKEND] {
@@ -364,12 +376,13 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 			if log.Status == "200" {
 				qaOverview.Costs = append(qaOverview.Costs, log.Cost)
 			}
-		} else if log.CleanUrl == "/api/chat/recommend" {
-			qaRecommendOverview.TotalReq += 1
-			if log.Status == "200" {
-				qaRecommendOverview.Costs = append(qaRecommendOverview.Costs, log.Cost)
-			}
 		}
+		//else if log.CleanUrl == "/api/chat/recommend" {
+		//	qaRecommendOverview.TotalReq += 1
+		//	if log.Status == "200" {
+		//		qaRecommendOverview.Costs = append(qaRecommendOverview.Costs, log.Cost)
+		//	}
+		//}
 	}
 
 	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT, false)

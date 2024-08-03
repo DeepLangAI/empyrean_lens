@@ -247,6 +247,7 @@ type CoreLog struct {
 	TraceId  string
 	Time     time.Time
 	UserId   string
+	Status   int
 }
 
 func MultiCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
@@ -779,4 +780,109 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 		coreLogs = append(coreLogs, clog)
 	}
 	return coreLogs, nil
+}
+
+func QaRecommendFailcntQuery(ctx context.Context, daysLookback int) int64 {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	if err != nil {
+		return 0
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+推荐模型返回异常 and __tag__:_container_name_: lingo-chat-go-prod | select count(*) cnt from log
+limit %v
+`
+
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	// 查询日志
+	hlog.CtxDebugf(ctx, "问题推荐失败数量查询 query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+
+	// 打印查询结果
+	hlog.CtxInfof(ctx, "日期%v，查问题推荐失败数量, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
+
+	for _, log := range resp.Logs {
+		cnt, e := strconv.ParseInt(log["cnt"], 10, 64)
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse cnt error: %v", e)
+			continue
+		}
+		return cnt
+	}
+	return 0
+}
+
+func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, error) {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+推荐模型 推荐结束 and __tag__:_container_name_: lingo-chat-go-prod | select * from (
+    select 
+    regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 1) count, 
+    regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 2) cost, 
+    trace_id, time, user_id
+    from log 
+) limit %v
+`
+
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	// 查询日志
+	hlog.CtxDebugf(ctx, "问题推荐所有数量查询 query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// 打印查询结果
+	hlog.CtxInfof(ctx, "日期%v，查问题推荐所有, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
+
+	result := []CoreLog{}
+	for _, log := range resp.Logs {
+		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			continue
+		}
+		cost, e := strconv.ParseFloat(log["cost"], 64)
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
+			continue
+		}
+		//count, e := strconv.ParseInt(log["count"], 10, 64)
+		//if e != nil {
+		//    hlog.CtxErrorf(ctx, "parse count error: %v", e)
+		//    continue
+		//}
+		result = append(result, CoreLog{
+			CoreName: "问题推荐",
+			Node:     "调用推荐模型结束",
+			Cost:     cost,
+			TraceId:  log["trace_id"],
+			Time:     t,
+			UserId:   log["user_id"],
+			Status:   consts.StatusSuccess,
+		})
+	}
+	return result, nil
+
 }

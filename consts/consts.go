@@ -267,4 +267,7 @@ const (
 const (
 	StatusValid   = 0
 	StatusDeleted = 1
+
+	StatusUnk     = 0
+	StatusSuccess = 1
 )

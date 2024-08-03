@@ -1,9 +1,11 @@
 package lingo
 
 import (
+	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"context"
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/dal/mongo/lingo"
+	"os"
 	"time"
 )
 
@@ -21,6 +23,9 @@ const (
 func RealDataOfDate(ctx context.Context, date string) (*empyrean_lens.RealDataRespData, error) {
 	day, err := time.Parse("2006-01-02", date)
 	result := &empyrean_lens.RealDataRespData{}
+	if os.Getenv(constslib.ModeEnvName) == "prod" {
+		return result, nil
+	}
 	//result := map[string]int{}
 	if err != nil {
 		return nil, err

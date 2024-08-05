@@ -541,7 +541,10 @@ type DailyScoreRespData struct {
 	// [0, 100]
 	DayOverDay float64 `thrift:"day_over_day,3" form:"day_over_day" json:"day_over_day" query:"day_over_day"`
 	// [0, 100]
-	WeekOverWeek float64 `thrift:"week_over_week,4" form:"week_over_week" json:"week_over_week" query:"week_over_week"`
+	WeekOverWeek  float64 `thrift:"week_over_week,4" form:"week_over_week" json:"week_over_week" query:"week_over_week"`
+	FailRate      float64 `thrift:"fail_rate,5" form:"fail_rate" json:"fail_rate" query:"fail_rate"`
+	SlowRate      float64 `thrift:"slow_rate,6" form:"slow_rate" json:"slow_rate" query:"slow_rate"`
+	ProbeFailRate float64 `thrift:"probe_fail_rate,7" form:"probe_fail_rate" json:"probe_fail_rate" query:"probe_fail_rate"`
 }
 
 func NewDailyScoreRespData() *DailyScoreRespData {
@@ -564,11 +567,26 @@ func (p *DailyScoreRespData) GetWeekOverWeek() (v float64) {
 	return p.WeekOverWeek
 }
 
+func (p *DailyScoreRespData) GetFailRate() (v float64) {
+	return p.FailRate
+}
+
+func (p *DailyScoreRespData) GetSlowRate() (v float64) {
+	return p.SlowRate
+}
+
+func (p *DailyScoreRespData) GetProbeFailRate() (v float64) {
+	return p.ProbeFailRate
+}
+
 var fieldIDToName_DailyScoreRespData = map[int16]string{
 	1: "date",
 	2: "score",
 	3: "day_over_day",
 	4: "week_over_week",
+	5: "fail_rate",
+	6: "slow_rate",
+	7: "probe_fail_rate",
 }
 
 func (p *DailyScoreRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -617,6 +635,30 @@ func (p *DailyScoreRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 4:
 			if fieldTypeId == thrift.DOUBLE {
 				if err = p.ReadField4(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 5:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField5(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 6:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField7(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -695,6 +737,39 @@ func (p *DailyScoreRespData) ReadField4(iprot thrift.TProtocol) error {
 	p.WeekOverWeek = _field
 	return nil
 }
+func (p *DailyScoreRespData) ReadField5(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.FailRate = _field
+	return nil
+}
+func (p *DailyScoreRespData) ReadField6(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.SlowRate = _field
+	return nil
+}
+func (p *DailyScoreRespData) ReadField7(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ProbeFailRate = _field
+	return nil
+}
 
 func (p *DailyScoreRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -716,6 +791,18 @@ func (p *DailyScoreRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField4(oprot); err != nil {
 			fieldId = 4
+			goto WriteFieldError
+		}
+		if err = p.writeField5(oprot); err != nil {
+			fieldId = 5
+			goto WriteFieldError
+		}
+		if err = p.writeField6(oprot); err != nil {
+			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
 			goto WriteFieldError
 		}
 	}
@@ -802,6 +889,57 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
+}
+
+func (p *DailyScoreRespData) writeField5(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("fail_rate", thrift.DOUBLE, 5); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.FailRate); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
+}
+
+func (p *DailyScoreRespData) writeField6(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("slow_rate", thrift.DOUBLE, 6); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.SlowRate); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *DailyScoreRespData) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("probe_fail_rate", thrift.DOUBLE, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.ProbeFailRate); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
 }
 
 func (p *DailyScoreRespData) String() string {

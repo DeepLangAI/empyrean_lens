@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-func SystemTimespanAvailability(ctx context.Context, timespan int) ([]utils.ReventResult, error) {
+func SystemTimespanAvailability(ctx context.Context, timespan int) ([]empyrean_lens.SystemScoreModel, error) {
 	systemFactors := map[string]utils.SystemStablityFactor{}
-	availabilityScores := map[string]int{}
+	//availabilityScores := map[string]int{}
 	nginxLogs := []NginxTimeSpanReportModel{}
 
 	nginxLogs, err := NginxTimespanReport(ctx, timespan)
@@ -29,6 +29,7 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]utils.Reve
 		return nil, err
 	}
 
+	results := []empyrean_lens.SystemScoreModel{}
 	for _, log := range nginxLogs {
 		if log.CoreApiName != "当日总览" {
 			continue
@@ -42,12 +43,29 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]utils.Reve
 		factor.ProbeFailRate = probeFailRates[log.Date] / 100.0
 		factor.SlowQueryRate = slowqueryRates[log.Date] / 100.0
 		systemFactors[log.Date] = factor
+
+		date, e := time.Parse("2006-01-02", log.Date)
+		if e != nil {
+			return nil, err
+		}
+		results = append(results, empyrean_lens.SystemScoreModel{
+			Date:          date,
+			Score:         float64(utils.ComputeStablityScore(factor)),
+			FailRate:      factor.ApiFailRate * 100,
+			SlowRate:      factor.SlowQueryRate * 100,
+			ProbeFailRate: factor.ProbeFailRate * 100,
+
+			Status:     consts.StatusValid,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		})
 	}
-	for date, factor := range systemFactors {
-		availabilityScores[date] = utils.ComputeStablityScore(factor)
-	}
-	reventResults := utils.ComputeRevent(availabilityScores)
-	return reventResults, nil
+	return results, nil
+	//for date, factor := range systemFactors {
+	//	availabilityScores[date] = utils.ComputeStablityScore(factor)
+	//}
+	//reventResults := utils.ComputeRevent(availabilityScores)
+	//return reventResults, nil
 }
 
 func RealtimeSlowqueryLoganlz(ctx context.Context) (*MetricFloat, error) {
@@ -164,7 +182,7 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 	if err != nil {
 		return err
 	}
-	dailyOverview, err := SystemTimespanAvailability(ctx, timespan)
+	scoreOverview, err := SystemTimespanAvailability(ctx, timespan)
 	if err != nil {
 		return err
 	}
@@ -261,20 +279,20 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 		}
 	}
 
-	for _, report := range dailyOverview {
+	for _, report := range scoreOverview {
 		dao := empyrean_lens.NewSystemScoreDao()
-		date, err := time.Parse("2006-01-02", report.Date)
-		if err != nil {
-			return err
-		}
-		model := empyrean_lens.SystemScoreModel{
-			Date:       date,
-			Score:      report.Score,
-			Status:     consts.StatusValid,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		}
-		if err := dao.CreateOrUpdate(ctx, date, model); err != nil {
+		//date, err := time.Parse("2006-01-02", report.Date)
+		//if err != nil {
+		//	return err
+		//}
+		//model := empyrean_lens.SystemScoreModel{
+		//	Date:       date,
+		//	Score:      report.Score,
+		//	Status:     consts.StatusValid,
+		//	CreateTime: time.Now(),
+		//	UpdateTime: time.Now(),
+		//}
+		if err := dao.CreateOrUpdate(ctx, report.Date, report); err != nil {
 			return err
 		}
 	}

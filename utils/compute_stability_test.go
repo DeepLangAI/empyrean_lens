@@ -40,9 +40,9 @@ func TestComputeStability(t *testing.T) {
 
 func TestComputeStablityScore(t *testing.T) {
 	f := SystemStablityFactor{
-		ApiFailRate:   0.04,
-		SlowQueryRate: 0,
-		ProbeFailRate: 0,
+		ApiFailRate:   0.05 / 100,
+		SlowQueryRate: 0.05 / 100,
+		ProbeFailRate: 0.0 / 100,
 	}
 	score := ComputeStablityScore(f)
 	fmt.Println(score)

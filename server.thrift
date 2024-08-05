@@ -19,6 +19,9 @@ struct DailyScoreRespData {
     2: i32 score
     3: double day_over_day  # [0, 100]
     4: double week_over_week # [0, 100]
+    5: double fail_rate
+    6: double slow_rate
+    7: double probe_fail_rate
 }
 
 struct DailyScoreResp {

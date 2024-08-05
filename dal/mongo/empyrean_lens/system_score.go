@@ -18,8 +18,11 @@ type SystemScoreModel struct {
 	TotalReq      int32     `bson:"total_req"`
 	FailReq       int32     `bson:"fail_req"`
 	SlowReq       int32     `bson:"slow_req"`
+	FailRate      float64   `bson:"fail_rate"`
+	SlowRate      float64   `bson:"slow_rate"`
 	ProbeFailReq  int32     `bson:"probe_fail_req"`
 	ProbeTotalReq int32     `bson:"probe_total_req"`
+	ProbeFailRate float64   `bson:"probe_fail_rate"`
 	AvgRespCost   float64   `bson:"avg_resp_cost"`
 
 	Status     int32     `json:"status" bson:"status"`

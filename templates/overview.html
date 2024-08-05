@@ -7,6 +7,11 @@
     </title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.css">
+
     <style>
         body {
             background-color: #f0f2f5; /* 更柔和的浅灰色背景 */
@@ -176,6 +181,35 @@
         body {
             padding-top: 60px; /* Add some padding to the top of the content */
         }
+
+        .swal2-popup.swal2-drawer {
+            width: 25vw !important; /* 占据1/4宽屏幕 */
+            height: 100vh !important; /* 占据1/4宽屏幕 */
+            max-width: 90% !important;
+            background-color: #fff !important;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2) !important;
+            border-radius: 0 !important;
+            padding: 20px !important;
+            position: fixed !important;
+            top: 0 !important;
+            right: -25vw !important; /* 初始位置在屏幕外 */
+            bottom: 0 !important;
+            transition: right 0.3s ease !important; /* 简单平滑过渡 */
+            transform: translateX(0) !important; /* 初始状态不偏移 */
+        }
+
+        .swal2-popup.swal2-drawer.swal2-show {
+            right: 0 !important; /* 滑入后固定在屏幕右侧 */
+        }
+        .score-cell {
+            /*background-color: #f1f1f1;*/
+            transition: background-color 0.3s ease;
+        }
+
+        .score-cell:hover {
+            background-color: #e0e0e0;
+        }
+
     </style>
 </head>
 <body>
@@ -253,7 +287,7 @@
         {{ range .DailyOverview  }}
         <tr>
             <td data-label="日期">{{ .Date }}</td>
-            <td data-label="稳定性打分">{{ .Score }}</td>
+            <td data-label="稳定性打分" onclick="showScoreDetails(this)" class="score-cell">{{ .Score }}</td>
             <td data-label="环比">{{ printf "%.2f"  .DayOverDay }}%</td>
             <td data-label="同比">{{ printf "%.2f"  .WeekOverWeek }}%</td>
         </tr>
@@ -298,6 +332,85 @@
 <div class="pagination" id="metric-overview-pagination"></div>
 
 <script>
+    function formatDate(date) {
+        return date.toISOString().slice(0, 10);
+    }
+    function showScoreDetails(scoreCell){
+        const $scoreCell = $(scoreCell);
+        const date = $scoreCell.closest('tr').find('[data-label="日期"]').text();
+        const startDate = new Date(date)
+        const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 增加一天
+
+        const startTime = formatDate(startDate)
+        const endTime = formatDate(endDate)
+
+        axios.get('/api/v1/report/daily/score', {
+            params: {
+                start_time: startTime,
+                end_time: endTime
+            }
+        }).then( response => {
+            displayScoreDetails(response.data)
+        }).catch( error => {
+            console.error('Error fetching score details:', error);
+        });
+    }
+
+    function displayScoreDetails(scoreDetails) {
+        // 在这里实现显示分数细节的逻辑
+        console.log(scoreDetails);
+        String.prototype.format = function(...args) {
+            return this.replace(/{(\d+)}/g, (match, index) => args[index]);
+        };
+        detail = scoreDetails.data[0]
+        Swal.fire({
+            html: `
+                <h2>系统评分详情</h2>
+                <table class="table-container">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <td>{0}</td>
+                        </tr>
+                        <tr>
+                            <th>分数</th>
+                            <td>{1}</td>
+                        </tr>
+                            <th>接口错误率</th>
+                            <td>{2}%</td>
+                        </tr>
+                        <tr>
+                            <th>慢查询率</th>
+                            <td>{3}%</td>
+                        </tr>
+                        <tr>
+                            <th>探针错误率</th>
+                            <td>{4}%</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                        </tr>
+                    </tbody>
+                </table>
+            `.format(
+                detail.date,
+                detail.score,
+                detail.fail_rate.toFixed(2),
+                detail.slow_rate.toFixed(2),
+                detail.probe_fail_rate.toFixed(2),
+            ),
+            showConfirmButton: false,
+            customClass: {
+                popup: 'swal2-popup swal2-drawer',
+            },
+            didOpen: () => {
+                document.getElementById('closeDrawerBtn').addEventListener('click', () => {
+                    Swal.close();
+                });
+            },
+        });
+    }
 
     function paginateTable(tableId, rowsPerPage, paginationId) {
         let currentPage = 1;

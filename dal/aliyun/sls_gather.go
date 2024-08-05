@@ -291,6 +291,7 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	multiOv, err := MultiGeneralOfDay(ctx, daysLookback)
 	//multiEteOv, multiAnalysisOv, multiMergeOv, err := MultiGeneralOfDay(ctx, daysLookback)
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiEteOverview)
+	overviews.Overviews = append(overviews.Overviews, multiOv.MultiSummaryOverview)
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiAnalysisOverview)
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiMergeOverview)
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiUploadOverview)
@@ -404,6 +405,7 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 
 type MultiOverviews struct {
 	MultiEteOverview      SceneOverview
+	MultiSummaryOverview  SceneOverview
 	MultiMergeOverview    SceneOverview
 	MultiAnalysisOverview SceneOverview
 	MultiUploadOverview   SceneOverview
@@ -412,6 +414,7 @@ type MultiOverviews struct {
 func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, error) {
 	ov := &MultiOverviews{}
 	ov_multi_ete := SceneOverview{Name: "多文档：4总结端到端"}
+	ov_multi_summary := SceneOverview{Name: "多文档：4多文档总结"}
 	ov_multi_merge := SceneOverview{Name: "多文档：3多文档整合"}
 	ov_multi_analysis := SceneOverview{Name: "多文档：2单文档分析全部完成"}
 	ov_multi_upload := SceneOverview{Name: "多文档：1多文档上传"}
@@ -435,6 +438,8 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, 
 	for _, log := range logs {
 		if log.Node == consts.ALIYUN_LOG_NODE_MULTI_ALL_SUCCESS {
 			ov_multi_ete.Costs = append(ov_multi_ete.Costs, log.Cost)
+		} else if log.Node == consts.ALIYUN_LOG_NODE_THEME_ALL_SUMMARY {
+			ov_multi_summary.Costs = append(ov_multi_summary.Costs, log.Cost)
 		} else if log.Node == consts.ALIYUN_LOG_NODE_ANALYSIS_ALL {
 			ov_multi_analysis.Costs = append(ov_multi_analysis.Costs, log.Cost)
 		} else if log.Node == consts.ALIYUN_LOG_NODE_MERGE {
@@ -443,15 +448,18 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, 
 	}
 	ov_multi_analysis.TotalReq = ov_multi_upload.TotalReq - ov_multi_upload.FailReq
 	ov_multi_merge.TotalReq = int64(len(ov_multi_analysis.Costs))
-	ov_multi_ete.TotalReq = int64(len(ov_multi_merge.Costs))
+	ov_multi_summary.TotalReq = int64(len(ov_multi_merge.Costs))
+	ov_multi_ete.TotalReq = ov_multi_upload.TotalReq
 
-	ete_anlz := aigcCostAnlz(ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTIDOC, true)
-	analysis_anlz := aigcCostAnlz(ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_ANALYSIS, true)
-	merge_anlz := aigcCostAnlz(ov_multi_merge, consts.SLOWQUERY_THRESHOLD_MERGE, true)
+	ete_anlz := aigcCostAnlz(ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTI_ETE, true)
+	summary_anlz := aigcCostAnlz(ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTI_SUMMARY, true)
+	analysis_anlz := aigcCostAnlz(ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_MULTI_ANALYSIS, true)
+	merge_anlz := aigcCostAnlz(ov_multi_merge, consts.SLOWQUERY_THRESHOLD_MULTI_MERGE, true)
 	upload_anlz := aigcCostAnlz(ov_multi_upload, consts.SLOWQUERY_THRESHOLD_FAST, false)
-	//summary_anlz := aigcCostAnlz(*ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTIDOC)
+	//summary_anlz := aigcCostAnlz(*ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTI_ETE)
 
 	ov.MultiEteOverview = ete_anlz
+	ov.MultiSummaryOverview = summary_anlz
 	ov.MultiMergeOverview = analysis_anlz
 	ov.MultiAnalysisOverview = merge_anlz
 	ov.MultiUploadOverview = upload_anlz

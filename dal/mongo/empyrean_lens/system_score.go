@@ -13,13 +13,14 @@ import (
 const TableNameSystemScore = "system_score"
 
 type SystemScoreModel struct {
-	Date         time.Time `bson:"date"`
-	Score        float64   `bson:"score"`
-	TotalReq     int32     `bson:"total_req"`
-	FailReq      int32     `bson:"fail_req"`
-	SlowReq      int32     `bson:"slow_req"`
-	ProbeFailReq int32     `bson:"probe_fail_req"`
-	AvgRespCost  float64   `bson:"avg_resp_cost"`
+	Date          time.Time `bson:"date"`
+	Score         float64   `bson:"score"`
+	TotalReq      int32     `bson:"total_req"`
+	FailReq       int32     `bson:"fail_req"`
+	SlowReq       int32     `bson:"slow_req"`
+	ProbeFailReq  int32     `bson:"probe_fail_req"`
+	ProbeTotalReq int32     `bson:"probe_total_req"`
+	AvgRespCost   float64   `bson:"avg_resp_cost"`
 
 	Status     int32     `json:"status" bson:"status"`
 	CreateTime time.Time `bson:"create_time" json:"create_time"`

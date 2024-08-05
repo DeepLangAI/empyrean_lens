@@ -13,7 +13,7 @@ func TestSystemAvailability(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	dal.Init()
-	s, err := SystemTimespanAvailability(ctx, consts.TIMESPAN_WEEK)
+	s, err := SystemTimespanAvailability(ctx, consts.TIMESPAN_TODAY)
 	if err != nil {
 		t.Error(err)
 	} else {

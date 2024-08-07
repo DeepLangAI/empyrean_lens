@@ -4634,6 +4634,8 @@ type ProbeLog struct {
 	Success bool    `thrift:"success,5" form:"success" json:"success" query:"success"`
 	Correct bool    `thrift:"correct,6" form:"correct" json:"correct" query:"correct"`
 	Cost    float64 `thrift:"cost,7" form:"cost" json:"cost" query:"cost"`
+	// 0: api, 1: ui
+	DataSource int32 `thrift:"data_source,8" form:"data_source" json:"data_source" query:"data_source"`
 }
 
 func NewProbeLog() *ProbeLog {
@@ -4668,6 +4670,10 @@ func (p *ProbeLog) GetCost() (v float64) {
 	return p.Cost
 }
 
+func (p *ProbeLog) GetDataSource() (v int32) {
+	return p.DataSource
+}
+
 var fieldIDToName_ProbeLog = map[int16]string{
 	1: "scene",
 	2: "api",
@@ -4676,6 +4682,7 @@ var fieldIDToName_ProbeLog = map[int16]string{
 	5: "success",
 	6: "correct",
 	7: "cost",
+	8: "data_source",
 }
 
 func (p *ProbeLog) Read(iprot thrift.TProtocol) (err error) {
@@ -4748,6 +4755,14 @@ func (p *ProbeLog) Read(iprot thrift.TProtocol) (err error) {
 		case 7:
 			if fieldTypeId == thrift.DOUBLE {
 				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField8(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -4859,6 +4874,17 @@ func (p *ProbeLog) ReadField7(iprot thrift.TProtocol) error {
 	p.Cost = _field
 	return nil
 }
+func (p *ProbeLog) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field int32
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.DataSource = _field
+	return nil
+}
 
 func (p *ProbeLog) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -4892,6 +4918,10 @@ func (p *ProbeLog) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField7(oprot); err != nil {
 			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
 			goto WriteFieldError
 		}
 	}
@@ -5029,6 +5059,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *ProbeLog) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("data_source", thrift.I32, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(p.DataSource); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
 }
 
 func (p *ProbeLog) String() string {

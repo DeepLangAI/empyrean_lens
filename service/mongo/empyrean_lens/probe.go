@@ -22,6 +22,8 @@ func SaveBatch(ctx context.Context, data empyrean_lens.WriteProbeReq) error {
 			Correct:    d.Correct,
 			Cost:       d.Cost,
 			Status:     0,
+			DataSource: d.DataSource,
+
 			CreateTime: time.Now(),
 			UpdateTime: time.Now(),
 		}

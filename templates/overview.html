@@ -250,12 +250,6 @@
                 <td data-label="同比">{{ printf "%.2f" .RealtimeOverview.ErrorRequest.WeekOverWeek}}%</td>
             </tr>
             <tr>
-                <td data-label="平均处理时长">平均处理时长</td>
-                <td data-label="值"  >-</td>
-                <td data-label="环比">0%</td>
-                <td data-label="同比">0%</td>
-            </tr>
-            <tr>
                 <td data-label="慢查询比例">慢查询比例</td>
                 <td data-label="值"  >{{ printf "%.2f" .RealtimeOverview.SlowRequest.Value }}%</td>
                 <td data-label="环比">{{ printf "%.2f" .RealtimeOverview.SlowRequest.DayOverDay}}%</td>

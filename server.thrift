@@ -54,8 +54,8 @@ struct RealtimeScoreResp{
 
 # Api失败相关信息
 struct DailyApiFailureInfoReq{
-    1: string start_time
-    2: string end_time
+    1: string date_begin
+    2: string date_end
 }
 
 struct ApiFailureInfoResp{
@@ -67,42 +67,56 @@ struct ApiFailureInfoResp{
 struct ApiFailureInfoRespData{
     1: string date
     2: string api_name
-    3: string host_name
-    4: i32 num_err_req
-    5: i32 num_total_req
+    3: string host
+    4: i32 num_total_req
+    5: i32 num_error_req
     6: double err_percent
-    7: i32 num_3xx
-    8: i32 num_4xx
-    9: i32 num_5xx
+    7: i32 num_code_3xx
+    8: i32 num_code_4xx
+    9: i32 num_code_5xx
 }
 
-# Api耗时信息
-struct ApiCostReq{
-    1: string start_time
-    2: string end_time
+# 慢查询相关信息
+struct DailyApiSlowInfoReq{
+    1: string date_begin
+    2: string date_end
 }
 
-struct ApiCostResp{
+struct ApiSlowInfoResp{
     1: i32 code
     2: string msg
-    3: list<ApiCostRespData> data
+    3: list<ApiSlowInfoRespData> data
 }
 
-struct ApiCostRespData{
+struct ApiSlowInfoRespData{
     1: string date
-    2: string api_name
-    3: i32 req_count
-    4: double avg_cost
+    2: i32 num_total_req
+    3: i32 num_slow_req
+    4: double api_avg_cost
+    5: string host
+    6: string api_name
+    7: i32 num_error_req
+}
 
-    5: double share_0_1
-    6: double share_1_3
-    7: double share_3_5
-    8: double share_5_10
-    9: double share_10_20
-    10: double share_20_30
-    11: double share_30_50
-    12: double share_50_100
-    13: double share_100_inf
+# Api探针信息
+struct ApiProbeReq{
+    1: string date_begin
+    2: string date_end
+}
+
+struct ApiProbeResp{
+    1: i32 code
+    2: string msg
+    3: list<ApiProbeRespData> data
+}
+
+struct ApiProbeRespData{
+    1: string date
+    2: string scene
+    3: i32 num_total_req
+    4: i32 num_success_req
+    5: i32 num_correct_req
+    6: double avg_cost
 }
 
 # 刷新缓存数据库
@@ -183,16 +197,24 @@ service Rentention{
    RealtimeScoreResp SystemRealtimeScore(1: EmptyReq req) (
        api.get="/api/v1/report/realtime"
    )
+   // 系统分数列表
    DailyScoreResp SystemDailyScore(1: DailyScoreReq req) (
        api.get="/api/v1/report/daily/score"
    )
+   // 错误率，基于Nginx日志
    ApiFailureInfoResp SystemDailyApiFailureInfo(1: DailyApiFailureInfoReq req) (
-       api.get="/api/v1/report/daily/failure"
+       api.get="/api/v1/report/fail/list"
    )
-   ApiCostResp SystemDailyApiCost(1: ApiCostReq req) (
-       api.get="/api/v1/report/daily/cost"
+   // 慢查询率，基于业务日志
+   ApiSlowInfoResp SystemDailyApiSlowInfo(1: DailyApiSlowInfoReq req) (
+       api.get="/api/v1/report/slow/list"
+   )
+   // 探针错误率，基于探针日志
+   ApiProbeResp SystemDailyApiCost(1: ApiProbeResp req) (
+       api.get="/api/v1/report/probe/list"
    )
 
+   // 用于提供缓存数据库接口
    DbRefreshResp SystemDbTidy(1: DbTidyReq req) (
        api.post="/api/v1/report/db/tidy"
    )

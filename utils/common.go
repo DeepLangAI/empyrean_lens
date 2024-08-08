@@ -165,3 +165,11 @@ func FilterEmpty(arr []string) []string {
 	}
 	return result
 }
+
+func Sum(arr []float64) float64 {
+	sum := 0.0
+	for _, v := range arr {
+		sum += v
+	}
+	return sum
+}

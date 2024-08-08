@@ -14,6 +14,7 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/cloudwego/hertz/pkg/common/adaptor"
@@ -201,33 +202,44 @@ func SystemDailyScore(ctx context.Context, c *app.RequestContext) {
 // SystemDailyApiFailureInfo .
 // @router /api/v1/report/daily/failure [GET]
 func SystemDailyApiFailureInfo(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
 	var err error
 	var req empyrean_lens.DailyApiFailureInfoReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.String(consts.StatusBadRequest, err.Error())
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
 		return
 	}
 
 	resp := new(empyrean_lens.ApiFailureInfoResp)
-
-	c.JSON(consts.StatusOK, resp)
-}
-
-// SystemDailyApiCost .
-// @router /api/v1/report/daily/cost [GET]
-func SystemDailyApiCost(ctx context.Context, c *app.RequestContext) {
-	var err error
-	var req empyrean_lens.ApiCostReq
-	err = c.BindAndValidate(&req)
-	if err != nil {
-		c.String(consts.StatusBadRequest, err.Error())
-		return
+	dateBegin, err := time.Parse("2006-01-02", req.DateBegin)
+	dateEnd := dateBegin.AddDate(0, 0, 1)
+	if req.DateEnd != "" {
+		dateEnd, err = time.Parse("2006-01-02", req.DateEnd)
 	}
-
-	resp := new(empyrean_lens.ApiCostResp)
-
-	c.JSON(consts.StatusOK, resp)
+	if err != nil {
+		if err != nil {
+			base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+			return
+		}
+	}
+	result, err := empyrean_lens2.ApiFailResult(ctx, dateBegin, dateEnd)
+	data := []*empyrean_lens.ApiFailureInfoRespData{}
+	for _, r := range result {
+		data = append(data, &empyrean_lens.ApiFailureInfoRespData{
+			Date:        r.Date,
+			APIName:     r.CoreApiName,
+			Host:        r.HostName,
+			NumTotalReq: int32(r.TotalCount),
+			NumErrorReq: int32(r.FailCount),
+			ErrPercent:  r.FailRate,
+			NumCode3xx:  int32(r.FailStatus3xx),
+			NumCode4xx:  int32(r.FailStatus4xx),
+			NumCode5xx:  int32(r.FailStatus5xx),
+		})
+	}
+	resp.Data = data
+	base.SuccessResponse(c, resp)
 }
 
 // SystemDbRefresh .
@@ -339,4 +351,73 @@ func SystemRealData(ctx context.Context, c *app.RequestContext) {
 		base.SuccessResponse(c, resp)
 		return
 	}
+}
+
+// SystemDailyApiSlowInfo .
+// @router /api/v1/report/slow/list [GET]
+func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.DailyApiSlowInfoReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+	dateBegin, err := time.Parse("2006-01-02", req.DateBegin)
+	dateEnd := dateBegin.AddDate(0, 0, 1)
+	if req.DateEnd != "" {
+		dateEnd, err = time.Parse("2006-01-02", req.DateEnd)
+	}
+	if err != nil {
+		if err != nil {
+			base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+			return
+		}
+	}
+	result, err := empyrean_lens2.SceneResult(ctx, dateBegin, dateEnd)
+
+	resp := new(empyrean_lens.ApiSlowInfoResp)
+	data := []*empyrean_lens.ApiSlowInfoRespData{}
+	for _, r := range result {
+		total, e := strconv.ParseInt(r["TotalCnt"], 10, 32)
+		slow, e := strconv.ParseInt(r["SlowCnt"], 10, 32)
+		errCnt, e := strconv.ParseInt(r["FailCnt"], 10, 32)
+		if e != nil {
+			continue
+		}
+		data = append(data, &empyrean_lens.ApiSlowInfoRespData{
+			Date:        r["Date"],
+			NumTotalReq: int32(total),
+			NumSlowReq:  int32(slow),
+			APIAvgCost:  0,
+			Host:        "",
+			APIName:     r["Scene"],
+			NumErrorReq: int32(errCnt),
+		})
+	}
+	resp.Data = data
+	base.SuccessResponse(c, resp)
+}
+
+// SystemDailyApiCost .
+// @router /api/v1/report/probe/list [GET]
+func SystemDailyApiCost(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.ApiProbeReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.ApiProbeResp)
+	data, err := empyrean_lens2.ProbeListInfo(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+	resp.Data = data
+	base.SuccessResponse(c, resp)
 }

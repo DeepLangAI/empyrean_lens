@@ -95,3 +95,23 @@ func _systemrealdataMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _failMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _probeMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _slowMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _systemdailyapislowinfoMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

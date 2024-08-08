@@ -183,7 +183,7 @@
         }
 
         .swal2-popup.swal2-drawer {
-            width: 25vw !important; /* 占据1/4宽屏幕 */
+            width: 65vw !important; /* 占据1/4宽屏幕 */
             height: 100vh !important; /* 占据1/4宽屏幕 */
             max-width: 90% !important;
             background-color: #fff !important;
@@ -201,13 +201,58 @@
         .swal2-popup.swal2-drawer.swal2-show {
             right: 0 !important; /* 滑入后固定在屏幕右侧 */
         }
-        .score-cell {
+        .clickable {
             /*background-color: #f1f1f1;*/
             transition: background-color 0.3s ease;
         }
 
-        .score-cell:hover {
+        .clickable:hover {
             background-color: #e0e0e0;
+        }
+        /* 添加CSS样式使面包屑横排 */
+        .breadcrumb {
+            list-style: none; /* 移除列表默认样式 */
+            padding: 5px; /* 移除默认的内边距 */
+            margin: 0; /* 移除默认的外边距 */
+            display: flex; /* 使用Flexbox */
+            align-items: center; /* 使子项在交叉轴上的对齐方式居中（垂直居中） */
+        }
+
+        .breadcrumb-item {
+            display: inline-block; /* 这实际上在这里不是必需的，因为我们已经在父元素上使用了Flexbox */
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: " / "; /* 在面包屑项之间添加分隔符 */
+            padding: 0 0.5rem; /* 添加一些内边距以提高可读性 */
+        }
+
+        .breadcrumb-item.active {
+            color:  #4CAF50; /* 通常活动或当前项的文本颜色会有所不同 */
+        }
+
+        .breadcrumb-item.active:last-child {
+            font-weight: bold;
+        }
+
+        #back{
+            position: absolute;
+            top: 0;
+            left: 0px;
+            border-radius: 5px;
+            padding-left: 20px; /* 示例内边距 */
+            padding-right: 20px; /* 示例内边距 */
+            padding-bottom: 9px;
+            padding-top: 9px;
+            /*padding: 9px 9px; !* 示例内边距 *!*/
+            transition: background-color 0.3s ease;
+            background-color: #f0f0f0; /* 示例背景色 */
+            /*background-color:  #4CAF50;*/
+            border: none; /* 移除默认边框 */
+            cursor: pointer; /* 鼠标悬停时显示指针 */
+        }
+        #back:hover{
+            background-color: darkgray;
         }
 
     </style>
@@ -281,7 +326,7 @@
         {{ range .DailyOverview  }}
         <tr>
             <td data-label="日期">{{ .Date }}</td>
-            <td data-label="稳定性打分" onclick="showScoreDetails(this)" class="score-cell">{{ .Score }}</td>
+            <td data-label="稳定性打分" onclick="showScoreDetails(this)" class="clickable">{{ .Score }}</td>
             <td data-label="环比">{{ printf "%.2f"  .DayOverDay }}%</td>
             <td data-label="同比">{{ printf "%.2f"  .WeekOverWeek }}%</td>
         </tr>
@@ -291,39 +336,39 @@
 </div>
 <div class="pagination" id="daily-overview-pagination"></div>
 
-<div class="container">
-    <h2 id="metric-heading">灵狗系统核心场景可用性 天级数据</h2>
-    <table id="metric-overview-table" class="table-container">
-        <thead>
-        <tr>
-            <th>日期</th>
-            <th>核心功能</th>
-            <th>请求数</th>
-            <th>错误数</th>
-            <th>错误率</th>
-<!--            <th>错误原因</th>-->
+<!--<div class="container">-->
+<!--    <h2 id="metric-heading">灵狗系统核心场景可用性 天级数据</h2>-->
+<!--    <table id="metric-overview-table" class="table-container">-->
+<!--        <thead>-->
+<!--        <tr>-->
+<!--            <th>日期</th>-->
+<!--            <th>核心功能</th>-->
+<!--            <th>请求数</th>-->
+<!--            <th>错误数</th>-->
+<!--            <th>错误率</th>-->
+<!--&lt;!&ndash;            <th>错误原因</th>&ndash;&gt;-->
 
-            <th>慢查询数</th>
-            <th>慢查询率</th>
-        </tr>
-        </thead>
-        <tbody>
-        {{ range .SceneOverviews  }}
-        <tr>
-            <td data-label="日期">{{ .Date }}</td>
-            <td data-label="核心功能">{{ .Scene }}</td>
-            <td data-label="请求数">{{ .TotalCnt }}</td>
-            <td data-label="错误数">{{ .FailCnt }}</td>
-            <td data-label="错误率">{{ .FailRate }}%</td>
-<!--            <td data-label="错误原因">{{ .FailReason }}</td>-->
-            <td data-label="慢查询数">{{ .SlowCnt }}</td>
-            <td data-label="慢查询率">{{ .SlowRate }}%</td>
-        </tr>
-        {{ end }}
-        </tbody>
-    </table>
-</div>
-<div class="pagination" id="metric-overview-pagination"></div>
+<!--            <th>慢查询数</th>-->
+<!--            <th>慢查询率</th>-->
+<!--        </tr>-->
+<!--        </thead>-->
+<!--        <tbody>-->
+<!--        {{ range .SceneOverviews  }}-->
+<!--        <tr>-->
+<!--            <td data-label="日期">{{ .Date }}</td>-->
+<!--            <td data-label="核心功能">{{ .Scene }}</td>-->
+<!--            <td data-label="请求数">{{ .TotalCnt }}</td>-->
+<!--            <td data-label="错误数">{{ .FailCnt }}</td>-->
+<!--            <td data-label="错误率">{{ .FailRate }}%</td>-->
+<!--&lt;!&ndash;            <td data-label="错误原因">{{ .FailReason }}</td>&ndash;&gt;-->
+<!--            <td data-label="慢查询数">{{ .SlowCnt }}</td>-->
+<!--            <td data-label="慢查询率">{{ .SlowRate }}%</td>-->
+<!--        </tr>-->
+<!--        {{ end }}-->
+<!--        </tbody>-->
+<!--    </table>-->
+<!--</div>-->
+<!--<div class="pagination" id="metric-overview-pagination"></div>-->
 
 <script>
     function formatDate(date) {
@@ -350,43 +395,98 @@
         });
     }
 
+    let menus = ['评分详情']
+
+
+    function back(){
+        id = menus.pop()
+        $('#' + id).hide()
+        console.log('hidding:', id)
+        // if (menus.length == 1){
+        //     $('#error-list').hide()
+        //     // $('#error-list-table').hide()
+        //     $('#慢查询').hide()
+        //     // $('#慢查询-table').hide()
+        //     $('#probe-list').hide()
+        //     // $('#probe-list-table').hide()
+        // }
+        modifySidebar()
+    }
+
+    function modifySidebar(){
+        if (menus.length == 0) {
+            Swal.close()
+        }
+        $('#' + menus[menus.length-1]).show()
+
+        var breadcrumb = $('<nav aria-label="breadcrumb"></nav>'); // 创建面包屑的容器
+        var ol = $('<ol class="breadcrumb"></ol>'); // 创建有序列表
+
+        // 遍历menu数组，为每个项目创建li元素
+        menus.forEach(function(item, index) {
+            ol.append($('<li class="breadcrumb-item active" aria-current="page">' + item + '</li>'));
+        });
+
+        // 将有序列表添加到面包屑容器中，并将容器添加到menu div中
+        breadcrumb.append(ol);
+        $('#menu').append(breadcrumb);
+
+    }
     function displayScoreDetails(scoreDetails) {
         // 在这里实现显示分数细节的逻辑
         console.log(scoreDetails);
         String.prototype.format = function(...args) {
             return this.replace(/{(\d+)}/g, (match, index) => args[index]);
         };
+        menus = ['评分详情']
         detail = scoreDetails.data[0]
         Swal.fire({
             html: `
-                <h2>系统评分详情</h2>
-                <table class="table-container">
-                    <thead>
-                        <tr>
-                            <th>日期</th>
-                            <td>{0}</td>
-                        </tr>
-                        <tr>
-                            <th>分数</th>
-                            <td>{1}</td>
-                        </tr>
-                            <th>接口错误率</th>
-                            <td>{2}%</td>
-                        </tr>
-                        <tr>
-                            <th>慢查询率</th>
-                            <td>{3}%</td>
-                        </tr>
-                        <tr>
-                            <th>探针错误率</th>
-                            <td>{4}%</td>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                        </tr>
-                    </tbody>
-                </table>
+                <div id="sidebar">
+
+                    <div id="menu" >
+                        <button id="back" onclick="back()"><</button>
+                    </div>
+                    <div id="评分详情">
+                        <h2>系统评分详情</h2>
+                        <table class="table-container">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <td id="date">{0}</td>
+                                </tr>
+                                <tr>
+                                    <th>分数</th>
+                                    <td>{1}</td>
+                                </tr>
+                                    <th>接口错误率</th>
+                                    <td class="clickable" onclick="handleErrorList()">{2}%</td>
+                                </tr>
+                                <tr>
+                                    <th>慢查询率</th>
+                                    <td class="clickable" onclick="handleSlowList()">{3}%</td>
+                                </tr>
+                                <tr>
+                                    <th>探针错误率</th>
+                                    <td class="clickable" onclick="handleProbeList()">{4}%</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="error-list">
+                        <table id="error-list-table" class="table-container" ></table>
+                    </div>
+                    <div id="慢查询">
+                        <table id="慢查询-table" class="table-container" ></table>
+                    </div>
+                    <div id="probe-list">
+                        <table id="probe-list-table" class="table-container" ></table>
+                    </div>
+                </div>
             `.format(
                 detail.date,
                 detail.score,
@@ -399,11 +499,207 @@
                 popup: 'swal2-popup swal2-drawer',
             },
             didOpen: () => {
+                modifySidebar()
                 document.getElementById('closeDrawerBtn').addEventListener('click', () => {
                     Swal.close();
                 });
             },
         });
+    }
+    function handleProbeList(){
+        menus.push('probe-list')
+        modifySidebar()
+        $('#评分详情').hide();
+        const date = $('#date').text()
+
+        axios.get('/api/v1/report/probe/list', {
+            params:{
+                date_begin: date,
+            }
+        }).then(response =>{
+            console.log('response', response.data)
+            // 获取$('#probe-list-table')元素
+            const table = $('#probe-list-table');
+            table.empty()
+            table.append(`<h3 >
+                日期：{0}
+            </h3>`.format(date))
+            // rowhead
+            const rowhead = `
+                <tr>
+<!--                    <th>日期</th>-->
+                    <th>场景</th>
+                    <th>探测次数</th>
+                    <th>失败次数</th>
+                    <th>错误次数</th>
+                    <th>平均耗时</th>
+                    <th>成功率</th>
+                    <th>正确率</th>
+                </tr>
+            `
+            table.append(rowhead);
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                const row = `
+                    <tr>
+<!--                        <td>{0}</td>-->
+                        <td>{0}</td>
+                        <td>{1}</td>
+                        <td>{2}</td>
+                        <td>{3}</td>
+                        <td>{4}</td>
+                        <td style="background: {7}">{5}%</td>
+                        <td style="background: {8}">{6}%</td>
+                    </tr>
+                `.format(
+                    // response.data.data[i].date,
+                    response.data.data[i].scene,
+                    response.data.data[i].num_total_req,
+                    response.data.data[i].num_total_req - response.data.data[i].num_success_req,
+                    response.data.data[i].num_total_req - response.data.data[i].num_correct_req,
+                    response.data.data[i].avg_cost.toFixed(2),
+                    (response.data.data[i].num_success_req / response.data.data[i].num_total_req * 100).toFixed(2),
+                    (response.data.data[i].num_correct_req / response.data.data[i].num_total_req * 100).toFixed(2),
+                    getColor(100 * (1 - response.data.data[i].num_success_req / response.data.data[i].num_total_req)),
+                    getColor(100 * (1 - response.data.data[i].num_correct_req / response.data.data[i].num_total_req)),
+                );
+                table.append(row);
+            }
+
+        }).catch(error =>{
+            console.log('error fetching fail list', error)
+        })
+    }
+
+    function handleSlowList(){
+        menus.push('慢查询')
+        modifySidebar()
+        $('#评分详情').hide();
+        $('#慢查询').show();
+        const date = $('#date').text()
+
+        axios.get('/api/v1/report/slow/list', {
+            params:{
+                date_begin: date,
+            }
+        }).then(response =>{
+            console.log('response', response.data)
+            // 获取$('#慢查询-table')元素
+            const table = $('#慢查询-table');
+            table.empty()
+            table.append(`<h3 >
+                日期：{0}
+            </h3>`.format(date))
+            // rowhead
+            const rowhead = `
+                <tr>
+<!--                    <th>日期</th>-->
+                    <th>核心功能</th>
+                    <th>总请求数</th>
+<!--                    <th>异常请求数</th>-->
+<!--                    <th>异常请求率</th>-->
+                    <th>慢查询数</th>
+                    <th>慢查询率</th>
+                </tr>
+            `
+            table.append(rowhead);
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                const row = `
+                    <tr>
+<!--                        <td>{0}</td>-->
+                        <td>{0}</td>
+                        <td>{1}</td>
+                        <td>{2}</td>
+                        <td style="background: {4}">{3}%</td>
+                    </tr>
+                `.format(
+                    // response.data.data[i].date,
+                    response.data.data[i].api_name,
+                    response.data.data[i].num_total_req,
+                    response.data.data[i].num_slow_req,
+                    (response.data.data[i].num_slow_req / response.data.data[i].num_total_req * 100).toFixed(2),
+                    getColor((response.data.data[i].num_slow_req / response.data.data[i].num_total_req * 100).toFixed(2)),
+                );
+                table.append(row);
+            }
+
+        }).catch(error =>{
+            console.log('error fetching fail list', error)
+        })
+    }
+
+    function handleErrorList(){
+        menus.push('error-list')
+        modifySidebar();
+        // 不再显示#评分详情对应的div
+        $('#评分详情').hide();
+        $('#error-list').show()
+
+        const date = $('#date').text()
+        axios.get('/api/v1/report/fail/list', {
+            params:{
+                date_begin: date,
+            }
+        }).then(response =>{
+            console.log('response', response.data)
+            // 获取$('#error-list-table')元素
+            const table = $('#error-list-table');
+            table.empty()
+            table.append(`<h2 >
+                日期：{0}
+            </h2>`.format(date))
+            // rowhead
+            const rowhead = `
+                <tr>
+<!--                    <th>日期</th>-->
+                    <th>接口名称</th>
+                    <th>主机地址</th>
+                    <th>异常请求数量</th>
+                    <th>总请求数</th>
+                    <th>异常请求占比</th>
+                    <th>异常码3xx数量</th>
+                    <th>异常码4xx数量</th>
+                    <th>异常码5xx数量</th>
+                </tr>
+            `
+            table.append(rowhead);
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                const row = `
+                    <tr>
+<!--                        <td>{0}</td>-->
+                        <td>{0}</td>
+                        <td>{1}</td>
+                        <td>{2}</td>
+                        <td>{3}</td>
+                        <td class="color-cell" style="background: {8}">{4}%</td>
+                        <td>{5}</td>
+                        <td>{6}</td>
+                        <td>{7}</td>
+                    </tr>
+                `.format(
+                    // response.data.data[i].date,
+                    response.data.data[i].api_name,
+                    response.data.data[i].host,
+                    response.data.data[i].num_error_req,
+                    response.data.data[i].num_total_req,
+                    (response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2),
+                    response.data.data[i].num_code_3xx,
+                    response.data.data[i].num_code_4xx,
+                    response.data.data[i].num_code_5xx,
+                    getColor((response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2)),
+                    );
+                table.append(row);
+            }
+            setGridColor()
+
+        }).catch(error =>{
+            console.log('error fetching fail list', error)
+        })
     }
 
     function paginateTable(tableId, rowsPerPage, paginationId) {
@@ -507,41 +803,10 @@
         renderTable();
     }
 
-    function getColor(value, type) {
-        let normalizedValue;
-
-        switch(type) {
-            case 'rate':
-                // 假设失败率范围是 0-100%
-                normalizedValue = value / 100;
-                break;
-            case 'count':
-                // 假设失败次数范围是 0-1000
-                normalizedValue = value / 1000;
-                break;
-            // 可以添加更多的类型
-            default:
-                normalizedValue = 0;
-        }
-
-        // 确保 normalizedValue 在 0-1 之间
-        normalizedValue = Math.max(0, Math.min(1, normalizedValue));
-        normalizedValue = Math.ceil(normalizedValue * 10) / 10
-        return `rgb(255, 0, 0, ${normalizedValue})`
-
-        // const red = Math.round(128 + (127 * normalizedValue));
-        // const green = Math.round(255 * (1 - normalizedValue));
-        // const blue = Math.round(255 * (1 - normalizedValue));
-        //
-        // // const green = 0;
-        // // const blue = 0;
-        //
-        // return `rgb(${red}, ${green}, ${blue})`;
-    }
 
     document.addEventListener('DOMContentLoaded', () => {
         paginateTable('daily-overview-table', 12, 'daily-overview-pagination');
-        paginateTable('metric-overview-table', 12, 'metric-overview-pagination');
+        // paginateTable('metric-overview-table', 12, 'metric-overview-pagination');
         // paginateTable('nginx-table', 12, 'nginx-pagination');
         // paginateTable('logstore-table', 12, 'logstore-pagination');
     });
@@ -599,10 +864,29 @@
         heading.textContent += ' (' + formatDate(minDate) + ' 至 ' + formatDate(maxDate) + ')';
     }
 
+    function getColor(value) {
+        let normalizedValue;
+        normalizedValue = value / 100;
+
+        // 确保 normalizedValue 在 0-1 之间
+        normalizedValue = Math.max(0, Math.min(1, normalizedValue));
+        normalizedValue = Math.ceil(normalizedValue * 10) / 10
+        return `rgb(255, 0, 0, ${normalizedValue})`
+    }
+
+
     document.addEventListener('DOMContentLoaded', function() {
         updateHeading('#daily-overview-table tbody tr td:first-child', 'daily-heading');
-        updateHeading('#daily-overview-table tbody tr td:first-child', 'metric-heading');
+        // updateHeading('#daily-overview-table tbody tr td:first-child', 'metric-heading');
     });
+
+    function setGridColor(){
+        $('.color-cell').each(()=>{
+            let text = $(this).textContent;
+            const value = parseFloat(text.slice(0, -1));
+            $(this).css('background-color', getColor(value));
+        });
+    }
 
 </script>
 

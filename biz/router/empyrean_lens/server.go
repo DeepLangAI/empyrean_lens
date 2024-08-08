@@ -32,8 +32,6 @@ func Register(r *server.Hertz) {
 				_report.GET("/realtime", append(_systemrealtimescoreMw(), empyrean_lens.SystemRealtimeScore)...)
 				{
 					_daily := _report.Group("/daily", _dailyMw()...)
-					_daily.GET("/cost", append(_systemdailyapicostMw(), empyrean_lens.SystemDailyApiCost)...)
-					_daily.GET("/failure", append(_systemdailyapifailureinfoMw(), empyrean_lens.SystemDailyApiFailureInfo)...)
 					_daily.GET("/score", append(_systemdailyscoreMw(), empyrean_lens.SystemDailyScore)...)
 				}
 				{
@@ -42,6 +40,18 @@ func Register(r *server.Hertz) {
 					_db.POST("/refresh", append(_systemdbrefreshMw(), empyrean_lens.SystemDbRefresh)...)
 					_db.POST("/tidy", append(_systemdbtidyMw(), empyrean_lens.SystemDbTidy)...)
 					_db.POST("/write_probe", append(_writeprobelogsMw(), empyrean_lens.WriteProbeLogs)...)
+				}
+				{
+					_fail := _report.Group("/fail", _failMw()...)
+					_fail.GET("/list", append(_systemdailyapifailureinfoMw(), empyrean_lens.SystemDailyApiFailureInfo)...)
+				}
+				{
+					_probe := _report.Group("/probe", _probeMw()...)
+					_probe.GET("/list", append(_systemdailyapicostMw(), empyrean_lens.SystemDailyApiCost)...)
+				}
+				{
+					_slow := _report.Group("/slow", _slowMw()...)
+					_slow.GET("/list", append(_systemdailyapislowinfoMw(), empyrean_lens.SystemDailyApiSlowInfo)...)
 				}
 			}
 		}

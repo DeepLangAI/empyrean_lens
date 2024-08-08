@@ -175,6 +175,34 @@
             padding-top: 60px; /* Add some padding to the top of the content */
         }
 
+        .swal2-popup.swal2-drawer {
+            width: 25vw !important; /* 占据1/4宽屏幕 */
+            height: 100vh !important; /* 占据1/4宽屏幕 */
+            max-width: 90% !important;
+            background-color: #fff !important;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2) !important;
+            border-radius: 0 !important;
+            padding: 20px !important;
+            position: fixed !important;
+            top: 0 !important;
+            right: -25vw !important; /* 初始位置在屏幕外 */
+            bottom: 0 !important;
+            transition: right 0.3s ease !important; /* 简单平滑过渡 */
+            transform: translateX(0) !important; /* 初始状态不偏移 */
+        }
+
+        .swal2-popup.swal2-drawer.swal2-show {
+            right: 0 !important; /* 滑入后固定在屏幕右侧 */
+        }
+        .score-cell {
+            /*background-color: #f1f1f1;*/
+            transition: background-color 0.3s ease;
+        }
+
+        .score-cell:hover {
+            background-color: #e0e0e0;
+        }
+
     </style>
 </head>
 <body>
@@ -190,6 +218,7 @@
         <tr>
             <th>日期</th>
             <th>核心接口名称</th>
+            <!-- <th>核心接口路径</th> -->
             <th>主机地址</th>
             <th>请求异常数量</th>
             <!--                <th>超时请求数</th>-->
@@ -206,6 +235,7 @@
         <tr>
             <td data-label="日期">{{ .Date }}</td>
             <td data-label="核心接口名称" style="text-align:left">{{ .CoreApiName }}</td>
+            <!-- <td data-label="核心接口路径" style="text-align:left">{{ .CoreApiPath }}</td> -->
             <td data-label="主机地址" style="text-align:left">{{ .HostName }}</td>
             <td data-label="请求异常数量">{{ .FailCount }}</td>
             <td data-label="总请求数">{{ .TotalCount }}</td>

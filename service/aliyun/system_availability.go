@@ -236,6 +236,7 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 		model := empyrean_lens.ApiFailureModel{
 			Date:          date,
 			ApiName:       report.CoreApiName,
+			ApiPath:       report.CoreApiPath,
 			HostName:      report.HostName,
 			FailCnt:       int32(report.FailCount),
 			TotalCnt:      int32(report.TotalCount),

@@ -15,7 +15,7 @@ func TestNginxTimeSpanReport(t *testing.T) {
 	conf.InitConfig()
 	dal.Init()
 	empyrean_lens.Init(ctx)
-	report, err := NginxTimespanReport(ctx, consts.TIMESPAN_WEEK)
+	report, err := NginxTimespanReport(ctx, consts.TIMESPAN_TODAY)
 	if err != nil {
 
 		t.Error(err)

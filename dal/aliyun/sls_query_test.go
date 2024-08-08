@@ -31,3 +31,32 @@ func TestQaRecommendSuccessQuerry(t *testing.T) {
 		}
 	}
 }
+
+func TestNginxErrlogsQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+
+	query, err := NginxErrlogsQuery(ctx, "api.lingoreader.cn", "/api/plugin/articles/summary", "2024-08-07")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(len(query))
+		fmt.Println(query)
+	}
+}
+
+func TestModelNginxErrlogsQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+
+	query, err := ModelNginxErrlogsQuery(ctx, "outline-verbose.shenyandayi.com", "/generate", "2024-08-07")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(len(query))
+		fmt.Println(query)
+	}
+
+}

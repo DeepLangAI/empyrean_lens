@@ -15,6 +15,7 @@ const TableNameApiFailure = "api_failure"
 type ApiFailureModel struct {
 	Date          time.Time `bson:"date"`
 	ApiName       string    `bson:"api_name"`
+	ApiPath       string    `bson:"api_path"`
 	HostName      string    `bson:"host_name"`
 	FailCnt       int32     `bson:"fail_cnt"`
 	TotalCnt      int32     `bson:"total_cnt"`

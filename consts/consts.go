@@ -273,3 +273,7 @@ const (
 	StatusUnk     = 0
 	StatusSuccess = 1
 )
+
+const (
+	Channel = "lingo"
+)

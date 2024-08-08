@@ -20,6 +20,7 @@ func ApiFailResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]aliyun.
 			Date:          date,
 			HostName:      model.HostName,
 			CoreApiName:   model.ApiName,
+			CoreApiPath:   model.ApiPath,
 			FailCount:     int(model.FailCnt),
 			TotalCount:    int(model.TotalCnt),
 			FailRate:      float64(model.FailCnt) / float64(model.TotalCnt) * 100,

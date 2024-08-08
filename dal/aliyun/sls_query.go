@@ -19,6 +19,12 @@ type NginxLog struct {
 	Cost     float64   `json:"cost"`
 }
 
+type NginxErrorLog struct {
+	NginxLog
+	UserId  string `json:"user_id"`
+	TraceId string `json:"trace_id"`
+}
+
 func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) ([]NginxLog, error) {
 	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
 	if err != nil {
@@ -33,6 +39,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
+"content.channel": "lingo-prod"|
 	SELECT 
 	"content.path" url,
 	"content.method" method, 
@@ -885,4 +892,117 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 	}
 	return result, nil
 
+}
+
+func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErrorLog, error) {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
+
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, err
+	}
+
+	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Unix()
+	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Unix()
+	query := `
+| 
+select user_id, trace_id, time, status, host, url, request_time cost
+from log where
+url = '%v' and 
+host = '%v' and 
+
+method in ('GET', 'POST') and
+status != 200
+limit %v
+`
+	query = fmt.Sprintf(query, url, host, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "nginx errlogs query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	results := []NginxErrorLog{}
+	for _, log := range resp.Logs {
+		cost, err := strconv.ParseFloat(log["cost"], 64)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", err)
+			continue
+		}
+		result := NginxErrorLog{
+			NginxLog: NginxLog{
+				CleanUrl: log["url"],
+				Time:     time.Time{},
+				Method:   log["method"],
+				Status:   log["status"],
+				Host:     log["host"],
+				Cost:     cost,
+			},
+			UserId:  log["user_id"],
+			TraceId: log["trace_id"],
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func ModelNginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErrorLog, error) {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
+
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, err
+	}
+
+	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Unix()
+	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Unix()
+	query := `
+| 
+select
+"content.user_id" user_id,
+"content.trace_id" trace_id,
+"content.time" time,
+"content.status" status,
+"content.vhost" host,
+"content.path" path,
+"content.request_time" cost
+from log where
+
+"content.path"  = '%v' and 
+"content.vhost" = '%v' and 
+"content.method"  in ('GET', 'POST') and
+"content.status"  != 200
+limit %v
+`
+	query = fmt.Sprintf(query, url, host, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "model nginx errlogs query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	results := []NginxErrorLog{}
+	for _, log := range resp.Logs {
+		cost, err := strconv.ParseFloat(log["cost"], 64)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", err)
+			continue
+		}
+		result := NginxErrorLog{
+			NginxLog: NginxLog{
+				CleanUrl: log["url"],
+				Time:     time.Time{},
+				Method:   log["method"],
+				Status:   log["status"],
+				Host:     log["host"],
+				Cost:     cost,
+			},
+			UserId:  log["user_id"],
+			TraceId: log["trace_id"],
+		}
+		results = append(results, result)
+	}
+	return results, nil
 }

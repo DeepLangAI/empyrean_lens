@@ -15,6 +15,7 @@ type NginxTimeSpanReportModel struct {
 	Date          string
 	HostName      string
 	CoreApiName   string
+	CoreApiPath   string
 	FailCount     int
 	TotalCount    int
 	FailRate      float64
@@ -60,26 +61,13 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 			fmt.Println(key)
 		}
 		apiReport, ok := timespanReports[key]
-		//dayReports, ok := timespanReports[day]
-		//if !ok {
-		//	dayReports = map[string]map[string]NginxTimeSpanReportModel{}
-		//	timespanReports[day] = dayReports
-		//}
-		//
-		//hostReports, ok := dayReports[log.Host]
-		//if !ok {
-		//	hostReports = map[string]NginxTimeSpanReportModel{}
-		//	dayReports[log.Host] = hostReports
-		//}
-		//
-		//apiReport, ok := hostReports[log.CleanUrl]
 		if !ok {
 			apiReport = NginxTimeSpanReportModel{
 				Date:        log.Time.Format("2006-01-02"),
 				HostName:    log.Host,
 				CoreApiName: log.CleanUrl,
+				CoreApiPath: log.CleanUrl,
 			}
-			//hostReports[log.CleanUrl] = apiReport
 		}
 
 		apiReport.TotalCount += 1

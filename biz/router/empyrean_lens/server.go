@@ -43,6 +43,7 @@ func Register(r *server.Hertz) {
 				}
 				{
 					_fail := _report.Group("/fail", _failMw()...)
+					_fail.GET("/detail", append(_systemdailyapifailuredetailMw(), empyrean_lens.SystemDailyApiFailureDetail)...)
 					_fail.GET("/list", append(_systemdailyapifailureinfoMw(), empyrean_lens.SystemDailyApiFailureInfo)...)
 				}
 				{
@@ -52,6 +53,10 @@ func Register(r *server.Hertz) {
 				{
 					_slow := _report.Group("/slow", _slowMw()...)
 					_slow.GET("/list", append(_systemdailyapislowinfoMw(), empyrean_lens.SystemDailyApiSlowInfo)...)
+				}
+				{
+					_trace := _report.Group("/trace", _traceMw()...)
+					_trace.GET("/list", append(_systemendtoendtracelogsMw(), empyrean_lens.SystemEndToEndTraceLogs)...)
 				}
 			}
 		}

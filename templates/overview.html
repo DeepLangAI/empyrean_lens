@@ -202,7 +202,7 @@
             right: 0 !important; /* 滑入后固定在屏幕右侧 */
         }
         .clickable {
-            /*background-color: #f1f1f1;*/
+            color: #ff9900;
             transition: background-color 0.3s ease;
         }
 
@@ -407,8 +407,8 @@
         //     // $('#接口错误列表-table').hide()
         //     $('#慢查询列表').hide()
         //     // $('#慢查询列表-table').hide()
-        //     $('#probe-list').hide()
-        //     // $('#probe-list-table').hide()
+        //     $('#探针列表').hide()
+        //     // $('#探针列表-table').hide()
         // }
         modifySidebar()
     }
@@ -480,11 +480,17 @@
                     <div id="接口错误列表">
                         <table id="接口错误列表-table" class="table-container" ></table>
                     </div>
+                    <div id="接口错误详情">
+                        <table id="接口错误详情-table" class="table-container" ></table>
+                    </div>
                     <div id="慢查询列表">
                         <table id="慢查询列表-table" class="table-container" ></table>
                     </div>
-                    <div id="probe-list">
-                        <table id="probe-list-table" class="table-container" ></table>
+                    <div id="探针列表">
+                        <table id="探针列表-table" class="table-container" ></table>
+                    </div>
+                    <div id="全链路日志列表">
+                        <table id="全链路日志列表-table" class="table-container" ></table>
                     </div>
                 </div>
             `.format(
@@ -507,7 +513,7 @@
         });
     }
     function handleProbeList(){
-        menus.push('probe-list')
+        menus.push('探针列表')
         modifySidebar()
         $('#评分详情').hide();
         const date = $('#date').text()
@@ -518,8 +524,8 @@
             }
         }).then(response =>{
             console.log('response', response.data)
-            // 获取$('#probe-list-table')元素
-            const table = $('#probe-list-table');
+            // 获取$('#探针列表-table')元素
+            const table = $('#探针列表-table');
             table.empty()
             table.append(`<h3 >
                 日期：{0}
@@ -654,7 +660,7 @@
             // rowhead
             const rowhead = `
                 <tr>
-<!--                    <th>日期</th>-->
+                    <th>时间</th>
                     <th>接口名称</th>
                     <th>主机地址</th>
                     <th>异常请求数量</th>
@@ -671,7 +677,7 @@
             for (let i = 0; i < response.data.data.length; i++) {
                 const row = `
                     <tr>
-<!--                        <td>{0}</td>-->
+                        <td>{10}</td>
                         <td>{0}</td>
                         <td>{1}</td>
                         <td {9}>{2}</td>
@@ -692,7 +698,16 @@
                     response.data.data[i].num_code_4xx,
                     response.data.data[i].num_code_5xx,
                     getColor((response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2)),
-                    response.data.data[i].num_error_req > 0 ? 'class="clickable"'  :  ''
+                    response.data.data[i].num_error_req > 0 && response.data.data[i].api_name != '当日总览'? `
+                        class="clickable"
+                        onclick=handleErrorDetail('{0}','{1}','{2}')`.format(
+                            response.data.data[i].host,
+                            response.data.data[i].api_path,
+                            date,
+                        )
+                        :  '',
+
+                    response.data.data[i].date,
                     );
                 table.append(row);
             }
@@ -702,7 +717,151 @@
             console.log('error fetching fail list', error)
         })
     }
-    function handleErrorDetail(host, url, date){
+    function handleErrorDetail(host, path, date){
+        axios.get('/api/v1/report/fail/detail', {
+            params:{
+                date_begin: date,
+                host: host,
+                path: path,
+            }
+        }).then(response => {
+            console.log('response', response.data)
+            $('#' + menus[menus.length - 1]).hide()
+            menus.push('接口错误详情')
+            modifySidebar()
+            $('接口错误详情').show();
+
+            const table = $('#接口错误详情-table');
+            table.empty()
+            table.append(`<h2 >
+                日期：{0}
+            </h2>`.format(date))
+            // rowhead
+            const rowhead = `
+                <tr>
+<!--                    <th>日期</th>-->
+                    <th>主机地址</th>
+                    <th>接口名称</th>
+                    <th>HTTP响应码</th>
+                    <th>trace_id</th>
+                    <th>user_id</th>
+                </tr>
+            `
+            table.append(rowhead);
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                const row = `
+                    <tr>
+                        <td>{0}</td>
+                        <td>{1}</td>
+                        <td>{2}</td>
+                        <td class="clickable" onclick="handleEndToEndTraceLogs('{5}','{6}')">{3}</td>
+                        <td>{4}</td>
+                    </tr>
+                `.format(
+                    response.data.data[i].host,
+                    response.data.data[i].path,
+                    response.data.data[i].http_code,
+                    response.data.data[i].trace_id,
+                    response.data.data[i].user_id,
+                    response.data.data[i].trace_id,
+                    date,
+                );
+                table.append(row);
+            }
+            setGridColor()
+        }).catch(error => {
+            console.log('error fetching fail list', error)
+        })
+
+    }
+
+    function  getLogSotreAlias(logSotreName){
+        if (logSotreName == 'nginx-ingress'){
+            return '业务Nginx日志'
+        }
+        if (logSotreName == 'business-pod'){
+            return '业务日志'
+        }
+        if (logSotreName == 'model-nginx-ingress'){
+            return '模型Nginx日志'
+        }
+        return logSotreName
+    }
+    function handleEndToEndTraceLogs(traceId, date){
+        axios.get('/api/v1/report/trace/list', {
+            params:{
+                date_begin: date,
+                trace_id: traceId,
+            }
+        }).then(response => {
+            console.log('response', response.data)
+            $('#' + menus[menus.length - 1]).hide()
+            menus.push('全链路日志列表')
+            modifySidebar()
+            container = $('#全链路日志列表')
+            container.show();
+            container.find('h2').remove();
+
+            const table = $('#全链路日志列表-table');
+            table.empty()
+            table.before(`<h2 >
+                日期：{0}
+            </h2>`.format(date))
+            // rowhead
+            const rowhead = `
+                <tr>
+                    <th>日志库</th>
+                    <th>trace_id</th>
+                    <th>user_id</th>
+                    <th>时间</th>
+                    <th>消息</th>
+                    <th>主机名</th>
+                    <th>路径</th>
+                    <th>耗时</th>
+                    <th>客户端IP</th>
+                    <th>UA</th>
+                    <th>Channel</th>
+                </tr>
+            `
+            table.append(rowhead);
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                const row = `
+                    <tr>
+                        <td>{0}</td>
+                        <td>{1}</td>
+                        <td>{2}</td>
+                        <td>{3}</td>
+                        <td>{4}</td>
+                        <td>{5}</td>
+                        <td>{6}</td>
+                        <td>{7}</td>
+                        <td>{8}</td>
+                        <td>{9}</td>
+                        <td>{10}</td>
+                    </tr>
+                `.format(
+                    getLogSotreAlias(response.data.data[i].log_store_name),
+                    response.data.data[i].trace_id,
+                    response.data.data[i].user_id,
+                    response.data.data[i].time,
+                    response.data.data[i].msg,
+                    response.data.data[i].host,
+                    response.data.data[i].api_path,
+                    response.data.data[i].cost == 0? '': response.data.data[i].cost.toFixed(2),
+                    response.data.data[i].client_ip,
+                    response.data.data[i].ua,
+                    response.data.data[i].channel,
+                );
+                table.append(row);
+            }
+            setGridColor()
+        }).catch(error => {
+            console.log('error fetching fail list', error)
+        })
 
     }
 

@@ -115,3 +115,18 @@ func _systemdailyapislowinfoMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _systemdailyapifailuredetailMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _systemendtoendtracelogsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _traceMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

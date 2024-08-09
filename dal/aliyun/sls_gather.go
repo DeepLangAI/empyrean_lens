@@ -1,9 +1,11 @@
 package aliyun
 
 import (
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 	"context"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -490,4 +492,73 @@ func SceneGeneralOverview(ctx context.Context, days []int) []SceneOverviews {
 		return overviews[i].Date > overviews[j].Date
 	})
 	return overviews
+}
+
+func NginxErrorLogsOfAPI(ctx context.Context, host, url, date string) ([]NginxErrorLog, error) {
+	if _, ok := consts.MODEL_NGINX_INGRESS_APIS[host]; ok {
+		errLogs, err := ModelNginxErrlogsQuery(ctx, host, url, date)
+		return errLogs, err
+	}
+	if _, ok := consts.NGINX_INGRESS_APIS[host]; ok {
+		errLogs, err := NginxErrlogsQuery(ctx, host, url, date)
+		return errLogs, err
+	}
+	errLogs := []NginxErrorLog{}
+	if logs, err := ModelNginxErrlogsQuery(ctx, host, url, date); err == nil {
+		errLogs = append(errLogs, logs...)
+	}
+	if logs, err := NginxErrlogsQuery(ctx, host, url, date); err == nil {
+		errLogs = append(errLogs, logs...)
+	}
+	if len(errLogs) != 0 {
+		sort.Slice(errLogs, func(i, j int) bool {
+			return errLogs[i].Time.Unix() > errLogs[j].Time.Unix()
+		})
+		return errLogs, nil
+	}
+	return nil, errors.New("query nginx error logs, error")
+}
+
+func EndToEndLogsQuery(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
+	mu := sync.Mutex{}
+	results := []EntToEndLog{}
+	funcList := []utillib.AsyncFunc{}
+	funcList = append(funcList, func() error {
+		logs, err := NginxLogQueryByTraceId(ctx, traceId, date)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		results = append(results, logs...)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		logs, err := ModelNginxLogQueryByTraceId(ctx, traceId, date)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		results = append(results, logs...)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		logs, err := BusinessLogQueryByTraceId(ctx, traceId, date)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		results = append(results, logs...)
+		mu.Unlock()
+		return nil
+	})
+	errs := utillib.ParallelExec(ctx, funcList, len(funcList))
+	if len(errs) != 0 {
+		return nil, errors.New("query end to end trace logs, error")
+	}
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Time > results[j].Time
+	})
+	return results, nil
 }

@@ -2,6 +2,7 @@ package aliyun
 
 import (
 	"context"
+	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/utils"
@@ -142,4 +143,48 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 		return finalReports[i].Date > finalReports[j].Date
 	})
 	return finalReports, nil
+}
+
+func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailureDetailReq) ([]*empyrean_lens.ApiFailureDetailRespData, error) {
+	api, err := aliyun.NginxErrorLogsOfAPI(ctx, req.Host, req.Path, req.DateBegin)
+	if err != nil {
+		return nil, err
+	}
+	data := []*empyrean_lens.ApiFailureDetailRespData{}
+	for _, log := range api {
+		data = append(data, &empyrean_lens.ApiFailureDetailRespData{
+			Time:     log.Time.Format("2006-01-02"),
+			APIName:  log.CleanUrl,
+			Host:     log.Host,
+			Path:     log.CleanUrl,
+			HTTPCode: log.Status,
+			UserID:   log.UserId,
+			TraceID:  log.TraceId,
+		})
+	}
+	return data, nil
+}
+
+func EndToEndTraceLogs(ctx context.Context, req empyrean_lens.EndToEndTraceReq) ([]*empyrean_lens.EndToEndTraceRespData, error) {
+	logs, err := aliyun.EndToEndLogsQuery(ctx, req.TraceID, req.DateBegin)
+	if err != nil {
+		return nil, err
+	}
+	data := []*empyrean_lens.EndToEndTraceRespData{}
+	for _, log := range logs {
+		data = append(data, &empyrean_lens.EndToEndTraceRespData{
+			LogStoreName: log.LogStoreName,
+			TraceID:      log.TraceId,
+			UserID:       log.UserId,
+			Time:         log.Time,
+			Msg:          log.Message,
+			Host:         log.Host,
+			APIPath:      log.ApiPath,
+			Cost:         float64(log.Cost),
+			ClientIP:     log.ClientIp,
+			Ua:           log.UA,
+			Channel:      log.Channel,
+		})
+	}
+	return data, nil
 }

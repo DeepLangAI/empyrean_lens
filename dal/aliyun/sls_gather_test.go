@@ -23,7 +23,7 @@ func TestQueryLog2(t *testing.T) {
 	client := sls.CreateNormalInterface(consts.ENDPOINT, consts.ACCESS_KEY_ID, consts.ACCESS_KEY_SECRET, "")
 
 	//logstore, err := client.GetLogStore(consts.proj, logStoreName)
-	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		panic(err)
 	}
@@ -177,7 +177,7 @@ func TestNginxIngressBasicQuery(t *testing.T) {
 func TestModelNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	if logs, err := ModelNginxIngressBasicQuery(ctx, 1, consts.HOST_ABSTRACT); err != nil {
+	if logs, err := ModelNginxIngressBasicQuery(ctx, 0, consts.HOST_ABSTRACT); err != nil {
 		t.Error(err)
 	} else {
 		for i, log := range logs {
@@ -190,7 +190,7 @@ func TestMetrLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
 
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
 	if err != nil {
 		t.Error(err)
@@ -431,4 +431,49 @@ func TestSummreqCntQuery1(t *testing.T) {
 		t.Error(err)
 	}
 	fmt.Println(query)
+}
+
+func TestNginxLogsOfAPI_Business(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	//api, err := NginxErrorLogsOfAPI(ctx, "api.lingoreader.cn", "/api/plugin/articles/summary", "2024-08-09")
+	api, err := NginxErrorLogsOfAPI(ctx, "", "/api/plugin/articles/summary", "2024-08-09")
+	if err != nil {
+		t.Error(err)
+	} else {
+		fmt.Println("日志数：", len(api))
+		for _, log := range api {
+			fmt.Println(log)
+		}
+	}
+}
+
+func TestNginxLogsOfAPI_Model(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	api, err := NginxErrorLogsOfAPI(ctx, "pdfparser.shenyandayi.com", "/", "2024-08-09")
+	if err != nil {
+		t.Error(err)
+	} else {
+		fmt.Println("日志数：", len(api))
+		for _, log := range api {
+			fmt.Println(log)
+		}
+	}
+}
+
+func TestEndToEndLogsQuery(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+
+	logs, err := EndToEndLogsQuery(ctx, "6BGsMju9j7cfC_vjTTNjl", "2024-08-09")
+
+	if err != nil {
+		t.Error(err)
+	} else {
+		fmt.Println("日志数：", len(logs))
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
 }

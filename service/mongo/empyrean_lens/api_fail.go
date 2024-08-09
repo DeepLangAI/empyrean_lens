@@ -15,7 +15,7 @@ func ApiFailResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]aliyun.
 	}
 	reports := []aliyun.NginxTimeSpanReportModel{}
 	for _, model := range models {
-		date := model.Date.Format("2006-01-02")
+		date := model.Date.Format("2006-01-02 15:04:05")
 		reports = append(reports, aliyun.NginxTimeSpanReportModel{
 			Date:          date,
 			HostName:      model.HostName,

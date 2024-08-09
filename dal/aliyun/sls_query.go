@@ -50,14 +50,15 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	FROM log WHERE
 	"content.path" in(
 		%v
-	) LIMIT %v
+	) and "content.vhost" = '%v'
+	LIMIT %v
 `
 	apiDetails := consts.MODEL_NGINX_INGRESS_APIS[host]
 	formatedApis := []string{}
 	for _, api := range apiDetails {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api.Api))
 	}
-	query = fmt.Sprintf(query, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, strings.Join(formatedApis, ",\n"), host, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	// 查询日志
 	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
@@ -82,6 +83,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 		//	continue
 		//}
 		if t.Unix() <= from {
+			hlog.CtxDebugf(ctx, "time %v <= from %v", t, time.Unix(from, 0))
 			continue
 		}
 		if e != nil {
@@ -136,7 +138,7 @@ LIMIT %d
 	// 查询日志
 	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "query log error: %v", err)
 		return nil, err
 	}
 
@@ -179,7 +181,7 @@ LIMIT %d
 }
 
 func MultiTotalRequestQuery(ctx context.Context, daysLookback int) (int, error) {
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
 	if err != nil {
 		return 0, err
@@ -205,7 +207,7 @@ limit %v
 }
 
 func MultiNodeLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error) {
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
 	if err != nil {
 		return nil, err
@@ -258,7 +260,7 @@ type CoreLog struct {
 }
 
 func MultiCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
 	if err != nil {
 		return nil, err
@@ -308,7 +310,7 @@ limit %v
 }
 
 func QaMiddlewareReqLogQuery(ctx context.Context, daysLookback int, apis []string) ([]CoreLog, error) {
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
 	if err != nil {
 		return nil, err
@@ -358,7 +360,7 @@ from log
 	return coreLogs, nil
 }
 func QaMiddlewareRespLogQuery(ctx context.Context, daysLookback int, apis []string) ([]NginxLog, error) {
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
 	if err != nil {
 		return nil, err
@@ -417,7 +419,7 @@ from log
 }
 
 func QaCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
 	if err != nil {
 		return nil, err
@@ -470,11 +472,11 @@ limit %v
 }
 
 func CommonCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
-	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
 	}
-	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -536,12 +538,12 @@ type CoreErrorLogs struct {
 func LingoChatCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs, error) {
 	logs := []CoreErrorLogs{}
 
-	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
 	}
 
-	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -595,12 +597,12 @@ chat core api response error and __tag__:_container_name_: lingo-chat-go-prod | 
 func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs, error) {
 	logs := []CoreErrorLogs{}
 
-	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
 	}
 
-	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -653,12 +655,12 @@ __tag__:_container_name_:lingo-python-prod and extend core api response error co
 
 func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, error) {
 	cnts := map[string]int{}
-	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
 	}
 
-	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -693,12 +695,12 @@ __tag__:_container_name_:lingo-python-prod and summary start | select * from (
 }
 
 func QaErrorCntQuery(ctx context.Context, daysLookback int) int64 {
-	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return 0
 	}
 
-	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -733,12 +735,12 @@ limit %v
 }
 
 func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
-	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
 	}
 
-	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -790,12 +792,12 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 }
 
 func QaRecommendFailcntQuery(ctx context.Context, daysLookback int) int64 {
-	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return 0
 	}
 
-	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -830,12 +832,12 @@ limit %v
 }
 
 func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, error) {
-	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
 	}
 
-	hlog.CtxInfof(ctx, "get logstore: %v success", consts.LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -902,21 +904,30 @@ func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErro
 		return nil, err
 	}
 
-	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Unix()
-	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Unix()
+	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
+	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
 	query := `
 | 
 select user_id, trace_id, time, status, host, url, request_time cost
 from log where
-url = '%v' and 
-host = '%v' and 
+%v url = '%v' and 
+%v host = '%v' and 
 
 method in ('GET', 'POST') and
 status != 200
+order by time desc
 limit %v
 `
-	query = fmt.Sprintf(query, url, host, consts.LOG_QUERY_LIMIT)
-	hlog.CtxDebugf(ctx, "nginx errlogs query: %v", query)
+	urlMute := ""
+	if url == "" {
+		urlMute = "--"
+	}
+	hostMute := ""
+	if host == "" {
+		hostMute = "--"
+	}
+	query = fmt.Sprintf(query, urlMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "date: %v, nginx errlogs query: %v", date, query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
 		fmt.Println(err)
@@ -930,10 +941,15 @@ limit %v
 			hlog.CtxErrorf(ctx, "parse cost error: %v", err)
 			continue
 		}
+		t, err := time.Parse("02/Jan/2006:15:04:05", log["time"])
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
 		result := NginxErrorLog{
 			NginxLog: NginxLog{
 				CleanUrl: log["url"],
-				Time:     time.Time{},
+				Time:     t,
 				Method:   log["method"],
 				Status:   log["status"],
 				Host:     log["host"],
@@ -944,6 +960,7 @@ limit %v
 		}
 		results = append(results, result)
 	}
+	hlog.CtxDebugf(ctx, "date: %v, nginx errlogs query result lenth: %v", date, len(results))
 	return results, nil
 }
 
@@ -955,8 +972,10 @@ func ModelNginxErrlogsQuery(ctx context.Context, host, url, date string) ([]Ngin
 		return nil, err
 	}
 
-	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Unix()
-	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Unix()
+	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
+	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
+	//from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Unix()
+	//to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Unix()
 	query := `
 | 
 select
@@ -969,14 +988,24 @@ select
 "content.request_time" cost
 from log where
 
-"content.path"  = '%v' and 
-"content.vhost" = '%v' and 
+%v "content.path"  = '%v' and 
+%v "content.vhost" = '%v' and 
+
 "content.method"  in ('GET', 'POST') and
 "content.status"  != 200
+order by "content.time" desc
 limit %v
 `
-	query = fmt.Sprintf(query, url, host, consts.LOG_QUERY_LIMIT)
-	hlog.CtxDebugf(ctx, "model nginx errlogs query: %v", query)
+	pathMute := ""
+	if url == "" {
+		pathMute = "--"
+	}
+	hostMute := ""
+	if host == "" {
+		hostMute = "--"
+	}
+	query = fmt.Sprintf(query, pathMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "date: %v, model nginx errlogs query: %v", date, query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
 		fmt.Println(err)
@@ -990,10 +1019,17 @@ limit %v
 			hlog.CtxErrorf(ctx, "parse cost error: %v", err)
 			continue
 		}
+		t, err := time.Parse(time.RFC3339, log["time"])
+		// 时间是UTC时间，需要+8小时
+		t = t.Add(time.Hour * 8)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
 		result := NginxErrorLog{
 			NginxLog: NginxLog{
 				CleanUrl: log["url"],
-				Time:     time.Time{},
+				Time:     t,
 				Method:   log["method"],
 				Status:   log["status"],
 				Host:     log["host"],
@@ -1004,5 +1040,208 @@ limit %v
 		}
 		results = append(results, result)
 	}
+	hlog.CtxDebugf(ctx, "date: %v, model nginx errlogs query result lenth: %v", date, len(results))
 	return results, nil
+}
+
+type EntToEndLog struct {
+	LogStoreName string
+	TraceId      string
+	UserId       string
+	Time         string
+	Message      string
+	Host         string
+	ApiPath      string
+	Cost         float32
+	ClientIp     string
+	UA           string
+	Channel      string
+}
+
+func NginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.NGINX_LOG_STORE_NAME)
+	day, e := time.Parse("2006-01-02", date)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse date error: %v", e)
+		return nil, err
+	}
+	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
+	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
+	query := `
+| select trace_id, user_id, time, host, url, request_time cost, client_ip, http_user_agent ua, channel
+from log
+where trace_id = '%v'
+order by time desc
+limit %v
+`
+	query = fmt.Sprintf(query, traceId, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "query log error: %v", err)
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "日期%v，查nginxIngress, trace_id: %v 共%v条日志", date, traceId, len(resp.Logs))
+	logs := []EntToEndLog{}
+	for _, log := range resp.Logs {
+		t, err := time.Parse("02/Jan/2006:15:04:05", log["time"])
+		if t.Format("2006-01-02") != date {
+			continue
+		}
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+		cost, err := strconv.ParseFloat(log["cost"], 32)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", err)
+			continue
+		}
+
+		logs = append(logs, EntToEndLog{
+			TraceId:      traceId,
+			UserId:       log["user_id"],
+			Time:         t.Format("2006-01-02 15:04:05,999"),
+			Message:      "",
+			Host:         log["host"],
+			ApiPath:      log["url"],
+			Cost:         float32(cost),
+			ClientIp:     log["client_ip"],
+			LogStoreName: consts.NGINX_LOG_STORE_NAME,
+			UA:           log["ua"],
+			Channel:      log["channel"],
+		})
+	}
+	return logs, nil
+}
+func ModelNginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.MODEL_NGINX_LOG_STORE_NAME)
+
+	lookbackDay, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse date error: %v", err)
+		return nil, err
+	}
+
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	query := `
+|select 
+"content.trace_id" trace_id, 
+"content.user_id" user_id, 
+"content.time" time, 
+"content.vhost" host, 
+"content.path" url,
+"content.duration" cost ,
+"content.http_user_agent" ua,
+"content.channel" channel
+from log
+where "content.trace_id"='%v' 
+order by "content.time" desc
+limit %v
+`
+	query = fmt.Sprintf(query, traceId, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "model nginx sql query: %v", query)
+	// 查询日志
+	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	if err != nil {
+		return nil, err
+	}
+
+	nlogs := []EntToEndLog{}
+	for _, log := range resp.Logs {
+		t, e := time.Parse(time.RFC3339, log["time"])
+		// 时间是UTC时间，需要+8小时
+		t = t.Add(time.Hour * 8)
+		//if t.Format("2006-01-02") != fromdayStr {
+		//	continue
+		//}
+		if t.Unix() <= from {
+			hlog.CtxDebugf(ctx, "time %v <= from %v", t, time.Unix(from, 0))
+			continue
+		}
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			continue
+		}
+		cost, err := strconv.ParseFloat(log["cost"], 32)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
+			continue
+		}
+		nlogs = append(nlogs, EntToEndLog{
+			LogStoreName: consts.MODEL_NGINX_LOG_STORE_NAME,
+			TraceId:      log["trace_id"],
+			UserId:       log["user_id"],
+			Time:         t.Format("2006-01-02 15:04:05.999"),
+			Message:      "",
+			Host:         log["host"],
+			ApiPath:      log["url"],
+			Cost:         float32(cost),
+			ClientIp:     log["client_ip"],
+			UA:           log["ua"],
+			Channel:      log["channel"],
+		})
+	}
+	hlog.CtxInfof(ctx, "日期%v，查modelIngress, trace_id: %v, 共%v条日志", date, traceId, len(nlogs))
+	return nlogs, nil
+}
+func BusinessLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lookbackDay, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, err
+	}
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Add(-8 * time.Hour).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Add(-8 * time.Hour).Unix()
+
+	query := `
+|select user_id, trace_id, asctime time, ip client_ip, message msg
+from log where
+trace_id = '%v'
+order by asctime desc
+limit %v
+`
+	query = fmt.Sprintf(query, traceId, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "business trace sql query: %v", query)
+	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	if err != nil {
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "日期%v，查business-pod, trace_id: %v, 共%v条日志", date, traceId, len(resp.Logs))
+	logs := []EntToEndLog{}
+	for _, log := range resp.Logs {
+		//t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
+		//if e != nil {
+		//	hlog.CtxErrorf(ctx, "parse time error: %v", e)
+		//	continue
+		//}
+		logs = append(logs, EntToEndLog{
+			LogStoreName: consts.BUSINESS_LOG_STORE_NAME,
+			TraceId:      log["trace_id"],
+			UserId:       log["user_id"],
+			Time:         log["time"],
+			Message:      log["msg"],
+			Host:         "",
+			ApiPath:      "",
+			Cost:         0,
+			ClientIp:     log["client_ip"],
+		})
+	}
+	return logs, nil
 }

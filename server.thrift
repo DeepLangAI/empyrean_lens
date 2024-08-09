@@ -74,6 +74,31 @@ struct ApiFailureInfoRespData{
     7: i32 num_code_3xx
     8: i32 num_code_4xx
     9: i32 num_code_5xx
+    10: string api_path
+}
+
+# API错误详情
+struct DailyApiFailureDetailReq{
+    1: string date_begin
+    2: string date_end
+    3: string host
+    4: string path
+}
+
+struct ApiFailureDetailResp{
+    1: i32 code
+    2: string msg
+    3: list<ApiFailureDetailRespData> data
+}
+
+struct ApiFailureDetailRespData{
+    1: string time
+    2: string api_name
+    3: string host
+    4: string path
+    5: string http_code
+    6: string user_id
+    7: string trace_id
 }
 
 # 慢查询相关信息
@@ -117,6 +142,34 @@ struct ApiProbeRespData{
     4: i32 num_success_req
     5: i32 num_correct_req
     6: double avg_cost
+}
+
+# 全链路日志
+struct EndToEndTraceReq{
+    1: string date_begin
+    2: string date_end
+    3: string trace_id
+    4: string level
+}
+
+struct EndToEndTraceResp{
+    1: i32 code
+    2: string msg
+    3: list<EndToEndTraceRespData> data
+}
+
+struct EndToEndTraceRespData{
+    1: string log_store_name
+    2: string trace_id
+    3: string user_id
+    4: string time
+    5: string msg
+    6: string host
+    7: string api_path
+    8: double cost
+    9: string client_ip
+    10: string ua
+    11: string channel
 }
 
 # 刷新缓存数据库
@@ -209,6 +262,11 @@ service Rentention{
    ApiFailureInfoResp SystemDailyApiFailureInfo(1: DailyApiFailureInfoReq req) (
        api.get="/api/v1/report/fail/list"
    )
+   ApiFailureDetailResp SystemDailyApiFailureDetail(1: DailyApiFailureDetailReq req) (
+       api.get="/api/v1/report/fail/detail"
+   )
+
+
    // 慢查询率，基于业务日志
    ApiSlowInfoResp SystemDailyApiSlowInfo(1: DailyApiSlowInfoReq req) (
        api.get="/api/v1/report/slow/list"
@@ -216,6 +274,11 @@ service Rentention{
    // 探针错误率，基于探针日志
    ApiProbeResp SystemDailyApiCost(1: ApiProbeResp req) (
        api.get="/api/v1/report/probe/list"
+   )
+
+   // 全链路日志
+   EndToEndTraceResp SystemEndToEndTraceLogs(1: EndToEndTraceReq req) (
+       api.get="/api/v1/report/trace/list"
    )
 
    // 用于提供缓存数据库接口

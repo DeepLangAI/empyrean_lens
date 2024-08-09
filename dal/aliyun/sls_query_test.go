@@ -37,7 +37,8 @@ func TestNginxErrlogsQuery(t *testing.T) {
 	conf.InitConfig()
 	Init(ctx)
 
-	query, err := NginxErrlogsQuery(ctx, "api.lingoreader.cn", "/api/plugin/articles/summary", "2024-08-07")
+	//query, err := NginxErrlogsQuery(ctx, "api.lingoreader.cn", "/api/plugin/articles/summary", "2024-08-07")
+	query, err := NginxErrlogsQuery(ctx, "", "/api/plugin/articles/summary", "2024-08-07")
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -51,7 +52,8 @@ func TestModelNginxErrlogsQuery(t *testing.T) {
 	conf.InitConfig()
 	Init(ctx)
 
-	query, err := ModelNginxErrlogsQuery(ctx, "outline-verbose.shenyandayi.com", "/generate", "2024-08-07")
+	//query, err := ModelNginxErrlogsQuery(ctx, "outline-verbose.shenyandayi.com", "/generate", "2024-08-07")
+	query, err := ModelNginxErrlogsQuery(ctx, "", "/generate", "2024-08-07")
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -59,4 +61,49 @@ func TestModelNginxErrlogsQuery(t *testing.T) {
 		fmt.Println(query)
 	}
 
+	query, err = ModelNginxErrlogsQuery(ctx, "pdfparser.shenyandayi.com", "/", "2024-08-09")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(len(query))
+		fmt.Println(query)
+	}
+
+}
+
+func TestNginxLogQueryByTraceId(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	logs, err := NginxLogQueryByTraceId(ctx, "6BGsMju9j7cfC_vjTTNjl", "2024-08-09")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(logs)
+	}
+}
+
+func TestBusinessLogQueryByTraceId(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	logs, err := BusinessLogQueryByTraceId(ctx, "6BGsMju9j7cfC_vjTTNjl", "2024-08-09")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(logs)
+	}
+
+}
+
+func TestModelNginxLogQueryByTraceId(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	logs, err := ModelNginxLogQueryByTraceId(ctx, "66b5a873605f6c5d72519ff6", "2024-08-09")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(logs)
+	}
 }

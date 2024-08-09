@@ -200,7 +200,7 @@ func SystemDailyScore(ctx context.Context, c *app.RequestContext) {
 }
 
 // SystemDailyApiFailureInfo .
-// @router /api/v1/report/daily/failure [GET]
+// @router /api/v1/report/fail/list [GET]
 func SystemDailyApiFailureInfo(ctx context.Context, c *app.RequestContext) {
 	base := handler.BaseHandler{}
 	var err error
@@ -229,6 +229,7 @@ func SystemDailyApiFailureInfo(ctx context.Context, c *app.RequestContext) {
 		data = append(data, &empyrean_lens.ApiFailureInfoRespData{
 			Date:        r.Date,
 			APIName:     r.CoreApiName,
+			APIPath:     r.CoreApiPath,
 			Host:        r.HostName,
 			NumTotalReq: int32(r.TotalCount),
 			NumErrorReq: int32(r.FailCount),
@@ -414,6 +415,50 @@ func SystemDailyApiCost(ctx context.Context, c *app.RequestContext) {
 
 	resp := new(empyrean_lens.ApiProbeResp)
 	data, err := empyrean_lens2.ProbeListInfo(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+	resp.Data = data
+	base.SuccessResponse(c, resp)
+}
+
+// SystemDailyApiFailureDetail .
+// @router /api/v1/report/fail/detail [GET]
+func SystemDailyApiFailureDetail(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.DailyApiFailureDetailReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	resp := new(empyrean_lens.ApiFailureDetailResp)
+	detail, err := aliyun2.NginxApiFailureDetail(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+	resp.Data = detail
+	base.SuccessResponse(c, resp)
+}
+
+// SystemEndToEndTraceLogs .
+// @router /api/v1/report/trace/list [GET]
+func SystemEndToEndTraceLogs(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.EndToEndTraceReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	resp := new(empyrean_lens.EndToEndTraceResp)
+	data, err := aliyun2.EndToEndTraceLogs(ctx, req)
 	if err != nil {
 		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
 		return

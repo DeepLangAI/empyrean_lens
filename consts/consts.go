@@ -6,7 +6,7 @@ const (
 	SECURE_TOKEN               = ""
 	ENDPOINT                   = "cn-zhangjiakou.log.aliyuncs.com"
 	PROJECT_NAME               = "k8s-log-cefd7f8df3eab44a4a8184343c914af94"
-	LOG_STORE_NAME             = "business-pod"
+	BUSINESS_LOG_STORE_NAME    = "business-pod"
 	NGINX_LOG_STORE_NAME       = "nginx-ingress"
 	MODEL_NGINX_LOG_STORE_NAME = "model-nginx-ingress"
 	METRIC_SOTRE_NAME          = "prod-metrics"

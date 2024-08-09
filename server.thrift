@@ -142,6 +142,10 @@ struct ProbeLog{
     6: bool correct
     7: double cost
     8: i32 data_source // 0: api, 1: ui
+    9: i32 business_code
+    10: i32 http_code
+    11: string trace_id
+    12: string msg
 }
 
 struct WriteProbeReq{

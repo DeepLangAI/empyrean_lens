@@ -403,10 +403,10 @@
         $('#' + id).hide()
         console.log('hidding:', id)
         // if (menus.length == 1){
-        //     $('#error-list').hide()
-        //     // $('#error-list-table').hide()
-        //     $('#慢查询').hide()
-        //     // $('#慢查询-table').hide()
+        //     $('#接口错误列表').hide()
+        //     // $('#接口错误列表-table').hide()
+        //     $('#慢查询列表').hide()
+        //     // $('#慢查询列表-table').hide()
         //     $('#probe-list').hide()
         //     // $('#probe-list-table').hide()
         // }
@@ -477,11 +477,11 @@
                             </tbody>
                         </table>
                     </div>
-                    <div id="error-list">
-                        <table id="error-list-table" class="table-container" ></table>
+                    <div id="接口错误列表">
+                        <table id="接口错误列表-table" class="table-container" ></table>
                     </div>
-                    <div id="慢查询">
-                        <table id="慢查询-table" class="table-container" ></table>
+                    <div id="慢查询列表">
+                        <table id="慢查询列表-table" class="table-container" ></table>
                     </div>
                     <div id="probe-list">
                         <table id="probe-list-table" class="table-container" ></table>
@@ -573,10 +573,10 @@
     }
 
     function handleSlowList(){
-        menus.push('慢查询')
+        menus.push('慢查询列表')
         modifySidebar()
         $('#评分详情').hide();
-        $('#慢查询').show();
+        $('#慢查询列表').show();
         const date = $('#date').text()
 
         axios.get('/api/v1/report/slow/list', {
@@ -585,8 +585,8 @@
             }
         }).then(response =>{
             console.log('response', response.data)
-            // 获取$('#慢查询-table')元素
-            const table = $('#慢查询-table');
+            // 获取$('#慢查询列表-table')元素
+            const table = $('#慢查询列表-table');
             table.empty()
             table.append(`<h3 >
                 日期：{0}
@@ -632,11 +632,11 @@
     }
 
     function handleErrorList(){
-        menus.push('error-list')
+        menus.push('接口错误列表')
         modifySidebar();
         // 不再显示#评分详情对应的div
         $('#评分详情').hide();
-        $('#error-list').show()
+        $('#接口错误列表').show()
 
         const date = $('#date').text()
         axios.get('/api/v1/report/fail/list', {
@@ -645,8 +645,8 @@
             }
         }).then(response =>{
             console.log('response', response.data)
-            // 获取$('#error-list-table')元素
-            const table = $('#error-list-table');
+            // 获取$('#接口错误列表-table')元素
+            const table = $('#接口错误列表-table');
             table.empty()
             table.append(`<h2 >
                 日期：{0}
@@ -674,7 +674,7 @@
 <!--                        <td>{0}</td>-->
                         <td>{0}</td>
                         <td>{1}</td>
-                        <td>{2}</td>
+                        <td {9}>{2}</td>
                         <td>{3}</td>
                         <td class="color-cell" style="background: {8}">{4}%</td>
                         <td>{5}</td>
@@ -692,6 +692,7 @@
                     response.data.data[i].num_code_4xx,
                     response.data.data[i].num_code_5xx,
                     getColor((response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2)),
+                    response.data.data[i].num_error_req > 0 ? 'class="clickable"'  :  ''
                     );
                 table.append(row);
             }
@@ -700,6 +701,9 @@
         }).catch(error =>{
             console.log('error fetching fail list', error)
         })
+    }
+    function handleErrorDetail(host, url, date){
+
     }
 
     function paginateTable(tableId, rowsPerPage, paginationId) {

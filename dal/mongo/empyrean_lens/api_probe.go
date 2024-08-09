@@ -13,14 +13,18 @@ const TableNameApiProbeLog = "api_probe"
 
 type ApiProbeLogModel struct {
 	//Id           primitive.ObjectID `bson:"_id" json:"id"`
-	Scene      string  `bson:"scene"`
-	Api        string  `bson:"api"`
-	Host       string  `bson:"host"`
-	IsCore     bool    `bson:"is_core"`
-	Success    bool    `bson:"success"`
-	Correct    bool    `bson:"correct"`
-	Cost       float64 `bson:"cost"`
-	DataSource int32   `bson:"data_source"`
+	Scene        string  `bson:"scene"`
+	Api          string  `bson:"api"`
+	Host         string  `bson:"host"`
+	IsCore       bool    `bson:"is_core"`
+	Success      bool    `bson:"success"`
+	Correct      bool    `bson:"correct"`
+	Cost         float64 `bson:"cost"`
+	DataSource   int32   `bson:"data_source"`
+	BusinessCode int32   `bson:"business_code"`
+	HttpCode     int32   `bson:"http_code"`
+	TraceId      string  `bson:"trace_id"`
+	Msg          string  `bson:"msg"`
 
 	Status     int32     `json:"status" bson:"status"`
 	CreateTime time.Time `bson:"create_time" json:"create_time"`

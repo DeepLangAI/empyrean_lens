@@ -14,15 +14,19 @@ func SaveBatch(ctx context.Context, data empyrean_lens.WriteProbeReq) error {
 	dao := el.NewApiProbeLogModelDao()
 	for _, d := range data.Data {
 		model := el.ApiProbeLogModel{
-			Scene:      d.Scene,
-			Api:        d.API,
-			Host:       d.Host,
-			IsCore:     d.IsCore,
-			Success:    d.Success,
-			Correct:    d.Correct,
-			Cost:       d.Cost,
-			Status:     0,
-			DataSource: d.DataSource,
+			Scene:        d.Scene,
+			Api:          d.API,
+			Host:         d.Host,
+			IsCore:       d.IsCore,
+			Success:      d.Success,
+			Correct:      d.Correct,
+			Cost:         d.Cost,
+			Status:       0,
+			DataSource:   d.DataSource,
+			BusinessCode: d.BusinessCode,
+			HttpCode:     d.HTTPCode,
+			TraceId:      d.TraceID,
+			Msg:          d.Msg,
 
 			CreateTime: time.Now(),
 			UpdateTime: time.Now(),

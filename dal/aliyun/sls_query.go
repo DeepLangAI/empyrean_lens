@@ -1056,6 +1056,7 @@ type EntToEndLog struct {
 	ClientIp     string
 	UA           string
 	Channel      string
+	OriginLog    map[string]string
 }
 
 func NginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
@@ -1072,7 +1073,10 @@ func NginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToE
 	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
 	query := `
-| select trace_id, user_id, time, host, url, request_time cost, client_ip, http_user_agent ua, channel
+| select
+trace_id, user_id,
+-- time,
+host, url, request_time cost, client_ip, http_user_agent ua, channel, *
 from log
 where trace_id = '%v'
 order by time desc
@@ -1102,6 +1106,16 @@ limit %v
 			continue
 		}
 
+		originLog := map[string]string{}
+		for key, val := range log {
+			if val == "null" || val == "-" {
+				continue
+			}
+			if strings.HasSuffix(key, "_0") {
+				continue
+			}
+			originLog[key] = val
+		}
 		logs = append(logs, EntToEndLog{
 			TraceId:      traceId,
 			UserId:       log["user_id"],
@@ -1114,6 +1128,7 @@ limit %v
 			LogStoreName: consts.NGINX_LOG_STORE_NAME,
 			UA:           log["ua"],
 			Channel:      log["channel"],
+			OriginLog:    originLog,
 		})
 	}
 	return logs, nil
@@ -1144,7 +1159,8 @@ func ModelNginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]E
 "content.path" url,
 "content.duration" cost ,
 "content.http_user_agent" ua,
-"content.channel" channel
+"content.channel" channel,
+*
 from log
 where "content.trace_id"='%v' 
 order by "content.time" desc
@@ -1179,6 +1195,19 @@ limit %v
 			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
 			continue
 		}
+		originLog := map[string]string{}
+		for key, val := range log {
+			if val == "null" || val == "-" {
+				continue
+			}
+			if strings.HasSuffix(key, "_0") {
+				continue
+			}
+			if strings.HasPrefix(key, "content.") {
+				key = strings.TrimPrefix(key, "content.")
+			}
+			originLog[key] = val
+		}
 		nlogs = append(nlogs, EntToEndLog{
 			LogStoreName: consts.MODEL_NGINX_LOG_STORE_NAME,
 			TraceId:      log["trace_id"],
@@ -1191,6 +1220,7 @@ limit %v
 			ClientIp:     log["client_ip"],
 			UA:           log["ua"],
 			Channel:      log["channel"],
+			OriginLog:    originLog,
 		})
 	}
 	hlog.CtxInfof(ctx, "日期%v，查modelIngress, trace_id: %v, 共%v条日志", date, traceId, len(nlogs))
@@ -1211,7 +1241,12 @@ func BusinessLogQueryByTraceId(ctx context.Context, traceId, date string) ([]Ent
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Add(-8 * time.Hour).Unix()
 
 	query := `
-|select user_id, trace_id, asctime time, ip client_ip, message msg
+|select
+user_id, trace_id,
+COALESCE(asctime, time) AS time,
+-- asctime time,
+ip client_ip, message msg,
+*
 from log where
 trace_id = '%v'
 order by asctime desc
@@ -1231,6 +1266,16 @@ limit %v
 		//	hlog.CtxErrorf(ctx, "parse time error: %v", e)
 		//	continue
 		//}
+		originLog := map[string]string{}
+		for key, val := range log {
+			if val == "null" || val == "-" {
+				continue
+			}
+			if strings.HasSuffix(key, "_0") {
+				continue
+			}
+			originLog[key] = val
+		}
 		logs = append(logs, EntToEndLog{
 			LogStoreName: consts.BUSINESS_LOG_STORE_NAME,
 			TraceId:      log["trace_id"],
@@ -1241,6 +1286,7 @@ limit %v
 			ApiPath:      "",
 			Cost:         0,
 			ClientIp:     log["client_ip"],
+			OriginLog:    originLog,
 		})
 	}
 	return logs, nil

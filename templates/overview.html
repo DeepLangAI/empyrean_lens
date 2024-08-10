@@ -310,6 +310,88 @@
             to { transform: rotate(360deg); }
         }
 
+        /* 日志样式 */
+        .log-container {
+            font-size: 13px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-start;
+
+        }
+        .log-id {
+            width: 15px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        .log-time {
+            width: 50px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 20px;
+            font-family: inherit;
+        }
+        .log-details {
+            flex-grow: 1;
+        }
+        .log-details-header {
+            background-color: #f5f5f5;
+            padding: 5px 10px;
+            font-weight: lighter;
+            border-radius: 3px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-header span {
+            position: relative;
+            margin-right: 20px;
+            white-space: pre-wrap;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+        .log-details-header span:hover::after {
+            content: attr(data-field-name);
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #333;
+            color: #fff;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1;
+        }
+        .log-details-body {
+            padding: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-body > p {
+            text-align: left;
+            margin: -5px 0;
+            /*font-weight: bold;*/
+            padding: 5px 0px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            opacity: 0.9;
+        }
+        .log-details-body p span {
+            font-family: inherit;
+            font-weight: normal;
+            background: #edeff3;
+            margin-right: 10px;
+        }
+
 
     </style>
 </head>
@@ -517,7 +599,7 @@
                         <table id="探针列表-table" class="table-container" ></table>
                     </div>
                     <div id="全链路日志列表">
-                        <table id="全链路日志列表-table" class="table-container" ></table>
+                        <div id="全链路日志列表-table"></div>
                     </div>
                 </div>
             `.format(
@@ -842,54 +924,42 @@
             table.before(`<h2 >
                 日期：{0}
             </h2>`.format(date))
-            // rowhead
-            const rowhead = `
-                <tr>
-                    <th>日志库</th>
-                    <th>trace_id</th>
-                    <th>user_id</th>
-                    <th>时间</th>
-                    <th>消息</th>
-                    <th>主机名</th>
-                    <th>路径</th>
-                    <th>耗时</th>
-                    <th>客户端IP</th>
-                    <th>UA</th>
-                    <th>Channel</th>
-                </tr>
-            `
-            table.append(rowhead);
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
-                const row = `
-                    <tr>
-                        <td>{0}</td>
-                        <td>{1}</td>
-                        <td>{2}</td>
-                        <td>{3}</td>
-                        <td>{4}</td>
-                        <td>{5}</td>
-                        <td>{6}</td>
-                        <td>{7}</td>
-                        <td>{8}</td>
-                        <td>{9}</td>
-                        <td>{10}</td>
-                    </tr>
-                `.format(
-                    getLogSotreAlias(response.data.data[i].log_store_name),
-                    response.data.data[i].trace_id,
-                    response.data.data[i].user_id,
-                    response.data.data[i].time,
-                    response.data.data[i].msg,
-                    response.data.data[i].host,
-                    response.data.data[i].api_path,
-                    response.data.data[i].cost == 0? '': response.data.data[i].cost.toFixed(2),
-                    response.data.data[i].client_ip,
-                    response.data.data[i].ua,
-                    response.data.data[i].channel,
+                const log = response.data.data[i]
+                const originLog = response.data.data[i].origin_log
+
+                const logContainer = $('<div>').addClass('log-container');
+                const logId = $('<div>').addClass('log-id').text(i + 1);
+                const logTime = $('<div>').addClass('log-time').text(log.time.slice(11, 19));
+                const logDetails = $('<div>').addClass('log-details');
+                const logDetailsHeader = $('<div>').addClass('log-details-header');
+                const logDetailsBody = $('<div>').addClass('log-details-body');
+                logDetailsBody.append(
+                    $("<p>")
+                        .append($("<span>").text('日志来源' + ": "))
+                        .append(getLogSotreAlias(log.log_store_name))
                 );
-                table.append(row);
+                for (var key in originLog){
+                    if (key.startsWith("_")) {
+                        logDetailsHeader.append(
+                            $("<span>")
+                                .attr("data-field-name", key)
+                                .text(originLog[key])
+                        );
+                    } else {
+                        logDetailsBody.append(
+                            $("<p>")
+                                .append($("<span>").text(key + ":"))
+                                .append(originLog[key])
+                        );
+                    }
+                }
+                logDetails.append(logDetailsHeader, logDetailsBody);
+                logContainer.append(logId, logTime, logDetails);
+                table.append(logContainer);
+
                 hideLoadingStatus()
             }
             setGridColor()

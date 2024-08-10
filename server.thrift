@@ -170,6 +170,7 @@ struct EndToEndTraceRespData{
     9: string client_ip
     10: string ua
     11: string channel
+    12: map<string, string> origin_log
 }
 
 # 刷新缓存数据库

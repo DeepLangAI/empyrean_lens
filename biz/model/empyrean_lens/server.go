@@ -6157,17 +6157,18 @@ func (p *EndToEndTraceResp) String() string {
 }
 
 type EndToEndTraceRespData struct {
-	LogStoreName string  `thrift:"log_store_name,1" form:"log_store_name" json:"log_store_name" query:"log_store_name"`
-	TraceID      string  `thrift:"trace_id,2" form:"trace_id" json:"trace_id" query:"trace_id"`
-	UserID       string  `thrift:"user_id,3" form:"user_id" json:"user_id" query:"user_id"`
-	Time         string  `thrift:"time,4" form:"time" json:"time" query:"time"`
-	Msg          string  `thrift:"msg,5" form:"msg" json:"msg" query:"msg"`
-	Host         string  `thrift:"host,6" form:"host" json:"host" query:"host"`
-	APIPath      string  `thrift:"api_path,7" form:"api_path" json:"api_path" query:"api_path"`
-	Cost         float64 `thrift:"cost,8" form:"cost" json:"cost" query:"cost"`
-	ClientIP     string  `thrift:"client_ip,9" form:"client_ip" json:"client_ip" query:"client_ip"`
-	Ua           string  `thrift:"ua,10" form:"ua" json:"ua" query:"ua"`
-	Channel      string  `thrift:"channel,11" form:"channel" json:"channel" query:"channel"`
+	LogStoreName string            `thrift:"log_store_name,1" form:"log_store_name" json:"log_store_name" query:"log_store_name"`
+	TraceID      string            `thrift:"trace_id,2" form:"trace_id" json:"trace_id" query:"trace_id"`
+	UserID       string            `thrift:"user_id,3" form:"user_id" json:"user_id" query:"user_id"`
+	Time         string            `thrift:"time,4" form:"time" json:"time" query:"time"`
+	Msg          string            `thrift:"msg,5" form:"msg" json:"msg" query:"msg"`
+	Host         string            `thrift:"host,6" form:"host" json:"host" query:"host"`
+	APIPath      string            `thrift:"api_path,7" form:"api_path" json:"api_path" query:"api_path"`
+	Cost         float64           `thrift:"cost,8" form:"cost" json:"cost" query:"cost"`
+	ClientIP     string            `thrift:"client_ip,9" form:"client_ip" json:"client_ip" query:"client_ip"`
+	Ua           string            `thrift:"ua,10" form:"ua" json:"ua" query:"ua"`
+	Channel      string            `thrift:"channel,11" form:"channel" json:"channel" query:"channel"`
+	OriginLog    map[string]string `thrift:"origin_log,12" form:"origin_log" json:"origin_log" query:"origin_log"`
 }
 
 func NewEndToEndTraceRespData() *EndToEndTraceRespData {
@@ -6218,6 +6219,10 @@ func (p *EndToEndTraceRespData) GetChannel() (v string) {
 	return p.Channel
 }
 
+func (p *EndToEndTraceRespData) GetOriginLog() (v map[string]string) {
+	return p.OriginLog
+}
+
 var fieldIDToName_EndToEndTraceRespData = map[int16]string{
 	1:  "log_store_name",
 	2:  "trace_id",
@@ -6230,6 +6235,7 @@ var fieldIDToName_EndToEndTraceRespData = map[int16]string{
 	9:  "client_ip",
 	10: "ua",
 	11: "channel",
+	12: "origin_log",
 }
 
 func (p *EndToEndTraceRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -6334,6 +6340,14 @@ func (p *EndToEndTraceRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 11:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField11(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 12:
+			if fieldTypeId == thrift.MAP {
+				if err = p.ReadField12(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -6489,6 +6503,35 @@ func (p *EndToEndTraceRespData) ReadField11(iprot thrift.TProtocol) error {
 	p.Channel = _field
 	return nil
 }
+func (p *EndToEndTraceRespData) ReadField12(iprot thrift.TProtocol) error {
+	_, _, size, err := iprot.ReadMapBegin()
+	if err != nil {
+		return err
+	}
+	_field := make(map[string]string, size)
+	for i := 0; i < size; i++ {
+		var _key string
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_key = v
+		}
+
+		var _val string
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_val = v
+		}
+
+		_field[_key] = _val
+	}
+	if err := iprot.ReadMapEnd(); err != nil {
+		return err
+	}
+	p.OriginLog = _field
+	return nil
+}
 
 func (p *EndToEndTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -6538,6 +6581,10 @@ func (p *EndToEndTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField11(oprot); err != nil {
 			fieldId = 11
+			goto WriteFieldError
+		}
+		if err = p.writeField12(oprot); err != nil {
+			fieldId = 12
 			goto WriteFieldError
 		}
 	}
@@ -6743,6 +6790,34 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 11 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 11 end error: ", p), err)
+}
+
+func (p *EndToEndTraceRespData) writeField12(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("origin_log", thrift.MAP, 12); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteMapBegin(thrift.STRING, thrift.STRING, len(p.OriginLog)); err != nil {
+		return err
+	}
+	for k, v := range p.OriginLog {
+		if err := oprot.WriteString(k); err != nil {
+			return err
+		}
+		if err := oprot.WriteString(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteMapEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 12 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 12 end error: ", p), err)
 }
 
 func (p *EndToEndTraceRespData) String() string {

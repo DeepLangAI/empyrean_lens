@@ -184,6 +184,7 @@ func EndToEndTraceLogs(ctx context.Context, req empyrean_lens.EndToEndTraceReq) 
 			ClientIP:     log.ClientIp,
 			Ua:           log.UA,
 			Channel:      log.Channel,
+			OriginLog:    log.OriginLog,
 		})
 	}
 	return data, nil

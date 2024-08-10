@@ -466,7 +466,8 @@ func TestEndToEndLogsQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
 
-	logs, err := EndToEndLogsQuery(ctx, "6BGsMju9j7cfC_vjTTNjl", "2024-08-09")
+	//logs, err := EndToEndLogsQuery(ctx, "6BGsMju9j7cfC_vjTTNjl", "2024-08-09")
+	logs, err := EndToEndLogsQuery(ctx, "IEqNtyf2XFmvKvo3_MsiO", "2024-08-10")
 
 	if err != nil {
 		t.Error(err)

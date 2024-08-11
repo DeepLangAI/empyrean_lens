@@ -1108,9 +1108,10 @@ limit %v
 
 		originLog := map[string]string{}
 		for key, val := range log {
-			if val == "null" || val == "-" {
+			if val == "null" || val == "-" || val == "" {
 				continue
 			}
+
 			if strings.HasSuffix(key, "_0") {
 				continue
 			}
@@ -1197,9 +1198,10 @@ limit %v
 		}
 		originLog := map[string]string{}
 		for key, val := range log {
-			if val == "null" || val == "-" {
+			if val == "null" || val == "-" || val == "" {
 				continue
 			}
+
 			if strings.HasSuffix(key, "_0") {
 				continue
 			}
@@ -1268,9 +1270,10 @@ limit %v
 		//}
 		originLog := map[string]string{}
 		for key, val := range log {
-			if val == "null" || val == "-" {
+			if val == "null" || val == "-" || val == "" {
 				continue
 			}
+
 			if strings.HasSuffix(key, "_0") {
 				continue
 			}
@@ -1290,4 +1293,71 @@ limit %v
 		})
 	}
 	return logs, nil
+}
+
+type TracebackDetail struct {
+	ExcInfo   string
+	Msg       string
+	TraceId   string
+	Time      time.Time
+	UserId    string
+	OriginLog map[string]string
+}
+
+func TracebackQuery(ctx context.Context, daysLookback int) ([]TracebackDetail, error) {
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	//fromdayStr := lookbackDay.Format("2006-01-02")
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	query := `
+__tag__:_container_name_ : lingo-python-prod and  exc_info : "Traceback (most recent call last)" |  
+select 
+exc_info, message msg, trace_id, asctime time, user_id
+from log
+order by asctime desc
+limit %v
+`
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "business traceback sql query: %v", query)
+
+	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	if err != nil {
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "日期%v，查business-pod, 共%v条日志", lookbackDay, len(resp.Logs))
+
+	results := []TracebackDetail{}
+	for _, log := range resp.Logs {
+		t, err := time.Parse("2006-01-02 15:04:05,999", log["time"])
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+		originLog := map[string]string{}
+		for key, val := range log {
+			if val == "null" || val == "-" || val == "" {
+				continue
+			}
+			if strings.HasSuffix(key, "_0") {
+				continue
+			}
+			originLog[key] = val
+		}
+		results = append(results, TracebackDetail{
+			ExcInfo:   log["exc_info"],
+			Msg:       log["msg"],
+			TraceId:   log["trace_id"],
+			Time:      t,
+			UserId:    log["user_id"],
+			OriginLog: originLog,
+		})
+	}
+	return results, nil
 }

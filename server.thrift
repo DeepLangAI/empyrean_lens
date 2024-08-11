@@ -22,6 +22,7 @@ struct DailyScoreRespData {
     5: double fail_rate
     6: double slow_rate
     7: double probe_fail_rate
+    8: i32 num_traceback
 }
 
 struct DailyScoreResp {
@@ -204,6 +205,26 @@ struct EndToEndTraceRespData{
     11: string channel
     12: map<string, string> origin_log
 }
+# Traceback日志
+struct TracebackReq{
+    1: string date_begin
+    2: string date_end
+}
+
+struct TracebackResp{
+    1: i32 code
+    2: string msg
+    3: list<TracebackRespData> data
+}
+
+struct TracebackRespData{
+    1: string exc_info
+    2: string msg
+    3: string trace_id
+    4: string user_id
+    5: string time
+    6: map<string, string> origin_log
+}
 
 # 刷新缓存数据库
 struct DbRefreshReq{
@@ -315,6 +336,10 @@ service Rentention{
    // 全链路日志
    EndToEndTraceResp SystemEndToEndTraceLogs(1: EndToEndTraceReq req) (
        api.get="/api/v1/report/trace/list"
+   )
+   // Traceback日志列表
+   TracebackResp SysteTracebackLogs(1: TracebackReq req) (
+       api.get="/api/v1/report/traceback/list"
    )
 
    // 用于提供缓存数据库接口

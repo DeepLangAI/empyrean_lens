@@ -577,3 +577,46 @@ func EndToEndLogsQuery(ctx context.Context, traceId, date string) ([]EntToEndLog
 	})
 	return results, nil
 }
+
+func TracebackQueryOfTimespan(ctx context.Context, timespan int) []TracebackDetail {
+	days := []int{}
+	if timespan == consts.TIMESPAN_TODAY {
+		days = append(days, 0)
+	} else if timespan == consts.TIMESPAN_WEEK {
+		for i := 0; i < 7; i++ {
+			days = append(days, i)
+		}
+	} else if timespan == consts.TIMESPAN_MONTH {
+		for i := 0; i < 30; i++ {
+			days = append(days, i)
+		}
+	}
+
+	return TracebackQueryOfDays(ctx, days)
+}
+
+func TracebackQueryOfDays(ctx context.Context, days []int) []TracebackDetail {
+	var mutex sync.Mutex
+	wg := sync.WaitGroup{}
+
+	results := []TracebackDetail{}
+	for _, day := range days {
+		wg.Add(1)
+		go func(lookbackDay int) {
+			defer wg.Done()
+			logs, err := TracebackQuery(ctx, lookbackDay)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "err: %v", err)
+				return
+			}
+			mutex.Lock()
+			results = append(results, logs...)
+			mutex.Unlock()
+		}(day)
+	}
+	wg.Wait()
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Time.Unix() > results[j].Time.Unix()
+	})
+	return results
+}

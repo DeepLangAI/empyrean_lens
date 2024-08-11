@@ -583,6 +583,10 @@
                                     <th>探针错误率</th>
                                     <td class="clickable" onclick="handleProbeList()">{4}%</td>
                                 </tr>
+                                <tr>
+                                    <th>Traceback数量</th>
+                                    <td class="clickable" onclick="handleTracebackList()">{5}</td>
+                                </tr>
                             </thead>
                         </table>
                     </div>
@@ -607,6 +611,10 @@
                     <div id="全链路日志列表">
                         <div id="全链路日志列表-table"></div>
                     </div>
+
+                    <div id="Traceback日志列表">
+                        <div id="Traceback日志列表-table"></div>
+                    </div>
                 </div>
             `.format(
                 detail.date,
@@ -614,6 +622,7 @@
                 detail.fail_rate.toFixed(2),
                 detail.slow_rate.toFixed(2),
                 detail.probe_fail_rate.toFixed(2),
+                detail.num_traceback,
             ),
             showConfirmButton: false,
             customClass: {
@@ -628,6 +637,68 @@
             },
         });
     }
+    function handleTracebackList(){
+        const date = $('#date').text()
+        modifySidebar()
+        $('#' + menus[menus.length - 1]).hide()
+        menus.push('Traceback日志列表')
+        var container = $('#Traceback日志列表')
+        container.show()
+        container.find('h3').remove()
+        var table = $('#Traceback日志列表-table')
+        table.before(`<h3 >
+                日期：{0}
+            </h3>`.format(date)
+        )
+        axios.get('/api/v1/report/traceback/list', {
+            params:{
+                date_begin: date,
+            }
+        }).then(response => {
+            console.log('response', response.data)
+            for (var i = 0; i < response.data.data.length; i++){
+                const log = response.data.data[i].origin_log
+
+                const logContainer = $('<div>').addClass('log-container');
+                const logId = $('<div>').addClass('log-id').text(i + 1);
+                const logTime = $('<div>').addClass('log-time').text(log.time.slice(11, 19));
+                const logDetails = $('<div>').addClass('log-details');
+                const logDetailsHeader = $('<div>').addClass('log-details-header');
+                const logDetailsBody = $('<div>').addClass('log-details-body');
+                for (var key in log){
+                    if (key.startsWith("_")) {
+                        logDetailsHeader.append(
+                            $("<span>")
+                                .attr("data-field-name", key)
+                                .text(log[key])
+                        );
+                    } else {
+                        var p = $("<p>")
+                            .append($("<span>").text(key + ":"))
+                            .append(log[key])
+                        if (key == 'trace_id' && traceIdLegal(log[key])){
+                            p.addClass('clickable')
+                                .click(()=>{
+                                    console.log('clicked!')
+                                    handleEndToEndTraceLogs(log["trace_id"], date)
+                                })
+                        }
+
+                        logDetailsBody.append(p);
+                    }
+                }
+
+                logDetails.append(logDetailsHeader, logDetailsBody);
+                logContainer.append(logId, logTime, logDetails);
+                table.append(logContainer);
+            }
+
+        }).catch(error => {
+            console.error(error);
+        })
+    }
+
+
     function handleProbeList(){
         menus.push('探针列表')
         modifySidebar()
@@ -1122,17 +1193,6 @@
 
             const table = $('#探针日志详情-table');
             table.empty()
-            // const rowhead = `
-            //     <tr>
-            //         <th>时间</th>
-            //         <th>主机地址</th>
-            //         <th>接口名称</th>
-            //         <th>HTTP响应码</th>
-            //         <th>trace_id</th>
-            //         <th>user_id</th>
-            //     </tr>
-            // `
-            // table.append(rowhead)
             const tbody = $('<tbody>');
             for (var i = 0; i < response.data.data.length; i++){
                 const log = response.data.data[i]

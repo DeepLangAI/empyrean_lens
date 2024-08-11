@@ -59,6 +59,10 @@ func Register(r *server.Hertz) {
 					_trace := _report.Group("/trace", _traceMw()...)
 					_trace.GET("/list", append(_systemendtoendtracelogsMw(), empyrean_lens.SystemEndToEndTraceLogs)...)
 				}
+				{
+					_traceback := _report.Group("/traceback", _tracebackMw()...)
+					_traceback.GET("/list", append(_systetracebacklogsMw(), empyrean_lens.SysteTracebackLogs)...)
+				}
 			}
 		}
 	}

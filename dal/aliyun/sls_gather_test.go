@@ -485,3 +485,17 @@ func TestEndToEndLogsQuery(t *testing.T) {
 		}
 	}
 }
+
+func TestTracebackQueryOfTimespan(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	timespan := TracebackQueryOfTimespan(ctx, consts.TIMESPAN_WEEK)
+	fmt.Println(timespan)
+}
+
+func TestTracebackQueryOfDays(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+	logs := TracebackQueryOfDays(ctx, []int{1})
+	fmt.Println(logs)
+}

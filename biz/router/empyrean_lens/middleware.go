@@ -135,3 +135,13 @@ func _systemprobelogdetailMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _systetracebacklogsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _tracebackMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

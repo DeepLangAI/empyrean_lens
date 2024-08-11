@@ -173,23 +173,24 @@ func SystemDailyScore(ctx context.Context, c *app.RequestContext) {
 		c.String(consts.StatusBadRequest, err.Error())
 		return
 	}
-	details, err := empyrean_lens2.FindScoreDetails(ctx, req.StartTime, req.EndTime)
+	data, err := empyrean_lens2.ScoreRelatedDetailQuery(ctx, req)
+	//details, err := empyrean_lens2.FindScoreDetails(ctx, req.StartTime, req.EndTime)
 	if err != nil {
 		c.String(consts.StatusBadRequest, err.Error())
 		return
 	}
 
-	data := []*empyrean_lens.DailyScoreRespData{}
-	for _, d := range details {
-		date := d.Date.Format("2006-01-02")
-		data = append(data, &empyrean_lens.DailyScoreRespData{
-			Date:          date,
-			Score:         int32(d.Score),
-			FailRate:      d.FailRate,
-			SlowRate:      d.SlowRate,
-			ProbeFailRate: d.ProbeFailRate,
-		})
-	}
+	//data := []*empyrean_lens.DailyScoreRespData{}
+	//for _, d := range details {
+	//	date := d.Date.Format("2006-01-02")
+	//	data = append(data, &empyrean_lens.DailyScoreRespData{
+	//		Date:          date,
+	//		Score:         int32(d.Score),
+	//		FailRate:      d.FailRate,
+	//		SlowRate:      d.SlowRate,
+	//		ProbeFailRate: d.ProbeFailRate,
+	//	})
+	//}
 	resp := new(empyrean_lens.DailyScoreResp)
 	resp.Msg = "success"
 	resp.Code = 0
@@ -489,5 +490,27 @@ func SystemProbeLogDetail(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	resp.Data = detail
+	base.SuccessResponse(c, resp)
+}
+
+// SysteTracebackLogs .
+// @router /api/v1/report/traceback/list [GET]
+func SysteTracebackLogs(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.TracebackReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	resp := new(empyrean_lens.TracebackResp)
+	data, err := empyrean_lens2.SystemTracebackQuery(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+	resp.Data = data
 	base.SuccessResponse(c, resp)
 }

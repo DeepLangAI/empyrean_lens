@@ -190,6 +190,10 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 	if err != nil {
 		return err
 	}
+	tracebackLogs := aliyun.TracebackQueryOfTimespan(ctx, timespan)
+	if err != nil {
+		return err
+	}
 
 	if timespan == consts.TIMESPAN_LONGTIME {
 		if err := empyrean_lens.NewApifailureModelDao().DropTable(ctx); err != nil {
@@ -202,6 +206,9 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 			return err
 		}
 		if err := empyrean_lens.NewSceneModelDao().DropTable(ctx); err != nil {
+			return err
+		}
+		if err := empyrean_lens.NewTracebackLogModelDao().DropTable(ctx); err != nil {
 			return err
 		}
 	} else if rm {
@@ -282,17 +289,6 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 
 	for _, report := range scoreOverview {
 		dao := empyrean_lens.NewSystemScoreDao()
-		//date, err := time.Parse("2006-01-02", report.Date)
-		//if err != nil {
-		//	return err
-		//}
-		//model := empyrean_lens.SystemScoreModel{
-		//	Date:       date,
-		//	Score:      report.Score,
-		//	Status:     consts.StatusValid,
-		//	CreateTime: time.Now(),
-		//	UpdateTime: time.Now(),
-		//}
 		if err := dao.CreateOrUpdate(ctx, report.Date, report); err != nil {
 			return err
 		}
@@ -320,6 +316,23 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 			if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
 				return err
 			}
+		}
+	}
+	for _, log := range tracebackLogs {
+		model := empyrean_lens.TracebackLogModel{
+			ExcInfo:   log.ExcInfo,
+			Msg:       log.Msg,
+			TraceId:   log.TraceId,
+			UserId:    log.UserId,
+			Time:      log.Time,
+			OriginLog: log.OriginLog,
+
+			Status:     consts.StatusValid,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := empyrean_lens.NewTracebackLogModelDao().Save(ctx, model); err != nil {
+			return err
 		}
 	}
 	return nil

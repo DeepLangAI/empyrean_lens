@@ -663,31 +663,83 @@
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
-                const row = `
-                    <tr>
-<!--                        <td>{0}</td>-->
-                        <td>{0}</td>
-                        <td class="clickable" onclick="handleProbeLogDetail('{0}',false,false,'{9}')">{1}</td>
-                        <td class="clickable" onclick="handleProbeLogDetail('{0}',false,true,'{9}')">{2}</td>
-                        <td class="clickable" onclick="handleProbeLogDetail('{0}',true,false,'{9}')">{3}</td>
-                        <td>{4}</td>
-                        <td style="background: {7}">{5}%</td>
-                        <td style="background: {8}">{6}%</td>
-                    </tr>
-                `.format(
-                    // response.data.data[i].date,
-                    response.data.data[i].scene,
-                    response.data.data[i].num_total_req,
-                    response.data.data[i].num_total_req - response.data.data[i].num_success_req,
-                    response.data.data[i].num_total_req - response.data.data[i].num_correct_req,
-                    response.data.data[i].avg_cost.toFixed(2),
-                    (response.data.data[i].num_success_req / response.data.data[i].num_total_req * 100).toFixed(2),
-                    (response.data.data[i].num_correct_req / response.data.data[i].num_total_req * 100).toFixed(2),
-                    getColor(100 * (1 - response.data.data[i].num_success_req / response.data.data[i].num_total_req)),
-                    getColor(100 * (1 - response.data.data[i].num_correct_req / response.data.data[i].num_total_req)),
-                    date,
-                );
-                table.append(row);
+                const item = response.data.data[i];
+                const $row = $('<tr>');
+
+                // $row.append($('<td>').text(response.data.data[i].date));
+                $row.append($('<td>').text(item.scene));
+                var $total = $('<td>')
+                    .addClass('clickable')
+                    .text(item.num_total_req)
+                    .on('click', function() {
+                        handleProbeLogDetail(item.scene, false, false, date);
+                    })
+                $row.append($total);
+
+                var $fail = $('<td>')
+                    .text(item.num_total_req - item.num_success_req)
+                if (item.num_total_req - item.num_success_req) {
+                    $fail
+                        .addClass('clickable')
+                        .on('click', function() {
+                            handleProbeLogDetail(item.scene, false, true, date);
+                        });
+                }
+                $row.append($fail)
+
+                var $incorrect = $('<td>')
+                    .text(item.num_total_req - item.num_correct_req)
+                if (item.num_total_req - item.num_correct_req > 0) {
+                    $incorrect
+                        .addClass('clickable')
+                        .on('click', function() {
+                            handleProbeLogDetail(item.scene, true, false, date);
+                        });
+                }
+                $row.append($incorrect)
+
+                $row.append($('<td>').text(item.avg_cost.toFixed(2)));
+
+                const successRate = (item.num_success_req / item.num_total_req * 100).toFixed(2);
+                const correctRate = (item.num_correct_req / item.num_total_req * 100).toFixed(2);
+                const failureRate = (1 - item.num_success_req / item.num_total_req) * 100;
+                const incorrectRate = (1 - item.num_correct_req / item.num_total_req) * 100;
+
+                $row.append($('<td>')
+                    .css('background', getColor(failureRate))
+                    .text(successRate + '%'));
+
+                $row.append($('<td>')
+                    .css('background', getColor(incorrectRate))
+                    .text(correctRate + '%'));
+
+                table.append($row);
+
+//                 const row = `
+//                     <tr>
+// <!--                        <td>{0}</td>-->
+//                         <td>{0}</td>
+//                         <td class="clickable" onclick="handleProbeLogDetail('{0}',false,false,'{9}')">{1}</td>
+//                         <td class="clickable" onclick="handleProbeLogDetail('{0}',false,true,'{9}')">{2}</td>
+//                         <td class="clickable" onclick="handleProbeLogDetail('{0}',true,false,'{9}')">{3}</td>
+//                         <td>{4}</td>
+//                         <td style="background: {7}">{5}%</td>
+//                         <td style="background: {8}">{6}%</td>
+//                     </tr>
+//                 `.format(
+//                     // response.data.data[i].date,
+//                     response.data.data[i].scene,
+//                     response.data.data[i].num_total_req,
+//                     response.data.data[i].num_total_req - response.data.data[i].num_success_req,
+//                     response.data.data[i].num_total_req - response.data.data[i].num_correct_req,
+//                     response.data.data[i].avg_cost.toFixed(2),
+//                     (response.data.data[i].num_success_req / response.data.data[i].num_total_req * 100).toFixed(2),
+//                     (response.data.data[i].num_correct_req / response.data.data[i].num_total_req * 100).toFixed(2),
+//                     getColor(100 * (1 - response.data.data[i].num_success_req / response.data.data[i].num_total_req)),
+//                     getColor(100 * (1 - response.data.data[i].num_correct_req / response.data.data[i].num_total_req)),
+//                     date,
+//                 );
+//                 table.append(row);
             }
 
         }).catch(error =>{

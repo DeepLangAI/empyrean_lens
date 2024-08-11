@@ -48,6 +48,7 @@ func Register(r *server.Hertz) {
 				}
 				{
 					_probe := _report.Group("/probe", _probeMw()...)
+					_probe.GET("/detail", append(_systemprobelogdetailMw(), empyrean_lens.SystemProbeLogDetail)...)
 					_probe.GET("/list", append(_systemdailyapicostMw(), empyrean_lens.SystemDailyApiCost)...)
 				}
 				{

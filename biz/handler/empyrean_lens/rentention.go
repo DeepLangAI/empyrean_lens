@@ -387,6 +387,8 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 		if e != nil {
 			continue
 		}
+		slowDetails := []string{}
+		utils.JSONUnMarshal([]byte(r["SlowDetails"]), &slowDetails)
 		data = append(data, &empyrean_lens.ApiSlowInfoRespData{
 			Date:        r["Date"],
 			NumTotalReq: int32(total),
@@ -395,6 +397,7 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 			Host:        "",
 			APIName:     r["Scene"],
 			NumErrorReq: int32(errCnt),
+			SlowDetails: slowDetails,
 		})
 	}
 	resp.Data = data
@@ -464,5 +467,27 @@ func SystemEndToEndTraceLogs(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	resp.Data = data
+	base.SuccessResponse(c, resp)
+}
+
+// SystemProbeLogDetail .
+// @router /api/v1/report/probe/detail [GET]
+func SystemProbeLogDetail(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.ProbeLogDetailReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	resp := new(empyrean_lens.ProbeLogDetailResp)
+	detail, err := empyrean_lens2.ProbeDetail(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+	resp.Data = detail
 	base.SuccessResponse(c, resp)
 }

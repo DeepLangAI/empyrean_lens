@@ -3,6 +3,7 @@ package empyrean_lens
 import (
 	"context"
 	el "empyrean_lens/dal/mongo/empyrean_lens"
+	"empyrean_lens/utils"
 	"fmt"
 	"sort"
 	"time"
@@ -35,14 +36,15 @@ func SceneResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]map[strin
 			failReason = model.FailReason
 		}
 		result := map[string]string{
-			"Date":       model.Date.Format("2006-01-02"),
-			"Scene":      model.Scene,
-			"TotalCnt":   fmt.Sprintf("%v", model.TotalCnt),
-			"FailCnt":    fmt.Sprintf("%v", model.FailCnt),
-			"FailReason": fmt.Sprintf("%v", failReason),
-			"SlowCnt":    fmt.Sprintf("%v", model.SlowCnt),
-			"FailRate":   fmt.Sprintf("%.2f", failRate),
-			"SlowRate":   fmt.Sprintf("%.2f", slowRate),
+			"Date":        model.Date.Format("2006-01-02"),
+			"Scene":       model.Scene,
+			"TotalCnt":    fmt.Sprintf("%v", model.TotalCnt),
+			"FailCnt":     fmt.Sprintf("%v", model.FailCnt),
+			"FailReason":  fmt.Sprintf("%v", failReason),
+			"SlowCnt":     fmt.Sprintf("%v", model.SlowCnt),
+			"FailRate":    fmt.Sprintf("%.2f", failRate),
+			"SlowRate":    fmt.Sprintf("%.2f", slowRate),
+			"SlowDetails": utils.JSONMarshal(model.SlowDetails),
 		}
 		results = append(results, result)
 	}

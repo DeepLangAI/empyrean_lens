@@ -47,3 +47,24 @@ func TestProbeListInfo(t *testing.T) {
 		fmt.Println(r)
 	}
 }
+
+func TestProbeDetail(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	dal.Init()
+	req := empyrean_lens.ProbeLogDetailReq{
+		DateBegin:  "2024-08-06",
+		DateEnd:    "",
+		Scene:      "",
+		NotCorrect: false,
+		NotSuccess: true,
+	}
+	detail, err := ProbeDetail(ctx, req)
+	if err != nil {
+		t.Errorf("ProbeDetail err: %v", err)
+	}
+	for _, r := range detail {
+		fmt.Println(r)
+	}
+
+}

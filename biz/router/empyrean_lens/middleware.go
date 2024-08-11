@@ -130,3 +130,8 @@ func _traceMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _systemprobelogdetailMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

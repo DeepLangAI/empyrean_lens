@@ -239,9 +239,10 @@ type SceneOverview struct {
 	FailReq  int64
 	SlowReq  int64
 
-	FailRate   float64
-	SlowRate   float64
-	FailReason string
+	FailRate    float64
+	SlowRate    float64
+	FailReason  string
+	SlowDetails []string // 慢查询的详细信息, list of jsonString
 }
 
 type SceneOverviews struct {
@@ -325,6 +326,9 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	for _, log := range coreLogs {
 		if log.Node == consts.ALIYUN_LOG_NODE_VIEWPOINT_ETE_COST {
 			viewpointOverview.Costs = append(viewpointOverview.Costs, log.Cost)
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_VIEWPOINT {
+				viewpointOverview.SlowDetails = append(viewpointOverview.SlowDetails, utils.JSONMarshal(log))
+			}
 		}
 	}
 
@@ -332,6 +336,9 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	for _, log := range abstractLogs {
 		if log.Node == consts.ALIYUN_LOG_NODE_ABSTRACT_ETE_COST {
 			abstractOverview.Costs = append(abstractOverview.Costs, log.Cost)
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_ABSTRACT {
+				abstractOverview.SlowDetails = append(abstractOverview.SlowDetails, utils.JSONMarshal(log))
+			}
 		}
 	}
 
@@ -339,20 +346,18 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	for _, log := range outlineLogs {
 		if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST {
 			outlineOverview.Costs = append(outlineOverview.Costs, log.Cost)
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_OUTLINE {
+				outlineOverview.SlowDetails = append(outlineOverview.SlowDetails, utils.JSONMarshal(log))
+			}
 		}
 	}
 
-	//qaLogs, err := NginxIngressBasicQuery(ctx, daysLookback, consts.HOST_QA_BACKEND)
 	chatCoreErrLogs, err := LingoChatCoreErrorLogs(ctx, daysLookback)
 	for _, log := range chatCoreErrLogs {
 		if log.CoreName == consts.CORE_NAME_CHAT {
 			qaOverview.FailReq += 1
 			qaOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
 		}
-		//} else if log.CoreName == consts.CORE_NAME_CHAT_RECOMMEND {
-		//	qaRecommendOverview.FailReq += 1
-		//	qaRecommendOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
-		//}
 	}
 	qaOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(qaOverview.FailReason, "\t"))), "、")
 
@@ -361,12 +366,13 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	for _, log := range recommendLogs {
 		if log.Status == consts.StatusSuccess {
 			qaRecommendOverview.Costs = append(qaRecommendOverview.Costs, log.Cost)
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND {
+				qaRecommendOverview.SlowDetails = append(qaRecommendOverview.SlowDetails, utils.JSONMarshal(log))
+			}
 		}
 	}
 	qaRecommendOverview.TotalReq = int64(len(recommendLogs))
 	qaRecommendOverview.FailReq = recommendFailCnt
-
-	//qaRecommendOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(qaRecommendOverview.FailReason, "\t"))), "、")
 
 	apis := []string{}
 	for _, val := range consts.NGINX_INGRESS_APIS[consts.HOST_QA_BACKEND] {
@@ -378,14 +384,11 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 			qaOverview.TotalReq += 1
 			if log.Status == "200" {
 				qaOverview.Costs = append(qaOverview.Costs, log.Cost)
+				if log.Cost > consts.SLOWQUERY_THRESHOLD_QA {
+					qaOverview.SlowDetails = append(qaOverview.SlowDetails, utils.JSONMarshal(log))
+				}
 			}
 		}
-		//else if log.CleanUrl == "/api/chat/recommend" {
-		//	qaRecommendOverview.TotalReq += 1
-		//	if log.Status == "200" {
-		//		qaRecommendOverview.Costs = append(qaRecommendOverview.Costs, log.Cost)
-		//	}
-		//}
 	}
 
 	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT, false)
@@ -440,12 +443,24 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, 
 	for _, log := range logs {
 		if log.Node == consts.ALIYUN_LOG_NODE_MULTI_ALL_SUCCESS {
 			ov_multi_ete.Costs = append(ov_multi_ete.Costs, log.Cost)
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_MULTI_ETE {
+				ov_multi_ete.SlowDetails = append(ov_multi_ete.SlowDetails, utils.JSONMarshal(log))
+			}
 		} else if log.Node == consts.ALIYUN_LOG_NODE_THEME_ALL_SUMMARY {
 			ov_multi_summary.Costs = append(ov_multi_summary.Costs, log.Cost)
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_MULTI_SUMMARY {
+				ov_multi_summary.SlowDetails = append(ov_multi_summary.SlowDetails, utils.JSONMarshal(log))
+			}
 		} else if log.Node == consts.ALIYUN_LOG_NODE_ANALYSIS_ALL {
 			ov_multi_analysis.Costs = append(ov_multi_analysis.Costs, log.Cost)
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_MULTI_ANALYSIS {
+				ov_multi_analysis.SlowDetails = append(ov_multi_analysis.SlowDetails, utils.JSONMarshal(log))
+			}
 		} else if log.Node == consts.ALIYUN_LOG_NODE_MERGE {
 			ov_multi_merge.Costs = append(ov_multi_merge.Costs, log.Cost)
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_MULTI_MERGE {
+				ov_multi_merge.SlowDetails = append(ov_multi_merge.SlowDetails, utils.JSONMarshal(log))
+			}
 		}
 	}
 	ov_multi_analysis.TotalReq = ov_multi_upload.TotalReq - ov_multi_upload.FailReq

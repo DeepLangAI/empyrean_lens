@@ -595,8 +595,14 @@
                     <div id="慢查询列表">
                         <table id="慢查询列表-table" class="table-container" ></table>
                     </div>
+                    <div id="慢查询详情">
+                        <table id="慢查询详情-table" class="table-container" ></table>
+                    </div>
                     <div id="探针列表">
                         <table id="探针列表-table" class="table-container" ></table>
+                    </div>
+                    <div id="探针日志详情">
+                        <table id="探针日志详情-table" class="table-container" ></table>
                     </div>
                     <div id="全链路日志列表">
                         <div id="全链路日志列表-table"></div>
@@ -661,9 +667,9 @@
                     <tr>
 <!--                        <td>{0}</td>-->
                         <td>{0}</td>
-                        <td>{1}</td>
-                        <td>{2}</td>
-                        <td>{3}</td>
+                        <td class="clickable" onclick="handleProbeLogDetail('{0}',false,false,'{9}')">{1}</td>
+                        <td class="clickable" onclick="handleProbeLogDetail('{0}',false,true,'{9}')">{2}</td>
+                        <td class="clickable" onclick="handleProbeLogDetail('{0}',true,false,'{9}')">{3}</td>
                         <td>{4}</td>
                         <td style="background: {7}">{5}%</td>
                         <td style="background: {8}">{6}%</td>
@@ -679,6 +685,7 @@
                     (response.data.data[i].num_correct_req / response.data.data[i].num_total_req * 100).toFixed(2),
                     getColor(100 * (1 - response.data.data[i].num_success_req / response.data.data[i].num_total_req)),
                     getColor(100 * (1 - response.data.data[i].num_correct_req / response.data.data[i].num_total_req)),
+                    date,
                 );
                 table.append(row);
             }
@@ -686,6 +693,52 @@
         }).catch(error =>{
             console.log('error fetching fail list', error)
         })
+    }
+
+    function handleSlowDetail(details, date){
+        modifySidebar()
+        $('#' + menus[menus.length - 1]).hide()
+        menus.push('慢查询详情')
+
+        container = $('#慢查询详情')
+        container.show();
+        container.find('h3').remove();
+
+        const table = $('#慢查询详情-table');
+        table.empty()
+        table.before(`<h3 >
+                日期：{0}
+            </h3>`.format(date))
+
+        for (let i = 0; i < details.length; i++) {
+            const log = details[i]
+            console.log(log)
+            const logContainer = $('<div>').addClass('log-container');
+            const logId = $('<div>').addClass('log-id').text(i + 1);
+            const logTime = $('<div>').addClass('log-time').text(log.Time.slice(11, 19));
+            const logDetails = $('<div>').addClass('log-details');
+            const logDetailsHeader = $('<div>').addClass('log-details-header');
+            const logDetailsBody = $('<div>').addClass('log-details-body');
+            for (const key of ['Status']){
+                delete log[key]
+            }
+            for (var key in log){
+                const p = $('<p>')
+                    .append($("<span>").text(key + ":"))
+                    .append(log[key])
+                if (key == 'TraceId' && traceIdLegal(log[key])){
+                    p.addClass('clickable').click(()=>{
+                        // console.log(key, log[key], log['TraceId'], date)
+                        handleEndToEndTraceLogs(log['TraceId'], date)
+                    })
+                }
+
+                logDetailsBody.append(p)
+            }
+            logDetails.append(logDetailsHeader, logDetailsBody);
+            logContainer.append(logId, logTime, logDetails);
+            table.append(logContainer);
+        }
     }
 
     function handleSlowList(){
@@ -702,9 +755,11 @@
         }).then(response =>{
             console.log('response', response.data)
             // 获取$('#慢查询列表-table')元素
+            const container = $('#慢查询列表');
             const table = $('#慢查询列表-table');
+            container.find('h3').remove()
             table.empty()
-            table.append(`<h3 >
+            table.before(`<h3 >
                 日期：{0}
             </h3>`.format(date))
             // rowhead
@@ -723,23 +778,47 @@
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
-                const row = `
-                    <tr>
-<!--                        <td>{0}</td>-->
-                        <td>{0}</td>
-                        <td>{1}</td>
-                        <td>{2}</td>
-                        <td style="background: {4}">{3}%</td>
-                    </tr>
-                `.format(
-                    // response.data.data[i].date,
-                    response.data.data[i].api_name,
-                    response.data.data[i].num_total_req,
-                    response.data.data[i].num_slow_req,
-                    (response.data.data[i].num_slow_req / response.data.data[i].num_total_req * 100).toFixed(2),
-                    getColor((response.data.data[i].num_slow_req / response.data.data[i].num_total_req * 100).toFixed(2)),
-                );
-                table.append(row);
+                const item = response.data.data[i]
+                const $row = $('<tr>');
+                // $row.append($('<td>').text(item.date));
+                $row.append($('<td>').text(item.api_name));
+                $row.append($('<td>').text(item.num_total_req));
+                slowReqTd = $('<td>').text(item.num_slow_req);
+                if (item.num_slow_req > 0){
+                    slowDetails = []
+                    for (let j = 0; j < item.slow_details.length; j++) {
+                        slowDetails.push(JSON.parse(item.slow_details[j]))
+                    }
+                    slowReqTd.addClass('clickable').on('click', function(){
+                        handleSlowDetail(slowDetails, date)
+                        // handleProbeLogDetail(item.api_name, false, true, date)
+                    })
+                }
+                $row.append(slowReqTd);
+
+                const slowReqPercentage = ((item.num_slow_req / item.num_total_req) * 100).toFixed(2);
+                const color = getColor(slowReqPercentage);
+                $row.append($('<td>').css('background', color).text(slowReqPercentage + '%'));
+
+                table.append($row);
+
+//                 const row = `
+//                     <tr>
+// <!--                        <td>{0}</td>-->
+//                         <td>{0}</td>
+//                         <td>{1}</td>
+//                         <td>{2}</td>
+//                         <td style="background: {4}">{3}%</td>
+//                     </tr>
+//                 `.format(
+//                     // response.data.data[i].date,
+//                     response.data.data[i].api_name,
+//                     response.data.data[i].num_total_req,
+//                     response.data.data[i].num_slow_req,
+//                     (response.data.data[i].num_slow_req / response.data.data[i].num_total_req * 100).toFixed(2),
+//                     getColor((response.data.data[i].num_slow_req / response.data.data[i].num_total_req * 100).toFixed(2)),
+//                 );
+//                 table.append(row);
             }
 
         }).catch(error =>{
@@ -763,11 +842,13 @@
         }).then(response =>{
             console.log('response', response.data)
             // 获取$('#接口错误列表-table')元素
+            const container = $('#接口错误列表');
             const table = $('#接口错误列表-table');
+            container.find('h3').remove()
             table.empty()
-            table.append(`<h2 >
+            table.before(`<h3 >
                 日期：{0}
-            </h2>`.format(date))
+            </h3>`.format(date))
             // rowhead
             const rowhead = `
                 <tr>
@@ -846,9 +927,9 @@
 
             const table = $('#接口错误详情-table');
             table.empty()
-            table.append(`<h2 >
+            table.append(`<h3 >
                 日期：{0}
-            </h2>`.format(date))
+            </h3>`.format(date))
             // rowhead
             const rowhead = `
                 <tr>
@@ -864,29 +945,26 @@
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
-                const row = `
-                    <tr>
-                        <td>{0}</td>
-                        <td>{1}</td>
-                        <td>{2}</td>
-                        <td class="clickable" onclick="handleEndToEndTraceLogs('{5}','{6}')">{3}</td>
-                        <td>{4}</td>
-                    </tr>
-                `.format(
-                    response.data.data[i].host,
-                    response.data.data[i].path,
-                    response.data.data[i].http_code,
-                    response.data.data[i].trace_id,
-                    response.data.data[i].user_id,
-                    response.data.data[i].trace_id,
-                    date,
-                );
-                table.append(row);
-                hideLoadingStatus()
+                var tr = $('<tr>')
+                tr.append($('<td>').text(response.data.data[i].host))
+                tr.append($('<td>').text(response.data.data[i].path))
+                tr.append($('<td>').text(response.data.data[i].http_code))
+                var td = $('<td>').text(response.data.data[i].trace_id)
+                if (traceIdLegal(response.data.data[i].trace_id)){
+                    td.addClass('clickable')
+                        .click(function(){
+                            handleEndToEndTraceLogs(response.data.data[i].trace_id, date)
+                        })
+                }
+                tr.append(td)
+                tr.append($('<td>').text(response.data.data[i].user_id))
+                table.append(tr)
             }
             setGridColor()
         }).catch(error => {
             console.log('error fetching fail list', error)
+        }).finally(() => {
+            hideLoadingStatus()
         })
 
     }
@@ -917,13 +995,13 @@
             modifySidebar()
             container = $('#全链路日志列表')
             container.show();
-            container.find('h2').remove();
+            container.find('h3').remove();
 
             const table = $('#全链路日志列表-table');
             table.empty()
-            table.before(`<h2 >
+            table.before(`<h3 >
                 日期：{0}
-            </h2>`.format(date))
+            </h3>`.format(date))
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
@@ -960,13 +1038,95 @@
                 logContainer.append(logId, logTime, logDetails);
                 table.append(logContainer);
 
-                hideLoadingStatus()
             }
             setGridColor()
         }).catch(error => {
             console.log('error fetching fail list', error)
+        }).finally(() => {
+            hideLoadingStatus()
         })
 
+    }
+
+    function traceIdLegal(traceId){
+        if (traceId == "" || traceId == "-" || traceId == "null"){
+            return false
+        }
+        return true
+    }
+    function handleProbeLogDetail(scene, notCorrect, notSuccess, date){
+        axios.get('/api/v1/report/probe/detail', {
+            params: {
+                date_begin: date,
+                scene: scene,
+                not_correct: notCorrect,
+                not_success: notSuccess,
+            }
+        }).then(response => {
+            console.log(response.data)
+            $('#' + menus[menus.length - 1]).hide()
+            menus.push('探针日志详情')
+            modifySidebar()
+
+            const table = $('#探针日志详情-table');
+            table.empty()
+            // const rowhead = `
+            //     <tr>
+            //         <th>时间</th>
+            //         <th>主机地址</th>
+            //         <th>接口名称</th>
+            //         <th>HTTP响应码</th>
+            //         <th>trace_id</th>
+            //         <th>user_id</th>
+            //     </tr>
+            // `
+            // table.append(rowhead)
+            const tbody = $('<tbody>');
+            for (var i = 0; i < response.data.data.length; i++){
+                const log = response.data.data[i]
+
+                const logContainer = $('<div>').addClass('log-container');
+                const logId = $('<div>').addClass('log-id').text(i + 1);
+                const logTime = $('<div>').addClass('log-time').text(log.time.slice(11, 19));
+                const logDetails = $('<div>').addClass('log-details');
+                const logDetailsHeader = $('<div>').addClass('log-details-header');
+                const logDetailsBody = $('<div>').addClass('log-details-body');
+                logDetailsHeader.append(
+                    $("<span>")
+                        .attr("data-field-name", '日志来源')
+                        .text(log.data_source == 0 ? "API探针": "UI探针")
+                );
+                logDetailsHeader.append(
+                    $("<span>")
+                        .attr("data-field-name", '响应是否成功')
+                        .text(log.success? "响应成功": "响应失败")
+                );
+                logDetailsHeader.append(
+                    $("<span>")
+                        .attr("data-field-name", '内容是否正确')
+                        .text(log.correct? "内容正确": "内容错误")
+                );
+                for (var key in log){
+                    var p = $("<p>")
+                        .append($("<span>").text(key + ":"))
+                        .append(log[key])
+                    if (key == 'trace_id' && traceIdLegal(log[key])){
+                        p.addClass('clickable')
+                            .click(()=>{
+                                console.log('clicked!')
+                                handleEndToEndTraceLogs(log[key], date)
+                            })
+                    }
+                    logDetailsBody.append( p );
+                }
+                logDetails.append(logDetailsHeader, logDetailsBody);
+                logContainer.append(logId, logTime, logDetails);
+                table.append(logContainer);
+            }
+
+        }).catch(error => {
+            console.log('error fetching fail list', error)
+        })
     }
 
     function paginateTable(tableId, rowsPerPage, paginationId) {

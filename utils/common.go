@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -172,4 +173,15 @@ func Sum(arr []float64) float64 {
 		sum += v
 	}
 	return sum
+}
+
+func StructToMap(v interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	value := reflect.ValueOf(v)
+	if value.Kind() == reflect.Struct {
+		for i := 0; i < value.NumField(); i++ {
+			result[value.Type().Field(i).Name] = value.Field(i).Interface()
+		}
+	}
+	return result
 }

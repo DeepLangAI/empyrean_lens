@@ -182,3 +182,51 @@ func ProbeListInfo(ctx context.Context, req empyrean_lens.ApiProbeReq) ([]*empyr
 	})
 	return results, err
 }
+
+func ProbeDetail(ctx context.Context, req empyrean_lens.ProbeLogDetailReq) ([]*empyrean_lens.ProbeLogDetailRespData, error) {
+	data := []*empyrean_lens.ProbeLogDetailRespData{}
+	dateBegin, err := time.Parse("2006-01-02", req.DateBegin)
+	dateEnd := dateBegin.AddDate(0, 0, 1)
+	if req.DateEnd != "" {
+		dateEnd, err = time.Parse("2006-01-02", req.DateEnd)
+	}
+	if err != nil {
+		if err != nil {
+			return nil, err
+		}
+	}
+	dao := el.NewApiProbeLogModelDao()
+	logs, err := dao.FindTimespanApiProbeLog(ctx, dateBegin, dateEnd)
+	if err != nil {
+		return nil, err
+	}
+	for _, log := range logs {
+		if req.NotSuccess && log.Success {
+			continue
+		}
+		if req.NotCorrect && log.Correct {
+			continue
+		}
+		if req.Scene != "" && log.Scene != req.Scene {
+			continue
+		}
+		detail := &empyrean_lens.ProbeLogDetailRespData{
+			Date:         log.CreateTime.Format("2006-01-02"),
+			Time:         log.CreateTime.Format("2006-01-02 15:04:05"),
+			Scene:        log.Scene,
+			DataSource:   log.DataSource,
+			HTTPCode:     log.HttpCode,
+			BusinessCode: log.BusinessCode,
+			Msg:          log.Msg,
+			Success:      log.Success,
+			Correct:      log.Correct,
+			Cost:         log.Cost,
+			Host:         log.Host,
+			APIPath:      log.Api,
+			TraceID:      log.TraceId,
+		}
+		data = append(data, detail)
+	}
+
+	return data, nil
+}

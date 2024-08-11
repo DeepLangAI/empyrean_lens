@@ -50,15 +50,15 @@ func TestQueryLog2(t *testing.T) {
 func TestNginxIngressLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := NginxIngressLogQuery(ctx, 0)
+	logs, err := NginxIngressLogQuery(ctx, 6)
 	if err != nil {
 		t.Error(err)
 	} else {
-		for _, log := range logs {
-			if log.CleanUrl != "/edu_parse" {
-				continue
-			}
-			fmt.Println(log)
+		for i, log := range logs {
+			//if log.CleanUrl != "/edu_parse" {
+			//	continue
+			//}
+			fmt.Println(i, log)
 		}
 	}
 }
@@ -310,7 +310,12 @@ func TestSummreqCntQuery(t *testing.T) {
 		//fmt.Println(o.AbstractOverview.TotalReq, o.AbstractOverview.FailReq)
 		//fmt.Println(o.OutlineOverview.TotalReq, o.OutlineOverview.FailReq)
 		//fmt.Println(o.ViewpointOverview.TotalReq, o.ViewpointOverview.FailReq)
-		fmt.Println(o)
+		for _, x := range o.Overviews {
+			if len(x.SlowDetails) > 0 {
+				fmt.Println("==============================", len(x.SlowDetails), x.SlowDetails)
+			}
+		}
+		//fmt.Println(o.Overviews)
 	}
 }
 
@@ -319,7 +324,9 @@ func TestSummaryGeneralOfDay(t *testing.T) {
 	Init(ctx)
 	ov, _ := SceneGeneralOfDay(ctx, 1)
 	for _, o := range ov.Overviews {
-		fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SlowReq)
+		if len(o.SlowDetails) > 0 {
+			fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SlowReq, o.SlowDetails)
+		}
 	}
 	//fmt.Println(ov.AbstractOverview.TotalReq, ov.AbstractOverview.FailReq)
 	//fmt.Println(ov.OutlineOverview.TotalReq, ov.OutlineOverview.FailReq)
@@ -344,7 +351,7 @@ func TestMultiTotalRequestQuery(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	} else {
-		fmt.Println(ov)
+		fmt.Println(ov.MultiEteOverview.SlowDetails)
 		//fmt.Println(ov_ete.TotalReq, ov_ete.FailReq, ov_ete.SlowReq, ov_ete.FailRate, ov_ete.SlowRate)
 		//fmt.Println(ov_analysis.TotalReq, ov_analysis.FailReq, ov_analysis.SlowReq, ov_analysis.FailRate, ov_analysis.SlowRate)
 		//fmt.Println(ov_merge.TotalReq, ov_merge.FailReq, ov_merge.SlowReq, ov_merge.FailRate, ov_merge.SlowRate)

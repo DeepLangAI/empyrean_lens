@@ -121,6 +121,7 @@ struct ApiSlowInfoRespData{
     5: string host
     6: string api_name
     7: i32 num_error_req
+    8: list<string> slow_details // list[map[str, any]]
 }
 
 # Api探针信息
@@ -142,6 +143,37 @@ struct ApiProbeRespData{
     4: i32 num_success_req
     5: i32 num_correct_req
     6: double avg_cost
+}
+
+# Api探针信息，详情
+struct ProbeLogDetailReq{
+    1: string date_begin
+    2: string date_end
+    3: string scene
+    4: bool not_correct
+    5: bool not_success
+}
+
+struct ProbeLogDetailResp{
+    1: i32 code
+    2: string msg
+    3: list<ProbeLogDetailRespData> data
+}
+
+struct ProbeLogDetailRespData{
+    1: string date
+    2: string time
+    3: string scene
+    4: i32 data_source
+    5: i32 http_code
+    6: i32 business_code
+    7: string msg
+    8: bool success
+    9: bool correct
+    10: double cost
+    11: string host
+    12: string api_path
+    13: string trace_id
 }
 
 # 全链路日志
@@ -275,6 +307,9 @@ service Rentention{
    // 探针错误率，基于探针日志
    ApiProbeResp SystemDailyApiCost(1: ApiProbeResp req) (
        api.get="/api/v1/report/probe/list"
+   )
+   ProbeLogDetailResp SystemProbeLogDetail(1: ProbeLogDetailReq req) (
+       api.get="/api/v1/report/probe/detail"
    )
 
    // 全链路日志

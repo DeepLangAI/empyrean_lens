@@ -306,15 +306,16 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 		}
 		for _, ov := range report.Overviews {
 			model := empyrean_lens.SceneModel{
-				Date:       date,
-				Scene:      ov.Name,
-				TotalCnt:   int32(ov.TotalReq),
-				FailCnt:    int32(ov.FailReq),
-				SlowCnt:    int32(ov.SlowReq),
-				FailReason: ov.FailReason,
-				Status:     0,
-				CreateTime: time.Now(),
-				UpdateTime: time.Now(),
+				Date:        date,
+				Scene:       ov.Name,
+				TotalCnt:    int32(ov.TotalReq),
+				FailCnt:     int32(ov.FailReq),
+				SlowCnt:     int32(ov.SlowReq),
+				FailReason:  ov.FailReason,
+				SlowDetails: ov.SlowDetails,
+				Status:      0,
+				CreateTime:  time.Now(),
+				UpdateTime:  time.Now(),
 			}
 			if err := dao.CreateOrUpdate(ctx, date, model.Scene, model); err != nil {
 				return err

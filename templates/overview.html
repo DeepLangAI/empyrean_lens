@@ -98,14 +98,16 @@
         /* 移动端样式 */
         @media (max-width: 767px) {
             .table-container {
-                max-height: 60vh; /* 设置最大高度为视口高度的60% */
+                /*max-height: 60vh; !* 设置最大高度为视口高度的60% *!*/
                 overflow-y: auto; /* 添加垂直滚动 */
                 font-size: xx-large;
             }
 
             h2 {
-                /*font-size: 25px; !* 增大移动端h2字体大小 *!*/
                 font-size: xx-large; /* 增大移动端h2字体大小 */
+            }
+            h3 {
+                font-size: x-large; /* 增大移动端h2字体大小 */
             }
 
             nav a {
@@ -114,7 +116,8 @@
             }
             .swal2-popup.swal2-drawer {
                 width: 250vw !important; /* 在移动端占满整个屏幕宽度 */
-                max-height: 150vh !important;
+                height: 200vh !important;
+                /*max-height: 150vh !important;*/
                 /*right: -100vw; !* 初始位置调整为-100vw *!*/
                 /*padding: 15px; !* 稍微减小内边距 *!*/
             }
@@ -132,6 +135,29 @@
             }
             .breadcrumb {
                 font-size: x-large !important;
+            }
+            .breadcrumb {
+                height: 55px !important;
+            }
+            #back{
+                padding-left: 28px !important; /* 示例内边距 */
+                padding-right: 29px !important; /* 示例内边距 */
+                padding-bottom: 18px !important;
+                padding-top: 17px !important;
+            }
+
+            .log-details-header span:hover::after {
+                /*content: attr(data-field-name);*/
+                /*position: absolute;*/
+                /*top: 100%;*/
+                /*left: 0;*/
+                /*background-color: #333;*/
+                /*color: #fff;*/
+                /*padding: 5px;*/
+                /*border-radius: 3px;*/
+                /*font-size: 20px;*/
+                /*white-space: nowrap;*/
+                /*z-index: 1;*/
             }
         }
 
@@ -373,12 +399,32 @@
             border-radius: 3px;
             white-space: pre-wrap;
             opacity: 0.9;
+
+            position: relative;
+            overflow: hidden;
+            max-height: 4.5em; /* 假设行高为1.5em，3行就是4.5em */
+            line-height: 1.5em;
+        }
+        .log-details-body p.expanded {
+            max-height: none;
         }
         .log-details-body p span {
             font-family: inherit;
             font-weight: normal;
             background: #edeff3;
             margin-right: 10px;
+        }
+        .expand-tip {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: white;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
+        .expand-tip:hover {
+            text-decoration: underline;
         }
 
 
@@ -504,8 +550,9 @@
             Swal.close()
         }
         if (menus.length <= 1){
-            // $('body > div.swal2-container.swal2-center.swal2-backdrop-show > div').css('width', '40vw !important')
-            Swal.getPopup().style.width = '40vw !important'
+            $('.swal2-popup.swal2-drawer').css('height', '150vh')
+        }else{
+            $('.swal2-popup.swal2-drawer').css('height', '250vh')
         }
         $('#' + menus[menus.length-1]).show()
 
@@ -1111,6 +1158,18 @@
         }
         return logSotreName
     }
+
+    function handleClickExpand(pid){
+        var p = $('#' + pid)
+        if (p.hasClass('expanded')){
+            p.removeClass('expanded')
+            p.find('.expand-tip').text('展开')
+        }else{
+            p.addClass('expanded')
+            p.find('.expand-tip').text('收起')
+        }
+    }
+
     function handleEndToEndTraceLogs(traceId, date){
         showLoadingStatus()
         axios.get('/api/v1/report/trace/list', {
@@ -1151,17 +1210,33 @@
                 );
                 for (var key in originLog){
                     if (key.startsWith("_")) {
+                        var val = originLog[key]
+                        key = key + ':' + val
+                        if (val.length >= 15) {
+                            val = val.slice(0, 15) + '...'  + val.slice(-5, val.length)
+                        }
                         logDetailsHeader.append(
                             $("<span>")
                                 .attr("data-field-name", key)
-                                .text(originLog[key])
+                                .text(val)
                         );
                     } else {
-                        logDetailsBody.append(
-                            $("<p>")
-                                .append($("<span>").text(key + ":"))
-                                .append(originLog[key])
-                        );
+                        const id = key +'-' + i;
+                        var span = $('<span>')
+                            .addClass('expand-tip')
+                            .text('展开')
+                            .click(function(e) {
+                                e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                handleClickExpand(id)
+                            })
+                        var p = $('<p id="{0}">'.format(id))
+                            .append($("<span>").text(key + ":"))
+                            .append(originLog[key])
+                        if(originLog[key].length >= 300){
+                            p.append(span)
+                        }
+
+                        logDetailsBody.append(p)
                     }
                 }
                 logDetails.append(logDetailsHeader, logDetailsBody);

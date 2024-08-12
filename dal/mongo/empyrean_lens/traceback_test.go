@@ -30,3 +30,14 @@ func TestTracebackLogModelDao_CreateOrUpdate(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestTracebackLogModelDao_RmRecentDays(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	dao := NewTracebackLogModelDao()
+	err := dao.RmRecentDays(ctx, 0)
+	if err != nil {
+		t.Error(err)
+	}
+}

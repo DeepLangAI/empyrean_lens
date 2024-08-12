@@ -88,3 +88,17 @@ func (self *TracebackLogModelDao) CreateOrUpdate(ctx context.Context, update Tra
 	}
 	return nil
 }
+
+func (self *TracebackLogModelDao) RmRecentDays(ctx context.Context, days int) error {
+	anchorDay := time.Now().AddDate(0, 0, -days)
+	day := time.Date(anchorDay.Year(), anchorDay.Month(), anchorDay.Day(), 0, 0, 0, 0, time.Local)
+	_, err := probeDatabase.
+		Collection(TableNameTracebackLog).
+		DeleteMany(ctx, bson.M{"time": bson.M{"$gte": day}})
+	if err != nil {
+		hlog.CtxErrorf(ctx, "delete traceback log model failed, err: %v", err)
+		return err
+	}
+	return nil
+
+}

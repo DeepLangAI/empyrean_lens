@@ -232,6 +232,9 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 		if err := empyrean_lens.NewSceneModelDao().RmRecentDays(ctx, days); err != nil {
 			return err
 		}
+		if err := empyrean_lens.NewTracebackLogModelDao().RmRecentDays(ctx, days); err != nil {
+			return err
+		}
 	}
 
 	dao := empyrean_lens.NewApifailureModelDao()

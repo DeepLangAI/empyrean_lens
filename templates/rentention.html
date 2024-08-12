@@ -95,52 +95,38 @@
             .table-container {
                 max-height: 60vh; /* 设置最大高度为视口高度的60% */
                 overflow-y: auto; /* 添加垂直滚动 */
+                font-size: xx-large;
             }
 
-            table,
-            thead,
-            tbody,
-            th,
-            td,
-            tr {
-                display: block;
-            }
-
-            thead tr {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
-            }
-
-            tr {
-                border: 1px solid #ccc;
-                margin-bottom: 10px;
-            }
-
-            td {
-                border: none;
-                border-bottom: 1px solid #eee;
-                position: relative;
-                padding-left: 50%;
-                font-size: 20px; /* 增大移动端字体大小 */
-            }
             h2 {
-                font-size: 25px; /* 增大移动端h2字体大小 */
+                /*font-size: 25px; !* 增大移动端h2字体大小 *!*/
+                font-size: xx-large; /* 增大移动端h2字体大小 */
             }
 
-            td:before {
-                position: absolute;
-                top: 6px;
-                left: 6px;
-                width: 45%;
-                padding-right: 10px;
-                white-space: nowrap;
-                content: attr(data-label);
-                font-weight: bold;
-            }
             nav a {
                 font-size: 18px; /* 增大移动端字体大小 */
                 margin: 5px 0;
+            }
+            .swal2-popup.swal2-drawer {
+                width: 250vw !important; /* 在移动端占满整个屏幕宽度 */
+                max-height: 150vh !important;
+                /*right: -100vw; !* 初始位置调整为-100vw *!*/
+                /*padding: 15px; !* 稍微减小内边距 *!*/
+            }
+
+            /* 日志样式 */
+            .log-container {
+                font-size: x-large !important;
+            }
+
+            .log-id {
+                font-size: x-large !important;
+            }
+            .log-time {
+                font-size: x-large !important;
+            }
+            .breadcrumb {
+                font-size: x-large !important;
             }
         }
         /* CSS styles for the navigation bar */

@@ -153,7 +153,7 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 	data := []*empyrean_lens.ApiFailureDetailRespData{}
 	for _, log := range api {
 		data = append(data, &empyrean_lens.ApiFailureDetailRespData{
-			Time:     log.Time.Format("2006-01-02"),
+			Time:     log.Time.Format("2006-01-02 15:04:05"),
 			APIName:  log.CleanUrl,
 			Host:     log.Host,
 			Path:     log.CleanUrl,

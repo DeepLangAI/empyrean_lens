@@ -100,55 +100,42 @@
             .table-container {
                 max-height: 60vh; /* 设置最大高度为视口高度的60% */
                 overflow-y: auto; /* 添加垂直滚动 */
+                font-size: xx-large;
             }
 
-            table,
-            thead,
-            tbody,
-            th,
-            td,
-            tr {
-                display: block;
-            }
-
-            thead tr {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
-            }
-
-            tr {
-                border: 1px solid #ccc;
-                margin-bottom: 10px;
-            }
-
-            td {
-                border: none;
-                border-bottom: 1px solid #eee;
-                position: relative;
-                padding-left: 50%;
-                font-size: 20px; /* 增大移动端字体大小 */
-            }
             h2 {
-                font-size: 25px; /* 增大移动端h2字体大小 */
-            }
-
-            td:before {
-                position: absolute;
-                top: 6px;
-                left: 6px;
-                width: 45%;
-                padding-right: 10px;
-                white-space: nowrap;
-                content: attr(data-label);
-                font-weight: bold;
+                /*font-size: 25px; !* 增大移动端h2字体大小 *!*/
+                font-size: xx-large; /* 增大移动端h2字体大小 */
             }
 
             nav a {
                 font-size: 18px; /* 增大移动端字体大小 */
                 margin: 5px 0;
             }
+            .swal2-popup.swal2-drawer {
+                width: 250vw !important; /* 在移动端占满整个屏幕宽度 */
+                max-height: 150vh !important;
+                /*right: -100vw; !* 初始位置调整为-100vw *!*/
+                /*padding: 15px; !* 稍微减小内边距 *!*/
+            }
+
+            /* 日志样式 */
+            .log-container {
+                font-size: x-large !important;
+            }
+
+            .log-id {
+                font-size: x-large !important;
+            }
+            .log-time {
+                font-size: x-large !important;
+            }
+            .breadcrumb {
+                font-size: x-large !important;
+            }
         }
+
+
 
         /* CSS styles for the navigation bar */
         nav {
@@ -183,8 +170,10 @@
         }
 
         .swal2-popup.swal2-drawer {
-            width: 65vw !important; /* 占据1/4宽屏幕 */
-            height: 100vh !important; /* 占据1/4宽屏幕 */
+            width: 65vw; /* 占据1/4宽屏幕 */
+            height: 100vh; /* 占据1/4宽屏幕 */
+            /*width: 65vw !important; !* 占据1/4宽屏幕 *!*/
+            /*height: 100vh !important; !* 占据1/4宽屏幕 *!*/
             max-width: 90% !important;
             background-color: #fff !important;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.2) !important;
@@ -650,6 +639,7 @@
                 日期：{0}
             </h3>`.format(date)
         )
+        showLoadingStatus()
         axios.get('/api/v1/report/traceback/list', {
             params:{
                 date_begin: date,
@@ -695,6 +685,8 @@
 
         }).catch(error => {
             console.error(error);
+        }).finally(()=>{
+            hideLoadingStatus()
         })
     }
 
@@ -705,6 +697,7 @@
         $('#评分详情').hide();
         const date = $('#date').text()
 
+        showLoadingStatus()
         axios.get('/api/v1/report/probe/list', {
             params:{
                 date_begin: date,
@@ -815,6 +808,8 @@
 
         }).catch(error =>{
             console.log('error fetching fail list', error)
+        }).finally(()=>{
+            hideLoadingStatus()
         })
     }
 
@@ -871,6 +866,7 @@
         $('#慢查询列表').show();
         const date = $('#date').text()
 
+        showLoadingStatus()
         axios.get('/api/v1/report/slow/list', {
             params:{
                 date_begin: date,
@@ -946,6 +942,8 @@
 
         }).catch(error =>{
             console.log('error fetching fail list', error)
+        }).finally(()=>{
+            hideLoadingStatus()
         })
     }
 
@@ -975,7 +973,6 @@
             // rowhead
             const rowhead = `
                 <tr>
-                    <th>时间</th>
                     <th>接口名称</th>
                     <th>主机地址</th>
                     <th>异常请求数量</th>
@@ -992,7 +989,6 @@
             for (let i = 0; i < response.data.data.length; i++) {
                 const row = `
                     <tr>
-                        <td>{10}</td>
                         <td>{0}</td>
                         <td>{1}</td>
                         <td {9}>{2}</td>
@@ -1022,7 +1018,6 @@
                         )
                         :  '',
 
-                    response.data.data[i].date,
                     );
                 table.append(row);
                 hideLoadingStatus();
@@ -1031,7 +1026,10 @@
 
         }).catch(error =>{
             console.log('error fetching fail list', error)
+        }).finally(()=>{
+            hideLoadingStatus()
         })
+
     }
     function handleErrorDetail(host, path, date){
         showLoadingStatus()
@@ -1048,15 +1046,17 @@
             modifySidebar()
             $('接口错误详情').show();
 
+            const container = $('#接口错误详情');
+            container.find('h3').remove()
             const table = $('#接口错误详情-table');
             table.empty()
-            table.append(`<h3 >
+            table.before(`<h3 >
                 日期：{0}
             </h3>`.format(date))
             // rowhead
             const rowhead = `
                 <tr>
-<!--                    <th>日期</th>-->
+                    <th>时间</th>
                     <th>主机地址</th>
                     <th>接口名称</th>
                     <th>HTTP响应码</th>
@@ -1069,6 +1069,7 @@
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
                 var tr = $('<tr>')
+                tr.append($('<td>').text(response.data.data[i].time))
                 tr.append($('<td>').text(response.data.data[i].host))
                 tr.append($('<td>').text(response.data.data[i].path))
                 tr.append($('<td>').text(response.data.data[i].http_code))
@@ -1178,6 +1179,7 @@
         return true
     }
     function handleProbeLogDetail(scene, notCorrect, notSuccess, date){
+        showLoadingStatus()
         axios.get('/api/v1/report/probe/detail', {
             params: {
                 date_begin: date,
@@ -1238,6 +1240,8 @@
 
         }).catch(error => {
             console.log('error fetching fail list', error)
+        }).finally(()=>{
+            hideLoadingStatus()
         })
     }
 

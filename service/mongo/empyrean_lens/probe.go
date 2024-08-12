@@ -134,6 +134,8 @@ func ProbeListInfo(ctx context.Context, req empyrean_lens.ApiProbeReq) ([]*empyr
 	}
 	cache := map[string]ProbeReportModel{}
 	for _, log := range logs {
+		// UTC -> CST
+		log.CreateTime = log.CreateTime.Add(8 * time.Hour)
 		key := fmt.Sprintf("%v %v%v,%v", log.CreateTime.Format("2006-01-02"), log.Host, log.Api, log.Scene)
 		cacheVal, ok := cache[key]
 		fmt.Println("key: ", key, "ok:", ok)

@@ -331,7 +331,7 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 			CreateTime: time.Now(),
 			UpdateTime: time.Now(),
 		}
-		if err := empyrean_lens.NewTracebackLogModelDao().Save(ctx, model); err != nil {
+		if err := empyrean_lens.NewTracebackLogModelDao().CreateOrUpdate(ctx, model); err != nil {
 			return err
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"empyrean_lens/consts"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"sync"
 	"time"
 )
@@ -71,4 +72,19 @@ func (self *TracebackLogModelDao) FindTimespanTracebackLog(ctx context.Context, 
 		return nil, err
 	}
 	return result, nil
+}
+
+func (self *TracebackLogModelDao) CreateOrUpdate(ctx context.Context, update TracebackLogModel) error {
+	_, err := probeDatabase.Collection(TableNameTracebackLog).
+		UpdateOne(
+			ctx,
+			bson.M{"time": update.Time, "status": consts.StatusValid},
+			bson.M{"$set": update},
+			options.Update().SetUpsert(true),
+		)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "update traceback log model failed, err: %v", err)
+		return err
+	}
+	return nil
 }

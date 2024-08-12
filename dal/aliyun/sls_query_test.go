@@ -115,7 +115,7 @@ func TestTracebackQuery(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	Init(ctx)
-	logs, err := TracebackQuery(ctx, 1)
+	logs, err := TracebackQuery(ctx, 0)
 	if err != nil {
 		fmt.Println(err)
 	} else {

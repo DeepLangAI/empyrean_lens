@@ -7,6 +7,7 @@ import (
 	"empyrean_lens/dal"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestProbeTimespanFailRate(t *testing.T) {
@@ -37,7 +38,7 @@ func TestProbeListInfo(t *testing.T) {
 	dal.Init()
 
 	req := empyrean_lens.ApiProbeReq{
-		DateBegin: "2024-08-07",
+		DateBegin: "2024-08-12",
 	}
 	info, err := ProbeListInfo(ctx, req)
 	if err != nil {
@@ -53,11 +54,11 @@ func TestProbeDetail(t *testing.T) {
 	conf.InitConfig()
 	dal.Init()
 	req := empyrean_lens.ProbeLogDetailReq{
-		DateBegin:  "2024-08-06",
+		DateBegin:  "2024-08-12",
 		DateEnd:    "",
 		Scene:      "",
 		NotCorrect: false,
-		NotSuccess: true,
+		NotSuccess: false,
 	}
 	detail, err := ProbeDetail(ctx, req)
 	if err != nil {
@@ -66,5 +67,12 @@ func TestProbeDetail(t *testing.T) {
 	for _, r := range detail {
 		fmt.Println(r)
 	}
+}
 
+func TestDateTime(t *testing.T) {
+	dateStr := "2024-08-12"
+	date, _ := time.ParseInLocation("2006-01-02", dateStr, time.Local)
+	fmt.Println(date)
+	fmt.Println(time.Now())
+	fmt.Println(time.Now().Sub(date).Hours())
 }

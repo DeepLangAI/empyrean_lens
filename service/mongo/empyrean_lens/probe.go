@@ -110,14 +110,13 @@ func ProbeLogTidy(ctx context.Context) error {
 }
 
 func ProbeListInfo(ctx context.Context, req empyrean_lens.ApiProbeReq) ([]*empyrean_lens.ApiProbeRespData, error) {
-	dateBegin, err := time.Parse("2006-01-02", req.DateBegin)
+	// 时差处理
+	dateBegin, err := time.ParseInLocation("2006-01-02", req.DateBegin, time.Local)
 	if err != nil {
 		if err != nil {
 			return nil, err
 		}
 	}
-	// 时差处理
-	dateBegin = dateBegin.Add(-8 * time.Hour)
 	dateEnd := dateBegin.AddDate(0, 0, 1)
 	if req.DateEnd != "" {
 		dateEnd, err = time.Parse("2006-01-02", req.DateEnd)
@@ -192,9 +191,8 @@ func ProbeListInfo(ctx context.Context, req empyrean_lens.ApiProbeReq) ([]*empyr
 
 func ProbeDetail(ctx context.Context, req empyrean_lens.ProbeLogDetailReq) ([]*empyrean_lens.ProbeLogDetailRespData, error) {
 	data := []*empyrean_lens.ProbeLogDetailRespData{}
-	dateBegin, err := time.Parse("2006-01-02", req.DateBegin)
 	// 时差处理
-	dateBegin = dateBegin.Add(-8 * time.Hour)
+	dateBegin, err := time.ParseInLocation("2006-01-02", req.DateBegin, time.Local)
 	dateEnd := dateBegin.AddDate(0, 0, 1)
 	if req.DateEnd != "" {
 		dateEnd, err = time.Parse("2006-01-02", req.DateEnd)

@@ -5,6 +5,7 @@ import (
 	"empyrean_lens/biz/model/empyrean_lens"
 	empyrean_lens2 "empyrean_lens/dal/mongo/empyrean_lens"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"sort"
 	"time"
 )
 
@@ -32,5 +33,8 @@ func SystemTracebackQuery(ctx context.Context, req empyrean_lens.TracebackReq) (
 			OriginLog: log.OriginLog,
 		})
 	}
+	sort.Slice(data, func(i, j int) bool {
+		return data[i].Time > data[j].Time
+	})
 	return data, nil
 }

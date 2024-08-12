@@ -15,12 +15,14 @@ func TestSystemTracebackQuery(t *testing.T) {
 	dal.Init()
 
 	req := empyrean_lens2.TracebackReq{
-		DateBegin: "2024-08-10",
+		DateBegin: "2024-08-12",
 		DateEnd:   "",
 	}
 	query, err := SystemTracebackQuery(ctx, req)
 	if err != nil {
 		t.Errorf("SystemTracebackQuery failed: %v", err)
 	}
-	fmt.Println(len(query), query)
+	for i, log := range query {
+		fmt.Println(i, log.Time, log.TraceID, log.UserID)
+	}
 }

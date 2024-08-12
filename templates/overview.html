@@ -626,11 +626,16 @@
             },
         });
     }
+    function pushToMenu(itemId){
+        $('#' + menus[menus.length - 1]).hide()
+        menus.push(itemId)
+        modifySidebar()
+    }
+
+
     function handleTracebackList(){
         const date = $('#date').text()
-        modifySidebar()
-        $('#' + menus[menus.length - 1]).hide()
-        menus.push('Traceback日志列表')
+        pushToMenu('Traceback日志列表')
         var container = $('#Traceback日志列表')
         container.show()
         container.find('h3').remove()
@@ -814,9 +819,10 @@
     }
 
     function handleSlowDetail(details, date){
-        modifySidebar()
-        $('#' + menus[menus.length - 1]).hide()
-        menus.push('慢查询详情')
+        // modifySidebar()
+        pushToMenu('慢查询详情')
+        // $('#' + menus[menus.length - 1]).hide()
+        // menus.push('慢查询详情')
 
         container = $('#慢查询详情')
         container.show();

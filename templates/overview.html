@@ -10,6 +10,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.js"></script>
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.css">
 
     <style>
@@ -461,6 +465,124 @@
         .expand-tip:hover {
             text-decoration: underline;
         }
+
+        #filters-container {
+            display: none; /* 初始隐藏状态 */
+            overflow: hidden; /* 隐藏滚动条 */
+            /*max-height: 0; !* 初始最大高度设置为0，以便隐藏 *!*/
+            transition: max-height 0.3s ease-out; /* 渐变效果 */
+            /*transition: max-height 0.3s ease, padding 0.3s ease; !* 平滑过渡效果 *!*/
+
+
+            position: relative; /* 使 dropdown-content 相对定位 */
+            margin: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #filter-btn, #reset-filters {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #filter-btn:hover, #reset-filters:hover {
+            background-color: #0056b3;
+        }
+
+        .dropdown-content {
+            display: none; /* 初始隐藏 */
+            position: absolute; /* 相对定位以定位在按钮下方 */
+            top: 100%; /* 在按钮下方 */
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000; /* 确保在其他内容之上 */
+        }
+
+        .dropdown-content label,
+        .dropdown-content select,
+        .dropdown-content button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        /* select 元素 */
+        #filters-container select {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #filter-show-dropdown {
+            width: 40px;
+            height: 20px;
+            position: fixed; /* 使用固定定位，使其固定在屏幕上 */
+            top: 30px; /* 距离屏幕顶部 10px，可以根据需要调整 */
+            right: 10px; /* 距离屏幕右侧 10px，可以根据需要调整 */
+            padding: 10px 20px;
+            background-color: #28a745; /* 绿色背景 */
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 黑色阴影 */
+            z-index: 1000; /* 确保在其他内容之上 */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* 平滑过渡效果 */
+        }
+
+        #filter-show-dropdown:hover {
+            background-color: #218838; /* 鼠标悬停时的深绿色 */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* 增加阴影深度 */
+        }
+
+        .filter-row {
+            display: flex; /* 使用 flexbox 布局 */
+            align-items: center; /* 垂直居中对齐 */
+            margin-bottom: 10px; /* 行之间的间距 */
+            padding: 5px; /* 行的内边距 */
+            border: 1px solid #ddd; /* 行的边框 */
+            border-radius: 5px; /* 行的圆角 */
+        }
+
+        .filter-row select {
+            margin-right: 10px; /* select 元素之间的间距 */
+        }
+
+        .remove-filter {
+            background-color: #dc3545; /* 按钮背景色（红色） */
+            color: #fff; /* 按钮文字颜色（白色） */
+            border: none; /* 去掉默认边框 */
+            border-radius: 5px; /* 按钮圆角 */
+            padding: 5px 10px; /* 按钮的内边距 */
+            cursor: pointer; /* 鼠标悬停时显示为手型 */
+            transition: background-color 0.3s ease; /* 背景色的平滑过渡效果 */
+        }
+
+        .remove-filter:hover {
+            background-color: #c82333; /* 鼠标悬停时按钮背景色变深 */
+        }
+
+
 
     </style>
 </head>
@@ -1194,16 +1316,32 @@
                 日期：{0}
             </h3>`.format(date))
 
-            // container.append($('<div>').attr('id', 'filter-btn').text('过滤').click(()=>{
-            //     handleClickAddfilter()
-            // }))
-            // container.append($('<div>').attr('id', 'filters-container').text('过滤条件'))
-            // container.append($('<div>').attr('id', 'apply-filters').text('应用过滤').click(()=>{
-            //     handleClickApplyFilters()
-            // }))
-            // container.append($('<div>').attr('id', 'reset-filters').text('重置').click(()=>{
-            //     handleClickResetFilters()
-            // }))
+            container.append($('<div>').attr('id', 'filter-show-dropdown').text('过滤')
+                .click(()=>{
+                    // $('#filters-container').toggle()
+                    var $filtersContainer = $('#filters-container');
+                    if ($filtersContainer.is(':visible')) {
+                        $filtersContainer.css('max-height', '0').hide(0); // 隐藏并将最大高度设为0
+
+                    } else {
+                        $filtersContainer.show().css('max-height', '1000px')
+                    }
+                })
+                .draggable({
+                    containment: container,
+                    stop: filterBtnDrag,
+                })
+            )
+            filtersContainer = $('<div>').attr('id', 'filters-container').text('')
+            container.append(filtersContainer)
+            filtersContainer.append($('<p>').attr('id', 'filtered-count').text(''))
+            filtersContainer.append($('<div>').attr('id', 'filter-btn').text('添加条件').click(()=>{
+                handleClickAddfilter()
+            }))
+            filtersContainer.append($('<div>').attr('id', 'reset-filters').text('重置').click(()=>{
+                handleClickResetFilters()
+                modifyFilteredCount()
+            }))
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
@@ -1343,28 +1481,41 @@
     function getLogKeyValues(){
         result = {}
         // 遍历每个 p 标签
-        const logDetailsBody = $('.log-details-body')
-        logDetailsBody.find('p').each(function() {
-            // 获取当前 p 标签的 jQuery 对象
-            const $p = $(this);
-
-            // 获取 p 标签中的 span
-            const spanText = $p.find('span').text();
-
-            // 获取 p 标签中的纯文本（排除 span）
-            const pTextWithoutSpan = $p.contents().filter(function() {
-                return this.nodeType === Node.TEXT_NODE;
-            }).text().trim();
-            key = spanText.trim().slice(0, -1)
-            if( !(key in result)){
-                result[key] = []
+        $('.log-container').each(function (){
+            if(!$(this).is(':visible')){
+                return
             }
-            result[key].push(pTextWithoutSpan)
-        });
+            $(this).find('p').each(function (){
+                // 获取当前 p 标签的 jQuery 对象
+                const $p = $(this);
+
+                // 获取 p 标签中的 span
+                const spanText = $p.find('span').text();
+
+                // 获取 p 标签中的纯文本（排除 span）
+                const pTextWithoutSpan = $p.contents().filter(function() {
+                    return this.nodeType === Node.TEXT_NODE;
+                }).text().trim();
+                key = spanText.trim().slice(0, -1)
+                if( !(key in result)){
+                    result[key] = []
+                }
+                if( !result[key].includes(pTextWithoutSpan)){
+                    result[key].push(pTextWithoutSpan)
+                }
+            })
+
+        })
         return result
     }
 
     function handleClickResetFilters(){
+        $('.log-container').each(function (){
+            $(this).show()
+        })
+        $('.filter-row').remove()
+    }
+    function handleClickApplyFilters(){
         function getFilters() {
             var result = {}
 
@@ -1379,37 +1530,67 @@
                 const secondSelectValue = $this.find('select').eq(1).val();
 
                 // 将这些值放入一个字典
-                result[firstSelectValue] = secondSelectValue;
+                if (secondSelectValue != ""){
+                    result[firstSelectValue] = secondSelectValue;
+                }
             });
             return result
         }
         function shouldBeKept(logDetail, filters){
-            logDetail.find('p').each(()=>{
+            if (Object.keys(filters).length == 0){
+                return true
+            }
+            let keyAccured = 0
+            let valueMatched = 0
+            logDetail.find('p').each(function (){
+                console.log($(this))
                 const $p = $(this)
                 const key = $p.find('span').text().trim().slice(0, -1)
                 const value = $p.contents().filter(function() {
                     return this.nodeType === Node.TEXT_NODE;
                 }).text().trim()
+                console.log('key', key, 'val', value, filters[key], filters)
                 if (key in filters){
-                    if (filters[key] != value){
-                        return false
+                    keyAccured += 1
+                    if(value == filters[key]) {
+                        valueMatched += 1
                     }
                 }
-                return true
             })
-            return true
+            return keyAccured == valueMatched && keyAccured == Object.keys(filters).length
         }
-        const filters = getLogKeyValues()
-        const logs = $('.log-container')
-        logs.each(()=>{
-            const $this = $(this)
-            const logDetail = $this
+        showLoadingStatus()
+        console.log('clicked apply filters')
+        const filters = getFilters()
+        let numLogs = 0
+        $('.log-container').each(function (){
+            if (shouldBeKept($(this), filters)){
+                $(this).show()
+                numLogs += 1
+            }else{
+                $(this).hide()
+            }
         })
         details = $('.log-details-body')
+        setTimeout(()=>{
+            hideLoadingStatus()
+            // $('#filtered-count').text(`共 ${numLogs} 条日志符合过滤条件`)
+            // $('#filters-container').append($('<p>').text())
+            modifyFilteredCount()
+        }, 200)
     }
-    function handleClickApplyFilters(){
-        console.log('clicked apply filters')
+
+    function modifyFilteredCount(){
+        let numLogs = 0
+        $('.log-container').each(function (){
+            if ($(this).is(':visible')){
+                numLogs += 1
+            }
+        })
+        $('#filtered-count').text(`共 ${numLogs} 条日志符合过滤条件`)
     }
+
+
     function handleClickAddfilter(){
         const keyValues = getLogKeyValues()
 
@@ -1422,6 +1603,10 @@
             console.log('changed key')
             const $valueSelect = $(`#filter-value-${filterCount}`)
             $valueSelect.empty()
+            $valueSelect.append($('<option>')
+                .attr('value', '')
+                .attr('selected', 'false')
+                .text('请选择'));
             for (var value of keyValues[key]){
                 $p = $('<option>')
                     .attr('value', value)
@@ -1441,6 +1626,9 @@
         }
 
         $valueSelect = $('<select>').attr('id', `filter-value-${filterCount}`);
+        $valueSelect.change(()=>{
+            handleClickApplyFilters()
+        })
 
         $resetBtn = $('<button>')
             .addClass('remove-filter')
@@ -1455,6 +1643,8 @@
         const rowId = $(event.target).data('row-id');
         console.log('clicked remove filter', rowId)
         $(`#${rowId}`).remove();
+        handleClickApplyFilters()
+        modifyFilteredCount()
     }
 
 
@@ -1684,6 +1874,48 @@
         // 初始状态显示滚动条
         showScrollbar();
     });
+
+    function filterBtnDrag(event, ui) {
+        var $filterShowDropdown = $('#filter-show-dropdown');
+        var $parentContainer = $('#parent-container');
+
+        var parentWidth = $parentContainer.width(); // 父容器的宽度
+        var parentHeight = $parentContainer.height(); // 父容器的高度
+
+        var offsetX = ui.position.left;
+        var offsetY = ui.position.top;
+        var buttonWidth = $filterShowDropdown.outerWidth();
+        var buttonHeight = $filterShowDropdown.outerHeight();
+
+
+        // 计算按钮应当靠近边缘的位置
+        // 计算按钮应当靠近边缘的位置
+        if (offsetX < 10) {
+            offsetX = -10; // 靠近左边
+        } else if (offsetX + buttonWidth > parentWidth - 10) {
+            offsetX = parentWidth - buttonWidth + 10; // 靠近右边
+        } else {
+            // 中间的情况下自动对齐到最接近的边缘
+            if (offsetX < parentWidth / 2) {
+                offsetX = 10; // 靠近左边
+            } else {
+                offsetX = parentWidth - buttonWidth + 10; // 靠近右边
+            }
+        }
+
+        if (offsetY < 10) {
+            offsetY = 10; // 靠近顶部
+        } else if (offsetY + buttonHeight > parentHeight - 10) {
+            offsetY = parentHeight - buttonHeight - 10; // 靠近底部
+        }
+
+        // 设置最终位置
+        $filterShowDropdown.css({
+            left: offsetX + 'px',
+            top: offsetY + 'px'
+        });
+    }
+
 
 </script>
 

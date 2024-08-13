@@ -102,6 +102,9 @@
                 overflow-y: auto; /* 添加垂直滚动 */
                 font-size: xx-large;
             }
+            tr{
+                height: 80px;
+            }
 
             h2 {
                 font-size: xx-large; /* 增大移动端h2字体大小 */
@@ -158,6 +161,38 @@
                 /*font-size: 20px;*/
                 /*white-space: nowrap;*/
                 /*z-index: 1;*/
+            }
+            .pagination button {
+                padding: 15px 25px;
+                margin: 5px;
+                font-size: 19px;
+            }
+
+            /* 整个滚动条 */
+            ::-webkit-scrollbar {
+                width: 12px;
+            }
+
+            /* 滚动条轨道 */
+            ::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+
+            /* 滚动条滑块 */
+            ::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 10px;
+            }
+
+            /* 鼠标悬停在滑块上时 */
+            ::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+
+            nav a {
+                padding: 24px 26px !important;
+                font-size: x-large;
             }
         }
 
@@ -427,7 +462,6 @@
             text-decoration: underline;
         }
 
-
     </style>
 </head>
 <body>
@@ -436,7 +470,6 @@
     <a href="/api/log/overview" class="active">灵狗稳定性一览</a>
     <a href="/api/log/report">灵狗接口稳定性</a>
 </nav>
-<h1 >灵狗稳定性</h1>
 
 <div class="container">
     <h2 id="realtime-heading">灵狗系统可用性 实时数据</h2>
@@ -550,9 +583,9 @@
             Swal.close()
         }
         if (menus.length <= 1){
-            $('.swal2-popup.swal2-drawer').css('height', '150vh')
+            $('.swal2-popup.swal2-drawer').css('height', '50vh')
         }else{
-            $('.swal2-popup.swal2-drawer').css('height', '250vh')
+            $('.swal2-popup.swal2-drawer').css('height', '100vh')
         }
         $('#' + menus[menus.length-1]).show()
 
@@ -645,11 +678,10 @@
                         <table id="探针日志详情-table" class="table-container" ></table>
                     </div>
                     <div id="全链路日志列表">
-                        <div id="全链路日志列表-table"></div>
+<!--                        <div id="全链路日志列表-table" class="table-container"></div>-->
                     </div>
 
                     <div id="Traceback日志列表">
-                        <div id="Traceback日志列表-table"></div>
                     </div>
                 </div>
             `.format(
@@ -686,8 +718,9 @@
         var container = $('#Traceback日志列表')
         container.show()
         container.find('h3').remove()
-        var table = $('#Traceback日志列表-table')
-        table.before(`<h3 >
+        // var table = $('#Traceback日志列表-table')
+        var table = $('<table>').attr('id', '#Traceback日志列表-table')
+        container.append(`<h3 >
                 日期：{0}
             </h3>`.format(date)
         )
@@ -734,6 +767,7 @@
                 logContainer.append(logId, logTime, logDetails);
                 table.append(logContainer);
             }
+            container.append(table);
 
         }).catch(error => {
             console.error(error);
@@ -830,32 +864,6 @@
                     .text(correctRate + '%'));
 
                 table.append($row);
-
-//                 const row = `
-//                     <tr>
-// <!--                        <td>{0}</td>-->
-//                         <td>{0}</td>
-//                         <td class="clickable" onclick="handleProbeLogDetail('{0}',false,false,'{9}')">{1}</td>
-//                         <td class="clickable" onclick="handleProbeLogDetail('{0}',false,true,'{9}')">{2}</td>
-//                         <td class="clickable" onclick="handleProbeLogDetail('{0}',true,false,'{9}')">{3}</td>
-//                         <td>{4}</td>
-//                         <td style="background: {7}">{5}%</td>
-//                         <td style="background: {8}">{6}%</td>
-//                     </tr>
-//                 `.format(
-//                     // response.data.data[i].date,
-//                     response.data.data[i].scene,
-//                     response.data.data[i].num_total_req,
-//                     response.data.data[i].num_total_req - response.data.data[i].num_success_req,
-//                     response.data.data[i].num_total_req - response.data.data[i].num_correct_req,
-//                     response.data.data[i].avg_cost.toFixed(2),
-//                     (response.data.data[i].num_success_req / response.data.data[i].num_total_req * 100).toFixed(2),
-//                     (response.data.data[i].num_correct_req / response.data.data[i].num_total_req * 100).toFixed(2),
-//                     getColor(100 * (1 - response.data.data[i].num_success_req / response.data.data[i].num_total_req)),
-//                     getColor(100 * (1 - response.data.data[i].num_correct_req / response.data.data[i].num_total_req)),
-//                     date,
-//                 );
-//                 table.append(row);
             }
 
         }).catch(error =>{
@@ -866,10 +874,7 @@
     }
 
     function handleSlowDetail(details, date){
-        // modifySidebar()
         pushToMenu('慢查询详情')
-        // $('#' + menus[menus.length - 1]).hide()
-        // menus.push('慢查询详情')
 
         container = $('#慢查询详情')
         container.show();
@@ -1179,18 +1184,24 @@
             }
         }).then(response => {
             console.log('response', response.data)
-            $('#' + menus[menus.length - 1]).hide()
-            menus.push('全链路日志列表')
-            modifySidebar()
+            pushToMenu('全链路日志列表')
             container = $('#全链路日志列表')
-            container.show();
-            container.find('h3').remove();
-
-            const table = $('#全链路日志列表-table');
-            table.empty()
-            table.before(`<h3 >
+            container.empty()
+            const table = $('<table>').attr('id', '全链路日志列表-table')
+            container.append(`<h3 >
                 日期：{0}
             </h3>`.format(date))
+
+            // container.append($('<div>').attr('id', 'filter-btn').text('过滤').click(()=>{
+            //     handleClickAddfilter()
+            // }))
+            // container.append($('<div>').attr('id', 'filters-container').text('过滤条件'))
+            // container.append($('<div>').attr('id', 'apply-filters').text('应用过滤').click(()=>{
+            //     handleClickApplyFilters()
+            // }))
+            // container.append($('<div>').attr('id', 'reset-filters').text('重置').click(()=>{
+            //     handleClickResetFilters()
+            // }))
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
@@ -1244,6 +1255,7 @@
                 table.append(logContainer);
 
             }
+            container.append(table)
             setGridColor()
         }).catch(error => {
             console.log('error fetching fail list', error)
@@ -1325,6 +1337,124 @@
             hideLoadingStatus()
         })
     }
+
+    function getLogKeyValues(){
+        result = {}
+        // 遍历每个 p 标签
+        const logDetailsBody = $('.log-details-body')
+        logDetailsBody.find('p').each(function() {
+            // 获取当前 p 标签的 jQuery 对象
+            const $p = $(this);
+
+            // 获取 p 标签中的 span
+            const spanText = $p.find('span').text();
+
+            // 获取 p 标签中的纯文本（排除 span）
+            const pTextWithoutSpan = $p.contents().filter(function() {
+                return this.nodeType === Node.TEXT_NODE;
+            }).text().trim();
+            key = spanText.trim().slice(0, -1)
+            if( !(key in result)){
+                result[key] = []
+            }
+            result[key].push(pTextWithoutSpan)
+        });
+        return result
+    }
+
+    function handleClickResetFilters(){
+        function getFilters() {
+            var result = {}
+
+            // 遍历所有的 filter-row 元素
+            $('.filter-row').each(function(index) {
+                const $this = $(this);
+
+                // 获取第一个 select 的值
+                const firstSelectValue = $this.find('select').eq(0).val();
+
+                // 获取第二个 select 的值
+                const secondSelectValue = $this.find('select').eq(1).val();
+
+                // 将这些值放入一个字典
+                result[firstSelectValue] = secondSelectValue;
+            });
+            return result
+        }
+        function shouldBeKept(logDetail, filters){
+            logDetail.find('p').each(()=>{
+                const $p = $(this)
+                const key = $p.find('span').text().trim().slice(0, -1)
+                const value = $p.contents().filter(function() {
+                    return this.nodeType === Node.TEXT_NODE;
+                }).text().trim()
+                if (key in filters){
+                    if (filters[key] != value){
+                        return false
+                    }
+                }
+                return true
+            })
+            return true
+        }
+        const filters = getLogKeyValues()
+        const logs = $('.log-container')
+        logs.each(()=>{
+            const $this = $(this)
+            const logDetail = $this
+        })
+        details = $('.log-details-body')
+    }
+    function handleClickApplyFilters(){
+        console.log('clicked apply filters')
+    }
+    function handleClickAddfilter(){
+        const keyValues = getLogKeyValues()
+
+        console.log('clicked filter btn')
+        const filterCount = $('#filters-container').children().length;
+        $filterRow = $('<div>').addClass('filter-row').attr('id', `filter-row-${filterCount}`);
+
+        $keySelect = $('<select>').attr('id', `filter-key-${filterCount}`).change((event)=>{
+            const key = $(event.target).val()
+            console.log('changed key')
+            const $valueSelect = $(`#filter-value-${filterCount}`)
+            $valueSelect.empty()
+            for (var value of keyValues[key]){
+                $p = $('<option>')
+                    .attr('value', value)
+                    .text(value);
+                $valueSelect.append($p);
+            }
+        });
+        $keySelect.append($('<option>')
+            .attr('value', '')
+            .attr('selected', 'false')
+            .text('请选择'));
+        for (var key in keyValues){
+            $p = $('<option>')
+                .attr('value', key)
+                .text(key);
+            $keySelect.append($p);
+        }
+
+        $valueSelect = $('<select>').attr('id', `filter-value-${filterCount}`);
+
+        $resetBtn = $('<button>')
+            .addClass('remove-filter')
+            .attr('data-row-id', `filter-row-${filterCount}`)
+            .text('清空')
+            .click(handleRemoveFilter);
+
+        $filterRow.append($keySelect, $valueSelect, $resetBtn);
+        $('#filters-container').append($filterRow);
+    }
+    function handleRemoveFilter(event){
+        const rowId = $(event.target).data('row-id');
+        console.log('clicked remove filter', rowId)
+        $(`#${rowId}`).remove();
+    }
+
 
     function paginateTable(tableId, rowsPerPage, paginationId) {
         let currentPage = 1;
@@ -1522,6 +1652,36 @@
         $('#loading-container').addClass('hide');
     }
 
+    $(document).ready(function() {
+        var timer;
+        var isScrollbarVisible = true;
+
+        // 函数：使滚动条透明
+        function fadeScrollbar() {
+            if (isScrollbarVisible) {
+                $('body').addClass('scrollbar-transparent');
+                isScrollbarVisible = false;
+            }
+        }
+
+        // 函数：恢复滚动条可见性
+        function showScrollbar() {
+            if (!isScrollbarVisible) {
+                $('body').removeClass('scrollbar-transparent');
+                isScrollbarVisible = true;
+            }
+        }
+
+        // 监听鼠标移动、滚轮和触摸事件
+        $(document).on('mousemove mousewheel DOMMouseScroll touchstart touchmove', function() {
+            showScrollbar();
+            clearTimeout(timer);
+            timer = setTimeout(fadeScrollbar, 1500); // 1.5秒后使滚动条透明
+        });
+
+        // 初始状态显示滚动条
+        showScrollbar();
+    });
 
 </script>
 

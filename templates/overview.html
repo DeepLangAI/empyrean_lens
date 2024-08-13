@@ -735,7 +735,7 @@
 
     function displayScoreDetails(scoreDetails) {
         // 在这里实现显示分数细节的逻辑
-        console.log(scoreDetails);
+        // console.log(scoreDetails);
         String.prototype.format = function(...args) {
             return this.replace(/{(\d+)}/g, (match, index) => args[index]);
         };
@@ -852,7 +852,7 @@
                 date_begin: date,
             }
         }).then(response => {
-            console.log('response', response.data)
+            // console.log('response', response.data)
             for (var i = 0; i < response.data.data.length; i++){
                 const log = response.data.data[i].origin_log
 
@@ -876,7 +876,7 @@
                         if (key == 'trace_id' && traceIdLegal(log[key])){
                             p.addClass('clickable')
                                 .click(()=>{
-                                    console.log('clicked!')
+                                    // console.log('clicked!')
                                     handleEndToEndTraceLogs(log["trace_id"], date)
                                 })
                         }
@@ -1010,7 +1010,7 @@
 
         for (let i = 0; i < details.length; i++) {
             const log = details[i]
-            console.log(log)
+            // console.log(log)
             const logContainer = $('<div>').addClass('log-container');
             const logId = $('<div>').addClass('log-id').text(i + 1);
             const logTime = $('<div>').addClass('log-time').text(log.Time.slice(11, 19));
@@ -1052,7 +1052,7 @@
                 date_begin: date,
             }
         }).then(response =>{
-            console.log('response', response.data)
+            // console.log('response', response.data)
             // 获取$('#慢查询列表-table')元素
             const container = $('#慢查询列表');
             const table = $('#慢查询列表-table');
@@ -1088,9 +1088,9 @@
                     for (let j = 0; j < item.slow_details.length; j++) {
                         slowDetails.push(JSON.parse(item.slow_details[j]))
                     }
-                    console.log(slowDetails)
+                    // console.log(slowDetails)
                     slowReqTd.addClass('clickable').on('click', function(){
-                        console.log("slow details:", slowDetails)
+                        // console.log("slow details:", slowDetails)
                         handleSlowDetail(slowDetails, date)
                         // handleProbeLogDetail(item.api_name, false, true, date)
                     })
@@ -1143,7 +1143,7 @@
                 date_begin: date,
             }
         }).then(response =>{
-            console.log('response', response.data)
+            // console.log('response', response.data)
             // 获取$('#接口错误列表-table')元素
             const container = $('#接口错误列表');
             const table = $('#接口错误列表-table');
@@ -1222,7 +1222,7 @@
                 path: path,
             }
         }).then(response => {
-            console.log('response', response.data)
+            // console.log('response', response.data)
             $('#' + menus[menus.length - 1]).hide()
             menus.push('接口错误详情')
             modifySidebar()
@@ -1307,7 +1307,7 @@
                 trace_id: traceId,
             }
         }).then(response => {
-            console.log('response', response.data)
+            // console.log('response', response.data)
             pushToMenu('全链路日志列表')
             container = $('#全链路日志列表')
             container.empty()
@@ -1334,7 +1334,7 @@
             )
             filtersContainer = $('<div>').attr('id', 'filters-container').text('')
             container.append(filtersContainer)
-            filtersContainer.append($('<p>').attr('id', 'filtered-count').text(''))
+            filtersContainer.append($('<p>').attr('id', 'filtered-count').text(`共 ${response.data.data.length} 条日志符合过滤条件`))
             filtersContainer.append($('<div>').attr('id', 'filter-btn').text('添加条件').click(()=>{
                 handleClickAddfilter()
             }))
@@ -1421,7 +1421,7 @@
                 not_success: notSuccess,
             }
         }).then(response => {
-            console.log(response.data)
+            // console.log(response.data)
             $('#' + menus[menus.length - 1]).hide()
             menus.push('探针日志详情')
             modifySidebar()
@@ -1460,7 +1460,7 @@
                     if (key == 'trace_id' && traceIdLegal(log[key])){
                         p.addClass('clickable')
                             .click(()=>{
-                                console.log('clicked!')
+                                // console.log('clicked!')
                                 handleEndToEndTraceLogs(log[key], date)
                             })
                     }
@@ -1516,6 +1516,7 @@
         $('.filter-row').remove()
     }
     function handleClickApplyFilters(){
+        showLoadingStatus()
         function getFilters() {
             var result = {}
 
@@ -1543,13 +1544,13 @@
             let keyAccured = 0
             let valueMatched = 0
             logDetail.find('p').each(function (){
-                console.log($(this))
+                // console.log($(this))
                 const $p = $(this)
                 const key = $p.find('span').text().trim().slice(0, -1)
                 const value = $p.contents().filter(function() {
                     return this.nodeType === Node.TEXT_NODE;
                 }).text().trim()
-                console.log('key', key, 'val', value, filters[key], filters)
+                // console.log('key', key, 'val', value, filters[key], filters)
                 if (key in filters){
                     keyAccured += 1
                     if(value == filters[key]) {
@@ -1559,7 +1560,6 @@
             })
             return keyAccured == valueMatched && keyAccured == Object.keys(filters).length
         }
-        showLoadingStatus()
         console.log('clicked apply filters')
         const filters = getFilters()
         let numLogs = 0

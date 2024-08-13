@@ -992,7 +992,8 @@ from log where
 %v "content.vhost" = '%v' and 
 
 "content.method"  in ('GET', 'POST') and
-"content.status"  != 200
+"content.status"  != 200 and
+"content.channel" = 'lingo-prod'
 order by "content.time" desc
 limit %v
 `
@@ -1028,7 +1029,7 @@ limit %v
 		}
 		result := NginxErrorLog{
 			NginxLog: NginxLog{
-				CleanUrl: log["url"],
+				CleanUrl: log["path"],
 				Time:     t,
 				Method:   log["method"],
 				Status:   log["status"],
@@ -1120,7 +1121,7 @@ limit %v
 		logs = append(logs, EntToEndLog{
 			TraceId:      traceId,
 			UserId:       log["user_id"],
-			Time:         t.Format("2006-01-02 15:04:05,999"),
+			Time:         t.Format("2006-01-02 15:04:05.999"),
 			Message:      "",
 			Host:         log["host"],
 			ApiPath:      log["url"],
@@ -1263,11 +1264,11 @@ limit %v
 	hlog.CtxInfof(ctx, "日期%v，查business-pod, trace_id: %v, 共%v条日志", date, traceId, len(resp.Logs))
 	logs := []EntToEndLog{}
 	for _, log := range resp.Logs {
-		//t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
-		//if e != nil {
-		//	hlog.CtxErrorf(ctx, "parse time error: %v", e)
-		//	continue
-		//}
+		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			continue
+		}
 		originLog := map[string]string{}
 		for key, val := range log {
 			if val == "null" || val == "-" || val == "" {
@@ -1283,7 +1284,7 @@ limit %v
 			LogStoreName: consts.BUSINESS_LOG_STORE_NAME,
 			TraceId:      log["trace_id"],
 			UserId:       log["user_id"],
-			Time:         log["time"],
+			Time:         t.Format("2006-01-02 15:04:05.999"),
 			Message:      log["msg"],
 			Host:         "",
 			ApiPath:      "",

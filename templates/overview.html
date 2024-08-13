@@ -962,11 +962,13 @@
                 $row.append($('<td>').text(item.num_total_req));
                 slowReqTd = $('<td>').text(item.num_slow_req);
                 if (item.num_slow_req > 0){
-                    slowDetails = []
+                    let slowDetails = []
                     for (let j = 0; j < item.slow_details.length; j++) {
                         slowDetails.push(JSON.parse(item.slow_details[j]))
                     }
+                    console.log(slowDetails)
                     slowReqTd.addClass('clickable').on('click', function(){
+                        console.log("slow details:", slowDetails)
                         handleSlowDetail(slowDetails, date)
                         // handleProbeLogDetail(item.api_name, false, true, date)
                     })

@@ -573,7 +573,8 @@ func EndToEndLogsQuery(ctx context.Context, traceId, date string) ([]EntToEndLog
 		return nil, errors.New("query end to end trace logs, error")
 	}
 	sort.Slice(results, func(i, j int) bool {
-		return results[i].Time[11:19] > results[j].Time[11:19]
+		//return results[i].Time[11:19] > results[j].Time[11:19]
+		return results[i].Time > results[j].Time
 	})
 	return results, nil
 }

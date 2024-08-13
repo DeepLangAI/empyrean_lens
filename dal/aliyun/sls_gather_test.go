@@ -481,7 +481,7 @@ func TestEndToEndLogsQuery(t *testing.T) {
 	} else {
 		fmt.Println("日志数：", len(logs))
 		for _, log := range logs {
-			fmt.Println(log)
+			fmt.Println(log.Time)
 		}
 	}
 }

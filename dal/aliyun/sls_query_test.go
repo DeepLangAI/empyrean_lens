@@ -5,6 +5,7 @@ import (
 	"empyrean_lens/conf"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestQaRecommendFailcntQuery(t *testing.T) {
@@ -53,21 +54,23 @@ func TestModelNginxErrlogsQuery(t *testing.T) {
 	Init(ctx)
 
 	//query, err := ModelNginxErrlogsQuery(ctx, "outline-verbose.shenyandayi.com", "/generate", "2024-08-07")
-	query, err := ModelNginxErrlogsQuery(ctx, "", "/generate", "2024-08-07")
+	query, err := ModelNginxErrlogsQuery(ctx, "ai-infra-service.shenyandayi.com", "/multi-doc/single-doc-analysis", "2024-08-13")
 	if err != nil {
 		fmt.Println(err)
 	} else {
 		fmt.Println(len(query))
-		fmt.Println(query)
+		for _, log := range query {
+			fmt.Println(log.CleanUrl)
+		}
 	}
 
-	query, err = ModelNginxErrlogsQuery(ctx, "pdfparser.shenyandayi.com", "/", "2024-08-09")
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(len(query))
-		fmt.Println(query)
-	}
+	//query, err = ModelNginxErrlogsQuery(ctx, "pdfparser.shenyandayi.com", "/", "2024-08-09")
+	//if err != nil {
+	//	fmt.Println(err)
+	//} else {
+	//	fmt.Println(len(query))
+	//	fmt.Println(query)
+	//}
 
 }
 
@@ -120,5 +123,24 @@ func TestTracebackQuery(t *testing.T) {
 		fmt.Println(err)
 	} else {
 		fmt.Println(logs)
+	}
+}
+
+func TestParseTime(t *testing.T) {
+	asctime := "2024-08-06 17:37:31.391"
+	parse, err := time.Parse("2006-01-02 15:04:05.999", asctime)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(parse)
+	}
+
+	_time := "2024-08-06 17:37:31,391"
+	p, err := time.Parse("2006-01-02 15:04:05.999", _time)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(p)
+		fmt.Println(p.Format("2006-01-02 15:04:05.999"))
 	}
 }

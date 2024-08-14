@@ -870,9 +870,22 @@
                                 .text(log[key])
                         );
                     } else {
+                        const id = key + '-' + i;
                         var p = $("<p>")
+                            .attr('id', id)
                             .append($("<span>").text(key + ":"))
                             .append(log[key])
+                        var span = $('<span>')
+                            .addClass('expand-tip')
+                            .text('展开')
+                            .click(function(e) {
+                                e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                handleClickExpand(id)
+                            })
+                        if (log[key].length >= 300){
+                            p.append(span)
+                        }
+
                         if (key == 'trace_id' && traceIdLegal(log[key])){
                             p.addClass('clickable')
                                 .click(()=>{
@@ -1619,9 +1632,13 @@
             .attr('selected', 'false')
             .text('请选择'));
         for (var key in keyValues){
+            let keyText = key
+            if (keyValues[key].length > 1){
+                keyText = `${key} (${keyValues[key].length})`
+            }
             $p = $('<option>')
                 .attr('value', key)
-                .text(key);
+                .text(keyText);
             $keySelect.append($p);
         }
 

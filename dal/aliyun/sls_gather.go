@@ -533,6 +533,52 @@ func NginxErrorLogsOfAPI(ctx context.Context, host, url, date string) ([]NginxEr
 	}
 	return nil, errors.New("query nginx error logs, error")
 }
+func modifyOriginLog(originLog map[string]string) map[string]string {
+	for key1, key2 := range map[string]string{
+		"asctime":         "time",
+		"msg":             "message",
+		"ip":              "client_ip",
+		"http_user_agent": "ua",
+		"vhost":           "host",
+		"url":             "path",
+		"request_time":    "cost",
+	} {
+		if _, ok1 := originLog[key1]; ok1 {
+			if _, ok2 := originLog[key2]; ok2 {
+				delete(originLog, key1)
+			}
+		}
+	}
+	for key1, key2 := range map[string]string{
+		"levelname": "level",
+	} {
+		if _, ok1 := originLog[key1]; ok1 {
+			if _, ok2 := originLog[key2]; !ok2 {
+				value := originLog[key1]
+				delete(originLog, key1)
+				originLog[key2] = value
+			}
+		}
+	}
+	for _, key := range []string{
+		"upstream_addr",
+		"request_length",
+		"body_bytes_sent",
+		"upstream_response_length",
+		"upstream_response_time",
+		"upstream_status",
+		"x_forward_for",
+		"proxy_upstream_name",
+		"thread",
+		"threadname",
+		"version",
+	} {
+		if _, ok := originLog[key]; ok {
+			delete(originLog, key)
+		}
+	}
+	return originLog
+}
 
 func EndToEndLogsQuery(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
 	mu := sync.Mutex{}
@@ -576,6 +622,9 @@ func EndToEndLogsQuery(ctx context.Context, traceId, date string) ([]EntToEndLog
 		//return results[i].Time[11:19] > results[j].Time[11:19]
 		return results[i].Time > results[j].Time
 	})
+	for _, result := range results {
+		result.OriginLog = modifyOriginLog(result.OriginLog)
+	}
 	return results, nil
 }
 

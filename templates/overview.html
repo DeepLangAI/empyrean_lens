@@ -1745,7 +1745,7 @@
                 const $p = $(this);
 
                 // 获取 p 标签中的 span
-                const spanText = $p.find('span').text();
+                const spanText = $p.find('span').first().text();
 
                 // 获取 p 标签中的纯文本（排除 span）
                 const pTextWithoutSpan = $p.contents().filter(function() {

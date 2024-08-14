@@ -39,7 +39,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-"content.channel": "lingo-prod"|
+("content.channel": "lingo-prod" or "content.channel": "lingo-pre")|
 	SELECT 
 	"content.path" url,
 	"content.method" method, 
@@ -191,7 +191,7 @@ func MultiTotalRequestQuery(ctx context.Context, daysLookback int) (int, error) 
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 	query := `
-	__tag__:_container_name_ : lingo-python-prod and files merge multi. article_list | select * from log
+	(__tag__:_container_name_ : lingo-python-prod or __tag__:_container_name_ : lingo-python-pre) and files merge multi. article_list | select * from log
 limit %v
 	`
 
@@ -218,7 +218,7 @@ func MultiNodeLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error)
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-__tag__:_container_name_ : lingo-python-prod and multi_node | select * from (
+(__tag__:_container_name_ : lingo-python-prod or __tag__:_container_name_ : lingo-python-pre) and multi_node | select * from (
     select regexp_extract(message, 'multi_node (.*?)(\.|,|\s)', 1) node_name, asctime time, user_id, trace_id
     from log
 ) order by time desc limit %v
@@ -271,7 +271,7 @@ func MultiCoreLogQuery(ctx context.Context, daysLookback int, coreName string) (
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-((__tag__:_container_name_: lingo-python-prod) and message: "%v core node node_name") |
+((__tag__:_container_name_: lingo-python-prod or __tag__:_container_name_: lingo-python-pre) and message: "%v core node node_name") |
 select  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 1) as node_name,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 2) as multi_id,  
@@ -321,7 +321,7 @@ func QaMiddlewareReqLogQuery(ctx context.Context, daysLookback int, apis []strin
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod) and "Request rout" | 
+(__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) and "Request rout" | 
 select * from ( 
 select  regexp_extract(message, 'Request rout:(.*), Method:POST, RequestBody:.*', 1) url,
 time, trace_id, user_id
@@ -371,7 +371,7 @@ func QaMiddlewareRespLogQuery(ctx context.Context, daysLookback int, apis []stri
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod) and "Response rout" | 
+(__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) and "Response rout" | 
 select * from ( 
 select  
 regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 1) url,
@@ -430,7 +430,7 @@ func QaCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]C
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod and message: "%v,") |  select * from (
+(__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) and message: "%v," |  select * from (
 select 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 1) as node, 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 2) as cnt, 
@@ -483,7 +483,7 @@ func CommonCoreLogQuery(ctx context.Context, daysLookback int, coreName string) 
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-__tag__:_container_name_:lingo-python-prod and "core link core_name:%v" |
+(__tag__:_container_name_:lingo-python-prod or __tag__:_container_name_:lingo-python-pre) and "core link core_name:%v" |
 SELECT 
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 1) as core_name,
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 2) as core_node,
@@ -550,7 +550,7 @@ func LingoChatCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorL
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-chat core api response error and __tag__:_container_name_: lingo-chat-go-prod | select * from (
+chat core api response error and (__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) | select * from (
     select 
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name,
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code,
@@ -609,7 +609,7 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-__tag__:_container_name_:lingo-python-prod and extend core api response error core_name| select * from (
+(__tag__:_container_name_:lingo-python-prod or __tag__:_container_name_:lingo-python-pre) and extend core api response error core_name| select * from (
     select 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name, 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code, 
@@ -667,7 +667,7 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-__tag__:_container_name_:lingo-python-prod and summary start | select * from (
+(__tag__:_container_name_:lingo-python-prod or __tag__:_container_name_:lingo-python-pre) and summary start | select * from (
     select 
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 1) file_id, 
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 2) url_id, 
@@ -707,7 +707,7 @@ func QaErrorCntQuery(ctx context.Context, daysLookback int) int64 {
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod and "%v") |  
+(__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) and "%v" |  
 select count(*) cnt from log
 limit %v
 `
@@ -746,7 +746,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
-	query := `__tag__:_container_name_ : lingo-python-prod and  message : "summary core core_name:%s" |
+	query := `(__tag__:_container_name_ : lingo-python-prod or __tag__:_container_name_ : lingo-python-pre) and  message : "summary core core_name:%s" |
 	select
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 1) as core_name,
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 2) as node,
@@ -804,7 +804,7 @@ func QaRecommendFailcntQuery(ctx context.Context, daysLookback int) int64 {
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-推荐模型返回异常 and __tag__:_container_name_: lingo-chat-go-prod | select count(*) cnt from log
+推荐模型返回异常 and (__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) | select count(*) cnt from log
 limit %v
 `
 
@@ -844,7 +844,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-推荐模型 推荐结束 and __tag__:_container_name_: lingo-chat-go-prod | select * from (
+推荐模型 推荐结束 and (__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) | select * from (
     select 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 1) count, 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 2) cost, 
@@ -993,7 +993,7 @@ from log where
 
 "content.method"  in ('GET', 'POST') and
 "content.status"  != 200 and
-"content.channel" = 'lingo-prod'
+("content.channel" = 'lingo-prod' or "content.channel" = 'lingo-pre')
 order by "content.time" desc
 limit %v
 `
@@ -1318,7 +1318,7 @@ func TracebackQuery(ctx context.Context, daysLookback int) ([]TracebackDetail, e
 
 	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 	query := `
-__tag__:_container_name_ : lingo-python-prod and  exc_info : "Traceback (most recent call last)" |  
+(__tag__:_container_name_ : lingo-python-prod or __tag__:_container_name_ : lingo-python-pre) and  exc_info : "Traceback (most recent call last)" |  
 select 
 exc_info, message msg, trace_id, asctime time, user_id
 from log

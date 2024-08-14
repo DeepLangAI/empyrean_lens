@@ -92,7 +92,7 @@ func (self *ApiFailureDao) FindTimespanFailure(ctx context.Context, timeBegin, t
 
 func (self *ApiFailureDao) CreateOrUpdate(ctx context.Context, date time.Time, apiName string, update ApiFailureModel) error {
 	_, err := probeDatabase.Collection(TableNameApiFailure).
-		UpdateOne(ctx, bson.M{"date": date, "api_name": apiName, "status": consts.StatusValid}, bson.M{"$set": update}, options.Update().SetUpsert(true))
+		UpdateOne(ctx, bson.M{"date": date, "api_name": apiName, "status": consts.StatusValid, "host_name": update.HostName}, bson.M{"$set": update}, options.Update().SetUpsert(true))
 	if err != nil {
 		hlog.CtxErrorf(ctx, "update api failure model failed, err: %v", err)
 		return err

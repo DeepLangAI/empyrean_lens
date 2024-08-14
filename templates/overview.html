@@ -582,6 +582,35 @@
             background-color: #c82333; /* 鼠标悬停时按钮背景色变深 */
         }
 
+        /* choice-container 样式 */
+        .choice-container {
+            display: flex; /* 使用 Flexbox 布局 */
+            justify-content: flex-end; /* 按钮从左到右排列 */
+            align-items: center; /* 垂直方向居中对齐 */
+            gap: 10px; /* 按钮之间的间距 */
+            padding-top: 10px;
+        }
+
+        /* 选择按钮的基础样式 */
+        .choice-btn {
+            padding: 5px 10px;
+            background-color: #f0f0f0; /* 按钮背景颜色 */
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .choice-btn:hover {
+            background-color: #e0e0e0; /* hover 时的背景颜色 */
+            border-color: #bbb; /* hover 时的边框颜色 */
+        }
+
+        /* 高亮样式 */
+        .choice-btn.highlighted {
+            background-color: #4CAF50; /* 高亮背景颜色 */
+            color: white; /* 高亮文字颜色 */
+            border-color: #4CAF50; /* 高亮边框颜色 */
+        }
 
 
     </style>
@@ -1080,7 +1109,7 @@
 <!--                    <th>日期</th>-->
                     <th>核心功能</th>
                     <th>总请求数</th>
-<!--                    <th>异常请求数</th>-->
+                    <th>异常请求数</th>
 <!--                    <th>异常请求率</th>-->
                     <th>慢查询数</th>
                     <th>慢查询率</th>
@@ -1095,6 +1124,7 @@
                 // $row.append($('<td>').text(item.date));
                 $row.append($('<td>').text(item.api_name));
                 $row.append($('<td>').text(item.num_total_req));
+                $row.append($('<td>').text(item.num_error_req));
                 slowReqTd = $('<td>').text(item.num_slow_req);
                 if (item.num_slow_req > 0){
                     let slowDetails = []
@@ -1136,12 +1166,185 @@
             }
 
         }).catch(error =>{
-            console.log('error fetching fail list', error)
+            console.log('error fetching slow list', error)
         }).finally(()=>{
             hideLoadingStatus()
         })
     }
 
+    function trShouldShowByEnvBtn(tr){
+        if (tr.find('td:nth-child(1)').text() == '当日总览'){
+            return true
+        }
+        let apiName = tr.find('td:nth-child(2)').text()
+        // 找到id为env-choice的div下的两个choice-btn
+        let envBtns = $('#env-choice').find('.choice-btn')
+        // 判断哪个按钮被选中
+        if (envBtns.eq(0).hasClass('highlighted')){
+            // console.log('pre btn is highlighted')
+            return apiName.startsWith('pre')
+        } else if (envBtns.eq(1).hasClass('highlighted')){
+            // console.log('prod btn is highlighted')
+            return !apiName.startsWith('pre')
+        } else {
+            // console.log('all btn is highlighted')
+            return true
+        }
+    }
+    function trShouldShowByStatusBtn(tr){
+        if (tr.find('td:nth-child(1)').text() == '当日总览'){
+            return true
+        }
+        let failCnt = tr.find('td:nth-child(3)').text()
+        // 找到id为status-choice的div下的两个choice-btn
+        let statusBtns = $('#status-choice').find('.choice-btn')
+        // 判断哪个按钮被选中
+        if (statusBtns.eq(0).hasClass('highlighted')){
+            return failCnt > 0
+        } else if (statusBtns.eq(1).hasClass('highlighted')){
+            return failCnt == 0
+        } else {
+            return true
+        }
+    }
+    function trShouldShowByChoiceBtns(tr){
+        console.log('tr:', tr, trShouldShowByEnvBtn(tr), trShouldShowByStatusBtn(tr))
+        return trShouldShowByEnvBtn(tr) && trShouldShowByStatusBtn(tr)
+    }
+
+    function showErrorTable_pre(){
+        let table = $('#接口错误列表-table')
+        table.find('tr').each(function(index){
+            if (index == 0){
+                return
+            }
+            if ($(this).find('td:nth-child(1)').text() == '当日总览'){
+                $(this).show()
+                return
+            }
+            if(trShouldShowByChoiceBtns($(this))){
+                $(this).show()
+            } else {
+                $(this).hide()
+            }
+        })
+    }
+
+    function showErrorTable_prod(){
+        let table = $('#接口错误列表-table')
+        table.find('tr').each(function(index) {
+            // 如果原本就不可见
+            // if(!$(this).is(':visible')){
+            //     return
+            // }
+            if (index == 0){
+                return
+            }
+
+            if ($(this).find('td:nth-child(1)').text() == '当日总览'){
+                $(this).show()
+                return
+            }
+            let apiName = $(this).find('td:nth-child(2)').text()
+            if (!apiName.startsWith('pre')) {
+                $(this).show()
+            } else {
+                $(this).hide()
+            }
+        })
+    }
+
+    function showErrorTable_all(){
+        let table = $('#接口错误列表-table')
+        table.find('tr').each(function(index){
+            if (index == 0){
+                $(this).show()
+                return
+            }
+            if (trShouldShowByChoiceBtns($(this))){
+                $(this).show()
+            } else{
+                $(this).hide()
+            }
+        })
+    }
+
+    function showErrorTable_normal(){
+        let table = $('#接口错误列表-table')
+        table.find('tr').each(function(index){
+            if (index == 0){
+                return
+            }
+            if ($(this).find('td:nth-child(1)').text() == '当日总览'){
+                $(this).show()
+                return
+            }
+            let failCnt = $(this).find('td:nth-child(3)').text()
+            if (failCnt > 0){
+                $(this).hide()
+            } else {
+                $(this).show()
+            }
+        })
+    }
+    function showErrorTable_abnormal(){
+        let table = $('#接口错误列表-table')
+        table.find('tr').each(function(index){
+            if (index == 0){
+                return
+            }
+            if ($(this).find('td:nth-child(1)').text() == '当日总览'){
+                $(this).show()
+                return
+            }
+            let failCnt = $(this).find('td:nth-child(3)').text()
+            if (failCnt > 0){
+                $(this).show()
+            } else {
+                $(this).hide()
+            }
+        })
+    }
+
+    function handleClickStatusChoiceBtn(){
+        console.log('click status choice btn', $(this), $(this).text())
+        if ($(this).hasClass('highlighted')){
+            $(this).removeClass('highlighted')
+        } else{
+            $('#status-choice div').removeClass('highlighted')
+            $(this).addClass('highlighted')
+        }
+        // if ($(this).hasClass('highlighted')){
+        //     if ($(this).text() === '仅异常') {
+        //         showErrorTable_abnormal()
+        //     } else if ($(this).text() === '仅正常') {
+        //         showErrorTable_normal()
+        //     }
+        // } else{
+        //     showErrorTable_all()
+        // }
+        showErrorTable_all()
+    }
+
+    function handleClickEnvChoiceBtn(){
+        console.log('click env choice btn', $(this), $(this).text())
+        if ($(this).hasClass('highlighted')){
+            $(this).removeClass('highlighted')
+        } else{
+            $('#env-choice div').removeClass('highlighted')
+            $(this).addClass('highlighted')
+        }
+        // if ($(this).hasClass('highlighted')){
+        //     if ($(this).text() === '仅预发') {
+        //         showErrorTable_pre()
+        //     } else if ($(this).text() === '仅正式') {
+        //         showErrorTable_prod()
+        //     }
+        // } else{
+        //     showErrorTable_all()
+        // }
+        showErrorTable_all()
+    }
     function handleErrorList(){
         menus.push('接口错误列表')
         modifySidebar();
@@ -1159,7 +1362,27 @@
             // console.log('response', response.data)
             // 获取$('#接口错误列表-table')元素
             const container = $('#接口错误列表');
-            const table = $('#接口错误列表-table');
+            container.empty()
+            container.find("div").remove()
+            container.append(
+                $('<div>').attr('id', 'choices')
+                    .append(
+                        $('<div>').attr('id', 'env-choice').addClass('choice-container')
+                            .append($('<div>').text('仅预发').addClass('choice-btn').click(handleClickEnvChoiceBtn))
+                            .append($('<div>').text('仅正式').addClass('choice-btn').click(handleClickEnvChoiceBtn))
+                    )
+            )
+            container.append(
+                $('<div>').attr('id', 'choices')
+                    .append(
+                        $('<div>').attr('id', 'status-choice').addClass('choice-container')
+                            .append($('<div>').text('仅异常').addClass('choice-btn').click(handleClickStatusChoiceBtn))
+                            .append($('<div>').text('仅正常').addClass('choice-btn').click(handleClickStatusChoiceBtn))
+                    )
+            )
+
+            const table = $('<table>').attr('id', '接口错误列表-table')
+            container.append(table)
             container.find('h3').remove()
             table.empty()
             table.before(`<h3 >

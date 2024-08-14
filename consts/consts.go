@@ -70,6 +70,7 @@ const (
 	HOST_WCD               = "wcd-v2.deeplang.net"
 	HOST_EDU               = "api-edu-arch.shenyandayi.com"
 	HOST_QA_BACKEND        = "api-chat.lingoreader.cn"
+	HOST_QA_PRE_BACKEND    = "pre-api-chat.lingoreader.cn"
 
 	HOST_ABSTRACT = "summary.shenyandayi.com"
 	HOST_OURLINE  = "outlinecata.shenyandayi.com"
@@ -79,6 +80,7 @@ const (
 	HOST_QA_RECOMMEND    = "qa-recommend.shenyandayi.com"
 	HOST_QA_MAIN         = "qa-main.shenyandayi.com"
 	HOST_REPEATER        = "api-repeater.lingoreader.cn"
+	HOST_PRE_REPEATER    = "pre-api-repeater.lingoreader.cn"
 	HOST_QUERY_EMBEDDING = "search-embedding-v2.shenyandayi.com"
 	HOST_MULTI_MODEL     = "ai-infra-service.shenyandayi.com"
 )
@@ -90,6 +92,28 @@ type API struct {
 
 var NGINX_INGRESS_APIS = map[string][]API{
 	HOST_LINGO_BACKEND: {
+		{
+			Api:   "/api/plugin/file/add",
+			Alias: "【数据处理】【后端】上传PDF",
+		},
+		{
+			Api:   "/api/readers/url/upload",
+			Alias: "【数据处理】【后端】上传URL[web,小程序,插件]",
+		},
+		{
+			Api:   "/api/readers/url/content/upload",
+			Alias: "【数据处理】【后端】上传URL[小助手等]",
+		},
+		{
+			Api:   "/api/plugin/articles/summary",
+			Alias: "【单文档】【后端】全文速览/智能大纲/关键信息",
+		},
+		{
+			Api:   "/api/plugin/articles/summary/list_v2",
+			Alias: "【单文档】【后端】刷新模型生成内容(list_v2)",
+		},
+	},
+	HOST_LINGO_PRE_BACKEND: {
 		{
 			Api:   "/api/plugin/file/add",
 			Alias: "【数据处理】【后端】上传PDF",
@@ -143,7 +167,31 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Alias: "【问答】【后端】问题推荐",
 		},
 	},
+	HOST_QA_PRE_BACKEND: {
+		{
+			Api:   "/api/chat/qa",
+			Alias: "【问答】【后端】问答",
+		},
+		{
+			Api:   "/api/chat/recommend",
+			Alias: "【问答】【后端】问题推荐",
+		},
+	},
 	HOST_REPEATER: {
+		{
+			Api:   "/doc/single/analyze",
+			Alias: "【多文档】1[中继服务]单文档分析",
+		},
+		{
+			Api:   "/doc/multi/analyze",
+			Alias: "【多文档】2[中继服务]多文档整合",
+		},
+		{
+			Api:   "/doc/multi/outline",
+			Alias: "【多文档】3[中继服务]多文档总结",
+		},
+	},
+	HOST_PRE_REPEATER: {
 		{
 			Api:   "/doc/single/analyze",
 			Alias: "【多文档】1[中继服务]单文档分析",

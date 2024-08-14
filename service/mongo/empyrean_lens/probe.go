@@ -58,7 +58,7 @@ func ProbeReport(ctx context.Context) ([]map[string]string, error) {
 	}
 	cache := map[string]ProbeReportModel{}
 	for _, log := range logs {
-		key := fmt.Sprintf("%v %v%v,%v", log.CreateTime.Format("2006-01-02"), log.Host, log.Api, log.Scene)
+		key := fmt.Sprintf("%v %v%v,%v", log.CreateTime.Add(8*time.Hour).Format("2006-01-02"), log.Host, log.Api, log.Scene)
 		cacheVal, ok := cache[key]
 		fmt.Println("key: ", key, "ok:", ok)
 		if !ok {

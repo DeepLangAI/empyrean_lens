@@ -62,7 +62,7 @@ func RealtimeProbeLoganlz(ctx context.Context) *Metric {
 	}
 
 	for _, model := range models {
-		date := model.CreateTime.Format("2006-01-02")
+		date := model.CreateTime.Add(8 * time.Hour).Format("2006-01-02")
 		if !model.Correct {
 			failCnts[date] += 1
 		}

@@ -101,6 +101,9 @@
         }
         /* 移动端样式 */
         @media (max-width: 767px) {
+            #menu{
+                padding-top: 45px;
+            }
             .table-container {
                 /*max-height: 60vh; !* 设置最大高度为视口高度的60% *!*/
                 overflow-y: auto; /* 添加垂直滚动 */
@@ -142,15 +145,13 @@
             }
             .breadcrumb {
                 font-size: x-large !important;
-            }
-            .breadcrumb {
-                height: 55px !important;
+                height: 75px !important;
             }
             #back{
-                padding-left: 28px !important; /* 示例内边距 */
+                /*padding-left: 28px !important; !* 示例内边距 *!*/
                 padding-right: 29px !important; /* 示例内边距 */
-                padding-bottom: 18px !important;
-                padding-top: 17px !important;
+                padding-bottom: 27px !important;
+                padding-top: 26.5px !important;
             }
 
             .log-details-header span:hover::after {
@@ -198,6 +199,24 @@
                 padding: 24px 26px !important;
                 font-size: x-large;
             }
+            .choice-btn{
+                font-size: x-large;
+                padding: 15px 20px !important;
+            }
+
+            #filter-show-dropdown {
+                width: fit-content !important;
+                font-size: 25px;
+                padding: 30px !important;
+            }
+            #filters-container {
+                font-size: xx-large !important;
+            }
+
+            #filter-btn, #reset-filters {
+                font-size: x-large !important;
+            }
+
         }
 
 
@@ -1381,7 +1400,7 @@
                     )
             )
 
-            const table = $('<table>').attr('id', '接口错误列表-table')
+            const table = $('<table>').attr('id', '接口错误列表-table').addClass('table-container')
             container.append(table)
             container.find('h3').remove()
             table.empty()

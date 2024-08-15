@@ -1231,50 +1231,9 @@
         return trShouldShowByEnvBtn(tr) && trShouldShowByStatusBtn(tr)
     }
 
-    function showErrorTable_pre(){
-        let table = $('#接口错误列表-table')
-        table.find('tr').each(function(index){
-            if (index == 0){
-                return
-            }
-            if ($(this).find('td:nth-child(1)').text() == '当日总览'){
-                $(this).show()
-                return
-            }
-            if(trShouldShowByChoiceBtns($(this))){
-                $(this).show()
-            } else {
-                $(this).hide()
-            }
-        })
-    }
-
-    function showErrorTable_prod(){
-        let table = $('#接口错误列表-table')
-        table.find('tr').each(function(index) {
-            // 如果原本就不可见
-            // if(!$(this).is(':visible')){
-            //     return
-            // }
-            if (index == 0){
-                return
-            }
-
-            if ($(this).find('td:nth-child(1)').text() == '当日总览'){
-                $(this).show()
-                return
-            }
-            let apiName = $(this).find('td:nth-child(2)').text()
-            if (!apiName.startsWith('pre')) {
-                $(this).show()
-            } else {
-                $(this).hide()
-            }
-        })
-    }
-
     function showErrorTable_all(){
         let table = $('#接口错误列表-table')
+        showLoadingStatus()
         table.find('tr').each(function(index){
             if (index == 0){
                 $(this).show()
@@ -1286,6 +1245,9 @@
                 $(this).hide()
             }
         })
+        setTimeout(()=>{
+            hideLoadingStatus()
+        }, 100)
     }
 
     function showErrorTable_normal(){

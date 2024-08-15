@@ -542,6 +542,8 @@ func modifyOriginLog(originLog map[string]string) map[string]string {
 		"vhost":           "host",
 		"url":             "path",
 		"request_time":    "cost",
+		"duration":        "cost",
+		"levelname":       "level",
 	} {
 		if _, ok1 := originLog[key1]; ok1 {
 			if _, ok2 := originLog[key2]; ok2 {
@@ -558,6 +560,13 @@ func modifyOriginLog(originLog map[string]string) map[string]string {
 				delete(originLog, key1)
 				originLog[key2] = value
 			}
+		}
+	}
+	for _, key := range []string{
+		"level",
+	} {
+		if _, ok := originLog[key]; ok {
+			originLog[key] = strings.ToUpper(originLog[key])
 		}
 	}
 	for _, key := range []string{

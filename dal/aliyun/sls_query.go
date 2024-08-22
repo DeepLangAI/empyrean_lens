@@ -21,8 +21,9 @@ type NginxLog struct {
 
 type NginxErrorLog struct {
 	NginxLog
-	UserId  string `json:"user_id"`
-	TraceId string `json:"trace_id"`
+	UserId   string `json:"user_id"`
+	TraceId  string `json:"trace_id"`
+	ClientIp string `json:"client_ip"`
 }
 
 func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) ([]NginxLog, error) {
@@ -51,6 +52,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	"content.path" in(
 		%v
 	) and "content.vhost" = '%v'
+	order by "content.time"
 	LIMIT %v
 `
 	apiDetails := consts.MODEL_NGINX_INGRESS_APIS[host]
@@ -257,6 +259,7 @@ type CoreLog struct {
 	Time     time.Time
 	UserId   string
 	Status   int
+	Env      string
 }
 
 func MultiCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
@@ -276,7 +279,9 @@ select
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 1) as node_name,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 2) as multi_id,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 3) as entry_id,  
-regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 4) as cost,  trace_id, user_id, asctime time from log order by time desc
+regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 4) as cost,  
+trace_id, user_id, asctime time, "__tag__:_container_name_" env
+from log order by time desc
 limit %v
 `
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
@@ -303,6 +308,7 @@ limit %v
 			TraceId:  log["trace_id"],
 			Time:     t,
 			UserId:   log["user_id"],
+			Env:      log["env"],
 		}
 		coreLogs = append(coreLogs, coreLog)
 	}
@@ -377,11 +383,13 @@ select
 regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 1) url,
 regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 2) status,
 regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 3) cost,
-time, trace_id, user_id
+time, trace_id, user_id, "__tag__:_container_name_" env
 from log  
 ) where url in (
 %v
-) limit %v
+) 
+order by time desc
+limit %v
 `
 	formatedApis := []string{}
 	for _, api := range apis {
@@ -487,8 +495,10 @@ func CommonCoreLogQuery(ctx context.Context, daysLookback int, coreName string) 
 SELECT 
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 1) as core_name,
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 2) as core_node,
-regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 4) as cost, asctime, user_id, trace_id
-FROM log LIMIT %v
+regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 4) as cost, asctime, user_id, trace_id, "__tag__:_container_name_" env
+FROM log 
+order by asctime desc
+LIMIT %v
 `
 
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
@@ -520,6 +530,7 @@ FROM log LIMIT %v
 			TraceId:  log["trace_id"],
 			Time:     t,
 			UserId:   log["user_id"],
+			Env:      log["env"],
 		}
 		coreLogs = append(coreLogs, coreLog)
 	}
@@ -533,6 +544,8 @@ type CoreErrorLogs struct {
 	Time     time.Time
 	TraceId  string
 	UserId   string
+	Env      string
+	NodeName string
 }
 
 func LingoChatCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs, error) {
@@ -555,8 +568,10 @@ chat core api response error and (__tag__:_container_name_: lingo-chat-go-prod o
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name,
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code,
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 3) msg,
-	asctime time, trace_id, user_id
-    from log limit %v
+	asctime time, trace_id, user_id, "__tag__:_container_name_" env
+    from log 
+	order by time desc
+	limit %v
 )
 `
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
@@ -588,6 +603,7 @@ chat core api response error and (__tag__:_container_name_: lingo-chat-go-prod o
 			Time:     t,
 			UserId:   log["user_id"],
 			TraceId:  log["trace_id"],
+			Env:      log["env"],
 		})
 	}
 	return logs, nil
@@ -614,8 +630,8 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name, 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code, 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 3) msg ,
-	asctime time, trace_id, user_id
-    from log limit %v
+	asctime time, trace_id, user_id, "__tag__:_container_name_" env
+    from log order by time desc limit %v
 )
 `
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
@@ -648,6 +664,7 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 			Time:     t,
 			UserId:   log["user_id"],
 			TraceId:  log["trace_id"],
+			Env:      log["env"],
 		})
 	}
 	return logs, nil
@@ -673,7 +690,7 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 2) url_id, 
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 3) generate_type,
     trace_id, user_id, asctime time
-    from log limit %v
+    from log order by time desc limit %v
 )
 `
 
@@ -751,8 +768,8 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 1) as core_name,
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 2) as node,
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 3) as cost,
-	trace_id, asctime, user_id
-	from log  order by asctime, trace_id desc limit %v
+	trace_id, asctime, user_id, "__tag__:_container_name_" env
+	from log  order by asctime desc , trace_id desc limit %v
 `
 
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
@@ -785,6 +802,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 			TraceId:  log["trace_id"],
 			Time:     t,
 			UserId:   log["user_id"],
+			Env:      log["env"],
 		}
 		coreLogs = append(coreLogs, clog)
 	}
@@ -848,8 +866,8 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
     select 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 1) count, 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 2) cost, 
-    trace_id, time, user_id
-    from log 
+    trace_id, time, user_id, "__tag__:_container_name_" env
+    from log  order by time desc
 ) limit %v
 `
 
@@ -908,7 +926,7 @@ func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErro
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
 	query := `
 | 
-select user_id, trace_id, time, status, host, url, request_time cost
+select user_id, trace_id, time, status, host, url, request_time cost,client_ip
 from log where
 %v url = '%v' and 
 %v host = '%v' and 
@@ -955,8 +973,9 @@ limit %v
 				Host:     log["host"],
 				Cost:     cost,
 			},
-			UserId:  log["user_id"],
-			TraceId: log["trace_id"],
+			UserId:   log["user_id"],
+			TraceId:  log["trace_id"],
+			ClientIp: log["client_ip"],
 		}
 		results = append(results, result)
 	}
@@ -985,7 +1004,8 @@ select
 "content.status" status,
 "content.vhost" host,
 "content.path" path,
-"content.request_time" cost
+"content.request_time" cost,
+"__source__" client_ip
 from log where
 
 %v "content.path"  = '%v' and 
@@ -1036,8 +1056,9 @@ limit %v
 				Host:     log["host"],
 				Cost:     cost,
 			},
-			UserId:  log["user_id"],
-			TraceId: log["trace_id"],
+			UserId:   log["user_id"],
+			TraceId:  log["trace_id"],
+			ClientIp: log["client_ip"],
 		}
 		results = append(results, result)
 	}
@@ -1358,6 +1379,74 @@ limit %v
 			Time:      t,
 			UserId:    log["user_id"],
 			OriginLog: originLog,
+		})
+	}
+	return results, nil
+}
+
+func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs, error) {
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	//fromdayStr := lookbackDay.Format("2006-01-02")
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+
+	query := `
+(__tag__:_container_name_: lingo-python-pre or __tag__:_container_name_: lingo-python-prod) | select * from (
+    select 
+    regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 1) core_name,
+    regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 2) node_name,
+    regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 3) code,
+    regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 4) msg,asctime time,trace_id,user_id,"__tag__:_container_name_" env
+    from log order by time desc
+) where core_name='多文档' limit %v
+`
+	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "multi node error sql query: %v", query)
+
+	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	if err != nil {
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "日期%v，查multi node error, 共%v条日志", lookbackDay, len(resp.Logs))
+
+	results := []CoreErrorLogs{}
+	for _, log := range resp.Logs {
+		t, err := time.Parse("2006-01-02 15:04:05,999", log["time"])
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+		originLog := map[string]string{}
+		for key, val := range log {
+			if val == "null" || val == "-" || val == "" {
+				continue
+			}
+			if strings.HasSuffix(key, "_0") {
+				continue
+			}
+			originLog[key] = val
+		}
+		code, err := strconv.ParseInt(log["code"], 10, 64)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse code error: %v", err)
+			continue
+		}
+		results = append(results, CoreErrorLogs{
+			CoreName: log["core_name"],
+			Code:     code,
+			Msg:      log["msg"],
+			TraceId:  log["trace_id"],
+			Time:     t,
+			UserId:   log["user_id"],
+			Env:      log["env"],
+			NodeName: log["node_name"],
 		})
 	}
 	return results, nil

@@ -841,6 +841,9 @@
                     <div id="慢查询详情">
                         <table id="慢查询详情-table" class="table-container" ></table>
                     </div>
+                    <div id="失败详情">
+                        <table id="失败详情-table" class="table-container" ></table>
+                    </div>
                     <div id="探针列表">
                         <table id="探针列表-table" class="table-container" ></table>
                     </div>
@@ -1056,7 +1059,62 @@
         })
     }
 
-    function handleSlowDetail(details, date){
+    function handleSceneFailDetail(details, date){
+        pushToMenu('失败详情')
+
+        container = $('#失败详情')
+        container.show();
+        container.find('h3').remove();
+
+        const table = $('#失败详情-table');
+        table.empty()
+        table.before(`<h3 >
+                日期：{0}
+                </h3>`.format(date))
+        for (let i = 0; i < details.length; i++) {
+            const log = details[i]
+            // console.log(log)
+            const logContainer = $('<div>').addClass('log-container');
+            const logId = $('<div>').addClass('log-id').text(i + 1);
+            const logTime = $('<div>').addClass('log-time').text(log.Time.slice(11, 19));
+            const logDetails = $('<div>').addClass('log-details');
+            const logDetailsHeader = $('<div>').addClass('log-details-header');
+            const logDetailsBody = $('<div>').addClass('log-details-body');
+            for (const key of ['Status']){
+                delete log[key]
+            }
+            for (var key in log){
+                let value = log[key]
+                if (value == "multi merge error"){
+                    value = "调用中继服务失败"
+                }
+                // 如果value为空或者为null，则不显示
+                if (value == null || value == ""){
+                    continue
+                }
+                if (key == "Env"){
+                    value = getEnvAlias(value)
+                }
+                const p = $('<p>')
+                    .append($("<span>").text(key + ":"))
+                    .append(value)
+                if (key == 'TraceId' && traceIdLegal(log[key])){
+                    p.addClass('clickable').click(()=>{
+                        // console.log(key, log[key], log['TraceId'], date)
+                        handleEndToEndTraceLogs(log['TraceId'], date)
+                    })
+                }
+
+                logDetailsBody.append(p)
+            }
+            logDetails.append(logDetailsHeader, logDetailsBody);
+            logContainer.append(logId, logTime, logDetails);
+            table.append(logContainer);
+
+        }
+    }
+
+    function handleSceneSlowDetail(details, date){
         pushToMenu('慢查询详情')
 
         container = $('#慢查询详情')
@@ -1082,9 +1140,17 @@
                 delete log[key]
             }
             for (var key in log){
+                let value = log[key]
+                // 如果value为空或者为null，则不显示
+                if (value == null || value == ""){
+                    continue
+                }
+                if (key == "Env"){
+                    value = getEnvAlias(value)
+                }
                 const p = $('<p>')
                     .append($("<span>").text(key + ":"))
-                    .append(log[key])
+                    .append(value)
                 if (key == 'TraceId' && traceIdLegal(log[key])){
                     p.addClass('clickable').click(()=>{
                         // console.log(key, log[key], log['TraceId'], date)
@@ -1098,6 +1164,26 @@
             logContainer.append(logId, logTime, logDetails);
             table.append(logContainer);
         }
+    }
+
+    function getEnvAlias(env){
+        let aliases = {
+            'lingo': '灵狗',
+            'lingowhale': '语鲸',
+            'chat': '问答',
+            'prod': '线上环境',
+            'pre': '预发环境',
+        }
+        let items = env.split('-')
+        let res = []
+        for (let i = 0; i < items.length; i++){
+            if (items[i] in aliases){
+                res.push(aliases[items[i]])
+            } else {
+                res.push(items[i])
+            }
+        }
+        return res.join('-')
     }
 
     function handleSlowList(){
@@ -1143,7 +1229,23 @@
                 // $row.append($('<td>').text(item.date));
                 $row.append($('<td>').text(item.api_name));
                 $row.append($('<td>').text(item.num_total_req));
-                $row.append($('<td>').text(item.num_error_req));
+                failReqTd = $('<td>').text('0')
+                if (item.fail_details != null){
+                    let failDetails = []
+                    for (let j = 0; j < item.fail_details.length; j++) {
+                        failDetails.push(JSON.parse(item.fail_details[j]))
+                    }
+                    failReqTd.text(failDetails.length)
+                    // console.log(failDetails)
+                    failReqTd.addClass('clickable').on('click', function(){
+                        // console.log("fail details:", failDetails)
+                        handleSceneFailDetail(failDetails, date)
+                        // handleProbeLogDetail(item.api_name, false, true, date)
+                    })
+                }
+
+                $row.append(failReqTd);
+
                 slowReqTd = $('<td>').text(item.num_slow_req);
                 if (item.num_slow_req > 0){
                     let slowDetails = []
@@ -1153,7 +1255,7 @@
                     // console.log(slowDetails)
                     slowReqTd.addClass('clickable').on('click', function(){
                         // console.log("slow details:", slowDetails)
-                        handleSlowDetail(slowDetails, date)
+                        handleSceneSlowDetail(slowDetails, date)
                         // handleProbeLogDetail(item.api_name, false, true, date)
                     })
                 }
@@ -1461,6 +1563,7 @@
                     <th>HTTP响应码</th>
                     <th>trace_id</th>
                     <th>user_id</th>
+                    <th>客户端IP</th>
                 </tr>
             `
             table.append(rowhead);
@@ -1481,6 +1584,7 @@
                 }
                 tr.append(td)
                 tr.append($('<td>').text(response.data.data[i].user_id))
+                tr.append($('<td>').text(response.data.data[i].client_ip))
                 table.append(tr)
             }
             setGridColor()

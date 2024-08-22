@@ -3629,6 +3629,7 @@ type ApiFailureDetailRespData struct {
 	HTTPCode string `thrift:"http_code,5" form:"http_code" json:"http_code" query:"http_code"`
 	UserID   string `thrift:"user_id,6" form:"user_id" json:"user_id" query:"user_id"`
 	TraceID  string `thrift:"trace_id,7" form:"trace_id" json:"trace_id" query:"trace_id"`
+	ClientIP string `thrift:"client_ip,8" form:"client_ip" json:"client_ip" query:"client_ip"`
 }
 
 func NewApiFailureDetailRespData() *ApiFailureDetailRespData {
@@ -3663,6 +3664,10 @@ func (p *ApiFailureDetailRespData) GetTraceID() (v string) {
 	return p.TraceID
 }
 
+func (p *ApiFailureDetailRespData) GetClientIP() (v string) {
+	return p.ClientIP
+}
+
 var fieldIDToName_ApiFailureDetailRespData = map[int16]string{
 	1: "time",
 	2: "api_name",
@@ -3671,6 +3676,7 @@ var fieldIDToName_ApiFailureDetailRespData = map[int16]string{
 	5: "http_code",
 	6: "user_id",
 	7: "trace_id",
+	8: "client_ip",
 }
 
 func (p *ApiFailureDetailRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -3743,6 +3749,14 @@ func (p *ApiFailureDetailRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 7:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField8(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -3854,6 +3868,17 @@ func (p *ApiFailureDetailRespData) ReadField7(iprot thrift.TProtocol) error {
 	p.TraceID = _field
 	return nil
 }
+func (p *ApiFailureDetailRespData) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ClientIP = _field
+	return nil
+}
 
 func (p *ApiFailureDetailRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -3887,6 +3912,10 @@ func (p *ApiFailureDetailRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField7(oprot); err != nil {
 			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
 			goto WriteFieldError
 		}
 	}
@@ -4024,6 +4053,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *ApiFailureDetailRespData) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("client_ip", thrift.STRING, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ClientIP); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
 }
 
 func (p *ApiFailureDetailRespData) String() string {
@@ -4476,6 +4522,8 @@ type ApiSlowInfoRespData struct {
 	NumErrorReq int32   `thrift:"num_error_req,7" form:"num_error_req" json:"num_error_req" query:"num_error_req"`
 	// list[map[str, any]]
 	SlowDetails []string `thrift:"slow_details,8" form:"slow_details" json:"slow_details" query:"slow_details"`
+	// list[map[str, any]]
+	FailDetails []string `thrift:"fail_details,9" form:"fail_details" json:"fail_details" query:"fail_details"`
 }
 
 func NewApiSlowInfoRespData() *ApiSlowInfoRespData {
@@ -4514,6 +4562,10 @@ func (p *ApiSlowInfoRespData) GetSlowDetails() (v []string) {
 	return p.SlowDetails
 }
 
+func (p *ApiSlowInfoRespData) GetFailDetails() (v []string) {
+	return p.FailDetails
+}
+
 var fieldIDToName_ApiSlowInfoRespData = map[int16]string{
 	1: "date",
 	2: "num_total_req",
@@ -4523,6 +4575,7 @@ var fieldIDToName_ApiSlowInfoRespData = map[int16]string{
 	6: "api_name",
 	7: "num_error_req",
 	8: "slow_details",
+	9: "fail_details",
 }
 
 func (p *ApiSlowInfoRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -4603,6 +4656,14 @@ func (p *ApiSlowInfoRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 8:
 			if fieldTypeId == thrift.LIST {
 				if err = p.ReadField8(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 9:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField9(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -4737,6 +4798,29 @@ func (p *ApiSlowInfoRespData) ReadField8(iprot thrift.TProtocol) error {
 	p.SlowDetails = _field
 	return nil
 }
+func (p *ApiSlowInfoRespData) ReadField9(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]string, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem string
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_elem = v
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.FailDetails = _field
+	return nil
+}
 
 func (p *ApiSlowInfoRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -4774,6 +4858,10 @@ func (p *ApiSlowInfoRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField8(oprot); err != nil {
 			fieldId = 8
+			goto WriteFieldError
+		}
+		if err = p.writeField9(oprot); err != nil {
+			fieldId = 9
 			goto WriteFieldError
 		}
 	}
@@ -4936,6 +5024,31 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
+func (p *ApiSlowInfoRespData) writeField9(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("fail_details", thrift.LIST, 9); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.STRING, len(p.FailDetails)); err != nil {
+		return err
+	}
+	for _, v := range p.FailDetails {
+		if err := oprot.WriteString(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
 }
 
 func (p *ApiSlowInfoRespData) String() string {

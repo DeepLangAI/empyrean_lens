@@ -242,6 +242,7 @@ type SceneOverview struct {
 	FailRate    float64
 	SlowRate    float64
 	FailReason  string
+	FailDetails []string // 异常的详情信息，list of jsonString
 	SlowDetails []string // 慢查询的详细信息, list of jsonString
 }
 
@@ -310,12 +311,15 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		if log.CoreName == consts.CORE_NAME_ABSTRACT {
 			abstractOverview.FailReq += 1
 			abstractOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
+			abstractOverview.FailDetails = append(abstractOverview.FailDetails, utils.JSONMarshal(log))
 		} else if log.CoreName == consts.CORE_NAME_OUTLINE {
 			outlineOverview.FailReq += 1
 			outlineOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
+			outlineOverview.FailDetails = append(outlineOverview.FailDetails, utils.JSONMarshal(log))
 		} else if log.CoreName == consts.CORE_NAME_VIEWPOINT {
 			viewpointOverview.FailReq += 1
 			viewpointOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
+			viewpointOverview.FailDetails = append(viewpointOverview.FailDetails, utils.JSONMarshal(log))
 		}
 	}
 	abstractOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(abstractOverview.FailReason, "\t"))), "、")
@@ -357,6 +361,7 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		if log.CoreName == consts.CORE_NAME_CHAT {
 			qaOverview.FailReq += 1
 			qaOverview.FailReason += fmt.Sprintf("\t%v", log.Msg)
+			qaOverview.FailDetails = append(qaOverview.FailDetails, utils.JSONMarshal(log))
 		}
 	}
 	qaOverview.FailReason = strings.Join(utils.FilterEmpty(utils.Set(strings.Split(qaOverview.FailReason, "\t"))), "、")
@@ -425,10 +430,21 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, 
 	ov_multi_upload := SceneOverview{Name: "多文档：1多文档上传"}
 	//ov_multi_summary := &SceneOverview{Name: "多文档：多文档总结"}
 	total, err := MultiTotalRequestQuery(ctx, daysLookback)
-
 	if err != nil {
 		return nil, err
 	}
+	multiNodeErrorLogs, err := MultiNodeErrorQuery(ctx, daysLookback)
+	if err != nil {
+		return nil, err
+	}
+	for _, log := range multiNodeErrorLogs {
+		if log.NodeName == "多文档整合" {
+			ov_multi_merge.FailDetails = append(ov_multi_merge.FailDetails, utils.JSONMarshal(log))
+		} else if log.NodeName == "多文档总结" {
+			ov_multi_summary.FailDetails = append(ov_multi_summary.FailDetails, utils.JSONMarshal(log))
+		}
+	}
+
 	multiUploadErrCnt := 0
 	errorLogs, err := LingoCoreErrorLogs(ctx, daysLookback)
 	for _, log := range errorLogs {
@@ -477,8 +493,8 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, 
 
 	ov.MultiEteOverview = ete_anlz
 	ov.MultiSummaryOverview = summary_anlz
-	ov.MultiMergeOverview = analysis_anlz
-	ov.MultiAnalysisOverview = merge_anlz
+	ov.MultiMergeOverview = merge_anlz
+	ov.MultiAnalysisOverview = analysis_anlz
 	ov.MultiUploadOverview = upload_anlz
 	return ov, nil
 }

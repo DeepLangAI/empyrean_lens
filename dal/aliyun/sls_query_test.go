@@ -144,3 +144,19 @@ func TestParseTime(t *testing.T) {
 		fmt.Println(p.Format("2006-01-02 15:04:05.999"))
 	}
 }
+
+func TestMultiNodeErrorQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	query, err := MultiNodeErrorQuery(ctx, 0)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		for _, log := range query {
+			if log.NodeName == "多文档整合" {
+				fmt.Println(log)
+			}
+		}
+	}
+}

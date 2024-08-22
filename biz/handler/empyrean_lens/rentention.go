@@ -389,7 +389,9 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 			continue
 		}
 		slowDetails := []string{}
+		failDetails := []string{}
 		utils.JSONUnMarshal([]byte(r["SlowDetails"]), &slowDetails)
+		utils.JSONUnMarshal([]byte(r["FailDetails"]), &failDetails)
 		data = append(data, &empyrean_lens.ApiSlowInfoRespData{
 			Date:        r["Date"],
 			NumTotalReq: int32(total),
@@ -399,6 +401,7 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 			APIName:     r["Scene"],
 			NumErrorReq: int32(errCnt),
 			SlowDetails: slowDetails,
+			FailDetails: failDetails,
 		})
 	}
 	resp.Data = data

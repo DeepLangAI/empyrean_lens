@@ -100,6 +100,7 @@ struct ApiFailureDetailRespData{
     5: string http_code
     6: string user_id
     7: string trace_id
+    8: string client_ip
 }
 
 # 慢查询相关信息
@@ -123,6 +124,7 @@ struct ApiSlowInfoRespData{
     6: string api_name
     7: i32 num_error_req
     8: list<string> slow_details // list[map[str, any]]
+    9: list<string> fail_details // list[map[str, any]]
 }
 
 # Api探针信息

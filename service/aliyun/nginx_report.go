@@ -160,6 +160,7 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 			HTTPCode: log.Status,
 			UserID:   log.UserId,
 			TraceID:  log.TraceId,
+			ClientIP: log.ClientIp,
 		})
 	}
 	return data, nil

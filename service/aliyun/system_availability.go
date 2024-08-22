@@ -312,6 +312,7 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 				SlowCnt:     int32(ov.SlowReq),
 				FailReason:  ov.FailReason,
 				SlowDetails: ov.SlowDetails,
+				FailDetails: ov.FailDetails,
 				Status:      0,
 				CreateTime:  time.Now(),
 				UpdateTime:  time.Now(),

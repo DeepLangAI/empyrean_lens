@@ -50,7 +50,7 @@ func TestQueryLog2(t *testing.T) {
 func TestNginxIngressLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := NginxIngressLogQuery(ctx, 6)
+	logs, err := NginxIngressLogQuery(ctx, 0)
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -322,11 +322,12 @@ func TestSummreqCntQuery(t *testing.T) {
 func TestSummaryGeneralOfDay(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	ov, _ := SceneGeneralOfDay(ctx, 1)
+	ov, _ := SceneGeneralOfDay(ctx, 2)
 	for _, o := range ov.Overviews {
-		if len(o.SlowDetails) > 0 {
-			fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SlowReq, o.SlowDetails)
-		}
+		//if len(o.SlowDetails) > 0 {
+		//	fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SlowReq, o.SlowDetails)
+		//}
+		fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SlowReq, o.FailReason)
 	}
 	//fmt.Println(ov.AbstractOverview.TotalReq, ov.AbstractOverview.FailReq)
 	//fmt.Println(ov.OutlineOverview.TotalReq, ov.OutlineOverview.FailReq)
@@ -351,7 +352,8 @@ func TestMultiTotalRequestQuery(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	} else {
-		fmt.Println(ov.MultiEteOverview.SlowDetails)
+		fmt.Println(ov.MultiMergeOverview.FailDetails)
+		//fmt.Println(ov.MultiEteOverview.SlowDetails)
 		//fmt.Println(ov_ete.TotalReq, ov_ete.FailReq, ov_ete.SlowReq, ov_ete.FailRate, ov_ete.SlowRate)
 		//fmt.Println(ov_analysis.TotalReq, ov_analysis.FailReq, ov_analysis.SlowReq, ov_analysis.FailRate, ov_analysis.SlowRate)
 		//fmt.Println(ov_merge.TotalReq, ov_merge.FailReq, ov_merge.SlowReq, ov_merge.FailRate, ov_merge.SlowRate)

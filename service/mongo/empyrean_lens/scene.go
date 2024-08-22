@@ -45,6 +45,7 @@ func SceneResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]map[strin
 			"FailRate":    fmt.Sprintf("%.2f", failRate),
 			"SlowRate":    fmt.Sprintf("%.2f", slowRate),
 			"SlowDetails": utils.JSONMarshal(model.SlowDetails),
+			"FailDetails": utils.JSONMarshal(model.FailDetails),
 		}
 		results = append(results, result)
 	}

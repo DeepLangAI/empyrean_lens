@@ -24,6 +24,7 @@ func Register(r *server.Hertz) {
 			_log.GET("/overview", append(_overviewrenderMw(), empyrean_lens.OverviewRender)...)
 			_log.GET("/realdata", append(_realdatarenderMw(), empyrean_lens.RealDataRender)...)
 			_log.GET("/report", append(_logrenderMw(), empyrean_lens.LogRender)...)
+			_log.GET("/tools", append(_toolsrenderMw(), empyrean_lens.ToolsRender)...)
 		}
 		{
 			_v1 := _api.Group("/v1", _v1Mw()...)
@@ -62,6 +63,10 @@ func Register(r *server.Hertz) {
 				{
 					_traceback := _report.Group("/traceback", _tracebackMw()...)
 					_traceback.GET("/list", append(_systetracebacklogsMw(), empyrean_lens.SysteTracebackLogs)...)
+				}
+				{
+					_user := _report.Group("/user", _userMw()...)
+					_user.GET("/info", append(_getuinfoMw(), empyrean_lens.GetUInfo)...)
 				}
 			}
 		}

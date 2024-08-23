@@ -300,11 +300,28 @@ struct RealDataRespData{
     15: i32 multi_by_theme
 }
 
+// 查询用户信息
+struct UInfoReq{
+    1: string phone
+    2: string uid
+}
+struct UInfoResp{
+    1: i32 code
+    2: string msg
+    3: UInfoRespData data
+}
+struct UInfoRespData{
+    1: string phone
+    2: string uid
+    3: string nickname
+}
+
 
 service Rentention{
    EmptyResp LogRender(1: EmptyReq req) (api.get="/api/log/report")
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp RealDataRender(1: EmptyReq req) (api.get="/api/log/realdata")
+   EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
 
    //  用于提供前后端分离接口
    RealtimeScoreResp SystemRealtimeScore(1: EmptyReq req) (
@@ -357,4 +374,9 @@ service Rentention{
    RealDataResp SystemRealData(1: RealDataReq req) (
        api.post="/api/v1/report/db/realdata"
    )
+
+   UInfoResp GetUInfo(1: UInfoReq req) (
+       api.get="/api/v1/report/user/info"
+   )
+
 }

@@ -291,6 +291,7 @@ const GRAPH_CONFIG_PATH = "conf/graph.json"
 const LOG_DETAIL_TEMPLATE_PATH = "templates/rentention.html"
 const REALDATA_TEMPLATE_PATH = "templates/realdata.html"
 const OVERVIEW_TEMPLATE_PATH = "templates/overview.html"
+const TOOLS_TEMPLATE_PATH = "templates/tools.html"
 const (
 	TIMESPAN_TODAY    = 0
 	TIMESPAN_WEEK     = 1

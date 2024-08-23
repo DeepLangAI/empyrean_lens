@@ -9,6 +9,7 @@ import (
 	aliyun2 "empyrean_lens/service/aliyun"
 	empyrean_lens2 "empyrean_lens/service/mongo/empyrean_lens"
 	"empyrean_lens/service/mongo/lingo"
+	"empyrean_lens/service/passport"
 	"empyrean_lens/utils"
 	"fmt"
 	"html/template"
@@ -510,6 +511,54 @@ func SysteTracebackLogs(ctx context.Context, c *app.RequestContext) {
 
 	resp := new(empyrean_lens.TracebackResp)
 	data, err := empyrean_lens2.SystemTracebackQuery(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+	resp.Data = data
+	base.SuccessResponse(c, resp)
+}
+
+// ToolsRender .
+// @router /api/log/tools [GET]
+func ToolsRender(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.EmptyReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	//resp := new(empyrean_lens.EmptyResp)
+
+	rw := adaptor.GetCompatResponseWriter(&c.Response)
+	templatePath := filepath.Join(utils.GetProjectPath(), consts2.TOOLS_TEMPLATE_PATH)
+	tpl, err := template.ParseFiles(templatePath)
+	wd, _ := os.Getwd()
+	hlog.CtxInfof(ctx, "template path: %v. wd: %v", templatePath, wd)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
+		return
+	}
+	tpl.Execute(rw, nil)
+}
+
+// GetUInfo .
+// @router /api/v1/report/user/info [POST]
+func GetUInfo(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.UInfoReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	resp := new(empyrean_lens.UInfoResp)
+	data, err := passport.GetUserInfo(ctx, req)
 	if err != nil {
 		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
 		return

@@ -145,3 +145,18 @@ func _tracebackMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _toolsrenderMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _userMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _getuinfoMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

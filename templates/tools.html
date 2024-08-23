@@ -1,0 +1,1136 @@
+<!-- Write HTML code here -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>
+        灵狗稳定性
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.js"></script>
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.css">
+
+    <style>
+        body {
+            background-color: #f0f2f5; /* 更柔和的浅灰色背景 */
+            color: #333; /* 深灰色文本 */
+            font-family: 'Helvetica Neue', Arial, sans-serif; /* 更具吸引力的字体 */
+            font-size: 14px; /* 基础字体大小 */
+            text-align: left; /* 全局左对齐 */
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            color: #444; /* 更柔和的深灰色标题 */
+            text-align: center; /* 标题居中对齐 */
+            margin-top: 20px;
+        }
+
+        .container {
+            width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        table {
+            border-collapse: collapse; /* 合并边框 */
+            width: 100%; /* 表格宽度为100% */
+            margin: 20px 0; /* 表格上下间距 */
+            background-color: #fff; /* 白色背景 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 轻微的阴影效果 */
+        }
+
+        th, td {
+            border: 1px solid #ddd; /* 更柔和的边框颜色 */
+            padding: 10px; /* 增加内边距 */
+            text-align: center; /* 单元格内容居中对齐 */
+            font-size: 12px; /* 调整字体大小 */
+        }
+
+        th {
+            background-color: #f2f2f2; /* 表头背景颜色 */
+            font-weight: bold; /* 表头加粗 */
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9; /* 隔行变色 */
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 2px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pagination button.disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                font-size: 10px; /* 较小的基础字体大小 */
+            }
+
+            .container {
+                width: 800px;
+            }
+
+            th, td {
+                font-size: 0.8em;
+                padding: 8px; /* 较小的内边距 */
+            }
+        }
+        /* 移动端样式 */
+        @media (max-width: 767px) {
+            body {
+                font-size: x-large;
+            }
+            #menu{
+                padding-top: 45px;
+            }
+            .table-container {
+                /*max-height: 60vh; !* 设置最大高度为视口高度的60% *!*/
+                overflow-y: auto; /* 添加垂直滚动 */
+                font-size: xx-large;
+            }
+            tr{
+                height: 80px;
+            }
+
+            h2 {
+                font-size: xx-large; /* 增大移动端h2字体大小 */
+            }
+            h3 {
+                font-size: x-large; /* 增大移动端h2字体大小 */
+            }
+
+            nav a {
+                font-size: 18px; /* 增大移动端字体大小 */
+                margin: 5px 0;
+            }
+            .swal2-popup.swal2-drawer {
+                width: 250vw !important; /* 在移动端占满整个屏幕宽度 */
+                height: 200vh !important;
+                /*max-height: 150vh !important;*/
+                /*right: -100vw; !* 初始位置调整为-100vw *!*/
+                /*padding: 15px; !* 稍微减小内边距 *!*/
+            }
+
+            /* 日志样式 */
+            .log-container {
+                font-size: x-large !important;
+            }
+
+            .log-id {
+                font-size: x-large !important;
+            }
+            .log-time {
+                font-size: x-large !important;
+            }
+            .breadcrumb {
+                font-size: x-large !important;
+                height: 75px !important;
+            }
+            #back{
+                /*padding-left: 28px !important; !* 示例内边距 *!*/
+                padding-right: 29px !important; /* 示例内边距 */
+                padding-bottom: 27px !important;
+                padding-top: 26.5px !important;
+            }
+
+            .log-details-header span:hover::after {
+                /*content: attr(data-field-name);*/
+                /*position: absolute;*/
+                /*top: 100%;*/
+                /*left: 0;*/
+                /*background-color: #333;*/
+                /*color: #fff;*/
+                /*padding: 5px;*/
+                /*border-radius: 3px;*/
+                /*font-size: 20px;*/
+                /*white-space: nowrap;*/
+                /*z-index: 1;*/
+            }
+            .pagination button {
+                padding: 15px 25px;
+                margin: 5px;
+                font-size: 19px;
+            }
+
+            /* 整个滚动条 */
+            ::-webkit-scrollbar {
+                width: 12px;
+            }
+
+            /* 滚动条轨道 */
+            ::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+
+            /* 滚动条滑块 */
+            ::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 10px;
+            }
+
+            /* 鼠标悬停在滑块上时 */
+            ::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+
+            nav a {
+                padding: 24px 26px !important;
+                font-size: x-large;
+            }
+            .choice-btn{
+                font-size: x-large;
+                padding: 15px 20px !important;
+            }
+
+            #filter-show-dropdown {
+                width: fit-content !important;
+                font-size: 25px;
+                padding: 30px !important;
+            }
+            #filters-container {
+                font-size: xx-large !important;
+            }
+
+            #filter-btn, #reset-filters {
+                font-size: x-large !important;
+            }
+
+            .modal-content{
+                width: 90% !important;
+                font-size: x-large !important;
+                margin: 15% auto !important;
+            }
+            .input-field{
+                font-size: x-large !important;
+            }
+
+            .btn-ghost{
+                font-size: x-large !important;
+            }
+            .btn-submit{
+                font-size: x-large !important;
+            }
+
+            #uinfo-result{
+                font-size: x-large !important;
+            }
+
+            .user-info-label{
+                font-size: x-large !important;
+            }
+            .user-info-value{
+                font-size: x-large !important;
+            }
+
+            /*全链路日志*/
+            .result-content {
+                /*max-height: 400px;*/
+                max-height: 1000px !important;
+                overflow-y: auto;
+            }
+
+            .close-button{
+                font-size: xx-large !important;
+            }
+
+        }
+
+
+
+        /* CSS styles for the navigation bar */
+        nav {
+            background-color: #333;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1;
+        }
+
+        nav a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        nav a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        /* Styles for the content area */
+        body {
+            padding-top: 60px; /* Add some padding to the top of the content */
+        }
+
+        .clickable {
+            color: #ff9900;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .clickable:hover {
+            background-color: #e0e0e0;
+            color: #e68a00;
+        }
+        /* 添加CSS样式使面包屑横排 */
+        .breadcrumb {
+            list-style: none; /* 移除列表默认样式 */
+            padding: 0px; /* 移除默认的内边距 */
+            /*margin-left: 5px;*/
+            height: 35px;
+            margin: 0; /* 移除默认的外边距 */
+            display: flex; /* 使用Flexbox */
+            align-items: stretch; /* 使子项在交叉轴上的对齐方式居中（垂直居中） */
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            /*padding-left: 10px;*/
+            /*padding-right: 10px;*/
+            align-items: center; /* 垂直居中面包屑项内容 */
+            justify-content: center; /* 水平居中面包屑项内容 */
+        }
+
+        .breadcrumb-item:hover {
+            cursor: pointer;
+            background-color: #ddd;
+            color: black !important;
+            /*transition: background-color 0.5s ease;*/
+            /*transition: color 0.3s ease;*/
+            transition-delay: 0.1s;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "/"; /* 在面包屑项之间添加分隔符 */
+            padding: 0 0.5rem; /* 添加一些内边距以提高可读性 */
+
+        }
+
+        .breadcrumb-item.active {
+            color:  white; /* 通常活动或当前项的文本颜色会有所不同 */
+        }
+
+        .breadcrumb-item.active:first-child {
+            padding-left: 10px;
+        }
+        .breadcrumb-item.active:last-child {
+            font-weight: bold;
+        }
+
+        #back{
+            position: absolute;
+            top: 0;
+            left: 0px;
+            border-radius: 5px;
+            padding-left: 18px; /* 示例内边距 */
+            padding-right: 19px; /* 示例内边距 */
+            padding-bottom: 8px;
+            padding-top: 7px;
+            /*padding: 9px 9px; !* 示例内边距 *!*/
+            transition: background-color 0.3s ease;
+            background-color: #f0f0f0; /* 示例背景色 */
+            /*background-color:  #4CAF50;*/
+            border: none; /* 移除默认边框 */
+            cursor: pointer; /* 鼠标悬停时显示指针 */
+        }
+        #back:hover{
+            background-color: darkgray;
+            color: white;
+        }
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .loading-container.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            border: 4px solid #333;
+            border-top-color: transparent;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 日志样式 */
+        .log-container {
+            font-size: 13px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-start;
+
+        }
+        .log-id {
+            width: 15px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        .log-time {
+            width: 50px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 20px;
+            font-family: inherit;
+        }
+        .log-details {
+            flex-grow: 1;
+        }
+        .log-details-header {
+            background-color: #f5f5f5;
+            padding: 5px 10px;
+            font-weight: lighter;
+            border-radius: 3px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-header span {
+            position: relative;
+            margin-right: 20px;
+            white-space: pre-wrap;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+        .log-details-header span:hover::after {
+            content: attr(data-field-name);
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #333;
+            color: #fff;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1;
+        }
+        .log-details-body {
+            padding: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-body > p {
+            text-align: left;
+            margin: -5px 0;
+            /*font-weight: bold;*/
+            padding: 5px 0px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            opacity: 0.9;
+
+            position: relative;
+            overflow: hidden;
+            max-height: 4.5em; /* 假设行高为1.5em，3行就是4.5em */
+            line-height: 1.5em;
+        }
+        .log-details-body p.expanded {
+            max-height: none;
+        }
+        .log-details-body p span {
+            font-family: inherit;
+            font-weight: normal;
+            background: #edeff3;
+            margin-right: 10px;
+        }
+        .expand-tip {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: white;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
+        .expand-tip:hover {
+            text-decoration: underline;
+        }
+
+        #filters-container {
+            display: none; /* 初始隐藏状态 */
+            overflow: hidden; /* 隐藏滚动条 */
+            /*max-height: 0; !* 初始最大高度设置为0，以便隐藏 *!*/
+            transition: max-height 0.3s ease-out; /* 渐变效果 */
+            /*transition: max-height 0.3s ease, padding 0.3s ease; !* 平滑过渡效果 *!*/
+
+
+            position: relative; /* 使 dropdown-content 相对定位 */
+            margin: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #filter-btn, #reset-filters {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #filter-btn:hover, #reset-filters:hover {
+            background-color: #0056b3;
+        }
+
+        .dropdown-content {
+            display: none; /* 初始隐藏 */
+            position: absolute; /* 相对定位以定位在按钮下方 */
+            top: 100%; /* 在按钮下方 */
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000; /* 确保在其他内容之上 */
+        }
+
+        .dropdown-content label,
+        .dropdown-content select,
+        .dropdown-content button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        /* select 元素 */
+        #filters-container select {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #filter-show-dropdown {
+            width: 40px;
+            height: 20px;
+            position: fixed; /* 使用固定定位，使其固定在屏幕上 */
+            top: 30px; /* 距离屏幕顶部 10px，可以根据需要调整 */
+            right: 10px; /* 距离屏幕右侧 10px，可以根据需要调整 */
+            padding: 10px 20px;
+            background-color: #28a745; /* 绿色背景 */
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 黑色阴影 */
+            z-index: 1000; /* 确保在其他内容之上 */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* 平滑过渡效果 */
+        }
+
+        #filter-show-dropdown:hover {
+            background-color: #218838; /* 鼠标悬停时的深绿色 */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* 增加阴影深度 */
+        }
+
+        .filter-row {
+            display: flex; /* 使用 flexbox 布局 */
+            align-items: center; /* 垂直居中对齐 */
+            margin-bottom: 10px; /* 行之间的间距 */
+            padding: 5px; /* 行的内边距 */
+            border: 1px solid #ddd; /* 行的边框 */
+            border-radius: 5px; /* 行的圆角 */
+        }
+
+        .filter-row select {
+            margin-right: 10px; /* select 元素之间的间距 */
+        }
+
+        .remove-filter {
+            background-color: #dc3545; /* 按钮背景色（红色） */
+            color: #fff; /* 按钮文字颜色（白色） */
+            border: none; /* 去掉默认边框 */
+            border-radius: 5px; /* 按钮圆角 */
+            padding: 5px 10px; /* 按钮的内边距 */
+            cursor: pointer; /* 鼠标悬停时显示为手型 */
+            transition: background-color 0.3s ease; /* 背景色的平滑过渡效果 */
+        }
+
+        .remove-filter:hover {
+            background-color: #c82333; /* 鼠标悬停时按钮背景色变深 */
+        }
+
+        /* choice-container 样式 */
+        .choice-container {
+            display: flex; /* 使用 Flexbox 布局 */
+            justify-content: flex-end; /* 按钮从左到右排列 */
+            align-items: center; /* 垂直方向居中对齐 */
+            gap: 10px; /* 按钮之间的间距 */
+            padding-top: 10px;
+        }
+
+        /* 选择按钮的基础样式 */
+        .choice-btn {
+            padding: 5px 10px;
+            background-color: #f0f0f0; /* 按钮背景颜色 */
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .choice-btn:hover {
+            background-color: #e0e0e0; /* hover 时的背景颜色 */
+            border-color: #bbb; /* hover 时的边框颜色 */
+        }
+
+        /* 高亮样式 */
+        .choice-btn.highlighted {
+            background-color: #4CAF50; /* 高亮背景颜色 */
+            color: white; /* 高亮文字颜色 */
+            border-color: #4CAF50; /* 高亮边框颜色 */
+        }
+
+
+    /*    小工具相关*/
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-gap: 20px;
+        }
+        .tool {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        .tool h2 {
+            margin-top: 0;
+        }
+
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            /*margin: 15% auto;*/
+            margin-left: 20%;
+            margin-right: 20%;
+            margin-top: 6%;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%;
+            animation: scaleIn 0.5s ease-in-out;
+            transform-origin: center center;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* 动画 */
+        /*@keyframes scaleIn {*/
+        /*    0% { transform: scale(0); }*/
+        /*    100% { transform: scale(1); }*/
+        /*}*/
+        @keyframes scaleIn {
+            0% { transform: scale(0.5); animation-timing-function: ease-out; }
+            40% { transform: scale(1.0); animation-timing-function: ease-out; }
+            100% { transform: scale(1); animation-timing-function: ease-out; }
+        }
+        .element {
+            animation: scaleIn 0.3s;
+        }
+
+        /* 通用输入框样式 */
+        .input-field {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+            font-family: inherit;
+            color: #333;
+            background-color: #fff;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-field.invalid {
+            border-color: #ff0000;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #66afe9;
+            box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);
+        }
+
+        .input-field::placeholder {
+            color: #aaa;
+        }
+
+        .input-field:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+
+        .btn-ghost {
+            background-color: transparent;
+            color: #4CAF50;
+            padding: 10px 20px;
+            margin-left: 20px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            flex: 1;
+            border: 2px solid #4CAF50;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: inherit;
+            transition: background-color 0.3s, color 0.3s;
+            text-align: center;
+        }
+
+        .btn-ghost:hover {
+            background-color: #4CAF50;
+            color: #fff;
+        }
+        .btn-ghost:first-child {
+            margin-left: 0;
+        }
+
+        /* 绿色主题按钮样式 */
+        .btn-submit {
+            background-color: #4CAF50;
+            color: #fff;
+            padding: 10px 20px;
+            margin-left: 20px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            flex: 1;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: inherit;
+            transition: background-color 0.3s;
+            text-align: center;
+        }
+
+        .btn-submit:first-child {
+            margin-left: 0;
+        }
+
+        .btn-submit:hover {
+            background-color: #3e8e41;
+        }
+
+        .btn-submit:active {
+            background-color: #3e8e41;
+        }
+
+        .btn-submit:focus {
+            outline: none;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+        }
+
+
+        /* 用户信息项样式 */
+        .user-info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        .user-info-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .user-info-value {
+            color: #333;
+        }
+
+        .result-content {
+            /*max-height: 400px; !* 设置最大高度 *!*/
+            max-height: 50vh; /* 设置最大高度 */
+            overflow: auto; /* 添加滚动条 */
+            word-break: break-all;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .btn-submit:first-child {
+            margin-left: 0;
+        }
+
+
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/api/log/overview">灵狗稳定性一览</a>
+    <a href="/api/log/report">灵狗接口稳定性</a>
+    <a href="/api/log/tools" class="active">高效工具箱</a>
+</nav>
+
+<div id="loading-container" class="loading-container">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="container">
+    <h1>高效工具箱</h1>
+
+    <div class="tool-grid">
+
+        <div class="tool" onclick="openModal('uinfo-modal')">
+            <h2>用户信息</h2>
+            <p>查看用户基本信息，用户行为</p>
+        </div>
+
+        <div class="tool" onclick="openModal('endtoendtrace-modal')">
+            <h2>全链路日志</h2>
+            <p>分析链路情况</p>
+        </div>
+    </div>
+</div>
+
+<div id="uinfo-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>用户信息查询</h2>
+        <input type="text" id="phone" placeholder="输入用户手机号" class="input-field">
+        <div class="button-container">
+            <div id="clean_uinfo" class="btn-ghost">清空</div>
+            <div id="search_uinfo" class="btn-submit">查询</div>
+        </div>
+
+        <div id="uinfo-result"></div>
+
+    </div>
+</div>
+
+<div id="endtoendtrace-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>全链路日志查询</h2>
+        <input type="text" id="date" placeholder="输入日期" class="input-field">
+        <input type="text" id="traceId" placeholder="输入TraceID" class="input-field">
+        <div class="button-container">
+            <div id="endtoendtrace_clean" class="btn-ghost">清空</div>
+            <div id="endtoendtrace_submit" class="btn-submit">查询</div>
+        </div>
+        <div id="endtoendtrace_result" class="result-content"></div>
+    </div>
+</div>
+
+
+<script>
+
+    String.prototype.format = function(...args) {
+        return this.replace(/{(\d+)}/g, (match, index) => args[index]);
+    };
+
+    function openModal(modalId) {
+        $("#" + modalId).css("display", "block");
+    }
+
+    function  getLogSotreAlias(logSotreName){
+        if (logSotreName == 'nginx-ingress'){
+            return '业务Nginx日志'
+        }
+        if (logSotreName == 'business-pod'){
+            return '业务日志'
+        }
+        if (logSotreName == 'model-nginx-ingress'){
+            return '模型Nginx日志'
+        }
+        return logSotreName
+    }
+
+    $(".close-button").click(function() {
+        $(this).closest(".modal").css("display", "none");
+    });
+
+
+    function getCurrentDate(){
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2, '0');
+        var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+        var yyyy = today.getFullYear();
+
+        today = yyyy + '-' + mm + '-' + dd;
+        return today
+    }
+
+    $("#endtoendtrace_submit").click(function() {
+        var traceId = $("#traceId").val();
+        $('#traceId').removeClass('invalid');
+        if (!traceId.trim())  {
+            $('#traceId').addClass('invalid');
+            return
+        }
+        // else {
+        //     $('#traceId').removeClass('invalid');
+        // }
+
+        showLoadingStatus()
+        let result = $('#endtoendtrace_result')
+        result.empty()
+
+        let date = getCurrentDate()
+        axios.get('/api/v1/report/trace/list', {
+            params: {
+                date_begin: date,
+                trace_id: traceId,
+            }
+        }).then( response => {
+            // displayScoreDetails(response.data)
+            let data = response.data.data
+            let logContainer = $('<div>').attr('id', '全链路日志列表')
+            logContainer.append($('<h3>').text(`日期：${date}`))
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < data.length; i++) {
+                const log = data[i]
+                const originLog = response.data.data[i].origin_log
+
+                const logContainer = $('<div>').addClass('log-container');
+                const logId = $('<div>').addClass('log-id').text(i + 1);
+                const logTime = $('<div>').addClass('log-time').text(log.time.slice(11, 19));
+                const logDetails = $('<div>').addClass('log-details');
+                const logDetailsHeader = $('<div>').addClass('log-details-header');
+                const logDetailsBody = $('<div>').addClass('log-details-body');
+                logDetailsBody.append(
+                    $("<p>")
+                        .append($("<span>").text('日志来源' + ": "))
+                        .append(getLogSotreAlias(log.log_store_name))
+                );
+                for (var key in originLog) {
+                    if (key.startsWith("_")) {
+                        var val = originLog[key]
+                        key = key + ':' + val
+                        if (val.length >= 15) {
+                            val = val.slice(0, 15) + '...' + val.slice(-5, val.length)
+                        }
+                        logDetailsHeader.append(
+                            $("<span>")
+                                .attr("data-field-name", key)
+                                .text(val)
+                        );
+                    } else {
+                        const id = key + '-' + i;
+                        var span = $('<span>')
+                            .addClass('expand-tip')
+                            .text('展开')
+                            .click(function (e) {
+                                e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                handleClickExpand(id)
+                            })
+                        var p = $('<p id="{0}">'.format(id))
+                            .append($("<span>").text(key + ":"))
+                            .append(originLog[key])
+                        if (originLog[key].length >= 150) {
+                            p.append(span)
+                        }
+
+                        logDetailsBody.append(p)
+                    }
+                }
+                logDetails.append(logDetailsHeader, logDetailsBody);
+                logContainer.append(logId, logTime, logDetails);
+                result.append(logContainer);
+            }
+        }).catch( error => {
+            console.error('Error fetching score details:', error);
+        }).finally( () => {
+            hideLoadingStatus()
+        });
+    })
+
+    $("#endtoendtrace_clean").click(function() {
+        $("#traceId").val('')
+        $('#endtoendtrace_result').empty()
+    })
+
+    $("#clean_uinfo").click(function() {
+        $("#phone").val('')
+        $('#uinfo-result').empty()
+    })
+
+    $("#search_uinfo").click(function() {
+        var phone = $("#phone").val();
+        $("#phone").removeClass('invalid')
+        if (!phone.trim() || !isValidPhoneNumber(phone)) {
+            $("#phone").addClass('invalid')
+            return;
+        }
+        let uinfoResult = $('#uinfo-result')
+        showLoadingStatus()
+        uinfoResult.empty()
+        axios.get('/api/v1/report/user/info', {
+            params: {
+                phone: phone,
+                uid: '',
+            }
+        }).then( response => {
+            // displayScoreDetails(response.data)
+            let data = response.data.data
+            uinfoResult.append($('<div>').addClass('user-info-item').append(
+                $('<div>').addClass('user-info-label').text('手机号'),
+                $('<div>').addClass('user-info-value').text(data['phone']),
+            ))
+            uinfoResult.append($('<div>').addClass('user-info-item').append(
+                $('<div>').addClass('user-info-label').text('用户ID'),
+                $('<div>').addClass('user-info-value').text(data['uid']),
+            ))
+
+        }).catch( error => {
+            console.error('Error fetching score details:', error);
+        }).finally( () => {
+            hideLoadingStatus()
+        });
+    });
+
+    window.onclick = function(event) {
+        var modals = document.getElementsByClassName("modal");
+        for (var i = 0; i < modals.length; i++) {
+            if (event.target == modals[i]) {
+                modals[i].style.display = "none";
+            }
+        }
+    }
+
+    // 显示加载状态
+    function showLoadingStatus() {
+        $('#loading-container').removeClass('hide');
+    }
+
+    // 隐藏加载状态
+    function hideLoadingStatus() {
+        $('#loading-container').addClass('hide');
+    }
+
+    $(document).ready(function() {
+        hideLoadingStatus()
+        $('#date').val(getCurrentDate()).attr('placeholder', '输入日期，如：' + getCurrentDate());
+    })
+
+    function handleClickExpand(pid){
+        var p = $('#' + pid)
+        if (p.hasClass('expanded')){
+            p.removeClass('expanded')
+            p.find('.expand-tip').text('展开')
+        }else{
+            p.addClass('expanded')
+            p.find('.expand-tip').text('收起')
+        }
+    }
+    function isValidPhoneNumber(phoneNumber) {
+        // 中国大陆手机号码正则表达式
+        const regex = /^1[3-9]\d{9}$/;
+
+        return regex.test(phoneNumber);
+    }
+</script>
+
+</body>
+</html>

@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.1/dist/echarts.min.js"></script>
 
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
@@ -215,6 +216,13 @@
 
             #filter-btn, #reset-filters {
                 font-size: x-large !important;
+            }
+
+            .chart-container{
+                font-size: xx-large !important;
+            }
+            .chart-item{
+                font-size: xx-large !important;
             }
 
         }
@@ -629,6 +637,21 @@
             background-color: #4CAF50; /* 高亮背景颜色 */
             color: white; /* 高亮文字颜色 */
             border-color: #4CAF50; /* 高亮边框颜色 */
+        }
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .chart-item {
+            width: 100%;
+            max-width: 800px;
+            height: 400px;
+            margin-bottom: 20px;
         }
 
 
@@ -1069,11 +1092,29 @@
 
         const table = $('#失败详情-table');
         table.empty()
-        table.before(`<h3 >
-                日期：{0}
-                </h3>`.format(date))
+        let h3 = $('<h3>').text(`日期：${date}`)
+        table.before(h3)
+        const keyToProperty = {
+            'CoreName': '核心链路',
+            'NodeName': '链路节点',
+            'Env': '环境',
+            'Msg': '失败原因',
+            'Code': '错误码'
+        };
+        let pieKeys = {
+            'Env': '环境分布',
+            'Msg': '错误原因分布',
+        }
+        let pieData = {}
         for (let i = 0; i < details.length; i++) {
             const log = details[i]
+
+            let logtbl = $('<table>')
+            let th = $('<tr>')
+            let td = $('<tr>')
+            let tblCache = {}
+
+            logtbl.append(th, td)
             // console.log(log)
             const logContainer = $('<div>').addClass('log-container');
             const logId = $('<div>').addClass('log-id').text(i + 1);
@@ -1089,6 +1130,9 @@
                 if (value == "multi merge error"){
                     value = "调用中继服务失败"
                 }
+                if (value == "themes not safe"){
+                    value = "主题不安全"
+                }
                 // 如果value为空或者为null，则不显示
                 if (value == null || value == ""){
                     continue
@@ -1096,6 +1140,19 @@
                 if (key == "Env"){
                     value = getEnvAlias(value)
                 }
+
+                if (key in pieKeys){
+                    if (!pieData[key]){
+                        pieData[key] = []
+                    }
+                    pieData[key].push(value)
+                }
+
+                if (key in keyToProperty){
+                    tblCache[keyToProperty[key]] = value
+                    continue
+                }
+
                 const p = $('<p>')
                     .append($("<span>").text(key + ":"))
                     .append(value)
@@ -1108,11 +1165,24 @@
 
                 logDetailsBody.append(p)
             }
-            logDetails.append(logDetailsHeader, logDetailsBody);
+            for (var key in tblCache){
+                let value = tblCache[key]
+                // 如果value为空或者为null，则不显示
+                if (value == null || value == ""){
+                    continue
+                }
+                th.append($("<th>").text(key))
+                td.append($("<td>").text(value))
+            }
+            logDetails.append(logtbl, logDetailsBody);
             logContainer.append(logId, logTime, logDetails);
             table.append(logContainer);
-
         }
+        let chartContainer = $('<div>').addClass('chart-container')
+        for (const key in pieData){
+            chartContainer.append(createPieChart(pieKeys[key], pieData[key]))
+        }
+        table.before(chartContainer)
     }
 
     function handleSceneSlowDetail(details, date){
@@ -1120,15 +1190,31 @@
 
         container = $('#慢查询详情')
         container.show();
-        container.find('h3').remove();
+        // container.find('h3').remove();
+        container.empty()
 
-        const table = $('#慢查询详情-table');
+        let chartContainer = $('<div>').addClass('chart-container')
+        const table = $('<table>').attr('id', '慢查询详情-table');
+        container.append(table)
         table.empty()
         table.before(`<h3 >
                 日期：{0}
             </h3>`.format(date))
 
+        let costs = []
+
+        let pieKeys = {
+            'Env': '环境分布',
+            'Msg': '错误原因分布',
+        }
+        let pieData = {}
+
         for (let i = 0; i < details.length; i++) {
+            let logtbl = $('<table>')
+            let th = $('<tr>')
+            let td = $('<tr>')
+            let tblCache = {}
+            logtbl.append(th, td)
             const log = details[i]
             // console.log(log)
             const logContainer = $('<div>').addClass('log-container');
@@ -1141,6 +1227,31 @@
                 delete log[key]
             }
             for (var key in log){
+                if (key in pieKeys){
+                    if (!pieData[key]){
+                        pieData[key] = []
+                    }
+                    pieData[key].push(log[key])
+                }
+
+                if (key == 'CoreName'){
+                    tblCache['核心链路'] = log[key]
+                    continue
+                }
+                if (key == 'Node'){
+                    tblCache['链路节点'] = log[key]
+                    continue
+                }
+                if (key == 'Cost'){
+                    tblCache['耗时(秒)'] = log[key].toFixed(2)
+                    costs.push(log[key])
+                    continue
+                }
+                if (key == 'Env'){
+                    tblCache['环境'] = getEnvAlias(log[key])
+                    continue
+                }
+
                 let value = log[key]
                 // 如果value为空或者为null，则不显示
                 if (value == null || value == ""){
@@ -1149,6 +1260,7 @@
                 if (key == "Env"){
                     value = getEnvAlias(value)
                 }
+
                 const p = $('<p>')
                     .append($("<span>").text(key + ":"))
                     .append(value)
@@ -1161,10 +1273,26 @@
 
                 logDetailsBody.append(p)
             }
-            logDetails.append(logDetailsHeader, logDetailsBody);
+            for (var key in tblCache){
+                let value = tblCache[key]
+                // 如果value为空或者为null，则不显示
+                if (value == null || value == ""){
+                    continue
+                }
+                th.append($("<th>").text(key))
+                td.append($("<td>").text(value))
+            }
+            logDetails.append(logtbl, logDetailsBody);
             logContainer.append(logId, logTime, logDetails);
             table.append(logContainer);
         }
+        let pie = createNumberPieChart('耗时占比', costs)
+        chartContainer.append(pie)
+        for (const key in pieData){
+            let chart = createPieChart(pieKeys[key], pieData[key])
+            chartContainer.append(chart)
+        }
+        table.before(chartContainer)
     }
 
     function getEnvAlias(env){
@@ -2242,6 +2370,134 @@
         });
     }
 
+    function createPieChart(title, data) {
+        // 统计各种字符串的数量
+        const counts = {};
+        data.forEach(item => {
+            counts[item] = (counts[item] || 0) + 1;
+        });
+
+        // 计算每种字符串所占的比例
+        const totalCount = data.length;
+        const percentages = {};
+        Object.keys(counts).forEach(key => {
+            percentages[key] = (counts[key] / totalCount) * 100;
+        });
+
+        // 创建Echarts实例
+        // const chartNode = $('<div>').attr('id', 'chart-container').css({
+        //     // width: '500px',
+        //     width: '100%',
+        //     height: '350px'
+        // });
+        const chartNode = $('<div>').addClass('chart-item').css({
+            width: '500px',
+            height: '350px'
+        })
+        const chart = echarts.init(chartNode[0]);
+
+        // 配置Echarts选项
+        const option = {
+            title: {
+                text:  title,
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b} : {c} ({d}%)'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left'
+            },
+            series: [
+                {
+                    name: '分布',
+                    type: 'pie',
+                    radius: '50%',
+                    data: Object.keys(counts).map(key => ({
+                        value: counts[key],
+                        name: `${key} (${counts[key]})`
+                    })),
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        };
+
+        // 绘制饼图
+        chart.setOption(option);
+
+        return chartNode;
+    }
+
+    function createNumberPieChart(title, data, MAX_GROUPS=10) {
+        // 计算数据范围
+        const minValue = Math.min(...data);
+        const maxValue = Math.max(...data);
+
+        // 确定合适的分组粒度
+        let delta = Math.ceil((maxValue - minValue) / MAX_GROUPS);
+        delta = Math.max(delta, 5);
+
+        // 对数据进行分组
+        // const delta = 50
+        const groupedData = data.reduce((groups, time) => {
+            const group = Math.floor(time / delta) * delta;
+            groups[group] = (groups[group] || 0) + 1;
+            return groups;
+        }, {});
+
+        // 计算每种耗时所占的比例
+        const totalCount = Object.values(groupedData).reduce((sum, count) => sum + count, 0);
+        const percentages = Object.entries(groupedData).map(([time, count]) => ({
+            value: count,
+            name: `${time}s - ${parseInt(time) + delta - 1}s (${((count / totalCount) * 100).toFixed(2)}%)`
+        }));
+
+        // 创建Echarts实例
+        const chartNode = $('<div>').addClass('chart-item').css({
+            width: '500px',
+            // minWidth: '450px',
+            // maxWidth: '600px',
+            height: '350px',
+        })
+        const chart = echarts.init(chartNode[0]);
+
+        // 配置Echarts选项
+        const option = {
+            title: {
+                text: title,
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b} : {c} (占比 {d}%)'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left'
+            },
+            series: [
+                {
+                    name: '耗时',
+                    type: 'pie',
+                    radius: '50%',
+                    data: percentages
+                }
+            ]
+        };
+
+        // 绘制饼图
+        chart.setOption(option);
+
+        return chartNode;
+    }
 
 </script>
 

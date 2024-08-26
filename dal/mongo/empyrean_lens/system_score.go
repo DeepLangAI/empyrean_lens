@@ -3,6 +3,7 @@ package empyrean_lens
 import (
 	"context"
 	"empyrean_lens/consts"
+	"errors"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -98,7 +99,7 @@ func (self *SystemScoreDao) FindScoreByTime(ctx context.Context, date time.Time)
 	}
 	if len(result) != 1 {
 
-		return nil, nil
+		return nil, errors.New("system score model not found")
 	}
 	return &result[0], nil
 }

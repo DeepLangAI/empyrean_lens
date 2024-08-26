@@ -6,7 +6,7 @@
         灵狗稳定性
     </title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=2">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.js"></script>
@@ -665,7 +665,14 @@
             padding: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s; /* 添加背景颜色过渡 */
+            transition-delay: 0.2s; /* 添加0.2秒的延迟 */
         }
+        .tool:hover {
+            transform: translateY(-5px); /* 向上移动5px */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); /* 增加阴影 */
+        }
+
         .tool h2 {
             margin-top: 0;
         }
@@ -713,9 +720,21 @@
         /*    100% { transform: scale(1); }*/
         /*}*/
         @keyframes scaleIn {
-            0% { transform: scale(0.5); animation-timing-function: ease-out; }
-            40% { transform: scale(1.0); animation-timing-function: ease-out; }
-            100% { transform: scale(1); animation-timing-function: ease-out; }
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+                animation-timing-function: ease-out;
+            }
+            40% {
+                transform: scale(1.02);
+                opacity: 1;
+                animation-timing-function: ease-out;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+                animation-timing-function: ease-out;
+            }
         }
         .element {
             animation: scaleIn 0.3s;
@@ -749,11 +768,11 @@
             100% { transform: translateX(0); }
         }
 
-        .input-field:focus {
-            outline: none;
-            border-color: #66afe9;
-            box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);
-        }
+        /*.input-field:focus {*/
+        /*    outline: none;*/
+        /*    border-color: #66afe9;*/
+        /*    box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);*/
+        /*}*/
 
         .input-field::placeholder {
             color: #aaa;

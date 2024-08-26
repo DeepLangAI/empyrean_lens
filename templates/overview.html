@@ -642,16 +642,21 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 100%;
+            /*width: 100%;*/
             max-width: 1200px;
             margin: 0 auto;
+            background-color: white;
+            border-radius: 5px;
+            padding: 20px;
         }
 
         .chart-item {
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             width: 100%;
             max-width: 800px;
             height: 400px;
             margin-bottom: 20px;
+            padding: 20px;
         }
 
 
@@ -721,6 +726,7 @@
             <th>稳定性打分</th>
             <th>环比</th>
             <th>同比</th>
+            <th>总请求量</th>
         </tr>
         </thead>
         <tbody>
@@ -730,6 +736,7 @@
             <td data-label="稳定性打分" onclick="showScoreDetails(this)" class="clickable">{{ .Score }}</td>
             <td data-label="环比">{{ printf "%.2f"  .DayOverDay }}%</td>
             <td data-label="同比">{{ printf "%.2f"  .WeekOverWeek }}%</td>
+            <td data-label="同比">{{ .TotalReq }}</td>
         </tr>
         {{ end }}
         </tbody>
@@ -1203,9 +1210,16 @@
 
         let costs = []
 
+        const keyToProperty = {
+            'CoreName': '核心链路',
+            'Node': '链路节点',
+            'Cost': '耗时(秒)',
+            'Env': '环境',
+        }
         let pieKeys = {
             'Env': '环境分布',
             'Msg': '错误原因分布',
+            // 'Cost': '耗时分布',
         }
         let pieData = {}
 
@@ -1227,30 +1241,6 @@
                 delete log[key]
             }
             for (var key in log){
-                if (key in pieKeys){
-                    if (!pieData[key]){
-                        pieData[key] = []
-                    }
-                    pieData[key].push(log[key])
-                }
-
-                if (key == 'CoreName'){
-                    tblCache['核心链路'] = log[key]
-                    continue
-                }
-                if (key == 'Node'){
-                    tblCache['链路节点'] = log[key]
-                    continue
-                }
-                if (key == 'Cost'){
-                    tblCache['耗时(秒)'] = log[key].toFixed(2)
-                    costs.push(log[key])
-                    continue
-                }
-                if (key == 'Env'){
-                    tblCache['环境'] = getEnvAlias(log[key])
-                    continue
-                }
 
                 let value = log[key]
                 // 如果value为空或者为null，则不显示
@@ -1259,6 +1249,21 @@
                 }
                 if (key == "Env"){
                     value = getEnvAlias(value)
+                }
+                if (key == 'Cost'){
+                    value = value.toFixed(2)
+                    costs.push(value)
+                }
+                if (key in pieKeys){
+                    if (!pieData[key]){
+                        pieData[key] = []
+                    }
+                    pieData[key].push(value)
+                }
+
+                if(key in keyToProperty){
+                    tblCache[key] = value
+                    continue
                 }
 
                 const p = $('<p>')
@@ -1286,8 +1291,9 @@
             logContainer.append(logId, logTime, logDetails);
             table.append(logContainer);
         }
-        let pie = createNumberPieChart('耗时占比', costs)
+        let pie = createNumberPieChart('耗时占比分布', costs)
         chartContainer.append(pie)
+        console.log(pieData)
         for (const key in pieData){
             let chart = createPieChart(pieKeys[key], pieData[key])
             chartContainer.append(chart)
@@ -2385,13 +2391,8 @@
         });
 
         // 创建Echarts实例
-        // const chartNode = $('<div>').attr('id', 'chart-container').css({
-        //     // width: '500px',
-        //     width: '100%',
-        //     height: '350px'
-        // });
         const chartNode = $('<div>').addClass('chart-item').css({
-            width: '500px',
+            width: '650px',
             height: '350px'
         })
         const chart = echarts.init(chartNode[0]);
@@ -2407,8 +2408,11 @@
                 formatter: '{a} <br/>{b} : {c} ({d}%)'
             },
             legend: {
-                orient: 'vertical',
-                left: 'left'
+                // orient: 'vertical',
+                // left: 'left',
+                // orient: 'auto',
+                // left: 'auto',
+                top: 'bottom'
             },
             series: [
                 {
@@ -2417,13 +2421,13 @@
                     radius: '50%',
                     data: Object.keys(counts).map(key => ({
                         value: counts[key],
-                        name: `${key} (${counts[key]})`
+                        name: `${key} (${counts[key]}, ${percentages[key].toFixed(2)}%)`
                     })),
                     emphasis: {
                         itemStyle: {
                             shadowBlur: 10,
                             shadowOffsetX: 0,
-                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            shadowColor: 'rgba(0, 0, 0, 0.1)'
                         }
                     }
                 }
@@ -2436,7 +2440,7 @@
         return chartNode;
     }
 
-    function createNumberPieChart(title, data, MAX_GROUPS=10) {
+    function createNumberPieChart(title, data, MAX_GROUPS=6) {
         // 计算数据范围
         const minValue = Math.min(...data);
         const maxValue = Math.max(...data);
@@ -2457,14 +2461,12 @@
         const totalCount = Object.values(groupedData).reduce((sum, count) => sum + count, 0);
         const percentages = Object.entries(groupedData).map(([time, count]) => ({
             value: count,
-            name: `${time}s - ${parseInt(time) + delta - 1}s (${((count / totalCount) * 100).toFixed(2)}%)`
+            name: `${time}s - ${parseInt(time) + delta - 1}s (${count}, ${((count / totalCount) * 100).toFixed(2)}%)`
         }));
 
         // 创建Echarts实例
         const chartNode = $('<div>').addClass('chart-item').css({
-            width: '500px',
-            // minWidth: '450px',
-            // maxWidth: '600px',
+            width: '650px',
             height: '350px',
         })
         const chart = echarts.init(chartNode[0]);
@@ -2480,17 +2482,30 @@
                 formatter: '{a} <br/>{b} : {c} (占比 {d}%)'
             },
             legend: {
-                orient: 'vertical',
-                left: 'left'
+                // orient: 'vertical',
+                // left: 'left',
+                // orient: 'auto',
+                // left: 'auto',
+                top: 'bottom'
             },
             series: [
                 {
                     name: '耗时',
                     type: 'pie',
                     radius: '50%',
-                    data: percentages
+                    data: percentages,
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    // itemStyle: {
+                    //     opacity: 0.8
+                    // }
                 }
-            ]
+            ],
         };
 
         // 绘制饼图

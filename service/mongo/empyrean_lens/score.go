@@ -66,16 +66,30 @@ func FindScoreDetails(ctx context.Context, timeBegin, timeEnd string) ([]empyrea
 	return score, nil
 }
 
-func SystemScoreResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]utils.ReventResult, error) {
+type ScoreListItem struct {
+	utils.ReventResult
+	TotalReq int32
+}
+
+func SystemScoreResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]ScoreListItem, error) {
 	models, err := empyrean_lens.NewSystemScoreDao().FindTimespanScore(ctx, timeBegin, timeEnd)
 	if err != nil {
 		return nil, err
 	}
+	dateToModel := map[string]empyrean_lens.SystemScoreModel{}
 	availabilityScores := map[string]int{}
 	for _, model := range models {
 		date := model.Date.Format("2006-01-02")
 		availabilityScores[date] = int(model.Score + 0.5)
+		dateToModel[date] = model
 	}
+	results := []ScoreListItem{}
 	reventResults := utils.ComputeRevent(availabilityScores)
-	return reventResults, nil
+	for _, reventResult := range reventResults {
+		results = append(results, ScoreListItem{
+			ReventResult: reventResult,
+			TotalReq:     dateToModel[reventResult.Date].TotalReq,
+		})
+	}
+	return results, nil
 }

@@ -87,7 +87,8 @@ func LogRender(ctx context.Context, c *app.RequestContext) {
 }
 
 type Overview struct {
-	DailyOverview    []utils.ReventResult
+	//DailyOverview    []utils.ReventResult
+	DailyOverview    []empyrean_lens2.ScoreListItem
 	RealtimeOverview aliyun2.RealtimeReport
 	SceneOverviews   []map[string]string
 }

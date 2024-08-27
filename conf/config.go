@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/utils"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"github.com/redis/go-redis/v9"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
@@ -14,10 +15,17 @@ import (
 var conf Config
 
 type Config struct {
-	Server            Server         `yaml:"server"`
-	MongoEmpyreanlens Mongo          `yaml:"mongo_empyreanlens"`
-	MongoLingo        Mongo          `yaml:"mongo_lingo"`
-	Logger            conflib.Logger `yaml:"logger"`
+	Server            Server                `yaml:"server"`
+	MongoEmpyreanlens Mongo                 `yaml:"mongo_empyreanlens"`
+	MongoLingo        Mongo                 `yaml:"mongo_lingo"`
+	Redis             *redis.ClusterOptions `yaml:"redis"`
+	Logger            conflib.Logger        `yaml:"logger"`
+}
+
+type Redis struct {
+	Addrs    []string `yaml:"addrs"`
+	Username string   `yaml:"username"`
+	Password string   `yaml:"password"`
 }
 
 type Mongo struct {

@@ -20,3 +20,8 @@ mongo_empyreanlens:
 logger:
   log_path: './logs/system'
   log_level: "debug"
+
+redis:
+  addrs: ["localhost:7000"]
+  password: 'root'
+  maxretries: 1

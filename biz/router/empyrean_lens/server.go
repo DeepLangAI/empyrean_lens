@@ -65,6 +65,10 @@ func Register(r *server.Hertz) {
 					_traceback.GET("/list", append(_systetracebacklogsMw(), empyrean_lens.SysteTracebackLogs)...)
 				}
 				{
+					_trend := _report.Group("/trend", _trendMw()...)
+					_trend.GET("/request", append(_requesttrendsMw(), empyrean_lens.RequestTrends)...)
+				}
+				{
 					_user := _report.Group("/user", _userMw()...)
 					_user.GET("/info", append(_getuinfoMw(), empyrean_lens.GetUInfo)...)
 				}

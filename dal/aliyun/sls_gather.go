@@ -4,6 +4,7 @@ import (
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 	"context"
 	"empyrean_lens/consts"
+	"empyrean_lens/dal/redis"
 	"empyrean_lens/utils"
 	"errors"
 	"fmt"
@@ -92,6 +93,47 @@ func NginxLogsToday(ctx context.Context) ([]NginxLog, error) {
 	}
 
 	return filteredLogs, nil
+}
+
+func NginxLogsDaysAgo(ctx context.Context, daysLookback int) ([]NginxLog, error) {
+	nginxLogs := []NginxLog{}
+
+	now := time.Now()
+	startingDay := now.AddDate(0, 0, -daysLookback)
+	cacheKey := fmt.Sprintf(consts.CacheKeyRequestTrend, startingDay.Format(consts.DateTemplate))
+	rCache := redis.GetVal(ctx, cacheKey)
+	if rCache != nil {
+		bytes, err := rCache.Bytes()
+		if err == nil {
+			ok := utils.JSONUnMarshal(bytes, &nginxLogs)
+			if ok != nil {
+				hlog.CtxInfof(ctx, "成功从缓存获取nginx日志")
+				return nginxLogs, nil
+			}
+		}
+	}
+
+	logs, err := NginxIngressLogQuery(ctx, daysLookback)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "NginxIngressLogQuery failed: %v", err)
+		return nil, nil
+	}
+	mlogs, err := ModelNginxIngressLogQuery(ctx, daysLookback)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "NginxIngressLogQuery failed: %v", err)
+		return nil, nil
+	}
+	nginxLogs = append(nginxLogs, logs...)
+	nginxLogs = append(nginxLogs, mlogs...)
+	//if startingDay.Format(consts.DateTemplate) != now.Format(consts.DateTemplate) {
+	if daysLookback != 0 {
+		bytes := utils.JSONMarshal(nginxLogs)
+		err := redis.KeySet(ctx, cacheKey, bytes, time.Hour*24)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "redis set failed: %v", err)
+		}
+	}
+	return nginxLogs, nil
 }
 
 func NginxReportOneWeek(ctx context.Context) ([]NginxLog, error) {

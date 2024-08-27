@@ -769,7 +769,7 @@
         });
     }
 
-    let menus = ['评分详情']
+    let menus = []
 
 
     function back(){
@@ -784,7 +784,8 @@
             Swal.close()
         }
         if (menus.length <= 1){
-            $('.swal2-popup.swal2-drawer').css('height', '50vh')
+            // $('.swal2-popup.swal2-drawer').css('height', '50vh')
+            $('.swal2-popup.swal2-drawer').css('height', '100vh')
         }else{
             $('.swal2-popup.swal2-drawer').css('height', '100vh')
         }
@@ -831,7 +832,7 @@
                         <div id="back" onclick="back()"><</div>
                     </div>
                     <div id="评分详情">
-                        <h2>系统评分详情</h2>
+                        <h2>${detail.date} 系统评分详情</h2>
                         <table class="table-container">
                             <thead>
                                 <tr>
@@ -859,6 +860,7 @@
                                 </tr>
                             </thead>
                         </table>
+                        <div id="请求量趋势"></div>
                     </div>
                     <div id="接口错误列表">
                         <table id="接口错误列表-table" class="table-container" ></table>
@@ -885,8 +887,7 @@
 <!--                        <div id="全链路日志列表-table" class="table-container"></div>-->
                     </div>
 
-                    <div id="Traceback日志列表">
-                    </div>
+                    <div id="Traceback日志列表"></div>
                 </div>
             `.format(
                 detail.date,
@@ -902,13 +903,37 @@
             },
             didOpen: () => {
                 modifySidebar()
-                hideLoadingStatus()
-                document.getElementById('closeDrawerBtn').addEventListener('click', () => {
-                    Swal.close();
-                });
+                // hideLoadingStatus()
+                // document.getElementById('closeDrawerBtn').addEventListener('click', () => {
+                //     Swal.close();
+                // });
+                showRequestTrend(detail.date)
             },
         });
     }
+    function showRequestTrend(date){
+        showLoadingStatus()
+        axios.get('/api/v1/report/trend/request', {
+            params:{
+                date: date,
+            }
+        }).then(response => {
+            console.log('trend request response', response.data)
+            let data = response.data.data
+            let chartContainer = $('<div>').addClass('chart-container')
+            let chart = drawMultiDayTrendChart(data.data0, data.data1, data.data7)
+            chartContainer.append(chart)
+            let container = $('#请求量趋势')
+            container.append(chartContainer)
+
+        }).catch(error => {
+            console.error(error);
+        }).finally(()=>{
+            hideLoadingStatus()
+        })
+    }
+
+
     function pushToMenu(itemId){
         $('#' + menus[menus.length - 1]).hide()
         menus.push(itemId)
@@ -1094,13 +1119,13 @@
         pushToMenu('失败详情')
 
         container = $('#失败详情')
+        container.empty()
         container.show();
-        container.find('h3').remove();
+        // container.find('h3').remove();
 
-        const table = $('#失败详情-table');
-        table.empty()
+        // const table = $('#失败详情-table');
+        const table = $('<table>').attr('id', '#失败详情-table');
         let h3 = $('<h3>').text(`日期：${date}`)
-        table.before(h3)
         const keyToProperty = {
             'CoreName': '核心链路',
             'NodeName': '链路节点',
@@ -1189,7 +1214,8 @@
         for (const key in pieData){
             chartContainer.append(createPieChart(pieKeys[key], pieData[key]))
         }
-        table.before(chartContainer)
+        // table.before(chartContainer)
+        container.append(h3, chartContainer, table)
     }
 
     function handleSceneSlowDetail(details, date){
@@ -2304,6 +2330,44 @@
         $('#loading-container').addClass('hide');
     }
 
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || $(window).width() < 768;
+    }
+
+    function updateFontSize() {
+        $('.chart-item').each(function() {
+            var chart = echarts.getInstanceByDom(this);
+            if (chart) {
+                var option = chart.getOption();
+
+                var fontSize = isMobile() ? '25px' : '12px';  // 移动端使用xx-large，否则使用12px
+                var titleFontSize = isMobile() ? '30px' : '16px';
+
+                var fontConfig = { fontSize: fontSize };
+                var titleFontConfig = { fontSize: fontSize };
+
+                if (option.title && option.title[0]) {
+                    option.title[0].textStyle = titleFontConfig;
+                }
+                if (option.legend && option.legend[0]) {
+                    option.legend[0].textStyle = fontConfig;
+                }
+                if (option.xAxis && option.xAxis[0]) {
+                    option.xAxis[0].axisLabel = fontConfig;
+                }
+                if (option.yAxis && option.yAxis[0]) {
+                    option.yAxis[0].axisLabel = fontConfig;
+                }
+                if (option.series && option.series[0]) {
+                    option.series[0].label = option.series[0].label || {};
+                    option.series[0].label.fontSize = fontSize;
+                }
+
+                chart.setOption(option);
+            }
+        });
+    }
+
     $(document).ready(function() {
         var timer;
         var isScrollbarVisible = true;
@@ -2333,6 +2397,19 @@
 
         // 初始状态显示滚动条
         showScrollbar();
+
+        // 监听窗口大小变化
+        $(window).resize(function() {
+            $('.chart-item').each(function() {
+                var chart = echarts.getInstanceByDom(this);
+                if (chart) {
+                    chart.resize();
+                }
+            });
+            updateFontSize();
+        });
+
+
     });
 
     function filterBtnDrag(event, ui) {
@@ -2377,6 +2454,10 @@
     }
 
     function createPieChart(title, data) {
+        // 根据是否为移动端设置字体大小
+        var fontSize = isMobile() ? '25px' : '12px';
+        var titleFontSize = isMobile() ? '30px' : '16px';
+
         // 统计各种字符串的数量
         const counts = {};
         data.forEach(item => {
@@ -2401,18 +2482,27 @@
         const option = {
             title: {
                 text:  title,
-                left: 'center'
+                left: 'center',
+                textStyle: {
+                    fontSize: titleFontSize
+                },
             },
             tooltip: {
                 trigger: 'item',
-                formatter: '{a} <br/>{b} : {c} ({d}%)'
+                formatter: '{a} <br/>{b} : {c} ({d}%)',
+                textStyle: {
+                    fontSize: fontSize
+                },
             },
             legend: {
                 // orient: 'vertical',
                 // left: 'left',
                 // orient: 'auto',
                 // left: 'auto',
-                top: 'bottom'
+                top: 'bottom',
+                textStyle: {
+                    fontSize: fontSize
+                },
             },
             series: [
                 {
@@ -2429,7 +2519,10 @@
                             shadowOffsetX: 0,
                             shadowColor: 'rgba(0, 0, 0, 0.1)'
                         }
-                    }
+                    },
+                    label: {
+                        fontSize: fontSize
+                    },
                 }
             ]
         };
@@ -2441,6 +2534,10 @@
     }
 
     function createNumberPieChart(title, data, MAX_GROUPS=6) {
+        // 根据是否为移动端设置字体大小
+        var fontSize = isMobile() ? '25px' : '12px';
+        var titleFontSize = isMobile() ? '30px' : '16px';
+
         // 计算数据范围
         const minValue = Math.min(...data);
         const maxValue = Math.max(...data);
@@ -2475,18 +2572,27 @@
         const option = {
             title: {
                 text: title,
-                left: 'center'
+                left: 'center',
+                textStyle: {
+                    fontSize: titleFontSize
+                },
             },
             tooltip: {
                 trigger: 'item',
-                formatter: '{a} <br/>{b} : {c} (占比 {d}%)'
+                formatter: '{a} <br/>{b} : {c} (占比 {d}%)',
+                textStyle: {
+                    fontSize: fontSize
+                },
             },
             legend: {
                 // orient: 'vertical',
                 // left: 'left',
                 // orient: 'auto',
                 // left: 'auto',
-                top: 'bottom'
+                top: 'bottom',
+                textStyle: {
+                    fontSize: fontSize
+                },
             },
             series: [
                 {
@@ -2501,6 +2607,9 @@
                             shadowColor: 'rgba(0, 0, 0, 0.1)'
                         }
                     },
+                    label: {
+                        fontSize: fontSize
+                    },
                     // itemStyle: {
                     //     opacity: 0.8
                     // }
@@ -2509,6 +2618,172 @@
         };
 
         // 绘制饼图
+        chart.setOption(option);
+
+        return chartNode;
+    }
+
+    // 将时间字符串转换为时间戳
+    function convertToTimestamp(data) {
+        let result = []
+        data.forEach(function(item) {
+            var date = new Date(item.time.replace(/-/g, '/'));
+            var today = new Date();
+            date.setDate(today.getDate());
+            result.push([date.getTime(), item.count]);
+        });
+        return result;
+    }
+
+    // 绘制多天数据趋势对比图
+    function drawMultiDayTrendChart(todayData, yesterdayData, weekAgoData) {
+        // 根据是否为移动端设置字体大小
+        var fontSize = isMobile() ? '25px' : '12px';
+        var titleFontSize = isMobile() ? '30px' : '16px';
+
+
+        // 将数据转换为 ECharts 所需格式
+        var chartData = [
+            convertToTimestamp(todayData),
+            convertToTimestamp(yesterdayData),
+            convertToTimestamp(weekAgoData),
+        ];
+
+        // 初始化 ECharts 实例
+        const chartNode = $('<div>').addClass('chart-item').css({
+            width: '650px',
+            height: '350px',
+        })
+        var chart = echarts.init(chartNode[0]);
+
+        // 配置图表选项
+        var option = {
+            title: {
+                text: '多天请求量数据趋势图',
+                textStyle: {
+                    fontSize: titleFontSize
+                },
+                top: 0, // 将标题放在最上方
+                left: 'center', // 标题居中
+            },
+            grid: {
+                top: '80px', // 为标题和图例留出空间
+                containLabel: true
+            },
+            tooltip: {
+                trigger: 'axis',
+                formatter: function(params) {
+                    // console.log(params)
+                    var result = '';
+                    params.forEach(function(item) {
+                        var date = new Date(item.value[0]);
+                        switch (item.seriesIndex) {
+                            case 0:
+                                date.setDate(date.getDate());
+                                break;
+                            case 1:
+                                date.setDate(date.getDate() - 1);
+                                break;
+                            case 2:
+                                date.setDate(date.getDate() - 7);
+                                break;
+                        }
+                        dateStr = date.toLocaleString();
+                        result += dateStr.slice(5, 15) + ': ' + item.value[1] + '<br>';
+                    });
+                    return result;
+                },
+                textStyle: {
+                    fontSize: fontSize
+                }
+            },
+            xAxis: {
+                type: 'time',
+                splitLine: {
+                    show: false
+                },
+                axisLabel: {
+                    fontSize: fontSize
+                }
+            },
+            yAxis: {
+                type: 'value',
+                splitLine: {
+                    show: true
+                },
+                axisLabel: {
+                    fontSize: fontSize
+                }
+            },
+            legend: {
+                data: ['当天', '昨天', '一周前'],
+                textStyle: {
+                    fontSize: fontSize
+                },
+                top: '30px', // 将图例放在标题下方
+                left: 'center', // 图例居中
+            },
+            series: [
+                {
+                    name: '当天',
+                    data: chartData[0],
+                    type: 'line',
+                    smooth: true,
+                    itemStyle: {
+                        color: '#1890ff'
+                    },
+                    lineStyle: {
+                        color: '#1890ff'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 4,
+                    z: 3, // 设置当天数据为最上层
+                    label: {
+                        fontSize: fontSize
+                    },
+
+                },
+                {
+                    name: '昨天',
+                    data: chartData[1],
+                    type: 'line',
+                    smooth: true,
+                    itemStyle: {
+                        color: '#52c41a'
+                    },
+                    lineStyle: {
+                        color: '#52c41a'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 4,
+                    z: 2, // 设置昨天数据为中间层
+                    label: {
+                        fontSize: fontSize
+                    },
+
+                },
+                {
+                    name: '一周前',
+                    data: chartData[2],
+                    type: 'line',
+                    smooth: true,
+                    itemStyle: {
+                        color: '#faad14'
+                    },
+                    lineStyle: {
+                        color: '#faad14'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 4,
+                    z: 1, // 设置一周前数据为最底层
+                    label: {
+                        fontSize: fontSize
+                    },
+                }
+            ]
+        };
+
+        // 设置图表选项并显示图表
         chart.setOption(option);
 
         return chartNode;

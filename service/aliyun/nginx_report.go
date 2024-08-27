@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 type NginxTimeSpanReportModel struct {
@@ -52,19 +54,14 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 		return nil, nil
 	}
 
-	// day-host-api
-	//timespanReports := map[string]map[string]map[string]NginxTimeSpanReportModel{}
 	timespanReports := map[string]NginxTimeSpanReportModel{}
 	for _, log := range nginxLogs {
-		day := log.Time.Format("2006-01-02")
+		day := log.Time.Format(consts.DateTemplate)
 		key := fmt.Sprintf("%v\t%v\t%v", day, log.Host, log.CleanUrl)
-		if strings.HasPrefix(log.Host, "pre") {
-			fmt.Println(key)
-		}
 		apiReport, ok := timespanReports[key]
 		if !ok {
 			apiReport = NginxTimeSpanReportModel{
-				Date:        log.Time.Format("2006-01-02"),
+				Date:        log.Time.Format(consts.DateTemplate),
 				HostName:    log.Host,
 				CoreApiName: log.CleanUrl,
 				CoreApiPath: log.CleanUrl,
@@ -91,21 +88,10 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 		}
 		apiReport.FailRate = float64(apiReport.FailCount) / float64(apiReport.TotalCount) * 100
 		timespanReports[key] = apiReport
-		//timespanReports[day][log.Host][log.CleanUrl] = apiReport
 	}
 	finalReports := []NginxTimeSpanReportModel{}
 	daySumReports := map[string]NginxTimeSpanReportModel{}
-	//for _, dayReports := range timespanReports {
-	//	for _, hostReports := range dayReports {
-	//		for _, report := range hostReports {
 	for _, report := range timespanReports {
-		//fmt.Println("==========", host, url)
-		if report.HostName == "pre-api.lingoreader.cn" {
-			fmt.Println(report)
-		}
-		if report.HostName == "api.lingoreader.cn" {
-			fmt.Println(report)
-		}
 		report.CoreApiName = utils.GetApiAlias(report.HostName, report.CoreApiName)
 		finalReports = append(finalReports, report)
 
@@ -123,9 +109,7 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 		daySumReport.FailStatus5xx += report.FailStatus5xx
 		daySumReports[report.Date] = daySumReport
 	}
-	//	}
-	//	// finalReports按照Date字段降续排序
-	//}
+	// finalReports按照Date字段降续排序
 	finalReports = append(finalReports, utils.ValuesOfMap(daySumReports)...)
 	sort.Slice(finalReports, func(i, j int) bool {
 		if finalReports[i].Date == finalReports[j].Date {
@@ -153,7 +137,7 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 	data := []*empyrean_lens.ApiFailureDetailRespData{}
 	for _, log := range api {
 		data = append(data, &empyrean_lens.ApiFailureDetailRespData{
-			Time:     log.Time.Format("2006-01-02 15:04:05"),
+			Time:     log.Time.Format(consts.DateHourMinSecTemplate),
 			APIName:  log.CleanUrl,
 			Host:     log.Host,
 			Path:     log.CleanUrl,
@@ -189,4 +173,53 @@ func EndToEndTraceLogs(ctx context.Context, req empyrean_lens.EndToEndTraceReq) 
 		})
 	}
 	return data, nil
+}
+
+func RequestTrend(ctx context.Context, req empyrean_lens.RequestTrendReq) (*empyrean_lens.RequestTrendRespData, error) {
+	date, err := time.Parse(consts.DateTemplate, req.Date)
+	if err != nil {
+		return nil, err
+	}
+
+	data := &empyrean_lens.RequestTrendRespData{}
+	//daysSince := int(date.Sub(time.Now()).Hours() / 24)
+	daysSince := int(time.Now().Sub(date).Hours() / 24)
+	wg := sync.WaitGroup{}
+	for _, daysLookback := range []int{0, 1, 7} {
+		wg.Add(1)
+		go func(daysLookback int) {
+			defer wg.Done()
+			logs, err := aliyun.NginxLogsDaysAgo(ctx, daysSince+daysLookback)
+			if err != nil {
+				return
+			}
+			trend := map[string]int{}
+			for _, log := range logs {
+				timestamp := log.Time.Format(consts.DateHourTemplate)
+				//timestamp := log.Time.Format(consts.DateHourMinuteTemplate)
+				timestamp = fmt.Sprintf("%v:%02d:00", timestamp[:len(timestamp)-6], log.Time.Minute()-(log.Time.Minute()%15))
+				//log.Time.Minute() % 10
+				trend[timestamp] += 1
+			}
+			trendItems := []*empyrean_lens.RequestTrendRespDataItem{}
+			for timestamp, cnt := range trend {
+				trendItems = append(trendItems, &empyrean_lens.RequestTrendRespDataItem{
+					Time:  timestamp,
+					Count: int32(cnt),
+				})
+			}
+			sort.Slice(trendItems, func(i, j int) bool {
+				return trendItems[i].Time < trendItems[j].Time
+			})
+			if daysLookback == 0 {
+				data.Data0 = trendItems
+			} else if daysLookback == 1 {
+				data.Data1 = trendItems
+			} else if daysLookback == 7 {
+				data.Data7 = trendItems
+			}
+		}(daysLookback)
+	}
+	wg.Wait()
+	return data, err
 }

@@ -78,3 +78,17 @@ func TestEndToEndTraceLogs(t *testing.T) {
 		fmt.Println(r)
 	}
 }
+
+func TestRequestTrend(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	dal.Init()
+	req := empyrean_lens.RequestTrendReq{Date: "2024-08-27"}
+	trend, err := RequestTrend(ctx, req)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(trend.Data0)
+	fmt.Println(trend.Data1)
+	fmt.Println(trend.Data7)
+}

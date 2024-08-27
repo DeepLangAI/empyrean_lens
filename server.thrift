@@ -316,6 +316,25 @@ struct UInfoRespData{
     3: string nickname
 }
 
+// 查询请求量趋势
+struct RequestTrendReq{
+    1: string date
+}
+struct RequestTrendResp{
+    1: i32 code
+    2: string msg
+    3: RequestTrendRespData data
+}
+struct RequestTrendRespData{
+    1: list<RequestTrendRespDataItem> data0
+    2: list<RequestTrendRespDataItem> data1
+    3: list<RequestTrendRespDataItem> data7
+}
+struct RequestTrendRespDataItem{
+    1: string time
+    2: i32 count
+}
+
 
 service Rentention{
    EmptyResp LogRender(1: EmptyReq req) (api.get="/api/log/report")
@@ -359,6 +378,11 @@ service Rentention{
    // Traceback日志列表
    TracebackResp SysteTracebackLogs(1: TracebackReq req) (
        api.get="/api/v1/report/traceback/list"
+   )
+
+   // 系统请求量趋势数据
+   RequestTrendResp RequestTrends(1: RequestTrendReq req) (
+       api.get="/api/v1/report/trend/request"
    )
 
    // 用于提供缓存数据库接口

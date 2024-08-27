@@ -4,6 +4,7 @@ import (
 	"context"
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/dal/mongo/empyrean_lens"
+	"empyrean_lens/dal/redis"
 	"time"
 )
 
@@ -13,6 +14,7 @@ func Init() {
 	defer cancelFunc()
 	aliyun.Init(timeout)
 	empyrean_lens.Init(timeout)
+	redis.Init()
 	//env := os.Getenv(constslib.ModeEnvName)
 	//if env != "prod" {
 	//	lingo.Init(timeout)

@@ -2,7 +2,9 @@ package aliyun
 
 import (
 	"context"
+	"empyrean_lens/conf"
 	"empyrean_lens/consts"
+	"empyrean_lens/dal/redis"
 	"empyrean_lens/utils"
 	"fmt"
 	"strings"
@@ -501,4 +503,22 @@ func TestTracebackQueryOfDays(t *testing.T) {
 	Init(ctx)
 	logs := TracebackQueryOfDays(ctx, []int{1})
 	fmt.Println(logs)
+}
+
+func TestNginxLogsDaysAgo(t *testing.T) {
+	ctx := context.Background()
+	conf.TestInit()
+	Init(ctx)
+	redis.Init()
+
+	logs, _ := NginxLogsDaysAgo(ctx, 1)
+	cnts := map[string]int{}
+	for _, log := range logs {
+		tick := log.Time.Format(consts.DateHourMinuteTemplate)
+		cnts[tick] += 1
+	}
+	keys := utils.KeysOfMap(cnts)
+	for _, key := range keys {
+		fmt.Println(key, cnts[key])
+	}
 }

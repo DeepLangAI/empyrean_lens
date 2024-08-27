@@ -160,3 +160,13 @@ func _getuinfoMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _trendMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _requesttrendsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

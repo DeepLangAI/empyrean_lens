@@ -567,3 +567,25 @@ func GetUInfo(ctx context.Context, c *app.RequestContext) {
 	resp.Data = data
 	base.SuccessResponse(c, resp)
 }
+
+// RequestTrends .
+// @router /api/v1/report/trend/request [GET]
+func RequestTrends(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.RequestTrendReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.ParamBindJsonError, err)
+		return
+	}
+
+	resp := new(empyrean_lens.RequestTrendResp)
+	data, err := aliyun2.RequestTrend(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+	resp.Data = data
+	base.SuccessResponse(c, resp)
+}

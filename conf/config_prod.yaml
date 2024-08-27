@@ -19,3 +19,8 @@ mongo_empyreanlens:
 logger:
   log_path: './logs/system'
   log_level: "info"
+
+redis:
+  addrs: ["deeplang-redis-private.redis.zhangbei.rds.aliyuncs.com:6379"]
+  username: "svr_query"
+  password: "REDACTED"

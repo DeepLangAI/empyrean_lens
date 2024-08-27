@@ -324,5 +324,15 @@ const (
 )
 
 const (
-	Channel = "lingo"
+	BaseHost               = "lingo"
+	Channel                = "lingo"
+	DateTemplate           = "2006-01-02"
+	DateHourTemplate       = "2006-01-02 15:00:00"
+	DateHourMinuteTemplate = "2006-01-02 15:04:00"
+	DateHourMinSecTemplate = "2006-01-02 15:04:05"
+	DateTimeTemplate       = "2006-01-02 15:04:05,999"
+)
+
+const (
+	CacheKeyRequestTrend = "empyreanLens::requestTrend::%v"
 )

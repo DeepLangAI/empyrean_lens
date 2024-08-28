@@ -23,7 +23,25 @@ func BuildLogAnlzPrompt(ctx context.Context, traceId, date string) string {
 然后是错误日志：
 %v
 
-你根据以上Nginx日志和错误日志(尤其是message、exc_info字段)，来分析一下，链路调用过程是怎样的，以及异常发生在哪个环节，可能是什么原因。如果没有异常，则分析一下耗时，看看耗时最长的链路是哪里、全链路耗时(出现的最早和最晚的时间戳之差)等。
+经整理，整个可能的调用链路如下：
+|--api-chat.lingoreader.cn
+|   |--qa-recommend.shenyandayi.com
+|   |__qa-main.shenyandayi.com
+|__api.lingoreader.cn
+   |--wcd-v2.deeplang.net
+   |   |__text-parse.shenyandayi.com
+   |--pdfparser.shenyandayi.com
+   |   |__text-parse.shenyandayi.com
+   |--outlinecata.shenyandayi.com
+   |--key-opinion.shenyandayi.com
+   |--crawler.shenyandayi.com
+   |   |__text-parse.shenyandayi.com
+   |--summary.shenyandayi.com
+   |--api-edu-arch.shenyandayi.com
+   |   |__text-parse.shenyandayi.com
+   |__api-repeater.lingoreader.cn
+      |__ai-infra-service.shenyandayi.com
+以上整理的调用链路可能并不会全部出现。你根据以上Nginx日志和错误日志(尤其是message、exc_info字段)，来分析一下，链路调用过程是怎样的，以及异常发生在哪个环节，可能是什么原因。如果没有异常，则分析一下耗时，看看耗时最长的链路是哪里、全链路耗时(出现的最早和最晚的时间戳之差)等。
 `
 	nginxLogs := []string{}
 	errorLogs := []string{}

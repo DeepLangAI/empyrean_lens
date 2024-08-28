@@ -995,7 +995,8 @@
         let result = $('#endtoendtrace_result')
         result.empty()
 
-        let date = getCurrentDate()
+        // let date = getCurrentDate()
+        let date = $('#date').val()
         axios.get('/api/v1/report/trace/list', {
             params: {
                 date_begin: date,

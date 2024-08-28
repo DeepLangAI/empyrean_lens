@@ -51,7 +51,9 @@ func TestChat(t *testing.T) {
 
 	//prompt := BuildLogAnlzPrompt(ctx, "ehqErshgqTmiqwBgLqRcj", "2024-08-15")
 	//prompt := BuildLogAnlzPrompt(ctx, "66bc36719a11d738b9ec3112", "2024-08-14")
-	prompt := BuildLogAnlzPrompt(ctx, "66c2aa692d65bf63af3ca27f", "2024-08-19")
+	//prompt := BuildLogAnlzPrompt(ctx, "66c2aa692d65bf63af3ca27f", "2024-08-19")
+	//prompt := BuildLogAnlzPrompt(ctx, "66cdc5dace30fa9ead513fe0", "2024-08-27")
+	prompt := BuildLogAnlzPrompt(ctx, "N-hmQD1Wf2qv6a6TP9bET", "2024-08-28")
 
 	client := &http.Client{}
 	requestData := Request{

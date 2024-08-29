@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"empyrean_lens/consts"
+	"empyrean_lens/utils"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -150,7 +151,7 @@ func NginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) 
 host: %v |
 SELECT  * FROM  (
   SELECT 
-    REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host, http_referer, request_time cost
+    REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host, http_referer, request_time cost,channel
   FROM log WHERE method IN ('GET', 'POST')
 ) t
 WHERE clean_url IN (
@@ -179,11 +180,19 @@ LIMIT %d
 		if t.Format("2006-01-02") != lookbackDay.Format("2006-01-02") {
 			continue
 		}
-		if host == "api-repeater.lingoreader.cn" && log["clean_url"] == "/doc/multi/outline" {
-			if log["http_referer"] != "https://lingowhale.com/" {
-				continue
-			}
+		channel := log["channel"]
+		// 如果channel存在，且不是目标channel，则跳过
+		if !utils.Contains([]string{"-", ""}, channel) && !utils.Contains(
+			[]string{consts.BaseChannelName + "-pre", consts.BaseChannelName + "-prod"},
+			channel,
+		) {
+			continue
 		}
+		//if host == "api-repeater.lingoreader.cn" && log["clean_url"] == "/doc/multi/outline" {
+		//	if log["http_referer"] != "https://lingowhale.com/" {
+		//		continue
+		//	}
+		//}
 
 		if e != nil {
 			hlog.CtxErrorf(ctx, "parse time error: %v", e)

@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const TableNameApiFailure = "api_failure"
+var TableNameApiFailure = ""
 
 type ApiFailureModel struct {
 	Date          time.Time `bson:"date"`

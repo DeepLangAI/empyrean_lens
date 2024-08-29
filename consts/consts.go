@@ -1,6 +1,17 @@
 package consts
 
 const (
+	BaseContainerName = "lingo"
+	BasePodName       = "lingoreader"
+	BaseHostName      = "lingoreader"
+	BaseChannelName   = "lingo"
+	TablePrefix       = ""
+	CacheKeyPrefix    = "empyreanLens::" + BaseHostName
+	ModelName         = "Atom-7B-Chat"
+	ChatApi           = "https://api.atomecho.cn/v1/chat/completions"
+	ChatSecret        = "REDACTED"
+)
+const (
 	ACCESS_KEY_ID              = "REDACTED"
 	ACCESS_KEY_SECRET          = "REDACTED"
 	SECURE_TOKEN               = ""
@@ -64,23 +75,26 @@ var NODE_MAP = map[string]string{
 }
 
 const (
+	// 后端服务
 	HOST_LINGO_BACKEND     = "api.lingoreader.cn"
 	HOST_LINGO_PRE_BACKEND = "pre-api.lingoreader.cn"
-	HOST_CRAWLER           = "crawler.shenyandayi.com"
-	HOST_WCD               = "wcd-v2.deeplang.net"
-	HOST_EDU               = "api-edu-arch.shenyandayi.com"
 	HOST_QA_BACKEND        = "api-chat.lingoreader.cn"
 	HOST_QA_PRE_BACKEND    = "pre-api-chat.lingoreader.cn"
+	HOST_REPEATER          = "api-repeater.lingoreader.cn"
+	HOST_PRE_REPEATER      = "pre-api-repeater.lingoreader.cn"
 
-	HOST_ABSTRACT = "summary.shenyandayi.com"
-	HOST_OURLINE  = "outlinecata.shenyandayi.com"
-	HOST_OPINION  = "key-opinion.shenyandayi.com"
-	//HOST_SUQIN           = "qaucloud-pdfparser.shenyandayi.com"
+	// 后端数据服务
+	HOST_CRAWLER = "crawler.shenyandayi.com"
+	HOST_WCD     = "wcd-v2.deeplang.net"
+	HOST_EDU     = "api-edu-arch.shenyandayi.com"
+
+	// 模型服务
+	HOST_ABSTRACT        = "summary.shenyandayi.com"
+	HOST_OURLINE         = "outlinecata.shenyandayi.com"
+	HOST_OPINION         = "key-opinion.shenyandayi.com"
 	HOST_SUQIN           = "pdfparser.shenyandayi.com"
 	HOST_QA_RECOMMEND    = "qa-recommend.shenyandayi.com"
 	HOST_QA_MAIN         = "qa-main.shenyandayi.com"
-	HOST_REPEATER        = "api-repeater.lingoreader.cn"
-	HOST_PRE_REPEATER    = "pre-api-repeater.lingoreader.cn"
 	HOST_QUERY_EMBEDDING = "search-embedding-v2.shenyandayi.com"
 	HOST_MULTI_MODEL     = "ai-infra-service.shenyandayi.com"
 )
@@ -284,10 +298,6 @@ const (
 	PROBE_WEIGHT = 0.4
 )
 
-const PASSPORT_HOST = "https://api-passport.lingoreader.cn"
-const LINGO_HOST = "https://api.lingoreader.cn"
-const PDF_TO_UPLOAD = "assets/1810.04805v2.pdf"
-const GRAPH_CONFIG_PATH = "conf/graph.json"
 const LOG_DETAIL_TEMPLATE_PATH = "templates/rentention.html"
 const REALDATA_TEMPLATE_PATH = "templates/realdata.html"
 const OVERVIEW_TEMPLATE_PATH = "templates/overview.html"
@@ -324,8 +334,6 @@ const (
 )
 
 const (
-	BaseHost               = "lingo"
-	Channel                = "lingo"
 	DateTemplate           = "2006-01-02"
 	DateHourTemplate       = "2006-01-02 15:00:00"
 	DateHourMinuteTemplate = "2006-01-02 15:04:00"
@@ -334,5 +342,5 @@ const (
 )
 
 const (
-	CacheKeyRequestTrend = "empyreanLens::requestTrend::%v"
+	CacheKeyRequestTrend = CacheKeyPrefix + "::requestTrend::%v"
 )

@@ -4,6 +4,7 @@ import (
 	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"context"
 	"empyrean_lens/conf"
+	"empyrean_lens/consts"
 	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -14,6 +15,17 @@ var (
 	probeDatabase *mongo.Database
 	mongoClient   *mongo.Client
 )
+
+func initTableNames() {
+	prefix := consts.TablePrefix
+	TableNameApiCost = prefix + "api_cost"
+	TableNameApiFailure = prefix + "api_failure"
+	TableNameApiProbeLog = prefix + "api_probe"
+	TableNameScene = prefix + "scene"
+	TableNameSystemScore = prefix + "system_score"
+	//TableNameTraceDebugger = prefix + "trace_debugger"
+	TableNameTracebackLog = prefix + "traceback_log"
+}
 
 func Init(ctx context.Context) {
 	var (
@@ -47,4 +59,6 @@ func Init(ctx context.Context) {
 	}
 	probeDatabase = client.Database(cfg.DatabaseName)
 	mongoClient = client
+
+	initTableNames()
 }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"empyrean_lens/conf"
+	"empyrean_lens/consts"
 	"empyrean_lens/dal"
 	"empyrean_lens/utils"
 	"fmt"
@@ -57,7 +58,7 @@ func TestChat(t *testing.T) {
 
 	client := &http.Client{}
 	requestData := Request{
-		Model: "moonshot-v1-32k",
+		Model: consts.ModelName,
 		Messages: []Message{
 			{
 				Role: "system",
@@ -76,13 +77,13 @@ __tag__:_container_name_，容器名称，也可以认为是服务名称
 
 	fmt.Println(prompt)
 	var data = strings.NewReader(utils.JSONMarshal(requestData))
-	req, err := http.NewRequest("POST", "https://api.moonshot.cn/v1/chat/completions", data)
+	//req, err := http.NewRequest("POST", "https://api.moonshot.cn/v1/chat/completions", data)
+	req, err := http.NewRequest("POST", consts.ChatApi, data)
 	if err != nil {
 		log.Fatal(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	//req.Header.Set("Authorization", "Bearer "+os.Getenv("MOONSHOT_API_KEY"))
-	req.Header.Set("Authorization", "Bearer "+"sk-LYVRpv9X1PfBk4Dn8XD8xyZ2DRuWCSJPgKFHbMTSTnQwbJQa")
+	req.Header.Set("Authorization", "Bearer "+consts.ChatSecret)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)

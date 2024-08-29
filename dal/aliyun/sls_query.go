@@ -1,13 +1,16 @@
 package aliyun
 
 import (
+	"bytes"
 	"context"
 	"empyrean_lens/consts"
 	"fmt"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"html/template"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 type NginxLog struct {
@@ -26,6 +29,30 @@ type NginxErrorLog struct {
 	ClientIp string `json:"client_ip"`
 }
 
+func FormatWithTemplate(tplStr string, data map[string]string) string {
+	baseData := map[string]string{
+		"BaseContainerName": consts.BaseContainerName,
+		"BaseChannelName":   consts.BaseChannelName,
+	}
+	if data != nil {
+		for k, v := range data {
+			baseData[k] = v
+		}
+	}
+
+	tpl, err := template.New("").Parse(tplStr)
+	if err != nil {
+		panic(err)
+	}
+	var buf bytes.Buffer
+	err = tpl.Execute(&buf, baseData)
+	if err != nil {
+		panic(err)
+	}
+	result := buf.String()
+	return result
+}
+
 func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) ([]NginxLog, error) {
 	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
 	if err != nil {
@@ -40,7 +67,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-("content.channel": "lingo-prod" or "content.channel": "lingo-pre")|
+("content.channel": "{{.BaseChannelName}}-prod" or "content.channel": "{{.BaseChannelName}}-pre")|
 	SELECT 
 	"content.path" url,
 	"content.method" method, 
@@ -55,6 +82,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	order by "content.time"
 	LIMIT %v
 `
+	query = FormatWithTemplate(query, nil)
 	apiDetails := consts.MODEL_NGINX_INGRESS_APIS[host]
 	formatedApis := []string{}
 	for _, api := range apiDetails {
@@ -151,9 +179,6 @@ LIMIT %d
 		if t.Format("2006-01-02") != lookbackDay.Format("2006-01-02") {
 			continue
 		}
-		//if t.Unix() < from {
-		//	continue
-		//}
 		if host == "api-repeater.lingoreader.cn" && log["clean_url"] == "/doc/multi/outline" {
 			if log["http_referer"] != "https://lingowhale.com/" {
 				continue
@@ -193,9 +218,10 @@ func MultiTotalRequestQuery(ctx context.Context, daysLookback int) (int, error) 
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 	query := `
-	(__tag__:_container_name_ : lingo-python-prod or __tag__:_container_name_ : lingo-python-pre) and files merge multi. article_list | select * from log
+	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and files merge multi. article_list | select * from log
 limit %v
 	`
+	query = FormatWithTemplate(query, nil)
 
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
 
@@ -220,11 +246,12 @@ func MultiNodeLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error)
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_ : lingo-python-prod or __tag__:_container_name_ : lingo-python-pre) and multi_node | select * from (
+(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and multi_node | select * from (
     select regexp_extract(message, 'multi_node (.*?)(\.|,|\s)', 1) node_name, asctime time, user_id, trace_id
     from log
 ) order by time desc limit %v
 `
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
 	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
@@ -274,7 +301,7 @@ func MultiCoreLogQuery(ctx context.Context, daysLookback int, coreName string) (
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-((__tag__:_container_name_: lingo-python-prod or __tag__:_container_name_: lingo-python-pre) and message: "%v core node node_name") |
+((__tag__:_container_name_: {{.BaseContainerName}}-python-prod or __tag__:_container_name_: {{.BaseContainerName}}-python-pre) and message: "%v core node node_name") |
 select  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 1) as node_name,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 2) as multi_id,  
@@ -284,6 +311,7 @@ trace_id, user_id, asctime time, "__tag__:_container_name_" env
 from log order by time desc
 limit %v
 `
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
 	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
@@ -327,7 +355,7 @@ func QaMiddlewareReqLogQuery(ctx context.Context, daysLookback int, apis []strin
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) and "Request rout" | 
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and "Request rout" | 
 select * from ( 
 select  regexp_extract(message, 'Request rout:(.*), Method:POST, RequestBody:.*', 1) url,
 time, trace_id, user_id
@@ -336,6 +364,7 @@ from log
 %v
 ) limit %v
 `
+	query = FormatWithTemplate(query, nil)
 	formatedApis := []string{}
 	for _, api := range apis {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api))
@@ -377,7 +406,7 @@ func QaMiddlewareRespLogQuery(ctx context.Context, daysLookback int, apis []stri
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) and "Response rout" | 
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and "Response rout" | 
 select * from ( 
 select  
 regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 1) url,
@@ -391,6 +420,7 @@ from log
 order by time desc
 limit %v
 `
+	query = FormatWithTemplate(query, nil)
 	formatedApis := []string{}
 	for _, api := range apis {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api))
@@ -438,7 +468,7 @@ func QaCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]C
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) and message: "%v," |  select * from (
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and message: "%v," |  select * from (
 select 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 1) as node, 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 2) as cnt, 
@@ -447,6 +477,7 @@ from log order by time desc
 limit %v
 ) where node != 'null'
 `
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
 	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
@@ -491,7 +522,7 @@ func CommonCoreLogQuery(ctx context.Context, daysLookback int, coreName string) 
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_:lingo-python-prod or __tag__:_container_name_:lingo-python-pre) and "core link core_name:%v" |
+(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and "core link core_name:%v" |
 SELECT 
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 1) as core_name,
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 2) as core_node,
@@ -501,6 +532,7 @@ order by asctime desc
 LIMIT %v
 `
 
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
@@ -563,7 +595,7 @@ func LingoChatCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorL
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-chat core api response error and (__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) | select * from (
+chat core api response error and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) | select * from (
     select 
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name,
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code,
@@ -574,9 +606,10 @@ chat core api response error and (__tag__:_container_name_: lingo-chat-go-prod o
 	limit %v
 )
 `
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
 	// 查询日志
-	hlog.CtxDebugf(ctx, "lingo-chat core error sql query: %v", query)
+	hlog.CtxDebugf(ctx, "chat core error sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
 		fmt.Println(err)
@@ -584,7 +617,7 @@ chat core api response error and (__tag__:_container_name_: lingo-chat-go-prod o
 	}
 
 	// 打印查询结果
-	hlog.CtxInfof(ctx, "日期%v，查lingo-chat core error 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
+	hlog.CtxInfof(ctx, "日期%v，查chat core error 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
 	for _, log := range resp.Logs {
 		code, err := strconv.ParseInt(log["code"], 10, 64)
 		if err != nil {
@@ -625,7 +658,7 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_:lingo-python-prod or __tag__:_container_name_:lingo-python-pre) and extend core api response error core_name| select * from (
+(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and extend core api response error core_name| select * from (
     select 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name, 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code, 
@@ -634,9 +667,10 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
     from log order by time desc limit %v
 )
 `
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
 	// 查询日志
-	hlog.CtxDebugf(ctx, "lingo core error sql query: %v", query)
+	hlog.CtxDebugf(ctx, "core error sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
 		fmt.Println(err)
@@ -644,7 +678,7 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 	}
 
 	// 打印查询结果
-	hlog.CtxInfof(ctx, "日期%v，查lingo core error 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
+	hlog.CtxInfof(ctx, "日期%v，查core error 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), resp.Count)
 	for _, log := range resp.Logs {
 		code, err := strconv.ParseInt(log["code"], 10, 64)
 		if err != nil {
@@ -684,7 +718,7 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_:lingo-python-prod or __tag__:_container_name_:lingo-python-pre) and summary start | select * from (
+(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and summary start | select * from (
     select 
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 1) file_id, 
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 2) url_id, 
@@ -693,6 +727,7 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
     from log order by time desc limit %v
 )
 `
+	query = FormatWithTemplate(query, nil)
 
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
 	// 查询日志
@@ -724,10 +759,11 @@ func QaErrorCntQuery(ctx context.Context, daysLookback int) int64 {
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) and "%v" |  
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and "%v" |  
 select count(*) cnt from log
 limit %v
 `
+	query = FormatWithTemplate(query, nil)
 	coreName := "模型返回异常"
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
 	// 查询日志
@@ -763,7 +799,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
-	query := `(__tag__:_container_name_ : lingo-python-prod or __tag__:_container_name_ : lingo-python-pre) and  message : "summary core core_name:%s" |
+	query := `(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  message : "summary core core_name:%s" |
 	select
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 1) as core_name,
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 2) as node,
@@ -772,6 +808,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	from log  order by asctime desc , trace_id desc limit %v
 `
 
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
@@ -822,10 +859,11 @@ func QaRecommendFailcntQuery(ctx context.Context, daysLookback int) int64 {
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-推荐模型返回异常 and (__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) | select count(*) cnt from log
+推荐模型返回异常 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) | select count(*) cnt from log
 limit %v
 `
 
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "问题推荐失败数量查询 query: %v", query)
@@ -862,7 +900,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-推荐模型 推荐结束 and (__tag__:_container_name_: lingo-chat-go-prod or __tag__:_container_name_: lingo-chat-go-pre) | select * from (
+推荐模型 推荐结束 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) | select * from (
     select 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 1) count, 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 2) cost, 
@@ -870,6 +908,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
     from log  order by time desc
 ) limit %v
 `
+	query = FormatWithTemplate(query, nil)
 
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
 	// 查询日志
@@ -1013,10 +1052,11 @@ from log where
 
 "content.method"  in ('GET', 'POST') and
 "content.status"  != 200 and
-("content.channel" = 'lingo-prod' or "content.channel" = 'lingo-pre')
+("content.channel" = '{{.BaseChannelName}}-prod' or "content.channel" = '{{.BaseChannelName}}-pre')
 order by "content.time" desc
 limit %v
 `
+	query = FormatWithTemplate(query, nil)
 	pathMute := ""
 	if url == "" {
 		pathMute = "--"
@@ -1339,13 +1379,14 @@ func TracebackQuery(ctx context.Context, daysLookback int) ([]TracebackDetail, e
 
 	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 	query := `
-(__tag__:_container_name_ : lingo-python-prod or __tag__:_container_name_ : lingo-python-pre) and  exc_info : "Traceback (most recent call last)" |  
+(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  exc_info : "Traceback (most recent call last)" |  
 select 
 exc_info, message msg, trace_id, asctime time, user_id
 from log
 order by asctime desc
 limit %v
 `
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "business traceback sql query: %v", query)
 
@@ -1398,7 +1439,7 @@ func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs
 	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	query := `
-(__tag__:_container_name_: lingo-python-pre or __tag__:_container_name_: lingo-python-prod) | select * from (
+(__tag__:_container_name_: {{.BaseContainerName}}-python-pre or __tag__:_container_name_: {{.BaseContainerName}}-python-prod) | select * from (
     select 
     regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 1) core_name,
     regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 2) node_name,
@@ -1407,6 +1448,7 @@ func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs
     from log order by time desc
 ) where core_name='多文档' limit %v
 `
+	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "multi node error sql query: %v", query)
 

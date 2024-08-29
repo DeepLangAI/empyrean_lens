@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-const TableNameApiCost = "api_cost"
+// const TableNameApiCost = "api_cost"
+var TableNameApiCost = ""
 
 type ApiCostModel struct {
 	Date                    time.Time `bson:"date"`

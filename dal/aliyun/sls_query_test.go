@@ -3,6 +3,7 @@ package aliyun
 import (
 	"context"
 	"empyrean_lens/conf"
+	"empyrean_lens/consts"
 	"fmt"
 	"testing"
 	"time"
@@ -159,4 +160,23 @@ func TestMultiNodeErrorQuery(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestExecuteTemplate(t *testing.T) {
+	query := `
+chat core api response error and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName }}-chat-go-pre) | select * from (
+    select 
+    regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name,
+    regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code,
+    regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 3) msg,
+	asctime time, trace_id, user_id, "__tag__:_container_name_" env
+    from log 
+	order by time desc
+	limit %v
+)
+`
+	query = FormatWithTemplate(query, map[string]string{
+		"BaseContainerName": consts.BaseContainerName,
+	})
+	fmt.Println(query)
 }

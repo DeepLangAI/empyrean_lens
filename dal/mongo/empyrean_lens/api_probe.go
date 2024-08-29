@@ -9,7 +9,8 @@ import (
 	"time"
 )
 
-const TableNameApiProbeLog = "api_probe"
+// const TableNameApiProbeLog = "api_probe"
+var TableNameApiProbeLog = "api_probe"
 
 type ApiProbeLogModel struct {
 	//Id           primitive.ObjectID `bson:"_id" json:"id"`

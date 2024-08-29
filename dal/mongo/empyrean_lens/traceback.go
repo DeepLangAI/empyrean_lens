@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const TableNameTracebackLog = "traceback"
+var TableNameTracebackLog = "traceback"
 
 type TracebackLogModel struct {
 	//Id           primitive.ObjectID `bson:"_id" json:"id"`

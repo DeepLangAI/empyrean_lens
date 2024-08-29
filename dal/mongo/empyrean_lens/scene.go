@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const TableNameScene = "scene"
+var TableNameScene = "scene"
 
 type SceneModel struct {
 	Date        time.Time `bson:"date"`

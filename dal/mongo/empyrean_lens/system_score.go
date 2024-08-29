@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const TableNameSystemScore = "system_score"
+var TableNameSystemScore = "system_score"
 
 type SystemScoreModel struct {
 	Date          time.Time `bson:"date"`

@@ -262,6 +262,7 @@ func MultiNodeLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error)
 `
 	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	hlog.CtxInfof(ctx, "date: %v, 查多文档节点: %v", lookbackDay.Format(consts.DateTemplate), query)
 	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
 		return nil, err
@@ -1388,7 +1389,7 @@ func TracebackQuery(ctx context.Context, daysLookback int) ([]TracebackDetail, e
 
 	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 	query := `
-(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  exc_info : "Traceback (most recent call last)" |  
+(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  exc_info : "Traceback (most recent call last)" and not "pydantic"|  
 select 
 exc_info, message msg, trace_id, asctime time, user_id
 from log

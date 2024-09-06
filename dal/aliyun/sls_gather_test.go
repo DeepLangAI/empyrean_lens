@@ -160,7 +160,7 @@ func TestStatusCodeUpdate(t *testing.T) {
 func TestNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_REPEATER)
+	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_LINGO_BACKEND)
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -180,7 +180,7 @@ func TestModelNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
 	//if logs, err := ModelNginxIngressBasicQuery(ctx, 0, consts.HOST_ABSTRACT); err != nil {
-	if logs, err := ModelNginxIngressBasicQuery(ctx, 0, consts.HOST_MULTI_MODEL); err != nil {
+	if logs, err := ModelNginxIngressBasicQuery(ctx, 0, consts.HOST_ABSTRACT); err != nil {
 		t.Error(err)
 	} else {
 		for i, log := range logs {

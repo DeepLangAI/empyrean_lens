@@ -1,11 +1,11 @@
 package consts
 
 const (
-	BaseContainerName = "lingo"
-	BasePodName       = "lingoreader"
-	BaseHostName      = "lingoreader"
-	BaseChannelName   = "lingo"
-	TablePrefix       = ""
+	BaseContainerName = "lingowhale"
+	BasePodName       = "lingowhale"
+	BaseHostName      = "lingowhale"
+	BaseChannelName   = "lingowhale"
+	TablePrefix       = "lingowhale_"
 	CacheKeyPrefix    = "empyreanLens::" + BaseHostName
 	ModelName         = "Atom-7B-Chat"
 	ChatApi           = "https://api.atomecho.cn/v1/chat/completions"
@@ -76,12 +76,12 @@ var NODE_MAP = map[string]string{
 
 const (
 	// 后端服务
-	HOST_LINGO_BACKEND     = "api.lingoreader.cn"
-	HOST_LINGO_PRE_BACKEND = "pre-api.lingoreader.cn"
-	HOST_QA_BACKEND        = "api-chat.lingoreader.cn"
-	HOST_QA_PRE_BACKEND    = "pre-api-chat.lingoreader.cn"
-	HOST_REPEATER          = "api-repeater.lingoreader.cn"
-	HOST_PRE_REPEATER      = "pre-api-repeater.lingoreader.cn"
+	HOST_LINGO_BACKEND     = "api.lingowhale.com"
+	HOST_LINGO_PRE_BACKEND = "pre-api.lingowhale.com"
+	HOST_QA_BACKEND        = "chat.lingowhale.com"
+	HOST_QA_PRE_BACKEND    = "pre-chat.lingowhale.com"
+	HOST_REPEATER          = "api-repeater.lingowhale.com"
+	HOST_PRE_REPEATER      = "pre-api-repeater.lingowhale.com"
 
 	// 后端数据服务
 	HOST_CRAWLER = "crawler.shenyandayi.com"

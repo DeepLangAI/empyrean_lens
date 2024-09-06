@@ -173,6 +173,7 @@ LIMIT %d
 		return nil, err
 	}
 
+	shouldHaveChannel := utils.Contains([]string{consts.HOST_CRAWLER, consts.HOST_WCD, consts.HOST_EDU}, host)
 	hlog.CtxInfof(ctx, "日期%v，查nginxIngress，host: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), host, resp.Count)
 	nlogs := []NginxLog{}
 	for _, log := range resp.Logs {
@@ -182,7 +183,7 @@ LIMIT %d
 		}
 		channel := log["channel"]
 		// 如果channel存在，且不是目标channel，则跳过
-		if !utils.Contains([]string{"-", ""}, channel) && !utils.Contains(
+		if (shouldHaveChannel || !utils.Contains([]string{"-", "", "null"}, channel)) && !utils.Contains(
 			[]string{consts.BaseChannelName + "-pre", consts.BaseChannelName + "-prod"},
 			channel,
 		) {

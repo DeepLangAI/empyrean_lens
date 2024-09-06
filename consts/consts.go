@@ -76,6 +76,9 @@ var NODE_MAP = map[string]string{
 
 const (
 	// 后端服务
+	HOST_LINGO_PUBLIC_BACKEND     = "api-public.lingowhale.com"
+	HOST_LINGO_PRE_PUBLIC_BACKEND = "pre-api-public.lingowhale.com"
+
 	HOST_LINGO_BACKEND     = "api.lingowhale.com"
 	HOST_LINGO_PRE_BACKEND = "pre-api.lingowhale.com"
 	HOST_QA_BACKEND        = "chat.lingowhale.com"
@@ -105,6 +108,18 @@ type API struct {
 }
 
 var NGINX_INGRESS_APIS = map[string][]API{
+	HOST_LINGO_PUBLIC_BACKEND: {
+		{
+			Api:   "/api/feed/v1/subscription/upsert",
+			Alias: "【订阅】【后端】添加订阅源",
+		},
+	},
+	HOST_LINGO_PRE_PUBLIC_BACKEND: {
+		{
+			Api:   "/api/feed/v1/subscription/upsert",
+			Alias: "【订阅】【后端】添加订阅源",
+		},
+	},
 	HOST_LINGO_BACKEND: {
 		{
 			Api:   "/api/plugin/file/add",
@@ -204,6 +219,18 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Api:   "/doc/multi/outline",
 			Alias: "【多文档】3[中继服务]多文档总结",
 		},
+		{
+			Api:   "/api/repeater/abstract",
+			Alias: "【单文档】1[中继服务]全文速览",
+		},
+		{
+			Api:   "/api/repeater/outline",
+			Alias: "【单文档】1[中继服务]智能大纲",
+		},
+		{
+			Api:   "/api/repeater/viewpoint",
+			Alias: "【单文档】1[中继服务]关键信息",
+		},
 	},
 	HOST_PRE_REPEATER: {
 		{
@@ -217,6 +244,18 @@ var NGINX_INGRESS_APIS = map[string][]API{
 		{
 			Api:   "/doc/multi/outline",
 			Alias: "【多文档】3[中继服务]多文档总结",
+		},
+		{
+			Api:   "/api/repeater/abstract",
+			Alias: "【单文档】1[中继服务]全文速览",
+		},
+		{
+			Api:   "/api/repeater/outline",
+			Alias: "【单文档】1[中继服务]智能大纲",
+		},
+		{
+			Api:   "/api/repeater/viewpoint",
+			Alias: "【单文档】1[中继服务]关键信息",
 		},
 	},
 }

@@ -160,7 +160,7 @@ func TestStatusCodeUpdate(t *testing.T) {
 func TestNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_LINGO_BACKEND)
+	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_REPEATER)
 	if err != nil {
 		t.Error(err)
 	} else {

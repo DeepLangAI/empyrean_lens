@@ -335,6 +335,28 @@ struct RequestTrendRespDataItem{
     2: i32 count
 }
 
+// 上报：上线数据
+struct UploadOnlineOperationReq{
+    1: list<UploadOnlineOperationReqData> data
+}
+struct UploadOnlineOperationReqData{
+	1: string builder // 'lixinliang',
+	2: string branch_name // 'v2.0.7',
+	3: string commit_message // 'log不截断超长URL 测试：PRE 环境验证通过',
+	4: string domain_name // 'wcd.deeplang.net',
+	5: string time // '2024-01-17 11:25:28',
+	6: string app_name // 'Wcd_Python_Prod',
+	7: string remote_url // 'https://codeup.aliyun.com/deeplang/biz-data/web-content-distill.git'
+}
+struct UploadOnlineOperationResp{
+    1: i32 code
+    2: string msg
+    3: UploadOnlineOperationRespData data
+}
+struct UploadOnlineOperationRespData{
+    1: i32 success_cnt
+    2: list<string> fail_msgs
+}
 
 service Rentention{
    EmptyResp LogRender(1: EmptyReq req) (api.get="/api/log/report")
@@ -403,4 +425,8 @@ service Rentention{
        api.get="/api/v1/report/user/info"
    )
 
+   // 上报数据
+   BaseResp UploadOnlineOperation(1: UploadOnlineOperationReq req) (
+       api.post="/api/v1/report/upload/online_operation"
+   )
 }

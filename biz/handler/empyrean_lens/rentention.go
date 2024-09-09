@@ -589,3 +589,30 @@ func RequestTrends(ctx context.Context, c *app.RequestContext) {
 	resp.Data = data
 	base.SuccessResponse(c, resp)
 }
+
+// UploadOnlineOperation .
+// @router /api/v1/report/upload/operation [POST]
+func UploadOnlineOperation(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.UploadOnlineOperationReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.ParamBindJsonError, err)
+		return
+	}
+
+	data, err := empyrean_lens2.UpsertOnlineOperations(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	resp := new(empyrean_lens.UploadOnlineOperationResp)
+	resp.Data = data
+	if len(data.FailMsgs) >= 1 {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, data)
+		return
+	}
+	base.SuccessResponse(c, resp)
+}

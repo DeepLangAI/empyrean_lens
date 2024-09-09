@@ -69,6 +69,10 @@ func Register(r *server.Hertz) {
 					_trend.GET("/request", append(_requesttrendsMw(), empyrean_lens.RequestTrends)...)
 				}
 				{
+					_upload := _report.Group("/upload", _uploadMw()...)
+					_upload.POST("/online_operation", append(_uploadonlineoperationMw(), empyrean_lens.UploadOnlineOperation)...)
+				}
+				{
 					_user := _report.Group("/user", _userMw()...)
 					_user.GET("/info", append(_getuinfoMw(), empyrean_lens.GetUInfo)...)
 				}

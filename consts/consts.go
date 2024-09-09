@@ -87,9 +87,12 @@ const (
 	HOST_PRE_REPEATER      = "pre-api-repeater.lingowhale.com"
 
 	// 后端数据服务
-	HOST_CRAWLER = "crawler.shenyandayi.com"
-	HOST_WCD     = "wcd-v2.deeplang.net"
-	HOST_EDU     = "api-edu-arch.shenyandayi.com"
+	HOST_CRAWLER     = "crawler.shenyandayi.com"
+	HOST_PRE_CRAWLER = "pre-crawler.shenyandayi.com"
+	HOST_WCD         = "wcd-v2.deeplang.net"
+	HOST_PRE_WCD     = "pre-wcd-v2.deeplang.net"
+	HOST_EDU         = "api-edu-arch.shenyandayi.com"
+	HOST_PRE_EDU     = "pre-api-edu-arch.shenyandayi.com"
 
 	// 模型服务
 	HOST_ABSTRACT        = "summary.shenyandayi.com"
@@ -170,7 +173,19 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Alias: "【数据处理】抓取网页",
 		},
 	},
+	HOST_PRE_CRAWLER: {
+		{
+			Api:   "/crawl",
+			Alias: "【数据处理】抓取网页",
+		},
+	},
 	HOST_WCD: {
+		{
+			Api:   "/wcd-raw",
+			Alias: "【数据处理】解析URL",
+		},
+	},
+	HOST_PRE_WCD: {
 		{
 			Api:   "/wcd-raw",
 			Alias: "【数据处理】解析URL",
@@ -181,10 +196,12 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Api:   "/edu_parse",
 			Alias: "【数据处理】最小信息单元",
 		},
-		//{
-		//	Api:   "/positions/list",
-		//	Alias: "最小信息单元位置信息获取",
-		//},
+	},
+	HOST_PRE_EDU: {
+		{
+			Api:   "/edu_parse",
+			Alias: "【数据处理】最小信息单元",
+		},
 	},
 	HOST_QA_BACKEND: {
 		{

@@ -335,6 +335,10 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		return nil, err
 	}
 	multiOv, err := MultiGeneralOfDay(ctx, daysLookback)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "err: %v", err)
+		return nil, err
+	}
 	//multiEteOv, multiAnalysisOv, multiMergeOv, err := MultiGeneralOfDay(ctx, daysLookback)
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiEteOverview)
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiSummaryOverview)

@@ -22,8 +22,6 @@ func Register(r *server.Hertz) {
 		{
 			_log := _api.Group("/log", _logMw()...)
 			_log.GET("/overview", append(_overviewrenderMw(), empyrean_lens.OverviewRender)...)
-			_log.GET("/realdata", append(_realdatarenderMw(), empyrean_lens.RealDataRender)...)
-			_log.GET("/report", append(_logrenderMw(), empyrean_lens.LogRender)...)
 			_log.GET("/tools", append(_toolsrenderMw(), empyrean_lens.ToolsRender)...)
 		}
 		{
@@ -37,7 +35,6 @@ func Register(r *server.Hertz) {
 				}
 				{
 					_db := _report.Group("/db", _dbMw()...)
-					_db.POST("/realdata", append(_systemrealdataMw(), empyrean_lens.SystemRealData)...)
 					_db.POST("/refresh", append(_systemdbrefreshMw(), empyrean_lens.SystemDbRefresh)...)
 					_db.POST("/tidy", append(_systemdbtidyMw(), empyrean_lens.SystemDbTidy)...)
 					_db.POST("/write_probe", append(_writeprobelogsMw(), empyrean_lens.WriteProbeLogs)...)

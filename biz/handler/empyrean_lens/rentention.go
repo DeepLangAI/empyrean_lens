@@ -8,7 +8,6 @@ import (
 	consts2 "empyrean_lens/consts"
 	aliyun2 "empyrean_lens/service/aliyun"
 	empyrean_lens2 "empyrean_lens/service/mongo/empyrean_lens"
-	"empyrean_lens/service/mongo/lingo"
 	"empyrean_lens/service/passport"
 	"empyrean_lens/utils"
 	"fmt"
@@ -26,65 +25,6 @@ import (
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 )
-
-type Report struct {
-	Nginx    []aliyun2.NginxTimeSpanReportModel
-	Business []aliyun2.CoreLogTimeSpanReportModel
-	Probe    []map[string]string
-}
-
-// LogRender .
-// @router /api/log/report [GET]
-func LogRender(ctx context.Context, c *app.RequestContext) {
-	var err error
-	var req empyrean_lens.EmptyReq
-	err = c.BindAndValidate(&req)
-	if err != nil {
-		c.String(consts.StatusBadRequest, err.Error())
-		return
-	}
-
-	rw := adaptor.GetCompatResponseWriter(&c.Response)
-	//nginxtimespanReport, err := aliyun.NginxTimespanReport(ctx, consts2.TIMESPAN_LONGTIME)
-	nginxtimespanReport, err := empyrean_lens2.ApiFailResult(
-		ctx,
-		time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
-		time.Now(),
-	)
-	if err != nil {
-		c.String(consts.StatusInternalServerError, err.Error())
-		return
-	}
-	//businessTimeSpanReport, err := aliyun.LogStoreTimeSpanReport(ctx, consts2.TIMESPAN_LONGTIME)
-	businessTimeSpanReport, err := empyrean_lens2.ApiCostResult(
-		ctx,
-		time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
-		time.Now(),
-	)
-	if err != nil {
-		c.String(consts.StatusInternalServerError, err.Error())
-		return
-	}
-	probeReport, err := empyrean_lens2.ProbeReport(ctx)
-	if err != nil {
-		c.String(consts.StatusInternalServerError, err.Error())
-		return
-	}
-	report := Report{
-		Nginx:    nginxtimespanReport,
-		Business: businessTimeSpanReport,
-		Probe:    probeReport,
-	}
-	templatePath := filepath.Join(utils.GetProjectPath(), consts2.LOG_DETAIL_TEMPLATE_PATH)
-	tpl, err := template.ParseFiles(templatePath)
-	wd, _ := os.Getwd()
-	hlog.CtxInfof(ctx, "template path: %v. wd: %v", templatePath, wd)
-	if err != nil {
-		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
-		return
-	}
-	tpl.Execute(rw, report)
-}
 
 type Overview struct {
 	//DailyOverview    []utils.ReventResult
@@ -307,54 +247,6 @@ func SystemDbTidy(ctx context.Context, c *app.RequestContext) {
 	resp := new(empyrean_lens.DbRefreshResp)
 
 	c.JSON(consts.StatusOK, resp)
-}
-
-// RealDataRender .
-// @router /api/log/realdata [GET]
-func RealDataRender(ctx context.Context, c *app.RequestContext) {
-	var err error
-	var req empyrean_lens.EmptyReq
-	err = c.BindAndValidate(&req)
-	if err != nil {
-		c.String(consts.StatusBadRequest, err.Error())
-		return
-	}
-
-	//resp := new(empyrean_lens.EmptyResp)
-
-	//c.JSON(consts.StatusOK, resp)
-	rw := adaptor.GetCompatResponseWriter(&c.Response)
-	templatePath := filepath.Join(utils.GetProjectPath(), consts2.REALDATA_TEMPLATE_PATH)
-	tpl, err := template.ParseFiles(templatePath)
-	wd, _ := os.Getwd()
-	hlog.CtxInfof(ctx, "template path: %v. wd: %v", templatePath, wd)
-	if err != nil {
-		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
-		return
-	}
-	realdata := map[string]string{}
-	tpl.Execute(rw, realdata)
-}
-
-// SystemRealData .
-// @router /api/v1/report/db/realdata [POST]
-func SystemRealData(ctx context.Context, c *app.RequestContext) {
-	var err error
-	var req empyrean_lens.RealDataReq
-	err = c.BindAndValidate(&req)
-	if err != nil {
-		c.String(consts.StatusBadRequest, err.Error())
-		return
-	}
-
-	base := handler.BaseHandler{}
-	if resp, err := lingo.RealDataOfDate(ctx, req.Date); err != nil {
-		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
-		return
-	} else {
-		base.SuccessResponse(c, resp)
-		return
-	}
 }
 
 // SystemDailyApiSlowInfo .

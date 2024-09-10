@@ -173,7 +173,10 @@ LIMIT %d
 		return nil, err
 	}
 
-	shouldHaveChannel := utils.Contains([]string{consts.HOST_CRAWLER, consts.HOST_WCD, consts.HOST_EDU}, host)
+	shouldHaveChannel := utils.Contains([]string{
+		consts.HOST_CRAWLER, consts.HOST_WCD, consts.HOST_EDU,
+		consts.HOST_PRE_CRAWLER, consts.HOST_PRE_WCD, consts.HOST_PRE_EDU,
+	}, host)
 	hlog.CtxInfof(ctx, "日期%v，查nginxIngress，host: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), host, resp.Count)
 	nlogs := []NginxLog{}
 	for _, log := range resp.Logs {

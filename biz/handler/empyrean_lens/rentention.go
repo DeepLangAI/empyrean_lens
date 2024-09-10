@@ -53,7 +53,7 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 	//dailyOverview, err := aliyun.SystemTimespanAvailability(ctx, consts2.TIMESPAN_LONGTIME)
 	dailyOverview, err := empyrean_lens2.SystemScoreResult(
 		ctx,
-		time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2024, 7, 1, 0, 0, 0, 0, time.Local),
 		time.Now(),
 	)
 	if err != nil {

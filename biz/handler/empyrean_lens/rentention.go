@@ -54,7 +54,7 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 	dailyOverview, err := empyrean_lens2.SystemScoreResult(
 		ctx,
 		time.Date(2024, 7, 1, 0, 0, 0, 0, time.Local),
-		time.Now(),
+		time.Now().Add(8*time.Hour),
 	)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())

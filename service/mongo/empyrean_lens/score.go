@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"sort"
 	"time"
 )
 
@@ -47,6 +48,8 @@ func ScoreRelatedDetailQuery(ctx context.Context, req empyrean_lens2.DailyScoreR
 			SlowRate:      d.SlowRate,
 			ProbeFailRate: d.ProbeFailRate,
 			NumTraceback:  int32(numTb[date]),
+			DayOverDay:    d.ScoreDayOverDay,
+			WeekOverWeek:  d.ScoreWeekOverWeek,
 		})
 	}
 	return data, nil
@@ -92,4 +95,42 @@ func SystemScoreResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]Sco
 		})
 	}
 	return results, nil
+}
+
+func UpdateLatestScoreInfo(ctx context.Context) error {
+	// 更新最新一天的分数同比、环比等
+	// 查最近7天的分数信息
+	models, err := empyrean_lens.NewSystemScoreDao().FindTimespanScore(
+		ctx,
+		time.Now().AddDate(0, 0, -8),
+		time.Now(),
+	)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "UpdateLatestScoreInfo err:%v", err)
+		return err
+	}
+	sort.Slice(models, func(i, j int) bool {
+		return !models[i].Date.Before(models[j].Date)
+	})
+	availabilityScores := map[string]int{}
+	dateToModel := map[string]empyrean_lens.SystemScoreModel{}
+	for _, model := range models {
+		date := model.Date.Format("2006-01-02")
+		availabilityScores[date] = int(model.Score + 0.5)
+		dateToModel[date] = model
+	}
+	reventResults := utils.ComputeRevent(availabilityScores)
+	// 按日期降序
+	sort.Slice(reventResults, func(i, j int) bool {
+		return reventResults[i].Date > reventResults[j].Date
+	})
+	reventResult := reventResults[0]
+	models[0].ScoreDayOverDay = reventResult.DayOverDay
+	models[0].ScoreWeekOverWeek = reventResult.WeekOverWeek
+	err = empyrean_lens.NewSystemScoreDao().CreateOrUpdate(ctx, models[0].Date, models[0])
+	if err != nil {
+		hlog.CtxErrorf(ctx, "UpdateLatestScoreInfo err:%v", err)
+		return err
+	}
+	return nil
 }

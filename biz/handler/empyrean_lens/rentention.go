@@ -116,23 +116,11 @@ func SystemDailyScore(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	data, err := empyrean_lens2.ScoreRelatedDetailQuery(ctx, req)
-	//details, err := empyrean_lens2.FindScoreDetails(ctx, req.StartTime, req.EndTime)
 	if err != nil {
 		c.String(consts.StatusBadRequest, err.Error())
 		return
 	}
 
-	//data := []*empyrean_lens.DailyScoreRespData{}
-	//for _, d := range details {
-	//	date := d.Date.Format("2006-01-02")
-	//	data = append(data, &empyrean_lens.DailyScoreRespData{
-	//		Date:          date,
-	//		Score:         int32(d.Score),
-	//		FailRate:      d.FailRate,
-	//		SlowRate:      d.SlowRate,
-	//		ProbeFailRate: d.ProbeFailRate,
-	//	})
-	//}
 	resp := new(empyrean_lens.DailyScoreResp)
 	resp.Msg = "success"
 	resp.Code = 0

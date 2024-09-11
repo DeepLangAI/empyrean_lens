@@ -7,6 +7,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -14,17 +15,19 @@ import (
 var TableNameSystemScore = "system_score"
 
 type SystemScoreModel struct {
-	Date          time.Time `bson:"date"`
-	Score         float64   `bson:"score"`
-	TotalReq      int32     `bson:"total_req"`
-	FailReq       int32     `bson:"fail_req"`
-	SlowReq       int32     `bson:"slow_req"`
-	FailRate      float64   `bson:"fail_rate"`
-	SlowRate      float64   `bson:"slow_rate"`
-	ProbeFailReq  int32     `bson:"probe_fail_req"`
-	ProbeTotalReq int32     `bson:"probe_total_req"`
-	ProbeFailRate float64   `bson:"probe_fail_rate"`
-	AvgRespCost   float64   `bson:"avg_resp_cost"`
+	Date              time.Time `bson:"date"`
+	Score             float64   `bson:"score"`
+	ScoreDayOverDay   float64   `bson:"score_day_over_day"`
+	ScoreWeekOverWeek float64   `bson:"score_week_over_week"`
+	TotalReq          int32     `bson:"total_req"`
+	FailReq           int32     `bson:"fail_req"`
+	SlowReq           int32     `bson:"slow_req"`
+	FailRate          float64   `bson:"fail_rate"`
+	SlowRate          float64   `bson:"slow_rate"`
+	ProbeFailReq      int32     `bson:"probe_fail_req"`
+	ProbeTotalReq     int32     `bson:"probe_total_req"`
+	ProbeFailRate     float64   `bson:"probe_fail_rate"`
+	AvgRespCost       float64   `bson:"avg_resp_cost"`
 
 	Status     int32     `json:"status" bson:"status"`
 	CreateTime time.Time `bson:"create_time" json:"create_time"`
@@ -104,9 +107,39 @@ func (self *SystemScoreDao) FindScoreByTime(ctx context.Context, date time.Time)
 	return &result[0], nil
 }
 
+func (self *SystemScoreDao) convertToBsonM(model SystemScoreModel) (bson.M, error) {
+	result := bson.M{}
+	v := reflect.ValueOf(model)
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Type().Field(i)
+		if v.Field(i).IsZero() {
+			continue
+		}
+		//if field.Name == "ScoreDayOverDay" || field.Name == "ScoreWeekOverWeek" {
+		//	if v.Field(i).IsZero() {
+		//		continue
+		//	}
+		//}
+		result[field.Name] = v.Field(i).Interface()
+	}
+
+	return result, nil
+}
+
 func (self *SystemScoreDao) CreateOrUpdate(ctx context.Context, date time.Time, update SystemScoreModel) error {
-	_, err := probeDatabase.Collection(TableNameSystemScore).
-		UpdateOne(ctx, bson.M{"date": date, "status": consts.StatusValid}, bson.M{"$set": update}, options.Update().SetUpsert(true))
+	updateModel, err := self.convertToBsonM(update)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "convert to bsonM failed, err: %v", err)
+		return err
+	}
+	_, err = probeDatabase.Collection(TableNameSystemScore).
+		UpdateOne(
+			ctx,
+			bson.M{"date": date, "status": consts.StatusValid},
+			bson.M{"$set": updateModel},
+			options.Update().SetUpsert(true),
+		)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "update system score model failed, err: %v", err)
 		return err

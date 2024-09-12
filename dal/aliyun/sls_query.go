@@ -94,6 +94,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	// 查询日志
 	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "ModelNginxIngressBasicQuery get logs error: %v", err)
 		return nil, err
 	}
 
@@ -169,7 +170,7 @@ LIMIT %d
 	// 查询日志
 	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "query log error: %v", err)
+		hlog.CtxErrorf(ctx, "NginxIngressBasicQuery query log error: %v", err)
 		return nil, err
 	}
 
@@ -240,6 +241,7 @@ limit %v
 
 	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiTotalRequestQuery query log error: %v", err)
 		return 0, err
 	}
 	cnt := len(logs.Logs)
@@ -269,6 +271,7 @@ func MultiNodeLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error)
 	hlog.CtxInfof(ctx, "date: %v, 查多文档节点: %v", lookbackDay.Format(consts.DateTemplate), query)
 	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiNodeLogQuery query log error: %v", err)
 		return nil, err
 	}
 	coreLogs := []CoreLog{}
@@ -329,6 +332,7 @@ limit %v
 	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
 	logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiCoreLogQuery query log error: %v", err)
 		return nil, err
 	}
 	coreLogs := []CoreLog{}
@@ -387,6 +391,7 @@ from log
 	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
 	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "QaMiddlewareReqLogQuery query log error: %v", err)
 		return nil, err
 	}
 	coreLogs := []CoreLog{}
@@ -443,6 +448,7 @@ limit %v
 	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
 	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "QaMiddlewareRespLogQuery query log error: %v", err)
 		return nil, err
 	}
 	coreLogs := []NginxLog{}
@@ -496,6 +502,7 @@ limit %v
 	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
 	logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "QaCoreLogQuery query log error: %v", err)
 		return nil, err
 	}
 	coreLogs := []CoreLog{}
@@ -552,7 +559,7 @@ LIMIT %v
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "CommonCoreLogQuery query log error: %v", err)
 		return nil, err
 	}
 	coreLogs := []CoreLog{}
@@ -626,7 +633,7 @@ chat core api response error and (__tag__:_container_name_: {{.BaseContainerName
 	hlog.CtxDebugf(ctx, "chat core error sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "LingoChatCoreErrorLogs query log error: %v", err)
 		return nil, err
 	}
 
@@ -687,7 +694,7 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 	hlog.CtxDebugf(ctx, "core error sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "LingoCoreErrorLogs query log error: %v", err)
 		return nil, err
 	}
 
@@ -748,7 +755,7 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 	hlog.CtxDebugf(ctx, "summary sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "SummreqCntQuery query log error: %v", err)
 		return nil, err
 	}
 
@@ -784,7 +791,7 @@ limit %v
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "QaErrorCntQuery query log error: %v", err)
 		return 0
 	}
 
@@ -828,7 +835,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "SummaryCoreLogQuery query log error: %v", err)
 		return nil, err
 	}
 
@@ -883,7 +890,7 @@ limit %v
 	hlog.CtxDebugf(ctx, "问题推荐失败数量查询 query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "QaRecommendFailcntQuery query log error: %v", err)
 		return 0
 	}
 
@@ -929,7 +936,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 	hlog.CtxDebugf(ctx, "问题推荐所有数量查询 query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "QaRecommendAllQuerry query log error: %v", err)
 		return nil, err
 	}
 
@@ -1001,7 +1008,7 @@ limit %v
 	hlog.CtxDebugf(ctx, "date: %v, nginx errlogs query: %v", date, query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "NginxErrlogsQuery query log error: %v", err)
 		return nil, err
 	}
 
@@ -1083,7 +1090,7 @@ limit %v
 	hlog.CtxDebugf(ctx, "date: %v, model nginx errlogs query: %v", date, query)
 	resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	if err != nil {
-		fmt.Println(err)
+		hlog.CtxErrorf(ctx, "ModelNginxErrlogsQuery query log error: %v", err)
 		return nil, err
 	}
 
@@ -1162,7 +1169,7 @@ limit %v
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "query log error: %v", err)
+		hlog.CtxErrorf(ctx, "NginxLogQueryByTraceId query log error: %v", err)
 		return nil, err
 	}
 	hlog.CtxInfof(ctx, "日期%v，查nginxIngress, trace_id: %v 共%v条日志", date, traceId, len(resp.Logs))
@@ -1248,6 +1255,7 @@ limit %v
 	// 查询日志
 	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "ModelNginxLogQueryByTraceId query log error: %v", err)
 		return nil, err
 	}
 
@@ -1334,6 +1342,7 @@ limit %v
 	hlog.CtxDebugf(ctx, "business trace sql query: %v", query)
 	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "BusinessLogQueryByTraceId query log error: %v", err)
 		return nil, err
 	}
 	hlog.CtxInfof(ctx, "日期%v，查business-pod, trace_id: %v, 共%v条日志", date, traceId, len(resp.Logs))
@@ -1406,6 +1415,7 @@ limit %v
 
 	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "TracebackQuery query log error: %v", err)
 		return nil, err
 	}
 	hlog.CtxInfof(ctx, "日期%v，查business-pod, 共%v条日志", lookbackDay, len(resp.Logs))
@@ -1468,6 +1478,7 @@ func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs
 
 	resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiNodeErrorQuery query log error: %v", err)
 		return nil, err
 	}
 	hlog.CtxInfof(ctx, "日期%v，查multi node error, 共%v条日志", lookbackDay, len(resp.Logs))

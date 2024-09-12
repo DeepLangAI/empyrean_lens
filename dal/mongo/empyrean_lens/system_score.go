@@ -121,7 +121,12 @@ func (self *SystemScoreDao) convertToBsonM(model SystemScoreModel) (bson.M, erro
 		//		continue
 		//	}
 		//}
-		result[field.Name] = v.Field(i).Interface()
+		// 取注解的bson值
+		if bsonTag := field.Tag.Get("bson"); bsonTag != "" {
+			result[bsonTag] = v.Field(i).Interface()
+		} else {
+			result[field.Name] = v.Field(i).Interface()
+		}
 	}
 
 	return result, nil

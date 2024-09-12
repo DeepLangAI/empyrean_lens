@@ -55,12 +55,12 @@ func FormatWithTemplate(tplStr string, data map[string]string) string {
 }
 
 func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) ([]NginxLog, error) {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
 
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.MODEL_NGINX_LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.MODEL_NGINX_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	//fromdayStr := lookbackDay.Format("2006-01-02")
@@ -137,12 +137,12 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 }
 
 func NginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) ([]NginxLog, error) {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
 
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.NGINX_LOG_STORE_NAME)
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.NGINX_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -532,11 +532,11 @@ limit %v
 }
 
 func CommonCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -604,12 +604,12 @@ type CoreErrorLogs struct {
 func LingoChatCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs, error) {
 	logs := []CoreErrorLogs{}
 
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -667,12 +667,12 @@ chat core api response error and (__tag__:_container_name_: {{.BaseContainerName
 func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs, error) {
 	logs := []CoreErrorLogs{}
 
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -727,12 +727,12 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 
 func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, error) {
 	cnts := map[string]int{}
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -768,12 +768,12 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 }
 
 func QaErrorCntQuery(ctx context.Context, daysLookback int) int64 {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return 0
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return 0
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -809,12 +809,12 @@ limit %v
 }
 
 func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -868,12 +868,12 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 }
 
 func QaRecommendFailcntQuery(ctx context.Context, daysLookback int) int64 {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return 0
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return 0
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -909,12 +909,12 @@ limit %v
 }
 
 func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, error) {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
@@ -975,7 +975,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 }
 
 func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErrorLog, error) {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
 
 	day, err := time.Parse("2006-01-02", date)
 	if err != nil {
@@ -1044,7 +1044,7 @@ limit %v
 }
 
 func ModelNginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErrorLog, error) {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
 
 	day, err := time.Parse("2006-01-02", date)
 	if err != nil {
@@ -1143,14 +1143,14 @@ type EntToEndLog struct {
 }
 
 func NginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.NGINX_LOG_STORE_NAME)
-	day, err := time.Parse("2006-01-02", date)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "parse date error: %v", err)
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.NGINX_LOG_STORE_NAME)
+	day, e := time.Parse("2006-01-02", date)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse date error: %v", e)
 		return nil, err
 	}
 	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
@@ -1218,12 +1218,12 @@ limit %v
 	return logs, nil
 }
 func ModelNginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.MODEL_NGINX_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.MODEL_NGINX_LOG_STORE_NAME)
 
 	lookbackDay, err := time.Parse("2006-01-02", date)
 	if err != nil {
@@ -1395,12 +1395,12 @@ func TracebackQuery(ctx context.Context, daysLookback int) ([]TracebackDetail, e
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 	query := `
 (__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  exc_info : "Traceback (most recent call last)" and not "pydantic"|  
 select 
@@ -1455,12 +1455,12 @@ func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
-	//logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	query := `
 (__tag__:_container_name_: {{.BaseContainerName}}-python-pre or __tag__:_container_name_: {{.BaseContainerName}}-python-prod) | select * from (

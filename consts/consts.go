@@ -385,8 +385,9 @@ const (
 	StatusValid   = 0
 	StatusDeleted = 1
 
-	StatusUnk     = 0
-	StatusSuccess = 1
+	StatusUnk             = 0
+	StatusSuccess         = 1
+	LOG_QUERY_RETRY_TIMES = 3
 )
 
 const (

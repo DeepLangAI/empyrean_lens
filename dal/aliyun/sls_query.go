@@ -1408,8 +1408,14 @@ limit %v
 	for _, log := range resp.Logs {
 		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
 		if e != nil {
-			hlog.CtxErrorf(ctx, "parse time error: %v", e)
-			continue
+			// 解析如2024-09-12T08:40:51.288+08:00的时间格式
+			t, e = time.Parse(time.RFC3339, log["time"])
+			if e != nil {
+				hlog.CtxErrorf(ctx, "parse time error: %v", e)
+				continue
+			}
+			//hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			//continue
 		}
 		originLog := map[string]string{}
 		for key, val := range log {

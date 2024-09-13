@@ -91,13 +91,14 @@ func TestBusinessLogQueryByTraceId(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	Init(ctx)
-	logs, err := BusinessLogQueryByTraceId(ctx, "IEqNtyf2XFmvKvo3_MsiO", "2024-08-10")
+	//logs, err := BusinessLogQueryByTraceId(ctx, "IEqNtyf2XFmvKvo3_MsiO", "2024-08-10")
+	logs, err := BusinessLogQueryByTraceId(ctx, "AC120BDD000F681A95153DCC5C72CF48", "2024-09-13")
 	if err != nil {
 		fmt.Println(err)
 	} else {
 		//fmt.Println(logs)
-		for _, log := range logs {
-			fmt.Println(log.Time, log.Message)
+		for i, log := range logs {
+			fmt.Println(i+1, log.Time, log.Message)
 		}
 	}
 

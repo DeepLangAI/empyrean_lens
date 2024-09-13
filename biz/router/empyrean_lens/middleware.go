@@ -7,6 +7,7 @@ import (
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
+	"strings"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -14,8 +15,8 @@ import (
 
 func CookieMiddleWare() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
-		if string(ctx.Path()) == "/api/v1/report/auth" {
-			hlog.CtxInfof(c, "cookie auth")
+		path := string(ctx.Path())
+		if path == "/api/v1/report/auth" || strings.HasPrefix(path, "/public/") {
 			ctx.Next(c)
 			return
 		}
@@ -32,7 +33,6 @@ func CookieMiddleWare() app.HandlerFunc {
 			ctx.Next(c)
 			return
 		}
-		hlog.CtxInfof(c, "cookie abort")
 		ctx.Redirect(301, []byte(consts.FORBIDDEN_PATH))
 		ctx.Abort()
 	}

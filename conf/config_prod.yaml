@@ -27,7 +27,7 @@ redis:
 
 # 飞书配置
 lark:
-  appId: "cli_a6d7fcfaeaf0500c"
+  appId: "cli_a668c41a0f64d013"
   appSecret: "REDACTED"
   jwtSecret: "REDACTED"
   authNames:

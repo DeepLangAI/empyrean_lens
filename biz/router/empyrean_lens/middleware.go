@@ -7,7 +7,6 @@ import (
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
-	"strings"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -16,7 +15,7 @@ import (
 func CookieMiddleWare() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
 		path := string(ctx.Path())
-		if path == "/api/v1/report/auth" || strings.HasPrefix(path, "/public/") {
+		if path == "/api/v1/report/auth" {
 			ctx.Next(c)
 			return
 		}
@@ -25,7 +24,7 @@ func CookieMiddleWare() app.HandlerFunc {
 		claim, err := utils.ParseJWT(cookie, conf.GetLark().JwtSecret)
 		if err != nil {
 			hlog.CtxErrorf(c, "jwt parse error: %+v", err)
-			ctx.Redirect(301, []byte(consts.FORBIDDEN_PATH))
+			ctx.String(403, "No Auth Forbidden")
 			ctx.Abort()
 			return
 		}
@@ -33,7 +32,7 @@ func CookieMiddleWare() app.HandlerFunc {
 			ctx.Next(c)
 			return
 		}
-		ctx.Redirect(301, []byte(consts.FORBIDDEN_PATH))
+		ctx.String(403, "Auth Fail Forbidden")
 		ctx.Abort()
 	}
 }

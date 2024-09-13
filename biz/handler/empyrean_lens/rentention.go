@@ -512,9 +512,9 @@ func Auth(ctx context.Context, c *app.RequestContext) {
 
 	resp, token, bizCode := passport.Auth(ctx, &req)
 	if bizCode != nil || !resp {
-		c.Redirect(301, []byte(consts2.FORBIDDEN_PATH))
+		c.String(403, "Not Allowed Forbidden")
 	} else {
 		c.SetCookie(consts2.LARK_COOKIE, token, int(consts2.LARK_AUTH_EXPIRE_TIME), "/", consts2.DOMAIN_PATH, protocol.CookieSameSiteLaxMode, true, true)
-		c.Redirect(301, []byte(consts2.HOME_PATH))
+		c.Redirect(302, []byte(consts2.HOME_PATH))
 	}
 }

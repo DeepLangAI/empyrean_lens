@@ -15,7 +15,9 @@ import (
 func CookieMiddleWare() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
 		path := string(ctx.Path())
-		if path == "/api/v1/report/auth" {
+		if path == "/api/v1/report/auth" ||
+			path == "/api/v1/report/upload/online_operation" ||
+			path == "/api/v1/report/db/write_probe" {
 			ctx.Next(c)
 			return
 		}

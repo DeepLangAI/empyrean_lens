@@ -328,9 +328,17 @@ struct UploadOnlineOperationRespData{
     2: list<string> fail_msgs
 }
 
+struct AuthReq{
+    1: string code
+    2: string state
+}
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
+
+    // 鉴权
+    EmptyResp Auth(1: AuthReq req) (api.get="/api/v1/report/auth")
 
    //  用于提供前后端分离接口
    RealtimeScoreResp SystemRealtimeScore(1: EmptyReq req) (

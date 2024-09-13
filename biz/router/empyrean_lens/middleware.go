@@ -3,12 +3,43 @@
 package empyrean_lens
 
 import (
+	"context"
+	"empyrean_lens/conf"
+	"empyrean_lens/consts"
+	"empyrean_lens/utils"
+
 	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
+
+func CookieMiddleWare() app.HandlerFunc {
+	return func(c context.Context, ctx *app.RequestContext) {
+		if string(ctx.Path()) == "/api/v1/report/auth" {
+			hlog.CtxInfof(c, "cookie auth")
+			ctx.Next(c)
+		}
+
+		cookie := string(ctx.Request.Header.Cookie(consts.LARK_COOKIE))
+		claim, err := utils.ParseJWT(cookie, conf.GetLark().JwtSecret)
+		if err != nil {
+			hlog.CtxErrorf(c, "jwt parse error: %+v", err)
+			ctx.Redirect(301, []byte(consts.FORBIDDEN_PATH))
+			ctx.Abort()
+		}
+		if username, ok := claim[consts.LARK_USERNAME].(string); ok && utils.InSlice(username, conf.GetLark().AuthNames) {
+			ctx.Next(c)
+		}
+		hlog.CtxInfof(c, "cookie abort")
+		ctx.Redirect(301, []byte(consts.FORBIDDEN_PATH))
+		ctx.Abort()
+	}
+}
 
 func rootMw() []app.HandlerFunc {
 	// your code...
-	return nil
+	return []app.HandlerFunc{
+		CookieMiddleWare(),
+	}
 }
 
 func _apiMw() []app.HandlerFunc {
@@ -177,6 +208,11 @@ func _uploadMw() []app.HandlerFunc {
 }
 
 func _uploadonlineoperationMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _authMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }

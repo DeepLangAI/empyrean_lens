@@ -1,5 +1,7 @@
 package consts
 
+import "time"
+
 const (
 	BaseContainerName = "lingowhale"
 	BasePodName       = "lingowhale"
@@ -109,6 +111,16 @@ type API struct {
 	Api   string
 	Alias string
 }
+
+const (
+	INDEX_PATH            = "https://empyrean-lens.lingowhale.com/public/index.html"
+	FORBIDDEN_PATH        = "https://empyrean-lens.lingowhale.com/public/403.html"
+	HOME_PATH             = "https://empyrean-lens.lingowhale.com/"
+	DOMAIN_PATH           = "empyrean-lens.lingowhale.com"
+	LARK_COOKIE           = "lark_cookie"
+	LARK_USERNAME         = "lark_username"
+	LARK_AUTH_EXPIRE_TIME = 72 * time.Hour
+)
 
 var NGINX_INGRESS_APIS = map[string][]API{
 	HOST_LINGO_PUBLIC_BACKEND: {

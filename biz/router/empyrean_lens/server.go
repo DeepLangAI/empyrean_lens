@@ -28,6 +28,7 @@ func Register(r *server.Hertz) {
 			_v1 := _api.Group("/v1", _v1Mw()...)
 			{
 				_report := _v1.Group("/report", _reportMw()...)
+				_report.GET("/auth", append(_authMw(), empyrean_lens.Auth)...)
 				_report.GET("/realtime", append(_systemrealtimescoreMw(), empyrean_lens.SystemRealtimeScore)...)
 				{
 					_daily := _report.Group("/daily", _dailyMw()...)

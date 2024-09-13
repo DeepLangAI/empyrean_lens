@@ -19,6 +19,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/common/adaptor"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"github.com/cloudwego/hertz/pkg/protocol"
 
 	empyrean_lens "empyrean_lens/biz/model/empyrean_lens"
 
@@ -495,4 +496,25 @@ func UploadOnlineOperation(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	base.SuccessResponse(c, resp)
+}
+
+// Auth .
+// @router /api/v1/report/auth [GET]
+func Auth(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.AuthReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.ParamBindJsonError, nil)
+		return
+	}
+
+	resp, token, bizCode := passport.Auth(ctx, &req)
+	if bizCode != nil || !resp {
+		c.Redirect(301, []byte(consts2.FORBIDDEN_PATH))
+	} else {
+		c.SetCookie(consts2.LARK_COOKIE, token, int(consts2.LARK_AUTH_EXPIRE_TIME), "/", consts2.DOMAIN_PATH, protocol.CookieSameSiteLaxMode, true, true)
+		c.Redirect(301, []byte(consts2.HOME_PATH))
+	}
 }

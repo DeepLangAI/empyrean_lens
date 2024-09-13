@@ -20,6 +20,7 @@ type Config struct {
 	MongoLingo        Mongo                 `yaml:"mongo_lingo"`
 	Redis             *redis.ClusterOptions `yaml:"redis"`
 	Logger            conflib.Logger        `yaml:"logger"`
+	Lark              Lark                  `yaml:"lark"`
 }
 
 type Redis struct {
@@ -43,11 +44,22 @@ type Server struct {
 	Name string `yaml:"name"`
 }
 
+type Lark struct {
+	AppId     string   `yaml:"appId"`
+	AppSecret string   `yaml:"appSecret"`
+	AuthNames []string `yaml:"authNames"`
+	JwtSecret string   `yaml:"jwtSecret"`
+}
+
 // 配置文件路径
 const ConfigPath = "./conf/config_%s.yaml"
 
 func GetConfig() Config {
 	return conf
+}
+
+func GetLark() Lark {
+	return conf.Lark
 }
 
 func InitConfig() {

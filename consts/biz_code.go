@@ -16,6 +16,8 @@ var (
 	QueryRecordError = BizCode{201, "数据查询异常"}
 	WriteDbError     = BizCode{202, "数据写入异常"}
 
+	LarkAuthError = BizCode{501, "飞书认证失败"}
+
 	// 语鲸原定的错误码
 	ID_TOKEN_EXPIRED = BizCode{10010, "login id token failure"}
 )

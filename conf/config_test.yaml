@@ -19,7 +19,25 @@ logger:
   log_path: './logs/system'
   log_level: "debug"
 
+# redis:
+#   addrs: ["localhost:7000"]
+#   password: 'root'
+#   maxretries: 1
+
 redis:
-  addrs: ["localhost:7000"]
-  password: 'root'
+  addrs: ["47.92.241.26:6379"]
+  password: 'MK6MuYGay'
   maxretries: 1
+
+
+# 飞书配置
+lark:
+  appId: "cli_a668c41a0f64d013"
+  appSecret: "REDACTED"
+  jwtSecret: "REDACTED"
+  authNames:
+    - "郭晨旭"
+    - "闻豪"
+    - "刘勇"
+    - "程振方"
+    - "冯晋"

@@ -3,11 +3,15 @@
 package main
 
 import (
-	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/logger"
 	"context"
 	"empyrean_lens/conf"
 	"empyrean_lens/dal"
 	"empyrean_lens/tools"
+	"empyrean_lens/utils"
+	"path/filepath"
+	"strings"
+
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/logger"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
 	"github.com/cloudwego/hertz/pkg/app/server"
@@ -29,8 +33,25 @@ func main() {
 	h.Use(recovery.Recovery(recovery.WithRecoveryHandler(RecoveryHandler)))
 
 	register(h)
+	staticFs(h)
 	h.Spin()
 }
+
+func staticFs(h *server.Hertz) {
+	root := utils.GetProjectPath()
+	h.StaticFS("/public", &app.FS{
+		Root: filepath.Join(root, "./static/"),
+		PathRewrite: func(ctx *app.RequestContext) []byte {
+			path := string(ctx.Path())
+			after, found := strings.CutPrefix(path, "/public")
+			if found {
+				return []byte(after)
+			}
+			return []byte("")
+		},
+	})
+}
+
 func RecoveryHandler(c context.Context, ctx *app.RequestContext, err interface{}, stack []byte) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -24,3 +24,15 @@ redis:
   addrs: ["deeplang-redis-private.redis.zhangbei.rds.aliyuncs.com:6379"]
   username: "svr_query"
   password: "REDACTED"
+
+# 飞书配置
+lark:
+  appId: "cli_a668c41a0f64d013"
+  appSecret: "REDACTED"
+  jwtSecret: "REDACTED"
+  authNames:
+    - "郭晨旭"
+    - "闻豪"
+    - "刘勇"
+    - "程振方"
+    - "冯晋"

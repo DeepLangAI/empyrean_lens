@@ -14,6 +14,11 @@ import (
 
 func CookieMiddleWare() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
+		// 用于本地调试时免登录用
+		if channel := ctx.Request.Header.Get(consts.HttpHeaderChannel); channel == consts.NonLoginChannel {
+			ctx.Next(c)
+			return
+		}
 		path := string(ctx.Path())
 		if path == "/api/v1/report/auth" ||
 			path == "/api/v1/report/upload/online_operation" ||

@@ -412,4 +412,6 @@ const (
 
 const (
 	CacheKeyRequestTrend = CacheKeyPrefix + "::requestTrend::%v"
+	HttpHeaderChannel    = "Channel"
+	NonLoginChannel      = "local"
 )

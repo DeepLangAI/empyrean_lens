@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>主页</title>
+    <script
+      type="text/javascript"
+      src="https://lf1-cdn-tos.bytegoofy.com/goofy/lark/op/h5-js-sdk-1.5.16.js"
+    ></script>
+  </head>
+  <body></body>
+  <script>
+    const appId = "cli_a6d7fcfaeaf0500c";
+    const redirectUri = encodeURIComponent(
+      "https://empyrean-lens.lingowhael.com/api/v1/report/auth"
+    );
+    const scope = "";
+    const state = Math.floor(Math.random() * 100000);
+    function requestAuthCode() {
+      const authUrl = `https://open.feishu.cn/open-apis/authen/v1/authorize?app_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+      window.location.href = authUrl;
+    }
+    requestAuthCode();
+  </script>
+</html>

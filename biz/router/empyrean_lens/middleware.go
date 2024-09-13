@@ -17,6 +17,7 @@ func CookieMiddleWare() app.HandlerFunc {
 		if string(ctx.Path()) == "/api/v1/report/auth" {
 			hlog.CtxInfof(c, "cookie auth")
 			ctx.Next(c)
+			return
 		}
 
 		cookie := string(ctx.Request.Header.Cookie(consts.LARK_COOKIE))
@@ -25,9 +26,11 @@ func CookieMiddleWare() app.HandlerFunc {
 			hlog.CtxErrorf(c, "jwt parse error: %+v", err)
 			ctx.Redirect(301, []byte(consts.FORBIDDEN_PATH))
 			ctx.Abort()
+			return
 		}
 		if username, ok := claim[consts.LARK_USERNAME].(string); ok && utils.InSlice(username, conf.GetLark().AuthNames) {
 			ctx.Next(c)
+			return
 		}
 		hlog.CtxInfof(c, "cookie abort")
 		ctx.Redirect(301, []byte(consts.FORBIDDEN_PATH))

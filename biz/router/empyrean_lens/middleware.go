@@ -47,7 +47,7 @@ func CookieMiddleWare() app.HandlerFunc {
 func rootMw() []app.HandlerFunc {
 	// your code...
 	return []app.HandlerFunc{
-		CookieMiddleWare(),
+		//CookieMiddleWare(),
 	}
 }
 

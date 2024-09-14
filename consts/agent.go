@@ -1,0 +1,13 @@
+package consts
+
+var DEFAULT_HEADERS = map[string]string{
+	"access-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJCdWZmZXJUaW1lIjo2MDQ4MDAsImlzcyI6ImFjY2Vzc190b2tlbiIsImV4cCI6MTcyMDUwOTkxOCwibmJmIjoxNzIwNTAyNzE4LCJVaWQiOiI0ZmQwNWVkMWJmYWE0YWQwOTU5OWM3ZjQwYWQ3MTg3NiIsIlBpZCI6IjYzZTA3MTM5MzBjMzNhMTY3Zjc5ZDVkOCIsIkdpZCI6NywiUGhvbmUiOiIiLCJVc2VyTmFtZSI6IueUqOaIt18xNzE3NDg5MjM3NTA0In0.CtXjo45KDiN21xQVkl6Qtuh3dmsLIZ1oG9vcSm4qb6Q",
+	"anonymous-id": "1903979de9e1823-0035cc72e6c949d-1b525637-1484784-1903979de9f3a8",
+	"auth-token":   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJCdWZmZXJUaW1lIjo2MDQ4MDAsImlzcyI6ImF1dGhfdG9rZW4iLCJleHAiOjE3MjE3MTIzMTgsIm5iZiI6MTcyMDUwMjcxOCwiVWlkIjoiNGZkMDVlZDFiZmFhNGFkMDk1OTljN2Y0MGFkNzE4NzYiLCJQaWQiOiI2M2UwNzEzOTMwYzMzYTE2N2Y3OWQ1ZDgiLCJHaWQiOjcsIlBob25lIjoiIiwiVXNlck5hbWUiOiLnlKjmiLdfMTcxNzQ4OTIzNzUwNCJ9.jFWMUwY1kWbMq5g98cN2wKWVYdonTgxgog0RYkiLcC4",
+	"b-id":         "86fdbdaad86e4d21907e3991a5e7b1b4",
+	"u-id":         "63e0713930c33a167f79d5d8",
+	"user-agent":   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+}
+
+const DEFAULT_ACCOUNT = "KunSJhJOmkFyOKANvYh4jg=="
+const DEFAULT_PWD = "qvAxiRdPv5ag88o7h2FPAA=="

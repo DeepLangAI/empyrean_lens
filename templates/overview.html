@@ -1,0 +1,2796 @@
+<!-- Write HTML code here -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>
+        语鲸稳定性
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.1/dist/echarts.min.js"></script>
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.min.css">
+
+    <style>
+        body {
+            background-color: #f0f2f5; /* 更柔和的浅灰色背景 */
+            color: #333; /* 深灰色文本 */
+            font-family: 'Helvetica Neue', Arial, sans-serif; /* 更具吸引力的字体 */
+            font-size: 14px; /* 基础字体大小 */
+            text-align: left; /* 全局左对齐 */
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            color: #444; /* 更柔和的深灰色标题 */
+            text-align: center; /* 标题居中对齐 */
+            margin-top: 20px;
+        }
+
+        .container {
+            width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        table {
+            border-collapse: collapse; /* 合并边框 */
+            width: 100%; /* 表格宽度为100% */
+            margin: 20px 0; /* 表格上下间距 */
+            background-color: #fff; /* 白色背景 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 轻微的阴影效果 */
+        }
+
+        th, td {
+            border: 1px solid #ddd; /* 更柔和的边框颜色 */
+            padding: 10px; /* 增加内边距 */
+            text-align: center; /* 单元格内容居中对齐 */
+            font-size: 12px; /* 调整字体大小 */
+        }
+
+        th {
+            background-color: #f2f2f2; /* 表头背景颜色 */
+            font-weight: bold; /* 表头加粗 */
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9; /* 隔行变色 */
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 2px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pagination button.disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                font-size: 10px; /* 较小的基础字体大小 */
+            }
+
+            .container {
+                width: 800px;
+            }
+
+            th, td {
+                font-size: 0.8em;
+                padding: 8px; /* 较小的内边距 */
+            }
+        }
+        /* 移动端样式 */
+        @media (max-width: 767px) {
+            #menu{
+                padding-top: 45px;
+            }
+            .table-container {
+                /*max-height: 60vh; !* 设置最大高度为视口高度的60% *!*/
+                overflow-y: auto; /* 添加垂直滚动 */
+                font-size: xx-large;
+            }
+            tr{
+                height: 80px;
+            }
+
+            h2 {
+                font-size: xx-large; /* 增大移动端h2字体大小 */
+            }
+            h3 {
+                font-size: x-large; /* 增大移动端h2字体大小 */
+            }
+
+            nav a {
+                font-size: 18px; /* 增大移动端字体大小 */
+                margin: 5px 0;
+            }
+            .swal2-popup.swal2-drawer {
+                width: 250vw !important; /* 在移动端占满整个屏幕宽度 */
+                height: 200vh !important;
+                /*max-height: 150vh !important;*/
+                /*right: -100vw; !* 初始位置调整为-100vw *!*/
+                /*padding: 15px; !* 稍微减小内边距 *!*/
+            }
+
+            /* 日志样式 */
+            .log-container {
+                font-size: x-large !important;
+            }
+
+            .log-id {
+                font-size: x-large !important;
+            }
+            .log-time {
+                font-size: x-large !important;
+            }
+            .breadcrumb {
+                font-size: x-large !important;
+                height: 75px !important;
+            }
+            #back{
+                /*padding-left: 28px !important; !* 示例内边距 *!*/
+                padding-right: 29px !important; /* 示例内边距 */
+                padding-bottom: 27px !important;
+                padding-top: 26.5px !important;
+            }
+
+            .log-details-header span:hover::after {
+                /*content: attr(data-field-name);*/
+                /*position: absolute;*/
+                /*top: 100%;*/
+                /*left: 0;*/
+                /*background-color: #333;*/
+                /*color: #fff;*/
+                /*padding: 5px;*/
+                /*border-radius: 3px;*/
+                /*font-size: 20px;*/
+                /*white-space: nowrap;*/
+                /*z-index: 1;*/
+            }
+            .pagination button {
+                padding: 15px 25px;
+                margin: 5px;
+                font-size: 19px;
+            }
+
+            /* 整个滚动条 */
+            ::-webkit-scrollbar {
+                width: 12px;
+            }
+
+            /* 滚动条轨道 */
+            ::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+
+            /* 滚动条滑块 */
+            ::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 10px;
+            }
+
+            /* 鼠标悬停在滑块上时 */
+            ::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+
+            nav a {
+                padding: 24px 26px !important;
+                font-size: x-large;
+            }
+            .choice-btn{
+                font-size: x-large;
+                padding: 15px 20px !important;
+            }
+
+            #filter-show-dropdown {
+                width: fit-content !important;
+                font-size: 25px;
+                padding: 30px !important;
+            }
+            #filters-container {
+                font-size: xx-large !important;
+            }
+
+            #filter-btn, #reset-filters {
+                font-size: x-large !important;
+            }
+
+            .chart-container{
+                font-size: xx-large !important;
+            }
+            .chart-item{
+                font-size: xx-large !important;
+            }
+
+        }
+
+
+
+        /* CSS styles for the navigation bar */
+        nav {
+            background-color: #333;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1;
+        }
+
+        nav a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        nav a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        /* Styles for the content area */
+        body {
+            padding-top: 60px; /* Add some padding to the top of the content */
+        }
+
+        .swal2-popup.swal2-drawer {
+            width: 65vw; /* 占据1/4宽屏幕 */
+            height: 100vh; /* 占据1/4宽屏幕 */
+            /*width: 65vw !important; !* 占据1/4宽屏幕 *!*/
+            /*height: 100vh !important; !* 占据1/4宽屏幕 *!*/
+            max-width: 90% !important;
+            background-color: #fff !important;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2) !important;
+            border-radius: 0 !important;
+            padding: 20px !important;
+            position: fixed !important;
+            top: 0 !important;
+            right: -25vw !important; /* 初始位置在屏幕外 */
+            bottom: 0 !important;
+            transition: right 0.3s ease !important; /* 简单平滑过渡 */
+            transform: translateX(0) !important; /* 初始状态不偏移 */
+        }
+
+        .swal2-popup.swal2-drawer.swal2-show {
+            right: 0 !important; /* 滑入后固定在屏幕右侧 */
+        }
+        .clickable {
+            color: #ff9900;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .clickable:hover {
+            background-color: #e0e0e0;
+            color: #e68a00;
+        }
+        /* 添加CSS样式使面包屑横排 */
+        .breadcrumb {
+            list-style: none; /* 移除列表默认样式 */
+            padding: 0px; /* 移除默认的内边距 */
+            /*margin-left: 5px;*/
+            height: 35px;
+            margin: 0; /* 移除默认的外边距 */
+            display: flex; /* 使用Flexbox */
+            align-items: stretch; /* 使子项在交叉轴上的对齐方式居中（垂直居中） */
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            /*padding-left: 10px;*/
+            /*padding-right: 10px;*/
+            align-items: center; /* 垂直居中面包屑项内容 */
+            justify-content: center; /* 水平居中面包屑项内容 */
+        }
+
+        .breadcrumb-item:hover {
+            cursor: pointer;
+            background-color: #ddd;
+            color: black !important;
+            /*transition: background-color 0.5s ease;*/
+            /*transition: color 0.3s ease;*/
+            transition-delay: 0.1s;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "/"; /* 在面包屑项之间添加分隔符 */
+            padding: 0 0.5rem; /* 添加一些内边距以提高可读性 */
+
+        }
+
+        .breadcrumb-item.active {
+            color:  white; /* 通常活动或当前项的文本颜色会有所不同 */
+        }
+
+        .breadcrumb-item.active:first-child {
+            padding-left: 10px;
+        }
+        .breadcrumb-item.active:last-child {
+            font-weight: bold;
+        }
+
+        #back{
+            position: absolute;
+            top: 0;
+            left: 0px;
+            border-radius: 5px;
+            padding-left: 18px; /* 示例内边距 */
+            padding-right: 19px; /* 示例内边距 */
+            padding-bottom: 8px;
+            padding-top: 7px;
+            /*padding: 9px 9px; !* 示例内边距 *!*/
+            transition: background-color 0.3s ease;
+            background-color: #f0f0f0; /* 示例背景色 */
+            /*background-color:  #4CAF50;*/
+            border: none; /* 移除默认边框 */
+            cursor: pointer; /* 鼠标悬停时显示指针 */
+        }
+        #back:hover{
+            background-color: darkgray;
+            color: white;
+        }
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .loading-container.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            border: 4px solid #333;
+            border-top-color: transparent;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 日志样式 */
+        .log-container {
+            font-size: 13px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-start;
+
+        }
+        .log-id {
+            width: 15px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        .log-time {
+            width: 50px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 20px;
+            font-family: inherit;
+        }
+        .log-details {
+            flex-grow: 1;
+        }
+        .log-details-header {
+            background-color: #f5f5f5;
+            padding: 5px 10px;
+            font-weight: lighter;
+            border-radius: 3px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-header span {
+            position: relative;
+            margin-right: 20px;
+            white-space: pre-wrap;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+        .log-details-header span:hover::after {
+            content: attr(data-field-name);
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #333;
+            color: #fff;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1;
+        }
+        .log-details-body {
+            padding: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-body > p {
+            text-align: left;
+            margin: -5px 0;
+            /*font-weight: bold;*/
+            padding: 5px 0px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            opacity: 0.9;
+
+            position: relative;
+            overflow: hidden;
+            max-height: 4.5em; /* 假设行高为1.5em，3行就是4.5em */
+            line-height: 1.5em;
+        }
+        .log-details-body p.expanded {
+            max-height: none;
+        }
+        .log-details-body p span {
+            font-family: inherit;
+            font-weight: normal;
+            background: #edeff3;
+            margin-right: 10px;
+        }
+        .expand-tip {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: white;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
+        .expand-tip:hover {
+            text-decoration: underline;
+        }
+
+        #filters-container {
+            display: none; /* 初始隐藏状态 */
+            overflow: hidden; /* 隐藏滚动条 */
+            /*max-height: 0; !* 初始最大高度设置为0，以便隐藏 *!*/
+            transition: max-height 0.3s ease-out; /* 渐变效果 */
+            /*transition: max-height 0.3s ease, padding 0.3s ease; !* 平滑过渡效果 *!*/
+
+
+            position: relative; /* 使 dropdown-content 相对定位 */
+            margin: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #filter-btn, #reset-filters {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #filter-btn:hover, #reset-filters:hover {
+            background-color: #0056b3;
+        }
+
+        .dropdown-content {
+            display: none; /* 初始隐藏 */
+            position: absolute; /* 相对定位以定位在按钮下方 */
+            top: 100%; /* 在按钮下方 */
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000; /* 确保在其他内容之上 */
+        }
+
+        .dropdown-content label,
+        .dropdown-content select,
+        .dropdown-content button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        /* select 元素 */
+        #filters-container select {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #filter-show-dropdown {
+            width: 40px;
+            height: 20px;
+            position: fixed; /* 使用固定定位，使其固定在屏幕上 */
+            top: 30px; /* 距离屏幕顶部 10px，可以根据需要调整 */
+            right: 10px; /* 距离屏幕右侧 10px，可以根据需要调整 */
+            padding: 10px 20px;
+            background-color: #28a745; /* 绿色背景 */
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 黑色阴影 */
+            z-index: 1000; /* 确保在其他内容之上 */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* 平滑过渡效果 */
+        }
+
+        #filter-show-dropdown:hover {
+            background-color: #218838; /* 鼠标悬停时的深绿色 */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* 增加阴影深度 */
+        }
+
+        .filter-row {
+            display: flex; /* 使用 flexbox 布局 */
+            align-items: center; /* 垂直居中对齐 */
+            margin-bottom: 10px; /* 行之间的间距 */
+            padding: 5px; /* 行的内边距 */
+            border: 1px solid #ddd; /* 行的边框 */
+            border-radius: 5px; /* 行的圆角 */
+        }
+
+        .filter-row select {
+            margin-right: 10px; /* select 元素之间的间距 */
+        }
+
+        .remove-filter {
+            background-color: #dc3545; /* 按钮背景色（红色） */
+            color: #fff; /* 按钮文字颜色（白色） */
+            border: none; /* 去掉默认边框 */
+            border-radius: 5px; /* 按钮圆角 */
+            padding: 5px 10px; /* 按钮的内边距 */
+            cursor: pointer; /* 鼠标悬停时显示为手型 */
+            transition: background-color 0.3s ease; /* 背景色的平滑过渡效果 */
+        }
+
+        .remove-filter:hover {
+            background-color: #c82333; /* 鼠标悬停时按钮背景色变深 */
+        }
+
+        /* choice-container 样式 */
+        .choice-container {
+            display: flex; /* 使用 Flexbox 布局 */
+            justify-content: flex-end; /* 按钮从左到右排列 */
+            align-items: center; /* 垂直方向居中对齐 */
+            gap: 10px; /* 按钮之间的间距 */
+            padding-top: 10px;
+        }
+
+        /* 选择按钮的基础样式 */
+        .choice-btn {
+            padding: 5px 10px;
+            background-color: #f0f0f0; /* 按钮背景颜色 */
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .choice-btn:hover {
+            background-color: #e0e0e0; /* hover 时的背景颜色 */
+            border-color: #bbb; /* hover 时的边框颜色 */
+        }
+
+        /* 高亮样式 */
+        .choice-btn.highlighted {
+            background-color: #4CAF50; /* 高亮背景颜色 */
+            color: white; /* 高亮文字颜色 */
+            border-color: #4CAF50; /* 高亮边框颜色 */
+        }
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /*width: 100%;*/
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 5px;
+            padding: 20px;
+        }
+
+        .chart-item {
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            height: 400px;
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+
+
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/api/log/overview" class="active">语鲸稳定性一览</a>
+<!--    <a href="/api/log/report">语鲸接口稳定性</a>-->
+    <a href="/api/log/tools">高效工具箱</a>
+</nav>
+
+<div class="container">
+    <h2 id="realtime-heading">语鲸系统可用性 实时数据</h2>
+    <table id="realtime-overview-table" class="table-container">
+        <thead>
+            <tr>
+                <th>指标</th>
+                <th>值</th>
+                <th>环比</th>
+                <th>同比</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td data-label="稳定性打分">稳定性打分</td>
+                <td data-label="值"  >{{.RealtimeOverview.Availability.Value }}</td>
+                <td data-label="环比">{{ printf "%.2f" .RealtimeOverview.Availability.DayOverDay}}%</td>
+                <td data-label="同比">{{ printf "%.2f" .RealtimeOverview.Availability.WeekOverWeek}}%</td>
+            </tr>
+            <tr>
+                <td data-label="总请求量">总请求量</td>
+                <td data-label="值"  >{{.RealtimeOverview.TotalRequest.Value }}</td>
+                <td data-label="环比">{{ printf "%.2f" .RealtimeOverview.TotalRequest.DayOverDay}}%</td>
+                <td data-label="同比">{{ printf "%.2f" .RealtimeOverview.TotalRequest.WeekOverWeek}}%</td>
+            </tr>
+            <tr>
+                <td data-label="错误数">错误数</td>
+                <td data-label="值"  >{{.RealtimeOverview.ErrorRequest.Value }}</td>
+                <td data-label="环比">{{ printf "%.2f" .RealtimeOverview.ErrorRequest.DayOverDay}}%</td>
+                <td data-label="同比">{{ printf "%.2f" .RealtimeOverview.ErrorRequest.WeekOverWeek}}%</td>
+            </tr>
+            <tr>
+                <td data-label="慢查询比例">慢查询比例</td>
+                <td data-label="值"  >{{ printf "%.2f" .RealtimeOverview.SlowRequest.Value }}%</td>
+                <td data-label="环比">{{ printf "%.2f" .RealtimeOverview.SlowRequest.DayOverDay}}%</td>
+                <td data-label="同比">{{ printf "%.2f" .RealtimeOverview.SlowRequest.WeekOverWeek}}%</td>
+            </tr>
+            <tr>
+                <td data-label="监控探针错误数">监控探针错误数</td>
+                <td data-label="值"  >{{.RealtimeOverview.ProbeFailCnt.Value}}</td>
+                <td data-label="环比">0%</td>
+                <td data-label="同比">0%</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+<div class="container">
+    <h2 id="daily-heading">语鲸系统可用性 天级数据</h2>
+    <table id="daily-overview-table" class="table-container">
+        <thead>
+        <tr>
+            <th>日期</th>
+            <th>稳定性打分</th>
+            <th>环比</th>
+            <th>同比</th>
+            <th>总请求量</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .DailyOverview  }}
+        <tr>
+            <td data-label="日期">{{ .Date }}</td>
+            <td data-label="稳定性打分" onclick="showScoreDetails(this)" class="clickable">{{ .Score }}</td>
+            <td data-label="环比">{{ printf "%.2f"  .DayOverDay }}%</td>
+            <td data-label="同比">{{ printf "%.2f"  .WeekOverWeek }}%</td>
+            <td data-label="同比">{{ .TotalReq }}</td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</div>
+<div class="pagination" id="daily-overview-pagination"></div>
+
+<script>
+    function formatDate(date) {
+        return date.toISOString().slice(0, 10);
+    }
+    function showScoreDetails(scoreCell){
+        const $scoreCell = $(scoreCell);
+        const date = $scoreCell.closest('tr').find('[data-label="日期"]').text();
+        const startDate = new Date(date)
+        const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 增加一天
+
+        const startTime = formatDate(startDate)
+        const endTime = formatDate(endDate)
+
+        axios.get('/api/v1/report/daily/score', {
+            params: {
+                start_time: startTime,
+                end_time: endTime
+            }
+        }).then( response => {
+            displayScoreDetails(response.data)
+        }).catch( error => {
+            console.error('Error fetching score details:', error);
+        });
+    }
+
+    let menus = []
+
+
+    function back(){
+        id = menus.pop()
+        $('#' + id).hide()
+        console.log('hidding:', id)
+        modifySidebar()
+    }
+
+    function modifySidebar(){
+        if (menus.length == 0) {
+            Swal.close()
+        }
+        if (menus.length <= 1){
+            // $('.swal2-popup.swal2-drawer').css('height', '50vh')
+            $('.swal2-popup.swal2-drawer').css('height', '100vh')
+        }else{
+            $('.swal2-popup.swal2-drawer').css('height', '100vh')
+        }
+        $('#' + menus[menus.length-1]).show()
+
+        var breadcrumb = $('<nav aria-label="breadcrumb"></nav>'); // 创建面包屑的容器
+        var ol = $('<ol class="breadcrumb"></ol>'); // 创建有序列表
+
+        // 遍历menu数组，为每个项目创建li元素
+        menus.forEach(function(item, index) {
+            ol.append($('<li class="breadcrumb-item active" aria-current="page" onclick="handleClickMenu(\'{0}\')">'.format(item) + item + '</li>'));
+        });
+
+        // 将有序列表添加到面包屑容器中，并将容器添加到menu div中
+        breadcrumb.append(ol);
+        $('#menu').find('nav').remove()
+        $('#menu').append(breadcrumb);
+    }
+
+    function handleClickMenu(target){
+        console.log('target:', target)
+        while (menus[menus.length-1] != target){
+            back()
+        }
+    }
+
+
+    function displayScoreDetails(scoreDetails) {
+        // 在这里实现显示分数细节的逻辑
+        // console.log(scoreDetails);
+        String.prototype.format = function(...args) {
+            return this.replace(/{(\d+)}/g, (match, index) => args[index]);
+        };
+        menus = ['评分详情']
+        detail = scoreDetails.data[0]
+        Swal.fire({
+            html: `
+                <div id="sidebar">
+                    <div id="loading-container" class="loading-container">
+                        <div class="loading-spinner"></div>
+                    </div>
+
+                    <div id="menu" >
+                        <div id="back" onclick="back()"><</div>
+                    </div>
+                    <div id="评分详情">
+                        <h2>${detail.date} 系统评分详情</h2>
+                        <table class="table-container">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <td id="date">{0}</td>
+                                </tr>
+                                <tr>
+                                    <th>分数</th>
+                                    <td>{1}</td>
+                                </tr>
+                                    <th>接口错误率</th>
+                                    <td class="clickable" onclick="handleErrorList()">{2}%</td>
+                                </tr>
+                                <tr>
+                                    <th>慢查询率</th>
+                                    <td class="clickable" onclick="handleSlowList()">{3}%</td>
+                                </tr>
+                                <tr>
+                                    <th>探针错误率</th>
+                                    <td class="clickable" onclick="handleProbeList()">{4}%</td>
+                                </tr>
+                                <tr>
+                                    <th>Traceback数量</th>
+                                    <td class="clickable" onclick="handleTracebackList()">{5}</td>
+                                </tr>
+                            </thead>
+                        </table>
+                        <div id="请求量趋势"></div>
+                    </div>
+                    <div id="接口错误列表">
+                        <table id="接口错误列表-table" class="table-container" ></table>
+                    </div>
+                    <div id="接口错误详情">
+                        <table id="接口错误详情-table" class="table-container" ></table>
+                    </div>
+                    <div id="慢查询列表">
+                        <table id="慢查询列表-table" class="table-container" ></table>
+                    </div>
+                    <div id="慢查询详情">
+                        <table id="慢查询详情-table" class="table-container" ></table>
+                    </div>
+                    <div id="失败详情">
+                        <table id="失败详情-table" class="table-container" ></table>
+                    </div>
+                    <div id="探针列表">
+                        <table id="探针列表-table" class="table-container" ></table>
+                    </div>
+                    <div id="探针日志详情">
+                        <table id="探针日志详情-table" class="table-container" ></table>
+                    </div>
+                    <div id="全链路日志列表">
+<!--                        <div id="全链路日志列表-table" class="table-container"></div>-->
+                    </div>
+
+                    <div id="Traceback日志列表"></div>
+                </div>
+            `.format(
+                detail.date,
+                detail.score,
+                detail.fail_rate.toFixed(2),
+                detail.slow_rate.toFixed(2),
+                detail.probe_fail_rate.toFixed(2),
+                detail.num_traceback,
+            ),
+            showConfirmButton: false,
+            customClass: {
+                popup: 'swal2-popup swal2-drawer',
+            },
+            didOpen: () => {
+                modifySidebar()
+                // hideLoadingStatus()
+                // document.getElementById('closeDrawerBtn').addEventListener('click', () => {
+                //     Swal.close();
+                // });
+                showRequestTrend(detail.date)
+            },
+        });
+    }
+    function showRequestTrend(date){
+        showLoadingStatus()
+        axios.get('/api/v1/report/trend/request', {
+            params:{
+                date: date,
+            }
+        }).then(response => {
+            console.log('trend request response', response.data)
+            let data = response.data.data
+            let chartContainer = $('<div>').addClass('chart-container')
+            let chart = drawMultiDayTrendChart(data.data0, data.data1, data.data7)
+            chartContainer.append(chart)
+            let container = $('#请求量趋势')
+            container.append(chartContainer)
+
+        }).catch(error => {
+            console.error(error);
+        }).finally(()=>{
+            hideLoadingStatus()
+        })
+    }
+
+
+    function pushToMenu(itemId){
+        $('#' + menus[menus.length - 1]).hide()
+        menus.push(itemId)
+        modifySidebar()
+    }
+
+
+    function handleTracebackList(){
+        const date = $('#date').text()
+        pushToMenu('Traceback日志列表')
+        var container = $('#Traceback日志列表')
+        container.show()
+        container.find('h3').remove()
+        // var table = $('#Traceback日志列表-table')
+        var table = $('<table>').attr('id', '#Traceback日志列表-table')
+        container.append(`<h3 >
+                日期：{0}
+            </h3>`.format(date)
+        )
+        showLoadingStatus()
+        axios.get('/api/v1/report/traceback/list', {
+            params:{
+                date_begin: date,
+            }
+        }).then(response => {
+            // console.log('response', response.data)
+            for (var i = 0; i < response.data.data.length; i++){
+                const log = response.data.data[i].origin_log
+
+                const logContainer = $('<div>').addClass('log-container');
+                const logId = $('<div>').addClass('log-id').text(i + 1);
+                const logTime = $('<div>').addClass('log-time').text(log.time.slice(11, 19));
+                const logDetails = $('<div>').addClass('log-details');
+                const logDetailsHeader = $('<div>').addClass('log-details-header');
+                const logDetailsBody = $('<div>').addClass('log-details-body');
+                for (var key in log){
+                    if (key.startsWith("_")) {
+                        logDetailsHeader.append(
+                            $("<span>")
+                                .attr("data-field-name", key)
+                                .text(log[key])
+                        );
+                    } else {
+                        const id = key + '-' + i;
+                        var p = $("<p>")
+                            .attr('id', id)
+                            .append($("<span>").text(key + ":"))
+                            .append(log[key])
+                        var span = $('<span>')
+                            .addClass('expand-tip')
+                            .text('展开')
+                            .click(function(e) {
+                                e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                handleClickExpand(id)
+                            })
+                        if (log[key].length >= 300){
+                            p.append(span)
+                        }
+
+                        if (key == 'trace_id' && traceIdLegal(log[key])){
+                            p.addClass('clickable')
+                                .click(()=>{
+                                    // console.log('clicked!')
+                                    handleEndToEndTraceLogs(log["trace_id"], date)
+                                })
+                        }
+
+                        logDetailsBody.append(p);
+                    }
+                }
+
+                logDetails.append(logDetailsHeader, logDetailsBody);
+                logContainer.append(logId, logTime, logDetails);
+                table.append(logContainer);
+            }
+            container.append(table);
+
+        }).catch(error => {
+            console.error(error);
+        }).finally(()=>{
+            hideLoadingStatus()
+        })
+    }
+
+
+    function handleProbeList(){
+        menus.push('探针列表')
+        modifySidebar()
+        $('#评分详情').hide();
+        const date = $('#date').text()
+
+        showLoadingStatus()
+        axios.get('/api/v1/report/probe/list', {
+            params:{
+                date_begin: date,
+            }
+        }).then(response =>{
+            console.log('response', response.data)
+            // 获取$('#探针列表-table')元素
+            const table = $('#探针列表-table');
+            table.empty()
+            table.append(`<h3 >
+                日期：{0}
+            </h3>`.format(date))
+            // rowhead
+            const rowhead = `
+                <tr>
+<!--                    <th>日期</th>-->
+                    <th>场景</th>
+                    <th>探测次数</th>
+                    <th>失败次数</th>
+                    <th>错误次数</th>
+                    <th>平均耗时</th>
+                    <th>成功率</th>
+                    <th>正确率</th>
+                </tr>
+            `
+            table.append(rowhead);
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                const item = response.data.data[i];
+                const $row = $('<tr>');
+
+                // $row.append($('<td>').text(response.data.data[i].date));
+                $row.append($('<td>').text(item.scene));
+                var $total = $('<td>')
+                    .addClass('clickable')
+                    .text(item.num_total_req)
+                    .on('click', function() {
+                        handleProbeLogDetail(item.scene, false, false, date);
+                    })
+                $row.append($total);
+
+                var $fail = $('<td>')
+                    .text(item.num_total_req - item.num_success_req)
+                if (item.num_total_req - item.num_success_req) {
+                    $fail
+                        .addClass('clickable')
+                        .on('click', function() {
+                            handleProbeLogDetail(item.scene, false, true, date);
+                        });
+                }
+                $row.append($fail)
+
+                var $incorrect = $('<td>')
+                    .text(item.num_total_req - item.num_correct_req)
+                if (item.num_total_req - item.num_correct_req > 0) {
+                    $incorrect
+                        .addClass('clickable')
+                        .on('click', function() {
+                            handleProbeLogDetail(item.scene, true, false, date);
+                        });
+                }
+                $row.append($incorrect)
+
+                $row.append($('<td>').text(item.avg_cost.toFixed(2)));
+
+                const successRate = (item.num_success_req / item.num_total_req * 100).toFixed(2);
+                const correctRate = (item.num_correct_req / item.num_total_req * 100).toFixed(2);
+                const failureRate = (1 - item.num_success_req / item.num_total_req) * 100;
+                const incorrectRate = (1 - item.num_correct_req / item.num_total_req) * 100;
+
+                $row.append($('<td>')
+                    .css('background', getColor(failureRate))
+                    .text(successRate + '%'));
+
+                $row.append($('<td>')
+                    .css('background', getColor(incorrectRate))
+                    .text(correctRate + '%'));
+
+                table.append($row);
+            }
+
+        }).catch(error =>{
+            console.log('error fetching fail list', error)
+        }).finally(()=>{
+            hideLoadingStatus()
+        })
+    }
+
+    function handleSceneFailDetail(details, date){
+        pushToMenu('失败详情')
+
+        container = $('#失败详情')
+        container.empty()
+        container.show();
+        // container.find('h3').remove();
+
+        // const table = $('#失败详情-table');
+        const table = $('<table>').attr('id', '#失败详情-table');
+        let h3 = $('<h3>').text(`日期：${date}`)
+        const keyToProperty = {
+            'CoreName': '核心链路',
+            'NodeName': '链路节点',
+            'Env': '环境',
+            'Msg': '失败原因',
+            'Code': '错误码'
+        };
+        let pieKeys = {
+            'Env': '环境分布',
+            'Msg': '错误原因分布',
+        }
+        let pieData = {}
+        for (let i = 0; i < details.length; i++) {
+            const log = details[i]
+
+            let logtbl = $('<table>')
+            let th = $('<tr>')
+            let td = $('<tr>')
+            let tblCache = {}
+
+            logtbl.append(th, td)
+            // console.log(log)
+            const logContainer = $('<div>').addClass('log-container');
+            const logId = $('<div>').addClass('log-id').text(i + 1);
+            const logTime = $('<div>').addClass('log-time').text(log.Time.slice(11, 19));
+            const logDetails = $('<div>').addClass('log-details');
+            const logDetailsHeader = $('<div>').addClass('log-details-header');
+            const logDetailsBody = $('<div>').addClass('log-details-body');
+            for (const key of ['Status']){
+                delete log[key]
+            }
+            for (var key in log){
+                let value = log[key]
+                if (value == "multi merge error"){
+                    value = "调用中继服务失败"
+                }
+                if (value == "themes not safe"){
+                    value = "主题不安全"
+                }
+                // 如果value为空或者为null，则不显示
+                if (value == null || value == ""){
+                    continue
+                }
+                if (key == "Env"){
+                    value = getEnvAlias(value)
+                }
+
+                if (key in pieKeys){
+                    if (!pieData[key]){
+                        pieData[key] = []
+                    }
+                    pieData[key].push(value)
+                }
+
+                if (key in keyToProperty){
+                    tblCache[keyToProperty[key]] = value
+                    continue
+                }
+
+                const p = $('<p>')
+                    .append($("<span>").text(key + ":"))
+                    .append(value)
+                if (key == 'TraceId' && traceIdLegal(log[key])){
+                    p.addClass('clickable').click(()=>{
+                        // console.log(key, log[key], log['TraceId'], date)
+                        handleEndToEndTraceLogs(log['TraceId'], date)
+                    })
+                }
+
+                logDetailsBody.append(p)
+            }
+            for (var key in tblCache){
+                let value = tblCache[key]
+                // 如果value为空或者为null，则不显示
+                if (value == null || value == ""){
+                    continue
+                }
+                th.append($("<th>").text(key))
+                td.append($("<td>").text(value))
+            }
+            logDetails.append(logtbl, logDetailsBody);
+            logContainer.append(logId, logTime, logDetails);
+            table.append(logContainer);
+        }
+        let chartContainer = $('<div>').addClass('chart-container')
+        for (const key in pieData){
+            chartContainer.append(createPieChart(pieKeys[key], pieData[key]))
+        }
+        // table.before(chartContainer)
+        container.append(h3, chartContainer, table)
+    }
+
+    function handleSceneSlowDetail(details, date){
+        pushToMenu('慢查询详情')
+
+        container = $('#慢查询详情')
+        container.show();
+        // container.find('h3').remove();
+        container.empty()
+
+        let chartContainer = $('<div>').addClass('chart-container')
+        const table = $('<table>').attr('id', '慢查询详情-table');
+        container.append(table)
+        table.empty()
+        table.before(`<h3 >
+                日期：{0}
+            </h3>`.format(date))
+
+        let costs = []
+
+        const keyToProperty = {
+            'CoreName': '核心链路',
+            'Node': '链路节点',
+            'Cost': '耗时(秒)',
+            'Env': '环境',
+        }
+        let pieKeys = {
+            'Env': '环境分布',
+            'Msg': '错误原因分布',
+            // 'Cost': '耗时分布',
+        }
+        let pieData = {}
+
+        for (let i = 0; i < details.length; i++) {
+            let logtbl = $('<table>')
+            let th = $('<tr>')
+            let td = $('<tr>')
+            let tblCache = {}
+            logtbl.append(th, td)
+            const log = details[i]
+            // console.log(log)
+            const logContainer = $('<div>').addClass('log-container');
+            const logId = $('<div>').addClass('log-id').text(i + 1);
+            const logTime = $('<div>').addClass('log-time').text(log.Time.slice(11, 19));
+            const logDetails = $('<div>').addClass('log-details');
+            const logDetailsHeader = $('<div>').addClass('log-details-header');
+            const logDetailsBody = $('<div>').addClass('log-details-body');
+            for (const key of ['Status']){
+                delete log[key]
+            }
+            for (var key in log){
+
+                let value = log[key]
+                // 如果value为空或者为null，则不显示
+                if (value == null || value == ""){
+                    continue
+                }
+                if (key == "Env"){
+                    value = getEnvAlias(value)
+                }
+                if (key == 'Cost'){
+                    value = value.toFixed(2)
+                    costs.push(value)
+                }
+                if (key in pieKeys){
+                    if (!pieData[key]){
+                        pieData[key] = []
+                    }
+                    pieData[key].push(value)
+                }
+
+                if(key in keyToProperty){
+                    tblCache[key] = value
+                    continue
+                }
+
+                const p = $('<p>')
+                    .append($("<span>").text(key + ":"))
+                    .append(value)
+                if (key == 'TraceId' && traceIdLegal(log[key])){
+                    p.addClass('clickable').click(()=>{
+                        // console.log(key, log[key], log['TraceId'], date)
+                        handleEndToEndTraceLogs(log['TraceId'], date)
+                    })
+                }
+
+                logDetailsBody.append(p)
+            }
+            for (var key in tblCache){
+                let value = tblCache[key]
+                // 如果value为空或者为null，则不显示
+                if (value == null || value == ""){
+                    continue
+                }
+                th.append($("<th>").text(key))
+                td.append($("<td>").text(value))
+            }
+            logDetails.append(logtbl, logDetailsBody);
+            logContainer.append(logId, logTime, logDetails);
+            table.append(logContainer);
+        }
+        let pie = createNumberPieChart('耗时占比分布', costs)
+        chartContainer.append(pie)
+        console.log(pieData)
+        for (const key in pieData){
+            let chart = createPieChart(pieKeys[key], pieData[key])
+            chartContainer.append(chart)
+        }
+        table.before(chartContainer)
+    }
+
+    function getEnvAlias(env){
+        let aliases = {
+            'lingo': '语鲸',
+            'lingowhale': '语鲸',
+            'chat': '问答',
+            'prod': '线上环境',
+            'pre': '预发环境',
+        }
+        let items = env.split('-')
+        let res = []
+        for (let i = 0; i < items.length; i++){
+            if (items[i] in aliases){
+                res.push(aliases[items[i]])
+            } else {
+                res.push(items[i])
+            }
+        }
+        return res.join('-')
+    }
+
+    function handleSlowList(){
+        menus.push('慢查询列表')
+        modifySidebar()
+        $('#评分详情').hide();
+        $('#慢查询列表').show();
+        const date = $('#date').text()
+
+        showLoadingStatus()
+        axios.get('/api/v1/report/slow/list', {
+            params:{
+                date_begin: date,
+            }
+        }).then(response =>{
+            // console.log('response', response.data)
+            // 获取$('#慢查询列表-table')元素
+            const container = $('#慢查询列表');
+            const table = $('#慢查询列表-table');
+            container.find('h3').remove()
+            table.empty()
+            table.before(`<h3 >
+                日期：{0}
+            </h3>`.format(date))
+            // rowhead
+            const rowhead = `
+                <tr>
+<!--                    <th>日期</th>-->
+                    <th>核心功能</th>
+                    <th>总请求数</th>
+                    <th>异常请求数</th>
+<!--                    <th>异常请求率</th>-->
+                    <th>慢查询数</th>
+                    <th>慢查询率</th>
+                </tr>
+            `
+            table.append(rowhead);
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                const item = response.data.data[i]
+                const $row = $('<tr>');
+                // $row.append($('<td>').text(item.date));
+                $row.append($('<td>').text(item.api_name));
+                $row.append($('<td>').text(item.num_total_req));
+                failReqTd = $('<td>').text('0')
+                if (item.fail_details != null){
+                    let failDetails = []
+                    for (let j = 0; j < item.fail_details.length; j++) {
+                        failDetails.push(JSON.parse(item.fail_details[j]))
+                    }
+                    failReqTd.text(failDetails.length)
+                    // console.log(failDetails)
+                    failReqTd.addClass('clickable').on('click', function(){
+                        // console.log("fail details:", failDetails)
+                        handleSceneFailDetail(failDetails, date)
+                        // handleProbeLogDetail(item.api_name, false, true, date)
+                    })
+                }
+
+                $row.append(failReqTd);
+
+                slowReqTd = $('<td>').text(item.num_slow_req);
+                if (item.num_slow_req > 0){
+                    let slowDetails = []
+                    for (let j = 0; j < item.slow_details.length; j++) {
+                        slowDetails.push(JSON.parse(item.slow_details[j]))
+                    }
+                    // console.log(slowDetails)
+                    slowReqTd.addClass('clickable').on('click', function(){
+                        // console.log("slow details:", slowDetails)
+                        handleSceneSlowDetail(slowDetails, date)
+                        // handleProbeLogDetail(item.api_name, false, true, date)
+                    })
+                }
+                $row.append(slowReqTd);
+
+                const slowReqPercentage = ((item.num_slow_req / item.num_total_req) * 100).toFixed(2);
+                const color = getColor(slowReqPercentage);
+                $row.append($('<td>').css('background', color).text(slowReqPercentage + '%'));
+
+                table.append($row);
+
+//                 const row = `
+//                     <tr>
+// <!--                        <td>{0}</td>-->
+//                         <td>{0}</td>
+//                         <td>{1}</td>
+//                         <td>{2}</td>
+//                         <td style="background: {4}">{3}%</td>
+//                     </tr>
+//                 `.format(
+//                     // response.data.data[i].date,
+//                     response.data.data[i].api_name,
+//                     response.data.data[i].num_total_req,
+//                     response.data.data[i].num_slow_req,
+//                     (response.data.data[i].num_slow_req / response.data.data[i].num_total_req * 100).toFixed(2),
+//                     getColor((response.data.data[i].num_slow_req / response.data.data[i].num_total_req * 100).toFixed(2)),
+//                 );
+//                 table.append(row);
+            }
+
+        }).catch(error =>{
+            console.log('error fetching slow list', error)
+        }).finally(()=>{
+            hideLoadingStatus()
+        })
+    }
+
+    function trShouldShowByEnvBtn(tr){
+        if (tr.find('td:nth-child(1)').text() == '当日总览'){
+            return true
+        }
+        let apiName = tr.find('td:nth-child(2)').text()
+        // 找到id为env-choice的div下的两个choice-btn
+        let envBtns = $('#env-choice').find('.choice-btn')
+        // 判断哪个按钮被选中
+        if (envBtns.eq(0).hasClass('highlighted')){
+            // console.log('pre btn is highlighted')
+            return apiName.startsWith('pre')
+        } else if (envBtns.eq(1).hasClass('highlighted')){
+            // console.log('prod btn is highlighted')
+            return !apiName.startsWith('pre')
+        } else {
+            // console.log('all btn is highlighted')
+            return true
+        }
+    }
+    function trShouldShowByStatusBtn(tr){
+        if (tr.find('td:nth-child(1)').text() == '当日总览'){
+            return true
+        }
+        let failCnt = tr.find('td:nth-child(3)').text()
+        // 找到id为status-choice的div下的两个choice-btn
+        let statusBtns = $('#status-choice').find('.choice-btn')
+        // 判断哪个按钮被选中
+        if (statusBtns.eq(0).hasClass('highlighted')){
+            return failCnt > 0
+        } else if (statusBtns.eq(1).hasClass('highlighted')){
+            return failCnt == 0
+        } else {
+            return true
+        }
+    }
+    function trShouldShowByChoiceBtns(tr){
+        console.log('tr:', tr, trShouldShowByEnvBtn(tr), trShouldShowByStatusBtn(tr))
+        return trShouldShowByEnvBtn(tr) && trShouldShowByStatusBtn(tr)
+    }
+
+    function showErrorTable_all(){
+        let table = $('#接口错误列表-table')
+        showLoadingStatus()
+        table.find('tr').each(function(index){
+            if (index == 0){
+                $(this).show()
+                return
+            }
+            if (trShouldShowByChoiceBtns($(this))){
+                $(this).show()
+            } else{
+                $(this).hide()
+            }
+        })
+        setTimeout(()=>{
+            hideLoadingStatus()
+        }, 100)
+    }
+
+    function showErrorTable_normal(){
+        let table = $('#接口错误列表-table')
+        table.find('tr').each(function(index){
+            if (index == 0){
+                return
+            }
+            if ($(this).find('td:nth-child(1)').text() == '当日总览'){
+                $(this).show()
+                return
+            }
+            let failCnt = $(this).find('td:nth-child(3)').text()
+            if (failCnt > 0){
+                $(this).hide()
+            } else {
+                $(this).show()
+            }
+        })
+    }
+    function showErrorTable_abnormal(){
+        let table = $('#接口错误列表-table')
+        table.find('tr').each(function(index){
+            if (index == 0){
+                return
+            }
+            if ($(this).find('td:nth-child(1)').text() == '当日总览'){
+                $(this).show()
+                return
+            }
+            let failCnt = $(this).find('td:nth-child(3)').text()
+            if (failCnt > 0){
+                $(this).show()
+            } else {
+                $(this).hide()
+            }
+        })
+    }
+
+    function handleClickStatusChoiceBtn(){
+        console.log('click status choice btn', $(this), $(this).text())
+        if ($(this).hasClass('highlighted')){
+            $(this).removeClass('highlighted')
+        } else{
+            $('#status-choice div').removeClass('highlighted')
+            $(this).addClass('highlighted')
+        }
+        // if ($(this).hasClass('highlighted')){
+        //     if ($(this).text() === '仅异常') {
+        //         showErrorTable_abnormal()
+        //     } else if ($(this).text() === '仅正常') {
+        //         showErrorTable_normal()
+        //     }
+        // } else{
+        //     showErrorTable_all()
+        // }
+        showErrorTable_all()
+    }
+
+    function handleClickEnvChoiceBtn(){
+        console.log('click env choice btn', $(this), $(this).text())
+        if ($(this).hasClass('highlighted')){
+            $(this).removeClass('highlighted')
+        } else{
+            $('#env-choice div').removeClass('highlighted')
+            $(this).addClass('highlighted')
+        }
+        // if ($(this).hasClass('highlighted')){
+        //     if ($(this).text() === '仅预发') {
+        //         showErrorTable_pre()
+        //     } else if ($(this).text() === '仅正式') {
+        //         showErrorTable_prod()
+        //     }
+        // } else{
+        //     showErrorTable_all()
+        // }
+        showErrorTable_all()
+    }
+    function handleErrorList(){
+        menus.push('接口错误列表')
+        modifySidebar();
+        // 不再显示#评分详情对应的div
+        $('#评分详情').hide();
+        $('#接口错误列表').show()
+
+        const date = $('#date').text()
+        showLoadingStatus()
+        axios.get('/api/v1/report/fail/list', {
+            params:{
+                date_begin: date,
+            }
+        }).then(response =>{
+            // console.log('response', response.data)
+            // 获取$('#接口错误列表-table')元素
+            const container = $('#接口错误列表');
+            container.empty()
+            container.find("div").remove()
+            container.append(
+                $('<div>').attr('id', 'choices')
+                    .append(
+                        $('<div>').attr('id', 'env-choice').addClass('choice-container')
+                            .append($('<div>').text('仅预发').addClass('choice-btn').click(handleClickEnvChoiceBtn))
+                            .append($('<div>').text('仅正式').addClass('choice-btn').click(handleClickEnvChoiceBtn))
+                    )
+            )
+            container.append(
+                $('<div>').attr('id', 'choices')
+                    .append(
+                        $('<div>').attr('id', 'status-choice').addClass('choice-container')
+                            .append($('<div>').text('仅异常').addClass('choice-btn').click(handleClickStatusChoiceBtn))
+                            .append($('<div>').text('仅正常').addClass('choice-btn').click(handleClickStatusChoiceBtn))
+                    )
+            )
+
+            const table = $('<table>').attr('id', '接口错误列表-table').addClass('table-container')
+            container.append(table)
+            container.find('h3').remove()
+            table.empty()
+            table.before(`<h3 >
+                日期：{0}
+            </h3>`.format(date))
+            // rowhead
+            const rowhead = `
+                <tr>
+                    <th>接口名称</th>
+                    <th>主机地址</th>
+                    <th>异常请求数量</th>
+                    <th>总请求数</th>
+                    <th>异常请求占比</th>
+                    <th>异常码3xx数量</th>
+                    <th>异常码4xx数量</th>
+                    <th>异常码5xx数量</th>
+                </tr>
+            `
+            table.append(rowhead);
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                const row = `
+                    <tr>
+                        <td>{0}</td>
+                        <td>{1}</td>
+                        <td {9}>{2}</td>
+                        <td>{3}</td>
+                        <td class="color-cell" style="background: {8}">{4}%</td>
+                        <td>{5}</td>
+                        <td>{6}</td>
+                        <td>{7}</td>
+                    </tr>
+                `.format(
+                    // response.data.data[i].date,
+                    response.data.data[i].api_name,
+                    response.data.data[i].host,
+                    response.data.data[i].num_error_req,
+                    response.data.data[i].num_total_req,
+                    (response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2),
+                    response.data.data[i].num_code_3xx,
+                    response.data.data[i].num_code_4xx,
+                    response.data.data[i].num_code_5xx,
+                    getColor((response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2)),
+                    response.data.data[i].num_error_req > 0 && response.data.data[i].api_name != '当日总览'? `
+                        class="clickable"
+                        onclick=handleErrorDetail('{0}','{1}','{2}')`.format(
+                            response.data.data[i].host,
+                            response.data.data[i].api_path,
+                            date,
+                        )
+                        :  '',
+
+                    );
+                table.append(row);
+                hideLoadingStatus();
+            }
+            setGridColor()
+
+        }).catch(error =>{
+            console.log('error fetching fail list', error)
+        }).finally(()=>{
+            hideLoadingStatus()
+        })
+
+    }
+    function handleErrorDetail(host, path, date){
+        showLoadingStatus()
+        axios.get('/api/v1/report/fail/detail', {
+            params:{
+                date_begin: date,
+                host: host,
+                path: path,
+            }
+        }).then(response => {
+            // console.log('response', response.data)
+            $('#' + menus[menus.length - 1]).hide()
+            menus.push('接口错误详情')
+            modifySidebar()
+            $('接口错误详情').show();
+
+            const container = $('#接口错误详情');
+            container.find('h3').remove()
+            const table = $('#接口错误详情-table');
+            table.empty()
+            table.before(`<h3 >
+                日期：{0}
+            </h3>`.format(date))
+            // rowhead
+            const rowhead = `
+                <tr>
+                    <th>时间</th>
+                    <th>主机地址</th>
+                    <th>接口名称</th>
+                    <th>HTTP响应码</th>
+                    <th>trace_id</th>
+                    <th>user_id</th>
+                    <th>客户端IP</th>
+                </tr>
+            `
+            table.append(rowhead);
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                var tr = $('<tr>')
+                tr.append($('<td>').text(response.data.data[i].time))
+                tr.append($('<td>').text(response.data.data[i].host))
+                tr.append($('<td>').text(response.data.data[i].path))
+                tr.append($('<td>').text(response.data.data[i].http_code))
+                var td = $('<td>').text(response.data.data[i].trace_id)
+                if (traceIdLegal(response.data.data[i].trace_id)){
+                    td.addClass('clickable')
+                        .click(function(){
+                            handleEndToEndTraceLogs(response.data.data[i].trace_id, date)
+                        })
+                }
+                tr.append(td)
+                tr.append($('<td>').text(response.data.data[i].user_id))
+                tr.append($('<td>').text(response.data.data[i].client_ip))
+                table.append(tr)
+            }
+            setGridColor()
+        }).catch(error => {
+            console.log('error fetching fail list', error)
+        }).finally(() => {
+            hideLoadingStatus()
+        })
+
+    }
+
+    function  getLogSotreAlias(logSotreName){
+        if (logSotreName == 'nginx-ingress'){
+            return '业务Nginx日志'
+        }
+        if (logSotreName == 'business-pod'){
+            return '业务日志'
+        }
+        if (logSotreName == 'model-nginx-ingress'){
+            return '模型Nginx日志'
+        }
+        return logSotreName
+    }
+
+    function handleClickExpand(pid){
+        var p = $('#' + pid)
+        if (p.hasClass('expanded')){
+            p.removeClass('expanded')
+            p.find('.expand-tip').text('展开')
+        }else{
+            p.addClass('expanded')
+            p.find('.expand-tip').text('收起')
+        }
+    }
+
+    function handleEndToEndTraceLogs(traceId, date){
+        showLoadingStatus()
+        axios.get('/api/v1/report/trace/list', {
+            params:{
+                date_begin: date,
+                trace_id: traceId,
+            }
+        }).then(response => {
+            // console.log('response', response.data)
+            pushToMenu('全链路日志列表')
+            container = $('#全链路日志列表')
+            container.empty()
+            const table = $('<table>').attr('id', '全链路日志列表-table')
+            container.append(`<h3 >
+                日期：{0}
+            </h3>`.format(date))
+
+            container.append($('<div>').attr('id', 'filter-show-dropdown').text('过滤')
+                .click(()=>{
+                    // $('#filters-container').toggle()
+                    var $filtersContainer = $('#filters-container');
+                    if ($filtersContainer.is(':visible')) {
+                        $filtersContainer.css('max-height', '0').hide(0); // 隐藏并将最大高度设为0
+
+                    } else {
+                        $filtersContainer.show().css('max-height', '1000px')
+                    }
+                })
+                .draggable({
+                    containment: container,
+                    stop: filterBtnDrag,
+                })
+            )
+            filtersContainer = $('<div>').attr('id', 'filters-container').text('')
+            container.append(filtersContainer)
+            filtersContainer.append($('<p>').attr('id', 'filtered-count').text(`共 ${response.data.data.length} 条日志符合过滤条件`))
+            filtersContainer.append($('<div>').attr('id', 'filter-btn').text('添加条件').click(()=>{
+                handleClickAddfilter()
+            }))
+            filtersContainer.append($('<div>').attr('id', 'reset-filters').text('重置').click(()=>{
+                handleClickResetFilters()
+                modifyFilteredCount()
+            }))
+
+            // 循环写入数据，以表格展示数据
+            for (let i = 0; i < response.data.data.length; i++) {
+                const log = response.data.data[i]
+                const originLog = response.data.data[i].origin_log
+
+                const logContainer = $('<div>').addClass('log-container');
+                const logId = $('<div>').addClass('log-id').text(i + 1);
+                const logTime = $('<div>').addClass('log-time').text(log.time.slice(11, 19));
+                const logDetails = $('<div>').addClass('log-details');
+                const logDetailsHeader = $('<div>').addClass('log-details-header');
+                const logDetailsBody = $('<div>').addClass('log-details-body');
+                logDetailsBody.append(
+                    $("<p>")
+                        .append($("<span>").text('日志来源' + ": "))
+                        .append(getLogSotreAlias(log.log_store_name))
+                );
+                for (var key in originLog){
+                    if (key.startsWith("_")) {
+                        var val = originLog[key]
+                        key = key + ':' + val
+                        if (val.length >= 15) {
+                            val = val.slice(0, 15) + '...'  + val.slice(-5, val.length)
+                        }
+                        logDetailsHeader.append(
+                            $("<span>")
+                                .attr("data-field-name", key)
+                                .text(val)
+                        );
+                    } else {
+                        const id = key +'-' + i;
+                        var span = $('<span>')
+                            .addClass('expand-tip')
+                            .text('展开')
+                            .click(function(e) {
+                                e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                handleClickExpand(id)
+                            })
+                        var p = $('<p id="{0}">'.format(id))
+                            .append($("<span>").text(key + ":"))
+                            .append(originLog[key])
+                        if(originLog[key].length >= 150){
+                            p.append(span)
+                        }
+
+                        logDetailsBody.append(p)
+                    }
+                }
+                logDetails.append(logDetailsHeader, logDetailsBody);
+                logContainer.append(logId, logTime, logDetails);
+                table.append(logContainer);
+
+            }
+            container.append(table)
+            setGridColor()
+        }).catch(error => {
+            console.log('error fetching fail list', error)
+        }).finally(() => {
+            hideLoadingStatus()
+        })
+
+    }
+
+    function traceIdLegal(traceId){
+        if (traceId == "" || traceId == "-" || traceId == "null"){
+            return false
+        }
+        return true
+    }
+    function handleProbeLogDetail(scene, notCorrect, notSuccess, date){
+        showLoadingStatus()
+        axios.get('/api/v1/report/probe/detail', {
+            params: {
+                date_begin: date,
+                scene: scene,
+                not_correct: notCorrect,
+                not_success: notSuccess,
+            }
+        }).then(response => {
+            // console.log(response.data)
+            $('#' + menus[menus.length - 1]).hide()
+            menus.push('探针日志详情')
+            modifySidebar()
+
+            const table = $('#探针日志详情-table');
+            table.empty()
+            const tbody = $('<tbody>');
+            for (var i = 0; i < response.data.data.length; i++){
+                const log = response.data.data[i]
+
+                const logContainer = $('<div>').addClass('log-container');
+                const logId = $('<div>').addClass('log-id').text(i + 1);
+                const logTime = $('<div>').addClass('log-time').text(log.time.slice(11, 19));
+                const logDetails = $('<div>').addClass('log-details');
+                const logDetailsHeader = $('<div>').addClass('log-details-header');
+                const logDetailsBody = $('<div>').addClass('log-details-body');
+                logDetailsHeader.append(
+                    $("<span>")
+                        .attr("data-field-name", '日志来源')
+                        .text(log.data_source == 0 ? "API探针": "UI探针")
+                );
+                logDetailsHeader.append(
+                    $("<span>")
+                        .attr("data-field-name", '响应是否成功')
+                        .text(log.success? "响应成功": "响应失败")
+                );
+                logDetailsHeader.append(
+                    $("<span>")
+                        .attr("data-field-name", '内容是否正确')
+                        .text(log.correct? "内容正确": "内容错误")
+                );
+                for (var key in log){
+                    var p = $("<p>")
+                        .append($("<span>").text(key + ":"))
+                        .append(log[key])
+                    if (key == 'trace_id' && traceIdLegal(log[key])){
+                        p.addClass('clickable')
+                            .click(()=>{
+                                // console.log('clicked!')
+                                handleEndToEndTraceLogs(log[key], date)
+                            })
+                    }
+                    logDetailsBody.append( p );
+                }
+                logDetails.append(logDetailsHeader, logDetailsBody);
+                logContainer.append(logId, logTime, logDetails);
+                table.append(logContainer);
+            }
+
+        }).catch(error => {
+            console.log('error fetching fail list', error)
+        }).finally(()=>{
+            hideLoadingStatus()
+        })
+    }
+
+    function getLogKeyValues(){
+        result = {}
+        // 遍历每个 p 标签
+        $('.log-container').each(function (){
+            if(!$(this).is(':visible')){
+                return
+            }
+            $(this).find('p').each(function (){
+                // 获取当前 p 标签的 jQuery 对象
+                const $p = $(this);
+
+                // 获取 p 标签中的 span
+                const spanText = $p.find('span').first().text();
+
+                // 获取 p 标签中的纯文本（排除 span）
+                const pTextWithoutSpan = $p.contents().filter(function() {
+                    return this.nodeType === Node.TEXT_NODE;
+                }).text().trim();
+                key = spanText.trim().slice(0, -1)
+                if( !(key in result)){
+                    result[key] = []
+                }
+                if( !result[key].includes(pTextWithoutSpan)){
+                    result[key].push(pTextWithoutSpan)
+                }
+            })
+
+        })
+        return result
+    }
+
+    function handleClickResetFilters(){
+        $('.log-container').each(function (){
+            $(this).show()
+        })
+        $('.filter-row').remove()
+    }
+    function handleClickApplyFilters(){
+        showLoadingStatus()
+        function getFilters() {
+            var result = {}
+
+            // 遍历所有的 filter-row 元素
+            $('.filter-row').each(function(index) {
+                const $this = $(this);
+
+                // 获取第一个 select 的值
+                const firstSelectValue = $this.find('select').eq(0).val();
+
+                // 获取第二个 select 的值
+                const secondSelectValue = $this.find('select').eq(1).val();
+
+                // 将这些值放入一个字典
+                if (secondSelectValue != ""){
+                    result[firstSelectValue] = secondSelectValue;
+                }
+            });
+            return result
+        }
+        function shouldBeKept(logDetail, filters){
+            if (Object.keys(filters).length == 0){
+                return true
+            }
+            let keyAccured = 0
+            let valueMatched = 0
+            logDetail.find('p').each(function (){
+                // console.log($(this))
+                const $p = $(this)
+                const key = $p.find('span').text().trim().slice(0, -1)
+                const value = $p.contents().filter(function() {
+                    return this.nodeType === Node.TEXT_NODE;
+                }).text().trim()
+                // console.log('key', key, 'val', value, filters[key], filters)
+                if (key in filters){
+                    keyAccured += 1
+                    if(value == filters[key]) {
+                        valueMatched += 1
+                    }
+                }
+            })
+            return keyAccured == valueMatched && keyAccured == Object.keys(filters).length
+        }
+        console.log('clicked apply filters')
+        const filters = getFilters()
+        let numLogs = 0
+        $('.log-container').each(function (){
+            if (shouldBeKept($(this), filters)){
+                $(this).show()
+                numLogs += 1
+            }else{
+                $(this).hide()
+            }
+        })
+        details = $('.log-details-body')
+        setTimeout(()=>{
+            hideLoadingStatus()
+            // $('#filtered-count').text(`共 ${numLogs} 条日志符合过滤条件`)
+            // $('#filters-container').append($('<p>').text())
+            modifyFilteredCount()
+        }, 200)
+    }
+
+    function modifyFilteredCount(){
+        let numLogs = 0
+        $('.log-container').each(function (){
+            if ($(this).is(':visible')){
+                numLogs += 1
+            }
+        })
+        $('#filtered-count').text(`共 ${numLogs} 条日志符合过滤条件`)
+    }
+
+
+    function handleClickAddfilter(){
+        const keyValues = getLogKeyValues()
+
+        console.log('clicked filter btn')
+        const filterCount = $('#filters-container').children().length;
+        $filterRow = $('<div>').addClass('filter-row').attr('id', `filter-row-${filterCount}`);
+
+        $keySelect = $('<select>').attr('id', `filter-key-${filterCount}`).change((event)=>{
+            const key = $(event.target).val()
+            console.log('changed key')
+            const $valueSelect = $(`#filter-value-${filterCount}`)
+            $valueSelect.empty()
+            $valueSelect.append($('<option>')
+                .attr('value', '')
+                .attr('selected', 'false')
+                .text('请选择'));
+            for (var value of keyValues[key]){
+                $p = $('<option>')
+                    .attr('value', value)
+                    .text(value);
+                $valueSelect.append($p);
+            }
+        });
+        $keySelect.append($('<option>')
+            .attr('value', '')
+            .attr('selected', 'false')
+            .text('请选择'));
+        for (var key in keyValues){
+            let keyText = key
+            if (keyValues[key].length > 1){
+                keyText = `${key} (${keyValues[key].length})`
+            }
+            $p = $('<option>')
+                .attr('value', key)
+                .text(keyText);
+            $keySelect.append($p);
+        }
+
+        $valueSelect = $('<select>').attr('id', `filter-value-${filterCount}`);
+        $valueSelect.change(()=>{
+            handleClickApplyFilters()
+        })
+
+        $resetBtn = $('<button>')
+            .addClass('remove-filter')
+            .attr('data-row-id', `filter-row-${filterCount}`)
+            .text('清空')
+            .click(handleRemoveFilter);
+
+        $filterRow.append($keySelect, $valueSelect, $resetBtn);
+        $('#filters-container').append($filterRow);
+    }
+    function handleRemoveFilter(event){
+        const rowId = $(event.target).data('row-id');
+        console.log('clicked remove filter', rowId)
+        $(`#${rowId}`).remove();
+        handleClickApplyFilters()
+        modifyFilteredCount()
+    }
+
+
+    function paginateTable(tableId, rowsPerPage, paginationId) {
+        let currentPage = 1;
+        const table = document.getElementById(tableId);
+        const tbody = table.querySelector('tbody');
+        const paginationControls = document.getElementById(paginationId);
+        const rows = Array.from(tbody.rows);
+
+        // 添加日期信息到行数据中
+        rows.forEach((row, index) => {
+            row.dataset.date = table.rows[index + 1].cells[0].textContent;
+        });
+
+        function renderTable() {
+            let currentDate = '';
+            let rowSpan = 1;
+
+            let i = 0;
+            for (let j = 0; j < rows.length; j++) {
+                const row = rows[j];
+                const rowDate = row.dataset.date;
+
+                if (rowDate === currentDate) {
+                    rows[i].cells[0].rowSpan = ++rowSpan
+                    row.cells[0].style.display = 'none'
+                } else {
+                    i = j
+                    rowSpan = 1;
+                    currentDate = rowDate;
+                    row.cells[1].style.fontWeight = "bold"
+                    row.cells[1].style.color = "rebeccapurple"
+                    for (let k = 1; k < row.cells.length; k++) {
+                        row.cells[k].style.display = '';
+                    }
+                }
+
+
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+                row.style.display = i >= start && i < end ? '' : 'none';
+            }
+
+            renderPaginationControls();
+        }
+
+        function renderPaginationControls() {
+            const totalPages = Math.ceil(rows.length / rowsPerPage);
+            paginationControls.innerHTML = '';
+
+            function createButton(page) {
+                const button = document.createElement('button');
+                button.textContent = page;
+                button.className = page === currentPage ? 'disabled' : '';
+                button.disabled = page === currentPage;
+                button.addEventListener('click', () => {
+                    currentPage = page;
+                    renderTable();
+                });
+                paginationControls.appendChild(button);
+            }
+
+            function createEllipsis() {
+                const ellipsis = document.createElement('span');
+                ellipsis.textContent = '...';
+                paginationControls.appendChild(ellipsis);
+            }
+
+            if (totalPages <= 5) {
+                for (let i = 1; i <= totalPages; i++) {
+                    createButton(i);
+                }
+            } else {
+                createButton(1);
+                if (currentPage > 3) {
+                    createEllipsis();
+                }
+
+                let startPage = Math.max(2, currentPage - 1);
+                let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+                if (currentPage <= 3) {
+                    endPage = 4;
+                }
+
+                if (currentPage >= totalPages - 2) {
+                    startPage = totalPages - 3;
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    createButton(i);
+                }
+
+                if (currentPage < totalPages - 2) {
+                    createEllipsis();
+                }
+                createButton(totalPages);
+            }
+        }
+
+        renderTable();
+    }
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        hideLoadingStatus()
+        paginateTable('daily-overview-table', 12, 'daily-overview-pagination');
+        // paginateTable('metric-overview-table', 12, 'metric-overview-pagination');
+        // paginateTable('nginx-table', 12, 'nginx-pagination');
+        // paginateTable('logstore-table', 12, 'logstore-pagination');
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const colorCells = document.querySelectorAll('.color-cell');
+
+        colorCells.forEach(cell => {
+            const value = parseFloat(cell.dataset.value);
+            const type = cell.dataset.type;
+            cell.style.backgroundColor = getColor(value, type);
+        });
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取当前日期
+        var currentDate = new Date();
+        var formattedDate = currentDate.getFullYear() + '-' +
+            ('0' + (currentDate.getMonth() + 1)).slice(-2) + '-' +
+            ('0' + currentDate.getDate()).slice(-2);
+
+        // 获取h2标签
+        var heading = document.getElementById('realtime-heading');
+
+        // 修改h2标签的文本，并追加当前日期
+        heading.textContent += ' ' + formattedDate;
+    });
+
+    function updateHeading(dateQueryPath, headingId){
+        // 获取所有日期单元格
+        var dateCells = document.querySelectorAll(dateQueryPath);
+
+        if (dateCells.length === 0) {
+            return;
+        }
+
+        // 提取所有日期并转换为Date对象
+        var dates = Array.from(dateCells).map(function(cell) {
+            return new Date(cell.textContent);
+        });
+
+        // 找到最小和最大日期
+        var minDate = new Date(Math.min.apply(null, dates));
+        var maxDate = new Date(Math.max.apply(null, dates));
+
+        // 格式化日期
+        function formatDate(date) {
+            var year = date.getFullYear();
+            var month = ('0' + (date.getMonth() + 1)).slice(-2);
+            var day = ('0' + date.getDate()).slice(-2);
+            return year + '-' + month + '-' + day;
+        }
+
+        // 获取h2标签
+        var heading = document.getElementById(headingId);
+        heading.textContent += ' (' + formatDate(minDate) + ' 至 ' + formatDate(maxDate) + ')';
+    }
+
+    function getColor(value) {
+        let normalizedValue;
+        normalizedValue = value / 100;
+
+        // 确保 normalizedValue 在 0-1 之间
+        normalizedValue = Math.max(0, Math.min(1, normalizedValue));
+        normalizedValue = Math.ceil(normalizedValue * 10) / 10
+        return `rgb(255, 0, 0, ${normalizedValue})`
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateHeading('#daily-overview-table tbody tr td:first-child', 'daily-heading');
+        // updateHeading('#daily-overview-table tbody tr td:first-child', 'metric-heading');
+    });
+
+    function setGridColor(){
+        $('.color-cell').each(()=>{
+            let text = $(this).textContent;
+            const value = parseFloat(text.slice(0, -1));
+            $(this).css('background-color', getColor(value));
+        });
+    }
+    // 显示加载状态
+    function showLoadingStatus() {
+        $('#loading-container').removeClass('hide');
+    }
+
+    // 隐藏加载状态
+    function hideLoadingStatus() {
+        $('#loading-container').addClass('hide');
+    }
+
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || $(window).width() < 768;
+    }
+
+    function updateFontSize() {
+        $('.chart-item').each(function() {
+            var chart = echarts.getInstanceByDom(this);
+            if (chart) {
+                var option = chart.getOption();
+
+                var fontSize = isMobile() ? '25px' : '12px';  // 移动端使用xx-large，否则使用12px
+                var titleFontSize = isMobile() ? '30px' : '16px';
+
+                var fontConfig = { fontSize: fontSize };
+                var titleFontConfig = { fontSize: fontSize };
+
+                if (option.title && option.title[0]) {
+                    option.title[0].textStyle = titleFontConfig;
+                }
+                if (option.legend && option.legend[0]) {
+                    option.legend[0].textStyle = fontConfig;
+                }
+                if (option.xAxis && option.xAxis[0]) {
+                    option.xAxis[0].axisLabel = fontConfig;
+                }
+                if (option.yAxis && option.yAxis[0]) {
+                    option.yAxis[0].axisLabel = fontConfig;
+                }
+                if (option.series && option.series[0]) {
+                    option.series[0].label = option.series[0].label || {};
+                    option.series[0].label.fontSize = fontSize;
+                }
+
+                chart.setOption(option);
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        var timer;
+        var isScrollbarVisible = true;
+
+        // 函数：使滚动条透明
+        function fadeScrollbar() {
+            if (isScrollbarVisible) {
+                $('body').addClass('scrollbar-transparent');
+                isScrollbarVisible = false;
+            }
+        }
+
+        // 函数：恢复滚动条可见性
+        function showScrollbar() {
+            if (!isScrollbarVisible) {
+                $('body').removeClass('scrollbar-transparent');
+                isScrollbarVisible = true;
+            }
+        }
+
+        // 监听鼠标移动、滚轮和触摸事件
+        $(document).on('mousemove mousewheel DOMMouseScroll touchstart touchmove', function() {
+            showScrollbar();
+            clearTimeout(timer);
+            timer = setTimeout(fadeScrollbar, 1500); // 1.5秒后使滚动条透明
+        });
+
+        // 初始状态显示滚动条
+        showScrollbar();
+
+        // 监听窗口大小变化
+        $(window).resize(function() {
+            $('.chart-item').each(function() {
+                var chart = echarts.getInstanceByDom(this);
+                if (chart) {
+                    chart.resize();
+                }
+            });
+            updateFontSize();
+        });
+
+
+    });
+
+    function filterBtnDrag(event, ui) {
+        var $filterShowDropdown = $('#filter-show-dropdown');
+        var $parentContainer = $('#parent-container');
+
+        var parentWidth = $parentContainer.width(); // 父容器的宽度
+        var parentHeight = $parentContainer.height(); // 父容器的高度
+
+        var offsetX = ui.position.left;
+        var offsetY = ui.position.top;
+        var buttonWidth = $filterShowDropdown.outerWidth();
+        var buttonHeight = $filterShowDropdown.outerHeight();
+
+
+        // 计算按钮应当靠近边缘的位置
+        // 计算按钮应当靠近边缘的位置
+        if (offsetX < 10) {
+            offsetX = -10; // 靠近左边
+        } else if (offsetX + buttonWidth > parentWidth - 10) {
+            offsetX = parentWidth - buttonWidth + 10; // 靠近右边
+        } else {
+            // 中间的情况下自动对齐到最接近的边缘
+            if (offsetX < parentWidth / 2) {
+                offsetX = 10; // 靠近左边
+            } else {
+                offsetX = parentWidth - buttonWidth + 10; // 靠近右边
+            }
+        }
+
+        if (offsetY < 10) {
+            offsetY = 10; // 靠近顶部
+        } else if (offsetY + buttonHeight > parentHeight - 10) {
+            offsetY = parentHeight - buttonHeight - 10; // 靠近底部
+        }
+
+        // 设置最终位置
+        $filterShowDropdown.css({
+            left: offsetX + 'px',
+            top: offsetY + 'px'
+        });
+    }
+
+    function createPieChart(title, data) {
+        // 根据是否为移动端设置字体大小
+        var fontSize = isMobile() ? '25px' : '12px';
+        var titleFontSize = isMobile() ? '30px' : '16px';
+
+        // 统计各种字符串的数量
+        const counts = {};
+        data.forEach(item => {
+            counts[item] = (counts[item] || 0) + 1;
+        });
+
+        // 计算每种字符串所占的比例
+        const totalCount = data.length;
+        const percentages = {};
+        Object.keys(counts).forEach(key => {
+            percentages[key] = (counts[key] / totalCount) * 100;
+        });
+
+        // 创建Echarts实例
+        const chartNode = $('<div>').addClass('chart-item').css({
+            width: '650px',
+            height: '350px'
+        })
+        const chart = echarts.init(chartNode[0]);
+
+        // 配置Echarts选项
+        const option = {
+            title: {
+                text:  title,
+                left: 'center',
+                textStyle: {
+                    fontSize: titleFontSize
+                },
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b} : {c} ({d}%)',
+                textStyle: {
+                    fontSize: fontSize
+                },
+            },
+            legend: {
+                // orient: 'vertical',
+                // left: 'left',
+                // orient: 'auto',
+                // left: 'auto',
+                top: 'bottom',
+                textStyle: {
+                    fontSize: fontSize
+                },
+            },
+            series: [
+                {
+                    name: '分布',
+                    type: 'pie',
+                    radius: '50%',
+                    data: Object.keys(counts).map(key => ({
+                        value: counts[key],
+                        name: `${key} (${counts[key]}, ${percentages[key].toFixed(2)}%)`
+                    })),
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    label: {
+                        fontSize: fontSize
+                    },
+                }
+            ]
+        };
+
+        // 绘制饼图
+        chart.setOption(option);
+
+        return chartNode;
+    }
+
+    function createNumberPieChart(title, data, MAX_GROUPS=6) {
+        // 根据是否为移动端设置字体大小
+        var fontSize = isMobile() ? '25px' : '12px';
+        var titleFontSize = isMobile() ? '30px' : '16px';
+
+        // 计算数据范围
+        const minValue = Math.min(...data);
+        const maxValue = Math.max(...data);
+
+        // 确定合适的分组粒度
+        let delta = Math.ceil((maxValue - minValue) / MAX_GROUPS);
+        delta = Math.max(delta, 5);
+
+        // 对数据进行分组
+        // const delta = 50
+        const groupedData = data.reduce((groups, time) => {
+            const group = Math.floor(time / delta) * delta;
+            groups[group] = (groups[group] || 0) + 1;
+            return groups;
+        }, {});
+
+        // 计算每种耗时所占的比例
+        const totalCount = Object.values(groupedData).reduce((sum, count) => sum + count, 0);
+        const percentages = Object.entries(groupedData).map(([time, count]) => ({
+            value: count,
+            name: `${time}s - ${parseInt(time) + delta - 1}s (${count}, ${((count / totalCount) * 100).toFixed(2)}%)`
+        }));
+
+        // 创建Echarts实例
+        const chartNode = $('<div>').addClass('chart-item').css({
+            width: '650px',
+            height: '350px',
+        })
+        const chart = echarts.init(chartNode[0]);
+
+        // 配置Echarts选项
+        const option = {
+            title: {
+                text: title,
+                left: 'center',
+                textStyle: {
+                    fontSize: titleFontSize
+                },
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b} : {c} (占比 {d}%)',
+                textStyle: {
+                    fontSize: fontSize
+                },
+            },
+            legend: {
+                // orient: 'vertical',
+                // left: 'left',
+                // orient: 'auto',
+                // left: 'auto',
+                top: 'bottom',
+                textStyle: {
+                    fontSize: fontSize
+                },
+            },
+            series: [
+                {
+                    name: '耗时',
+                    type: 'pie',
+                    radius: '50%',
+                    data: percentages,
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    label: {
+                        fontSize: fontSize
+                    },
+                    // itemStyle: {
+                    //     opacity: 0.8
+                    // }
+                }
+            ],
+        };
+
+        // 绘制饼图
+        chart.setOption(option);
+
+        return chartNode;
+    }
+
+    // 将时间字符串转换为时间戳
+    function convertToTimestamp(data) {
+        let result = []
+        data.forEach(function(item) {
+            var date = new Date(item.time.replace(/-/g, '/'));
+            var today = new Date();
+            date.setDate(today.getDate());
+            date.setMonth(today.getMonth());
+            result.push([date.getTime(), item.count]);
+        });
+        return result;
+    }
+
+    // 绘制多天数据趋势对比图
+    function drawMultiDayTrendChart(todayData, yesterdayData, weekAgoData) {
+        // 根据是否为移动端设置字体大小
+        var fontSize = isMobile() ? '25px' : '12px';
+        var titleFontSize = isMobile() ? '30px' : '16px';
+
+
+        // 将数据转换为 ECharts 所需格式
+        var chartData = [
+            convertToTimestamp(todayData),
+            convertToTimestamp(yesterdayData),
+            convertToTimestamp(weekAgoData),
+        ];
+
+        // 初始化 ECharts 实例
+        const chartNode = $('<div>').addClass('chart-item').css({
+            width: '650px',
+            height: '350px',
+        })
+        var chart = echarts.init(chartNode[0]);
+
+        // 配置图表选项
+        var option = {
+            title: {
+                text: '多天请求量数据趋势图',
+                textStyle: {
+                    fontSize: titleFontSize
+                },
+                top: 0, // 将标题放在最上方
+                left: 'center', // 标题居中
+            },
+            grid: {
+                top: '80px', // 为标题和图例留出空间
+                containLabel: true
+            },
+            tooltip: {
+                trigger: 'axis',
+                formatter: function(params) {
+                    // console.log(params)
+                    var result = '';
+                    params.forEach(function(item) {
+                        var date = new Date(item.value[0]);
+                        switch (item.seriesIndex) {
+                            case 0:
+                                date.setDate(date.getDate());
+                                break;
+                            case 1:
+                                date.setDate(date.getDate() - 1);
+                                break;
+                            case 2:
+                                date.setDate(date.getDate() - 7);
+                                break;
+                        }
+                        dateStr = date.toLocaleString();
+                        result += dateStr.slice(5, 15) + ': ' + item.value[1] + '<br>';
+                    });
+                    return result;
+                },
+                textStyle: {
+                    fontSize: fontSize
+                }
+            },
+            xAxis: {
+                type: 'time',
+                splitLine: {
+                    show: false
+                },
+                axisLabel: {
+                    fontSize: fontSize
+                }
+            },
+            yAxis: {
+                type: 'value',
+                splitLine: {
+                    show: true
+                },
+                axisLabel: {
+                    fontSize: fontSize
+                }
+            },
+            legend: {
+                data: ['当天', '昨天', '一周前'],
+                textStyle: {
+                    fontSize: fontSize
+                },
+                top: '30px', // 将图例放在标题下方
+                left: 'center', // 图例居中
+            },
+            series: [
+                {
+                    name: '当天',
+                    data: chartData[0],
+                    type: 'line',
+                    smooth: true,
+                    itemStyle: {
+                        color: '#1890ff'
+                    },
+                    lineStyle: {
+                        color: '#1890ff'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 4,
+                    z: 3, // 设置当天数据为最上层
+                    label: {
+                        fontSize: fontSize
+                    },
+
+                },
+                {
+                    name: '昨天',
+                    data: chartData[1],
+                    type: 'line',
+                    smooth: true,
+                    itemStyle: {
+                        color: '#52c41a'
+                    },
+                    lineStyle: {
+                        color: '#52c41a'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 4,
+                    z: 2, // 设置昨天数据为中间层
+                    label: {
+                        fontSize: fontSize
+                    },
+
+                },
+                {
+                    name: '一周前',
+                    data: chartData[2],
+                    type: 'line',
+                    smooth: true,
+                    itemStyle: {
+                        color: '#faad14'
+                    },
+                    lineStyle: {
+                        color: '#faad14'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 4,
+                    z: 1, // 设置一周前数据为最底层
+                    label: {
+                        fontSize: fontSize
+                    },
+                }
+            ]
+        };
+
+        // 设置图表选项并显示图表
+        chart.setOption(option);
+
+        return chartNode;
+    }
+
+</script>
+
+</body>
+</html>

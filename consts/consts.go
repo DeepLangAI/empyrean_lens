@@ -254,11 +254,11 @@ var NGINX_INGRESS_APIS = map[string][]API{
 		},
 		{
 			Api:   "/api/repeater/outline",
-			Alias: "【单文档】1[中继服务]智能大纲",
+			Alias: "【单文档】2[中继服务]智能大纲",
 		},
 		{
 			Api:   "/api/repeater/viewpoint",
-			Alias: "【单文档】1[中继服务]关键信息",
+			Alias: "【单文档】3[中继服务]关键信息",
 		},
 	},
 	HOST_PRE_REPEATER: {

@@ -258,6 +258,11 @@
                 font-size: xx-large !important;
             }
 
+            /*时间选择器*/
+            input[type="datetime-local"] {
+                font-size: 25px !important; /* 在小屏幕上增大字体 */
+            }
+
         }
 
 
@@ -423,7 +428,7 @@
             font-weight: normal;
         }
         .log-time {
-            width: 50px;
+            /*width: 50px;*/
             flex-shrink: 0;
             font-size: 12px;
             font-weight: bold;
@@ -881,6 +886,156 @@
         }
 
 
+        .datetime-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px; /* 可调整间距 */
+        }
+        /* 基本样式调整 */
+        input[type="datetime-local"] {
+            width: 48%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        /* 聚焦状态 */
+        input[type="datetime-local"]:focus {
+            border-color: #007BFF;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            outline: none;
+        }
+
+        /* 提高可触控区域 */
+        input[type="datetime-local"] {
+            height: 44px; /* 提高高度以便触控 */
+        }
+
+        /*expander*/
+        .expand-container {
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: 0.3s;
+        }
+
+        .expand:hover {
+            background-color: #e6f7e6; /* Change background on hover to light green */
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Enhance shadow on hover */
+            /*可点击效果*/
+            cursor: pointer;
+        }
+
+        .expand-info {
+            margin-top: 10px;
+            padding: 10px;
+            border-left: 4px solid #28a745; /* Green theme color */
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expand-button {
+            background-color: #28a745; /* Green theme color */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .expand-button:hover {
+            background-color: #218838; /* Darker green on hover */
+        }
+
+        .expand-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            /*padding: 10px;*/
+            background-color: #fff;
+        }
+
+        .expand-content.expanded {
+            max-height: 500px; /* Adjust based on content */
+        }
+
+        .expand-content .tab-container {
+            display: flex;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .expand-content .tab {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s;
+        }
+        .expand-content .tab.active {
+            background-color: #28a745; /* Green theme color */
+            color: white;
+        }
+
+        .toggle-icon {
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        .contentContainer {
+            width: 100%;         /* 容器宽度 */
+            max-height: 400px;  /* 最大高度，可以根据需要调整 */
+            overflow-y: auto;   /* 垂直滚动条 */
+            border: 1px solid #ddd;  /* 边框样式 */
+            /*padding: 10px;      !* 内边距 *!*/
+            background-color: #f9f9f9; /* 背景颜色 */
+            border-radius: 5px; /* 圆角边框 */
+        }
+
+        .suggestions {
+            display: none;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            padding: 5px;
+        }
+        .visible {
+            display: block;
+        }
+        .suggestion-item {
+            cursor: pointer;
+            padding: 5px;
+        }
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .tab {
+            display: inline-block;
+            padding: 10px;
+            margin-right: 5px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+        }
+        .tab.active {
+            background-color: #ddd;
+        }
+
+
+
     </style>
 </head>
 <body>
@@ -908,6 +1063,11 @@
         <div class="tool" onclick="openModal('endtoendtrace-modal')">
             <h2>全链路日志</h2>
             <p>分析链路情况</p>
+        </div>
+
+        <div class="tool" onclick="openModal('userendtoendtrace-modal')">
+            <h2>用户日志</h2>
+            <p>查询用户使用系统产生日志</p>
         </div>
     </div>
 </div>
@@ -941,8 +1101,47 @@
     </div>
 </div>
 
+<div id="userendtoendtrace-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>用户日志查询</h2>
+<!--        <input type="text" id="userendtoendtrace-begin-time" placeholder="起始时间" class="input-field">-->
+        <div class="datetime-container">
+            <input
+                    type="datetime-local"
+                    id="userendtoendtrace-begin-time"
+                    name="meeting-time"
+                    value="2024-09-14T00:00"
+                    min="2018-06-07T00:00"
+                    max="2095-06-14T00:00"
+            />
+            <input
+                    type="datetime-local"
+                    id="userendtoendtrace-end-time"
+                    name="meeting-time"
+                    value="2024-09-14 00:00"
+                    min="2018-06-07 00:00"
+                    max="2095-06-14 00:00"
+            />
+        </div>
+
+        <input type="text" id="userendtoendtrace-userid" placeholder="输入用户ID" class="input-field">
+        <div id="user_suggestions" class="suggestions"></div>
+
+        <div class="button-container">
+            <div id="userendtoendtrace_clean" class="btn-ghost">清空</div>
+            <div id="userendtoendtrace_submit" class="btn-submit">查询</div>
+        </div>
+        <div id="userendtoendtrace_result" class="result-content"></div>
+    </div>
+</div>
+
 
 <script>
+    const userDatabase = [
+        { username: 'fanchao', uid: '645e0764a5b98dc9ebeeda49' },
+    ];
+
 
     String.prototype.format = function(...args) {
         return this.replace(/{(\d+)}/g, (match, index) => args[index]);
@@ -987,9 +1186,6 @@
             $('#traceId').addClass('invalid');
             return
         }
-        // else {
-        //     $('#traceId').removeClass('invalid');
-        // }
 
         showLoadingStatus()
         let result = $('#endtoendtrace_result')
@@ -1129,9 +1325,283 @@
         $('#loading-container').addClass('hide');
     }
 
+    $('#userendtoendtrace_submit').click(function (){
+        let startTime = $('#userendtoendtrace-begin-time').val().replaceAll('T', ' ') + ':00'
+        let endTime = $('#userendtoendtrace-end-time').val().replaceAll('T', ' ') + ':00'
+        let userId = $('#userendtoendtrace-userid').val()
+        axios.get('/api/v1/report/user_trace/list', {
+            params: {
+                time_begin: startTime,
+                time_end: endTime,
+                user_id: userId,
+            }
+        }).then(response => {
+                let resultContainer = $('#userendtoendtrace_result')
+                resultContainer.empty()
+                let tabs = $('<div>').addClass('tabs')
+                let expandContainer = $('<div>').addClass('expand-container')
+                let traceIdLogsContainer = $('<div>').addClass('expand-container').hide()
+                tabs.append(
+                    $('<div>').addClass('tab').attr('id', 'timespan-logs').addClass('active').text('时段日志').click(function () {
+                        $('.tab').removeClass('active');
+                        $(this).addClass('active');
+                        expandContainer.show()
+                        traceIdLogsContainer.hide()
+                    }),
+                    $('<div>').addClass('tab').attr('id', 'userendtoendtrace-logs').text('链路日志').click(function () {
+                        $('.tab').removeClass('active');
+                        $(this).addClass('active');
+                        expandContainer.hide()
+                        traceIdLogsContainer.show()
+                    })
+                )
+                resultContainer.append(tabs, expandContainer, traceIdLogsContainer)
+
+            for (let i = 0; i < response.data.data.length; i++){
+                let dataItem = response.data.data[i]
+                let sceneLogs = dataItem['scene_logs']
+                // console.log(dataItem)
+                let expandItem = $('<div>').addClass('expand')
+                let expandContent = $('<div>').addClass('expand-content')
+                let tabContainer = $('<div>').addClass('tab-container')
+                let contentContainer = $('<div>').addClass('contentContainer');
+                // 创建标签
+                $.each(sceneLogs, function(key) {
+                    let tab = $('<div>').addClass('tab').text(`${key}(${sceneLogs[key].length})`).click(function() {
+                        // 切换激活状态
+                        $('.tab').removeClass('active');
+                        $(this).addClass('active');
+
+                        // 更新内容
+                        updateContent(key);
+                    });
+                    tabContainer.append(tab);
+                });
+                expandContent.append(tabContainer, contentContainer);
+
+                expandItem.append(
+                    $('<div>').addClass('expand-info').append(
+                        $('<div>').html(`
+                            <strong>TraceId</strong> ${dataItem['trace_id']}<br>
+                            <strong>开始时间</strong> ${dataItem['time_begin']}<br>
+                            <strong>日志总数</strong> ${dataItem['num_total_logs']}<br>
+                            `) ,
+                        $('<div>').addClass('expand-button').click(function (event){
+                            // 阻止事件冒泡
+                            event.stopPropagation();
+
+                            // 切换内容的展开状态
+                            let content = expandItem.find('.expand-content');
+                            content.toggleClass('expanded');
+                            // 更新图标
+                            let icon = $(this).find('.toggle-icon');
+                            icon.text(content.hasClass('expanded') ? '▼' : '▲');
+                        }).html(`<span class="toggle-icon" id="toggle-icon">▲</span> `),
+                    ).click(function (){
+                        showEndToEndTraceLogs(dataItem['trace_id'], dataItem['time_begin'].slice(0, 10))
+                    }),
+                    expandContent,
+                )
+                expandContainer.append(expandItem)
+                console.log(dataItem, expandItem)
+
+                function showEndToEndTraceLogs(traceId, date) {
+                    console.log('展示日志', traceId)
+                    axios.get('/api/v1/report/trace/list', {
+                        params: {
+                            date_begin: date,
+                            trace_id: traceId,
+                        }
+                    }).then(response => {
+                        traceIdLogsContainer.empty()
+                        let data = response.data.data
+                        let logContainer = $('<div>').attr('id', '全链路日志列表')
+                        logContainer.append($('<h3>').text(`日期：${date}`))
+
+                        // 循环写入数据，以表格展示数据
+                        for (let i = 0; i < data.length; i++) {
+                            const log = data[i]
+                            const originLog = response.data.data[i].origin_log
+
+                            const logContainer = $('<div>').addClass('log-container');
+                            const logId = $('<div>').addClass('log-id').text(i + 1);
+                            const logTime = $('<div>').addClass('log-time').text(log.time.slice(11, 19));
+                            const logDetails = $('<div>').addClass('log-details');
+                            const logDetailsHeader = $('<div>').addClass('log-details-header');
+                            const logDetailsBody = $('<div>').addClass('log-details-body');
+                            logDetailsBody.append(
+                                $("<p>")
+                                    .append($("<span>").text('日志来源' + ": "))
+                                    .append(getLogSotreAlias(log.log_store_name))
+                            );
+                            for (var key in originLog) {
+                                if (key.startsWith("_")) {
+                                    var val = originLog[key]
+                                    key = key + ':' + val
+                                    if (val.length >= 15) {
+                                        val = val.slice(0, 15) + '...' + val.slice(-5, val.length)
+                                    }
+                                    logDetailsHeader.append(
+                                        $("<span>")
+                                            .attr("data-field-name", key)
+                                            .text(val)
+                                    );
+                                } else {
+                                    const id = key + '-' + i;
+                                    var span = $('<span>')
+                                        .addClass('expand-tip')
+                                        .text('展开')
+                                        .click(function (e) {
+                                            e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                            handleClickExpand(id)
+                                        })
+                                    var p = $('<p id="{0}">'.format(id))
+                                        .append($("<span>").text(key + ":"))
+                                        .append(originLog[key])
+                                    if (originLog[key].length >= 150) {
+                                        p.append(span)
+                                    }
+
+                                    logDetailsBody.append(p)
+                                }
+                            }
+                            logDetails.append(logDetailsHeader, logDetailsBody);
+                            logContainer.append(logId, logTime, logDetails);
+                            traceIdLogsContainer.append(logContainer);
+                            // 找到tabs里的第二个.tab，然后触发它的click事件
+                            $('.tabs .tab:nth-child(2)').trigger('click');
+                        }
+                    }).catch(function (error) {
+                        console.log(error);
+                    }).finally(function () {
+                        // 加载完成后，显示加载动画
+                        // $('#loading').hide();
+                    })
+                }
+
+                function updateContent(key) {
+                    contentContainer.empty()
+
+                    let logs = sceneLogs[key];
+
+                    for (let i = 0; i < logs.length; i++) {
+                        let log = logs[i];
+                        let originLog = log['origin_log'];
+                        console.log(originLog)
+
+                        const logContainer = $('<div>').addClass('log-container');
+                        const logId = $('<div>').addClass('log-id').text(i + 1);
+                        // const logTime = $('<div>').addClass('log-time').text(log.time_begin.slice(11, 19));
+                        const logTime = $('<div>').addClass('log-time')
+                        const logDetails = $('<div>').addClass('log-details');
+                        const logDetailsHeader = $('<div>').addClass('log-details-header');
+                        const logDetailsBody = $('<div>').addClass('log-details-body');
+
+                        for (var key in originLog) {
+                            if (key.startsWith("_")) {
+                                var val = originLog[key]
+                                key = key + ':' + val
+                                if (val.length >= 15) {
+                                    val = val.slice(0, 15) + '...' + val.slice(-5, val.length)
+                                }
+                                logDetailsHeader.append(
+                                    $("<span>")
+                                        .attr("data-field-name", key)
+                                        .text(val)
+                                );
+                            } else {
+                                const id = key + '-' + i;
+                                var span = $('<span>')
+                                    .addClass('expand-tip')
+                                    .text('展开')
+                                    .click(function (e) {
+                                        e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                        handleClickExpand(id)
+                                    })
+                                var p = $('<p id="{0}">'.format(id))
+                                    .append($("<span>").text(key + ":"))
+                                    .append(originLog[key])
+                                if (originLog[key].length >= 150) {
+                                    p.append(span)
+                                }
+
+                                logDetailsBody.append(p)
+                            }
+                        };
+                        logDetails.append(logDetailsHeader, logDetailsBody);
+                        logContainer.append(logId, logTime, logDetails);
+                        contentContainer.append(logContainer);
+                    }
+                }
+            }
+        } ).catch(error =>{
+            console.error('Error fetching score details:', error);
+        }).finally(()=>{
+
+        })
+    })
+    $('#userendtoendtrace_clean').click(function (){
+        $('#userendtoendtrace-userid').val('')
+    })
+
+
+
+    function getCurrentDateMinusMinutes(minutes) {
+        var currentDate = new Date();
+        currentDate.setMinutes(currentDate.getMinutes() - minutes);
+        var year = currentDate.getFullYear();
+        var month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+        var day = currentDate.getDate().toString().padStart(2, '0');
+        var hours = currentDate.getHours().toString().padStart(2, '0');
+        var minutes = currentDate.getMinutes().toString().padStart(2, '0');
+        // var seconds = currentDate.getSeconds().toString().padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+    }
+
     $(document).ready(function() {
         hideLoadingStatus()
         $('#date').val(getCurrentDate()).attr('placeholder', '输入日期，如：' + getCurrentDate());
+        // 修改id为userendtoendtrace-begin-time的时间选择器的初始时间为10分钟前
+        $('#userendtoendtrace-begin-time').val(getCurrentDateMinusMinutes(10))
+        $('#userendtoendtrace-end-time').val(getCurrentDateMinusMinutes(0))
+        $('#userendtoendtrace-userid').on('input', function (){
+            const inputValue = $(this).val().trim().toLowerCase();
+
+            // 如果输入内容为空，隐藏提示框
+            if (inputValue === '') {
+                $('#user_suggestions').removeClass('visible').empty();
+                return;
+            }
+
+            // 查找所有以输入内容开头的用户名
+            const matchedUsers = userDatabase.filter(user =>
+                user.username.toLowerCase().indexOf(inputValue) != -1
+            );
+
+            // 如果有匹配的用户名，显示提示框；否则隐藏
+            if (matchedUsers.length > 0) {
+                // 清空之前的提示内容
+                $('#user_suggestions').empty();
+
+                // 将所有匹配的用户名和 UID 显示出来，并添加点击事件
+                matchedUsers.forEach(user => {
+                    const suggestionItem = $('<div></div>')
+                        .addClass('suggestion-item')
+                        .text(`用户名: ${user.username}, UID: ${user.uid}`)
+                        .appendTo('#user_suggestions');
+
+                    // 添加点击事件，点击后填充 UID
+                    suggestionItem.on('click', function() {
+                        $('#userendtoendtrace-userid').val(user.uid);
+                        $('#user_suggestions').removeClass('visible'); // 点击后隐藏提示框
+                    });
+                });
+
+                $('#user_suggestions').addClass('visible');
+            } else {
+                $('#user_suggestions').removeClass('visible').empty();
+            }
+        })
     })
 
     function handleClickExpand(pid){

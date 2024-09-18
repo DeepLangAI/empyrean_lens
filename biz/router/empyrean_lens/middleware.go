@@ -225,3 +225,13 @@ func _authMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _user_traceMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _systemendtoendusertracelogsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

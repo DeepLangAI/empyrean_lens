@@ -1179,7 +1179,7 @@ limit %v
 	return results, nil
 }
 
-type EntToEndLog struct {
+type EndToEndLog struct {
 	LogStoreName string
 	TraceId      string
 	UserId       string
@@ -1194,7 +1194,7 @@ type EntToEndLog struct {
 	OriginLog    map[string]string
 }
 
-func NginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
+func NginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EndToEndLog, error) {
 	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
@@ -1227,7 +1227,7 @@ limit %v
 		return nil, err
 	}
 	hlog.CtxInfof(ctx, "日期%v，查nginxIngress, trace_id: %v 共%v条日志", date, traceId, len(resp.Logs))
-	logs := []EntToEndLog{}
+	logs := []EndToEndLog{}
 	for _, log := range resp.Logs {
 		t, err := time.Parse("02/Jan/2006:15:04:05", log["time"])
 		if t.Format("2006-01-02") != date {
@@ -1254,7 +1254,7 @@ limit %v
 			}
 			originLog[key] = val
 		}
-		logs = append(logs, EntToEndLog{
+		logs = append(logs, EndToEndLog{
 			TraceId:      traceId,
 			UserId:       log["user_id"],
 			Time:         t.Format("2006-01-02 15:04:05.999"),
@@ -1271,7 +1271,167 @@ limit %v
 	}
 	return logs, nil
 }
-func ModelNginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
+func NginxLogQueryByUserId(ctx context.Context, userId string, timeBegin, timeEnd time.Time) ([]EndToEndLog, error) {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.NGINX_LOG_STORE_NAME)
+	from := timeBegin.Unix()
+	to := timeEnd.Unix()
+	query := `
+|select 
+trace_id, user_id,
+host, url, request_time cost, client_ip, http_user_agent ua, channel, *
+from log
+where user_id = '%v'
+order by time desc
+limit %v
+`
+	query = fmt.Sprintf(query, userId, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
+	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
+
+	if err != nil {
+		hlog.CtxErrorf(ctx, "NginxLogQueryByTraceId query log error: %v", err)
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "日期(%v, %v)，查nginxIngress, userId: %v 共%v条日志", timeBegin, timeEnd, userId, len(resp.Logs))
+	logs := []EndToEndLog{}
+	for _, log := range resp.Logs {
+		t, err := time.Parse("02/Jan/2006:15:04:05", log["time"])
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+		cost, err := strconv.ParseFloat(log["cost"], 32)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", err)
+			continue
+		}
+
+		originLog := map[string]string{}
+		for key, val := range log {
+			if val == "null" || val == "-" || val == "" {
+				continue
+			}
+			key = strings.Trim(key, " ")
+
+			if strings.HasSuffix(key, "_0") {
+				continue
+			}
+			originLog[key] = val
+		}
+		logs = append(logs, EndToEndLog{
+			TraceId:      log["trace_id"],
+			UserId:       log["user_id"],
+			Time:         t.Format("2006-01-02 15:04:05.999"),
+			Message:      "",
+			Host:         log["host"],
+			ApiPath:      log["url"],
+			Cost:         float32(cost),
+			ClientIp:     log["client_ip"],
+			LogStoreName: consts.NGINX_LOG_STORE_NAME,
+			UA:           log["ua"],
+			Channel:      log["channel"],
+			OriginLog:    originLog,
+		})
+	}
+	return logs, nil
+}
+func ModelNginxLogQueryByUserId(ctx context.Context, userId string, timeBegin, timeEnd time.Time) ([]EndToEndLog, error) {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.MODEL_NGINX_LOG_STORE_NAME)
+
+	from := timeBegin.Unix()
+	to := timeEnd.Unix()
+
+	query := `
+|select 
+"content.trace_id" trace_id, 
+"content.user_id" user_id, 
+"content.time" time, 
+"content.vhost" host, 
+"content.path" url,
+"content.duration" cost ,
+"content.http_user_agent" ua,
+"content.channel" channel,
+*
+from log
+where "content.user_id"='%v' 
+order by "content.time" desc
+limit %v
+`
+	query = fmt.Sprintf(query, userId, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "model nginx sql query: %v", query)
+	// 查询日志
+	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
+
+	if err != nil {
+		hlog.CtxErrorf(ctx, "ModelNginxLogQueryByTraceId query log error: %v", err)
+		return nil, err
+	}
+
+	nlogs := []EndToEndLog{}
+	for _, log := range resp.Logs {
+		t, e := time.Parse(time.RFC3339, log["time"])
+		// 时间是UTC时间，需要+8小时
+		t = t.Add(time.Hour * 8)
+		//if t.Format("2006-01-02") != fromdayStr {
+		//	continue
+		//}
+		if t.Unix() <= from {
+			hlog.CtxDebugf(ctx, "time %v <= from %v", t, time.Unix(from, 0))
+			continue
+		}
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			continue
+		}
+		cost, err := strconv.ParseFloat(log["cost"], 32)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
+			continue
+		}
+		originLog := map[string]string{}
+		for key, val := range log {
+			if val == "null" || val == "-" || val == "" {
+				continue
+			}
+
+			if strings.HasSuffix(key, "_0") {
+				continue
+			}
+			if strings.HasPrefix(key, "content.") {
+				key = strings.TrimPrefix(key, "content.")
+			}
+			originLog[key] = val
+		}
+		nlogs = append(nlogs, EndToEndLog{
+			LogStoreName: consts.MODEL_NGINX_LOG_STORE_NAME,
+			TraceId:      log["trace_id"],
+			UserId:       log["user_id"],
+			Time:         t.Format("2006-01-02 15:04:05.999"),
+			Message:      "",
+			Host:         log["host"],
+			ApiPath:      log["url"],
+			Cost:         float32(cost),
+			ClientIp:     log["client_ip"],
+			UA:           log["ua"],
+			Channel:      log["channel"],
+			OriginLog:    originLog,
+		})
+	}
+	hlog.CtxInfof(ctx, "日期(%v, %v)，查modelIngress, userId: %v, 共%v条日志", timeBegin, timeEnd, userId, len(nlogs))
+	return nlogs, nil
+}
+
+func ModelNginxLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EndToEndLog, error) {
 	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
@@ -1315,7 +1475,7 @@ limit %v
 		return nil, err
 	}
 
-	nlogs := []EntToEndLog{}
+	nlogs := []EndToEndLog{}
 	for _, log := range resp.Logs {
 		t, e := time.Parse(time.RFC3339, log["time"])
 		// 时间是UTC时间，需要+8小时
@@ -1350,7 +1510,7 @@ limit %v
 			}
 			originLog[key] = val
 		}
-		nlogs = append(nlogs, EntToEndLog{
+		nlogs = append(nlogs, EndToEndLog{
 			LogStoreName: consts.MODEL_NGINX_LOG_STORE_NAME,
 			TraceId:      log["trace_id"],
 			UserId:       log["user_id"],
@@ -1368,7 +1528,7 @@ limit %v
 	hlog.CtxInfof(ctx, "日期%v，查modelIngress, trace_id: %v, 共%v条日志", date, traceId, len(nlogs))
 	return nlogs, nil
 }
-func BusinessLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
+func BusinessLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EndToEndLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
 	if err != nil {
@@ -1404,7 +1564,7 @@ limit %v
 		return nil, err
 	}
 	hlog.CtxInfof(ctx, "日期%v，查business-pod, trace_id: %v, 共%v条日志", date, traceId, len(resp.Logs))
-	logs := []EntToEndLog{}
+	logs := []EndToEndLog{}
 	for _, log := range resp.Logs {
 		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
 		if e != nil {
@@ -1428,7 +1588,78 @@ limit %v
 			}
 			originLog[key] = val
 		}
-		logs = append(logs, EntToEndLog{
+		logs = append(logs, EndToEndLog{
+			LogStoreName: consts.BUSINESS_LOG_STORE_NAME,
+			TraceId:      log["trace_id"],
+			UserId:       log["user_id"],
+			Time:         t.Format("2006-01-02 15:04:05.999"),
+			Message:      log["msg"],
+			Host:         "",
+			ApiPath:      "",
+			Cost:         0,
+			ClientIp:     log["client_ip"],
+			OriginLog:    originLog,
+		})
+	}
+	return logs, nil
+}
+func BusinessLogQueryByUserId(ctx context.Context, userId string, timeBegin, timeEnd time.Time) ([]EndToEndLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+
+	if err != nil {
+		return nil, err
+	}
+
+	from := timeBegin.Unix()
+	to := timeEnd.Unix()
+
+	query := `
+|select
+user_id, trace_id,
+COALESCE(asctime, time) AS time,
+-- asctime time,
+ip client_ip, message msg,
+*
+from log where
+user_id = '%v'
+order by asctime desc
+limit %v
+`
+	query = fmt.Sprintf(query, userId, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "business trace sql query: %v", query)
+	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
+
+	if err != nil {
+		hlog.CtxErrorf(ctx, "BusinessLogQueryByTraceId query log error: %v", err)
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "日期(%v, %v)，查business-pod, userId: %v, 共%v条日志", timeBegin, timeEnd, userId, len(resp.Logs))
+	logs := []EndToEndLog{}
+	for _, log := range resp.Logs {
+		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
+		if e != nil {
+			// 解析如2024-09-12T08:40:51.288+08:00的时间格式
+			t, e = time.Parse(time.RFC3339, log["time"])
+			if e != nil {
+				hlog.CtxErrorf(ctx, "parse time error: %v", e)
+				continue
+			}
+			//hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			//continue
+		}
+		originLog := map[string]string{}
+		for key, val := range log {
+			if val == "null" || val == "-" || val == "" {
+				continue
+			}
+
+			if strings.HasSuffix(key, "_0") {
+				continue
+			}
+			key = strings.Trim(key, " ")
+			originLog[key] = val
+		}
+		logs = append(logs, EndToEndLog{
 			LogStoreName: consts.BUSINESS_LOG_STORE_NAME,
 			TraceId:      log["trace_id"],
 			UserId:       log["user_id"],

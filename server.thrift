@@ -207,6 +207,28 @@ struct EndToEndTraceRespData{
     11: string channel
     12: map<string, string> origin_log
 }
+
+
+# 用户全链路日志
+struct EndToEndUserTraceReq{
+    1: string time_begin
+    2: string time_end
+    3: string user_id
+}
+
+struct EndToEndUserTraceResp{
+    1: i32 code
+    2: string msg
+    3: list<EndToEndUserTraceRespData> data
+}
+struct EndToEndUserTraceRespData{
+    1: string trace_id
+    2: string time_begin
+    3: string time_end
+    4: i32 num_total_logs
+    5: map<string, list<EndToEndTraceRespData>> scene_logs
+}
+
 # Traceback日志
 struct TracebackReq{
     1: string date_begin
@@ -372,6 +394,10 @@ service Rentention{
    // 全链路日志
    EndToEndTraceResp SystemEndToEndTraceLogs(1: EndToEndTraceReq req) (
        api.get="/api/v1/report/trace/list"
+   )
+   // 用户全链路日志
+   EndToEndUserTraceResp SystemEndToEndUserTraceLogs(1: EndToEndUserTraceReq req) (
+       api.get="/api/v1/report/user_trace/list"
    )
    // Traceback日志列表
    TracebackResp SysteTracebackLogs(1: TracebackReq req) (

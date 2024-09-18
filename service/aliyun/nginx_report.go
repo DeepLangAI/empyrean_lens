@@ -175,6 +175,14 @@ func EndToEndTraceLogs(ctx context.Context, req empyrean_lens.EndToEndTraceReq) 
 	return data, nil
 }
 
+type GroupedTrace struct {
+	NumLogsTotal int32
+	SceneLogs    map[string][]*empyrean_lens.EndToEndTraceRespData
+	StartTime    time.Time
+	EndTime      time.Time
+	TraceId      string
+}
+
 func EndToEndUserTraceLogs(ctx context.Context, req empyrean_lens.EndToEndUserTraceReq) ([]*empyrean_lens.EndToEndUserTraceRespData, error) {
 	logs, err := aliyun.EndToEndUserLogsQuery(ctx, req.UserID, req.TimeBegin, req.TimeEnd)
 	if err != nil {
@@ -197,7 +205,6 @@ func EndToEndUserTraceLogs(ctx context.Context, req empyrean_lens.EndToEndUserTr
 			OriginLog:    log.OriginLog,
 		})
 	}
-	data := []*empyrean_lens.EndToEndUserTraceRespData{}
 
 	groupedPaths := map[string][]string{
 		"数据处理": {
@@ -233,8 +240,21 @@ func EndToEndUserTraceLogs(ctx context.Context, req empyrean_lens.EndToEndUserTr
 			"/api/feed/v1/subscription/upsert",
 		},
 	}
-	groupedLogs := map[string][]*empyrean_lens.EndToEndTraceRespData{}
+	traceIdGroupedLogs := map[string]*empyrean_lens.EndToEndUserTraceRespData{}
 	for _, log := range parsedLogs {
+		if log.TraceID == "" || log.TraceID == "-" || log.TraceID == "null" {
+			continue
+		}
+		if _, ok := traceIdGroupedLogs[log.TraceID]; !ok {
+			traceIdGroupedLogs[log.TraceID] = &empyrean_lens.EndToEndUserTraceRespData{
+				NumTotalLogs: 0,
+				SceneLogs:    map[string][]*empyrean_lens.EndToEndTraceRespData{},
+				TimeBegin:    "",
+				TimeEnd:      "",
+				TraceID:      log.TraceID,
+			}
+		}
+		group := traceIdGroupedLogs[log.TraceID]
 		key := ""
 		for _key, paths := range groupedPaths {
 			if utils.Contains(paths, log.APIPath) {
@@ -248,37 +268,48 @@ func EndToEndUserTraceLogs(ctx context.Context, req empyrean_lens.EndToEndUserTr
 			}
 		}
 		if key == "" {
-			key = "其他"
+			key = "待分类"
 		}
-		if groupedLogs[key] == nil {
-			groupedLogs[key] = []*empyrean_lens.EndToEndTraceRespData{}
-		}
-		groupedLogs[key] = append(groupedLogs[key], log)
-	}
-	keys := utils.KeysOfMap(groupedLogs)
-	orderedKeys := []string{"单文档", "多文档", "问答", "摘录", "数据处理", "订阅", "安全", "其他"}
-	sort.Slice(keys, func(i, j int) bool {
-		idxI := utils.Index(orderedKeys, keys[i])
-		idxJ := utils.Index(orderedKeys, keys[j])
-		if idxI != -1 && idxJ != -1 {
-			return idxI < idxJ
-		}
-		if idxI == -1 && idxJ == -1 {
-			return keys[i] < keys[j]
-		}
-		return idxI == -1
-	})
-	for _, key := range keys {
-		sort.Slice(groupedLogs[key], func(i, j int) bool {
-			return groupedLogs[key][i].Time >= groupedLogs[key][j].Time
-		})
-		data = append(data, &empyrean_lens.EndToEndUserTraceRespData{
-			Scene: key,
-			Logs:  groupedLogs[key],
-		})
-	}
 
-	return data, nil
+		if group.SceneLogs[key] == nil {
+			group.SceneLogs[key] = []*empyrean_lens.EndToEndTraceRespData{}
+		}
+
+		group.SceneLogs[key] = append(group.SceneLogs[key], log)
+		group.NumTotalLogs += 1
+		if log.Time < group.TimeBegin || group.TimeBegin == "" {
+			group.TimeBegin = log.Time
+		}
+		if log.Time > group.TimeEnd || group.TimeEnd == "" {
+			group.TimeEnd = log.Time
+		}
+	}
+	for _, group := range traceIdGroupedLogs {
+		keys := utils.KeysOfMap(group.SceneLogs)
+		orderedKeys := []string{"单文档", "多文档", "问答", "摘录", "数据处理", "订阅", "安全", "待分类"}
+		sort.Slice(keys, func(i, j int) bool {
+			idxI := utils.Index(orderedKeys, keys[i])
+			idxJ := utils.Index(orderedKeys, keys[j])
+			if idxI != -1 && idxJ != -1 {
+				return idxI < idxJ
+			}
+			if idxI == -1 && idxJ == -1 {
+				return keys[i] < keys[j]
+			}
+			return idxI == -1
+		})
+		for _, key := range keys {
+			sort.Slice(group.SceneLogs[key], func(i, j int) bool {
+				return group.SceneLogs[key][i].Time >= group.SceneLogs[key][j].Time
+			})
+		}
+	}
+	groups := utils.ValuesOfMap(traceIdGroupedLogs)
+	sort.Slice(groups, func(i, j int) bool {
+		return groups[i].TimeBegin >= groups[j].TimeBegin
+	})
+
+	return groups, nil
 }
 
 func RequestTrend(ctx context.Context, req empyrean_lens.RequestTrendReq) (*empyrean_lens.RequestTrendRespData, error) {

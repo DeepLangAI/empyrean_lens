@@ -8792,25 +8792,43 @@ func (p *EndToEndUserTraceResp) String() string {
 }
 
 type EndToEndUserTraceRespData struct {
-	Scene string                   `thrift:"scene,1" form:"scene" json:"scene" query:"scene"`
-	Logs  []*EndToEndTraceRespData `thrift:"logs,2" form:"logs" json:"logs" query:"logs"`
+	TraceID      string                              `thrift:"trace_id,1" form:"trace_id" json:"trace_id" query:"trace_id"`
+	TimeBegin    string                              `thrift:"time_begin,2" form:"time_begin" json:"time_begin" query:"time_begin"`
+	TimeEnd      string                              `thrift:"time_end,3" form:"time_end" json:"time_end" query:"time_end"`
+	NumTotalLogs int32                               `thrift:"num_total_logs,4" form:"num_total_logs" json:"num_total_logs" query:"num_total_logs"`
+	SceneLogs    map[string][]*EndToEndTraceRespData `thrift:"scene_logs,5" form:"scene_logs" json:"scene_logs" query:"scene_logs"`
 }
 
 func NewEndToEndUserTraceRespData() *EndToEndUserTraceRespData {
 	return &EndToEndUserTraceRespData{}
 }
 
-func (p *EndToEndUserTraceRespData) GetScene() (v string) {
-	return p.Scene
+func (p *EndToEndUserTraceRespData) GetTraceID() (v string) {
+	return p.TraceID
 }
 
-func (p *EndToEndUserTraceRespData) GetLogs() (v []*EndToEndTraceRespData) {
-	return p.Logs
+func (p *EndToEndUserTraceRespData) GetTimeBegin() (v string) {
+	return p.TimeBegin
+}
+
+func (p *EndToEndUserTraceRespData) GetTimeEnd() (v string) {
+	return p.TimeEnd
+}
+
+func (p *EndToEndUserTraceRespData) GetNumTotalLogs() (v int32) {
+	return p.NumTotalLogs
+}
+
+func (p *EndToEndUserTraceRespData) GetSceneLogs() (v map[string][]*EndToEndTraceRespData) {
+	return p.SceneLogs
 }
 
 var fieldIDToName_EndToEndUserTraceRespData = map[int16]string{
-	1: "scene",
-	2: "logs",
+	1: "trace_id",
+	2: "time_begin",
+	3: "time_end",
+	4: "num_total_logs",
+	5: "scene_logs",
 }
 
 func (p *EndToEndUserTraceRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -8841,8 +8859,32 @@ func (p *EndToEndUserTraceRespData) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 2:
-			if fieldTypeId == thrift.LIST {
+			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 4:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField4(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 5:
+			if fieldTypeId == thrift.MAP {
+				if err = p.ReadField5(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -8885,29 +8927,80 @@ func (p *EndToEndUserTraceRespData) ReadField1(iprot thrift.TProtocol) error {
 	} else {
 		_field = v
 	}
-	p.Scene = _field
+	p.TraceID = _field
 	return nil
 }
 func (p *EndToEndUserTraceRespData) ReadField2(iprot thrift.TProtocol) error {
-	_, size, err := iprot.ReadListBegin()
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TimeBegin = _field
+	return nil
+}
+func (p *EndToEndUserTraceRespData) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TimeEnd = _field
+	return nil
+}
+func (p *EndToEndUserTraceRespData) ReadField4(iprot thrift.TProtocol) error {
+
+	var _field int32
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.NumTotalLogs = _field
+	return nil
+}
+func (p *EndToEndUserTraceRespData) ReadField5(iprot thrift.TProtocol) error {
+	_, _, size, err := iprot.ReadMapBegin()
 	if err != nil {
 		return err
 	}
-	_field := make([]*EndToEndTraceRespData, 0, size)
-	values := make([]EndToEndTraceRespData, size)
+	_field := make(map[string][]*EndToEndTraceRespData, size)
 	for i := 0; i < size; i++ {
-		_elem := &values[i]
+		var _key string
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_key = v
+		}
+		_, size, err := iprot.ReadListBegin()
+		if err != nil {
+			return err
+		}
+		_val := make([]*EndToEndTraceRespData, 0, size)
+		values := make([]EndToEndTraceRespData, size)
+		for i := 0; i < size; i++ {
+			_elem := &values[i]
 
-		if err := _elem.Read(iprot); err != nil {
+			if err := _elem.Read(iprot); err != nil {
+				return err
+			}
+
+			_val = append(_val, _elem)
+		}
+		if err := iprot.ReadListEnd(); err != nil {
 			return err
 		}
 
-		_field = append(_field, _elem)
+		_field[_key] = _val
 	}
-	if err := iprot.ReadListEnd(); err != nil {
+	if err := iprot.ReadMapEnd(); err != nil {
 		return err
 	}
-	p.Logs = _field
+	p.SceneLogs = _field
 	return nil
 }
 
@@ -8923,6 +9016,18 @@ func (p *EndToEndUserTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField2(oprot); err != nil {
 			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+		if err = p.writeField4(oprot); err != nil {
+			fieldId = 4
+			goto WriteFieldError
+		}
+		if err = p.writeField5(oprot); err != nil {
+			fieldId = 5
 			goto WriteFieldError
 		}
 	}
@@ -8944,10 +9049,10 @@ WriteStructEndError:
 }
 
 func (p *EndToEndUserTraceRespData) writeField1(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("scene", thrift.STRING, 1); err != nil {
+	if err = oprot.WriteFieldBegin("trace_id", thrift.STRING, 1); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteString(p.Scene); err != nil {
+	if err := oprot.WriteString(p.TraceID); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -8961,18 +9066,10 @@ WriteFieldEndError:
 }
 
 func (p *EndToEndUserTraceRespData) writeField2(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("logs", thrift.LIST, 2); err != nil {
+	if err = oprot.WriteFieldBegin("time_begin", thrift.STRING, 2); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteListBegin(thrift.STRUCT, len(p.Logs)); err != nil {
-		return err
-	}
-	for _, v := range p.Logs {
-		if err := v.Write(oprot); err != nil {
-			return err
-		}
-	}
-	if err := oprot.WriteListEnd(); err != nil {
+	if err := oprot.WriteString(p.TimeBegin); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -8983,6 +9080,76 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *EndToEndUserTraceRespData) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time_end", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TimeEnd); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *EndToEndUserTraceRespData) writeField4(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("num_total_logs", thrift.I32, 4); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(p.NumTotalLogs); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
+}
+
+func (p *EndToEndUserTraceRespData) writeField5(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("scene_logs", thrift.MAP, 5); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteMapBegin(thrift.STRING, thrift.LIST, len(p.SceneLogs)); err != nil {
+		return err
+	}
+	for k, v := range p.SceneLogs {
+		if err := oprot.WriteString(k); err != nil {
+			return err
+		}
+		if err := oprot.WriteListBegin(thrift.STRUCT, len(v)); err != nil {
+			return err
+		}
+		for _, v := range v {
+			if err := v.Write(oprot); err != nil {
+				return err
+			}
+		}
+		if err := oprot.WriteListEnd(); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteMapEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
 }
 
 func (p *EndToEndUserTraceRespData) String() string {

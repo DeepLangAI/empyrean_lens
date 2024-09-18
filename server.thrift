@@ -222,8 +222,11 @@ struct EndToEndUserTraceResp{
     3: list<EndToEndUserTraceRespData> data
 }
 struct EndToEndUserTraceRespData{
-    1: string scene
-    2: list<EndToEndTraceRespData> logs
+    1: string trace_id
+    2: string time_begin
+    3: string time_end
+    4: i32 num_total_logs
+    5: map<string, list<EndToEndTraceRespData>> scene_logs
 }
 
 # Traceback日志

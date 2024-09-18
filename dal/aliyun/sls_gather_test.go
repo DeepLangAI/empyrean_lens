@@ -590,7 +590,7 @@ func TestEndToEndUserLogsQuery(t *testing.T) {
 				}
 			}
 			if key == "" {
-				key = "其他"
+				key = "待分类"
 			}
 			if groupedLogs[key] == nil {
 				groupedLogs[key] = []EndToEndLog{}

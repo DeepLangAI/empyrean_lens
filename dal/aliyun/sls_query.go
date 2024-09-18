@@ -1656,6 +1656,7 @@ limit %v
 			if strings.HasSuffix(key, "_0") {
 				continue
 			}
+			key = strings.Trim(key, " ")
 			originLog[key] = val
 		}
 		logs = append(logs, EndToEndLog{

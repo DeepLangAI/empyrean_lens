@@ -112,14 +112,9 @@ func TestEndToEndUserTraceLogs(t *testing.T) {
 		t.Error(err)
 	}
 	for _, r := range logs {
-		fmt.Println(r.Scene, len(r.Logs))
-		//if r.Scene == "其他" {
-		//	for _, log := range r.Logs {
-		//		if log.APIPath == "" {
-		//			continue
-		//		}
-		//		fmt.Println(log.Host, log.APIPath)
-		//	}
-		//}
+		fmt.Println(r.TraceID, r.NumTotalLogs, r.TimeBegin)
+		for scene, sceneLogs := range r.SceneLogs {
+			fmt.Println(scene, len(sceneLogs))
+		}
 	}
 }

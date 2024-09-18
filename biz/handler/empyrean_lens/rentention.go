@@ -518,3 +518,25 @@ func Auth(ctx context.Context, c *app.RequestContext) {
 		c.Redirect(302, []byte(consts2.HOME_PATH))
 	}
 }
+
+// SystemEndToEndUserTraceLogs .
+// @router /api/v1/report/user_trace/list [GET]
+func SystemEndToEndUserTraceLogs(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.EndToEndUserTraceReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.EndToEndUserTraceResp)
+	logs, err := aliyun2.EndToEndUserTraceLogs(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+	}
+	resp.Data = logs
+
+	base.SuccessResponse(c, resp)
+}

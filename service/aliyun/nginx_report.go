@@ -175,6 +175,112 @@ func EndToEndTraceLogs(ctx context.Context, req empyrean_lens.EndToEndTraceReq) 
 	return data, nil
 }
 
+func EndToEndUserTraceLogs(ctx context.Context, req empyrean_lens.EndToEndUserTraceReq) ([]*empyrean_lens.EndToEndUserTraceRespData, error) {
+	logs, err := aliyun.EndToEndUserLogsQuery(ctx, req.UserID, req.TimeBegin, req.TimeEnd)
+	if err != nil {
+		return nil, err
+	}
+	parsedLogs := []*empyrean_lens.EndToEndTraceRespData{}
+	for _, log := range logs {
+		parsedLogs = append(parsedLogs, &empyrean_lens.EndToEndTraceRespData{
+			LogStoreName: log.LogStoreName,
+			TraceID:      log.TraceId,
+			UserID:       log.UserId,
+			Time:         log.Time,
+			Msg:          log.Message,
+			Host:         log.Host,
+			APIPath:      log.ApiPath,
+			Cost:         float64(log.Cost),
+			ClientIP:     log.ClientIp,
+			Ua:           log.UA,
+			Channel:      log.Channel,
+			OriginLog:    log.OriginLog,
+		})
+	}
+	data := []*empyrean_lens.EndToEndUserTraceRespData{}
+
+	groupedPaths := map[string][]string{
+		"数据处理": {
+			"/crawl",
+			"/wcd-raw",
+			"/edu_parse",
+			"/api/plugin/file/add",
+			"/api/readers/url/upload",
+			"/api/readers/url/content/upload",
+		},
+		"摘录": {
+			"/api/plugin/extract/detail",
+		},
+		"单文档": {
+			"/api/repeater/abstract",
+			"/api/repeater/outline",
+			"/api/repeater/viewpoint",
+			"/api/plugin/articles/summary",
+		},
+		"问答": {
+			"/qa/main",
+			"/qa/query_recommend",
+		},
+		"多文档": {
+			"/doc/single/analyze",
+			"/doc/multi/analyze",
+			"/doc/multi/outline",
+			"/multi-doc/single-doc-analysis",
+			"/multi-doc/doc-merge",
+			"/multi-doc/doc-summary",
+		},
+		"订阅": {
+			"/api/feed/v1/subscription/upsert",
+		},
+	}
+	groupedLogs := map[string][]*empyrean_lens.EndToEndTraceRespData{}
+	for _, log := range parsedLogs {
+		key := ""
+		for _key, paths := range groupedPaths {
+			if utils.Contains(paths, log.APIPath) {
+				key = _key
+				break
+			}
+		}
+		if key == "" {
+			if strings.Contains(log.APIPath, "safety") {
+				key = "安全"
+			}
+		}
+		if key == "" {
+			key = "其他"
+		}
+		if groupedLogs[key] == nil {
+			groupedLogs[key] = []*empyrean_lens.EndToEndTraceRespData{}
+		}
+		groupedLogs[key] = append(groupedLogs[key], log)
+	}
+	keys := utils.KeysOfMap(groupedLogs)
+	orderedKeys := []string{"单文档", "多文档", "问答", "摘录", "数据处理", "订阅", "安全", "其他"}
+	sort.Slice(keys, func(i, j int) bool {
+		idxI := utils.Index(orderedKeys, keys[i])
+		idxJ := utils.Index(orderedKeys, keys[j])
+		if idxI != -1 && idxJ != -1 {
+			return idxI < idxJ
+		}
+		if idxI == -1 && idxJ == -1 {
+			return keys[i] < keys[j]
+		}
+		return idxI == -1
+	})
+	for _, key := range keys {
+		sort.Slice(groupedLogs[key], func(i, j int) bool {
+			return groupedLogs[key][i].Time >= groupedLogs[key][j].Time
+		})
+		data = append(data, &empyrean_lens.EndToEndUserTraceRespData{
+			Scene: key,
+			Logs:  groupedLogs[key],
+		})
+	}
+
+	return data, nil
+}
+
 func RequestTrend(ctx context.Context, req empyrean_lens.RequestTrendReq) (*empyrean_lens.RequestTrendRespData, error) {
 	date, err := time.Parse(consts.DateTemplate, req.Date)
 	if err != nil {

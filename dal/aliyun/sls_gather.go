@@ -651,9 +651,9 @@ func modifyOriginLog(originLog map[string]string) map[string]string {
 	return originLog
 }
 
-func EndToEndLogsQuery(ctx context.Context, traceId, date string) ([]EntToEndLog, error) {
+func EndToEndLogsQuery(ctx context.Context, traceId, date string) ([]EndToEndLog, error) {
 	mu := sync.Mutex{}
-	results := []EntToEndLog{}
+	results := []EndToEndLog{}
 	funcList := []utillib.AsyncFunc{}
 	funcList = append(funcList, func() error {
 		logs, err := NginxLogQueryByTraceId(ctx, traceId, date)
@@ -688,6 +688,62 @@ func EndToEndLogsQuery(ctx context.Context, traceId, date string) ([]EntToEndLog
 	errs := utillib.ParallelExec(ctx, funcList, len(funcList))
 	if len(errs) != 0 {
 		return nil, errors.New("query end to end trace logs, error")
+	}
+	sort.Slice(results, func(i, j int) bool {
+		//return results[i].Time[11:19] > results[j].Time[11:19]
+		return results[i].Time > results[j].Time
+	})
+	for _, result := range results {
+		result.OriginLog = modifyOriginLog(result.OriginLog)
+	}
+	return results, nil
+}
+
+func EndToEndUserLogsQuery(ctx context.Context, userId, timeBegin, timeEnd string) ([]EndToEndLog, error) {
+	mu := sync.Mutex{}
+	results := []EndToEndLog{}
+	funcList := []utillib.AsyncFunc{}
+	startTime, e := time.ParseInLocation(consts.DateHourMinuteTemplate, timeBegin, time.Local)
+	if e != nil {
+		return nil, e
+	}
+	endTime, e := time.ParseInLocation(consts.DateHourMinuteTemplate, timeEnd, time.Local)
+	if e != nil {
+		return nil, e
+	}
+	funcList = append(funcList, func() error {
+		logs, err := NginxLogQueryByUserId(ctx, userId, startTime, endTime)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		results = append(results, logs...)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		logs, err := ModelNginxLogQueryByUserId(ctx, userId, startTime, endTime)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		results = append(results, logs...)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		logs, err := BusinessLogQueryByUserId(ctx, userId, startTime, endTime)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		results = append(results, logs...)
+		mu.Unlock()
+		return nil
+	})
+	errs := utillib.ParallelExec(ctx, funcList, len(funcList))
+	if len(errs) != 0 {
+		return nil, errors.New("query end to end userTrace logs, error")
 	}
 	sort.Slice(results, func(i, j int) bool {
 		//return results[i].Time[11:19] > results[j].Time[11:19]

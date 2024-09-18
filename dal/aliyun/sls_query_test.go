@@ -181,3 +181,42 @@ chat core api response error and (__tag__:_container_name_: {{.BaseContainerName
 	})
 	fmt.Println(query)
 }
+
+func TestNginxLogQueryByUserId(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+
+	logs, err := NginxLogQueryByUserId(ctx, "63e0713930c33a167f79d5d8", time.Now().Add(-1*time.Hour), time.Now())
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(logs)
+	}
+}
+
+func TestModelNginxLogQueryByUserId(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	logs, err := ModelNginxLogQueryByUserId(ctx, "63e0713930c33a167f79d5d8", time.Now().Add(-1*time.Hour), time.Now())
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(logs)
+	}
+
+}
+
+func TestBusinessLogQueryByUserId(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+
+	logs, err := BusinessLogQueryByUserId(ctx, "63e0713930c33a167f79d5d8", time.Now().Add(-1*time.Hour), time.Now())
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(logs)
+	}
+}

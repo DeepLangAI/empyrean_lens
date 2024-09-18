@@ -97,3 +97,29 @@ func TestRequestTrend(t *testing.T) {
 	fmt.Println(trend.Data1)
 	fmt.Println(trend.Data7)
 }
+
+func TestEndToEndUserTraceLogs(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	dal.Init()
+
+	logs, err := EndToEndUserTraceLogs(ctx, empyrean_lens.EndToEndUserTraceReq{
+		TimeBegin: "2024-09-14 20:14:00",
+		TimeEnd:   "2024-09-14 21:14:00",
+		UserID:    "63e0713930c33a167f79d5d8",
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	for _, r := range logs {
+		fmt.Println(r.Scene, len(r.Logs))
+		//if r.Scene == "其他" {
+		//	for _, log := range r.Logs {
+		//		if log.APIPath == "" {
+		//			continue
+		//		}
+		//		fmt.Println(log.Host, log.APIPath)
+		//	}
+		//}
+	}
+}

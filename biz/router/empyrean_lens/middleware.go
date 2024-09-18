@@ -6,6 +6,7 @@ import (
 	"context"
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
+	"empyrean_lens/service/passport"
 	"empyrean_lens/utils"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -35,7 +36,7 @@ func CookieMiddleWare() app.HandlerFunc {
 			ctx.Abort()
 			return
 		}
-		if username, ok := claim[consts.LARK_USERNAME].(string); ok && utils.InSlice(username, conf.GetLark().AuthNames) {
+		if passport.CheckCookie(c, claim) {
 			ctx.Next(c)
 			return
 		}

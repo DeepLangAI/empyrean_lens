@@ -30,16 +30,36 @@ lark:
   appId: "cli_a668c41a0f64d013"
   appSecret: "REDACTED"
   jwtSecret: "REDACTED"
-  authNames:
-    - "郭晨旭"
-    - "闻豪"
-    - "刘勇"
-    - "程振方"
-    - "冯晋"
-    - "李鑫亮"
-    - "李国鑫"
-    - "崔恩博"
-    - "闫旭斌"
-    - "张盈麟"
-    - "张廷明"
-    - "侯佳林"
+  auth:
+    names:
+    email:
+      - xinliang.li@deeplang.ai
+      - guoxin.li@deeplang.ai
+      - enbo.cui@deeplang.ai
+      - yinglin.zhang@deeplang.ai
+      - tingming.zhang@deeplang.ai
+      - jialin.hou@deeplang.ai
+      - fish.wang@deeplang.ai # Fish
+      - fanchao.qi@deeplang.ai # 凡超
+      - qichao.huo@deeplang.ai # 大勇
+    mobiles:
+    employee_nos:
+      - D077 # 闻豪
+      - P104 # 晨旭
+      - D013 # 勇哥
+      - D067 # 晋哥
+      - D041 # 振方
+      - D004 # 旭斌
+  # authNames:
+  #   - "郭晨旭"
+  #   - "闻豪"
+  #   - "刘勇"
+  #   - "程振方"
+  #   - "冯晋"
+  #   - "李鑫亮"
+  #   - "李国鑫"
+  #   - "崔恩博"
+  #   - "闫旭斌"
+  #   - "张盈麟"
+  #   - "张廷明"
+  #   - "侯佳林"

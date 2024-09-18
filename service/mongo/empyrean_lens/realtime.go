@@ -43,7 +43,7 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun3.RealtimeReport, error) 
 	if err != nil {
 		return nil, err
 	}
-	probeFailRates, err := aliyun3.ProbeTimespanFailRate(ctx, consts.TIMESPAN_TODAY)
+	probeFailRates, _, err := aliyun3.ProbeTimespanFailRate(ctx, consts.TIMESPAN_TODAY)
 	if err != nil {
 		return nil, err
 	}

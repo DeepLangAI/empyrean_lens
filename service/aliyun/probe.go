@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func ProbeTimespanFailRate(ctx context.Context, timespan int) (map[string]float64, error) {
+func ProbeTimespanFailRate(ctx context.Context, timespan int) (map[string]float64, map[string]int32, error) {
 	timeBegin := time.Now()
 	timeEnd := time.Date(timeBegin.Year(), timeBegin.Month(), timeBegin.Day(), 23, 59, 59, 0, timeBegin.Location())
 
@@ -23,7 +23,7 @@ func ProbeTimespanFailRate(ctx context.Context, timespan int) (map[string]float6
 	}
 	models, err := empyrean_lens.NewApiProbeLogModelDao().FindTimespanApiProbeLog(ctx, timeBegin, timeEnd)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	failReq := map[string]int32{}
 	totalReq := map[string]int32{}
@@ -38,7 +38,7 @@ func ProbeTimespanFailRate(ctx context.Context, timespan int) (map[string]float6
 	for date, failCnt := range failReq {
 		failRate[date] = float64(failCnt) / float64(totalReq[date]) * 100
 	}
-	return failRate, nil
+	return failRate, failReq, nil
 }
 
 func RealtimeProbeLoganlz(ctx context.Context) *Metric {

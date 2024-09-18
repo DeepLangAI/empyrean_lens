@@ -13,7 +13,7 @@ func TestProbeTimespanFailRate(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	dal.Init()
-	rate, _ := ProbeTimespanFailRate(ctx, consts.TIMESPAN_WEEK)
+	rate, _, _ := ProbeTimespanFailRate(ctx, consts.TIMESPAN_WEEK)
 	fmt.Println(rate)
 }
 

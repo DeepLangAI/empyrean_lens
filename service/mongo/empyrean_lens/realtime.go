@@ -128,7 +128,7 @@ func SystemRealtimeReportv1_1(ctx context.Context) (*aliyun3.RealtimeReport, err
 	models, err := el.NewSystemScoreDao().FindTimespanScore(
 		ctx,
 		time.Now().AddDate(0, 0, -8),
-		time.Now(),
+		time.Now().Add(8*time.Hour),
 	)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "find timespan score failed, err: %v", err)

@@ -5,7 +5,6 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/utils"
-	"fmt"
 	"sort"
 	"sync"
 
@@ -69,9 +68,9 @@ func LogStoreTimeSpanReport(ctx context.Context, timespan int) ([]CoreLogTimeSpa
 		go func(coreName string) {
 			defer wg.Done()
 			logs := []aliyun.CoreLog{}
-			if coreName == consts.CORE_NAME_ABSTRACT {
-				fmt.Println(coreName)
-			}
+			//if coreName == consts.CORE_NAME_ABSTRACT {
+			//	fmt.Println(coreName)
+			//}
 			if timespan == consts.TIMESPAN_LONGTIME {
 				_logs, err := aliyun.CoreReportLongTime(ctx, coreName)
 				if err != nil {

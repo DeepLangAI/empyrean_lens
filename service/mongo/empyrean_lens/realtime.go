@@ -193,9 +193,14 @@ func SystemRealtimeReportv1_1(ctx context.Context) (*aliyun3.RealtimeReport, err
 	report.SlowRequest.DayOverDay = slowRequestsReventResults[0].DayOverDay
 	report.SlowRequest.WeekOverWeek = slowRequestsReventResults[0].WeekOverWeek
 
-	report.ProbeFailCnt.Value = int(probeFailRequestsReventResults[0].Score)
-	report.ProbeFailCnt.DayOverDay = probeFailRequestsReventResults[0].DayOverDay
-	report.ProbeFailCnt.WeekOverWeek = probeFailRequestsReventResults[0].WeekOverWeek
+	probeLogAnlz := aliyun3.RealtimeProbeLoganlz(ctx)
+	report.ProbeFailCnt.Value = probeLogAnlz.Value
+	report.ProbeFailCnt.DayOverDay = probeLogAnlz.DayOverDay
+	report.ProbeFailCnt.WeekOverWeek = probeLogAnlz.WeekOverWeek
 
+	//report.ProbeFailCnt.Value = int(probeFailRequestsReventResults[0].Score)
+	//report.ProbeFailCnt.DayOverDay = probeFailRequestsReventResults[0].DayOverDay
+	//report.ProbeFailCnt.WeekOverWeek = probeFailRequestsReventResults[0].WeekOverWeek
+	//
 	return report, nil
 }

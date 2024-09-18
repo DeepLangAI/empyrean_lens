@@ -33,13 +33,20 @@ lark:
   auth:
     names:
     email:
+      - xinliang.li@deeplang.ai
+      - guoxin.li@deeplang.ai
+      - enbo.cui@deeplang.ai
+      - yinglin.zhang@deeplang.ai
+      - tingming.zhang@deeplang.ai
+      - jialin.hou@deeplang.ai
     mobiles:
     employee_nos:
-      - D077
-      - P104
-      - D013
-      - D067
-      - D041
+      - D077 # 闻豪
+      - P104 # 晨旭
+      - D013 # 勇哥
+      - D067 # 晋哥
+      - D041 # 振方
+      - D004 # 旭斌
   # authNames:
   #   - "郭晨旭"
   #   - "闻豪"

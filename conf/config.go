@@ -1,15 +1,16 @@
 package conf
 
 import (
-	conflib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/conf"
-	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"empyrean_lens/utils"
 	"fmt"
+	"os"
+	"path/filepath"
+
+	conflib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/conf"
+	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/redis/go-redis/v9"
 	"gopkg.in/yaml.v3"
-	"os"
-	"path/filepath"
 )
 
 var conf Config
@@ -47,8 +48,15 @@ type Server struct {
 type Lark struct {
 	AppId     string   `yaml:"appId"`
 	AppSecret string   `yaml:"appSecret"`
-	AuthNames []string `yaml:"authNames"`
+	Auth      LarkAuth `yaml:"auth"`
 	JwtSecret string   `yaml:"jwtSecret"`
+}
+
+type LarkAuth struct {
+	Names       []string `yaml:"names"`
+	Emails      []string `yaml:"emails"`
+	Mobiles     []string `yaml:"mobiles"`
+	EmployeeNos []string `yaml:"employee_nos"`
 }
 
 // 配置文件路径

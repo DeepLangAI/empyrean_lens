@@ -113,12 +113,16 @@ type API struct {
 }
 
 const (
-	INDEX_PATH            = "https://empyrean-lens.lingowhale.com/public/index.html"
-	FORBIDDEN_PATH        = "https://empyrean-lens.lingowhale.com/public/403.html"
-	HOME_PATH             = "https://empyrean-lens.lingowhale.com/"
+	INDEX_PATH     = "https://empyrean-lens.lingowhale.com/public/index.html"
+	FORBIDDEN_PATH = "https://empyrean-lens.lingowhale.com/public/403.html"
+	HOME_PATH      = "https://empyrean-lens.lingowhale.com/"
+	// DOMAIN_PATH    = "cb92-163-123-192-24.ngrok-free.app"
 	DOMAIN_PATH           = "empyrean-lens.lingowhale.com"
 	LARK_COOKIE           = "lark_cookie"
 	LARK_USERNAME         = "lark_username"
+	LARK_MOBILE           = "lark_mobile"
+	LARK_EMAIL            = "lark_email"
+	LARK_EMPLOYEE_NO      = "lark_employee_no"
 	LARK_AUTH_EXPIRE_TIME = 72 * time.Hour
 )
 

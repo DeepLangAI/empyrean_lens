@@ -17,7 +17,7 @@ mongo_empyreanlens:
 # 日志配置
 logger:
   log_path: './logs/system'
-  log_level: "debug"
+  log_level: "info"
 
 # redis:
 #   addrs: ["localhost:7000"]
@@ -35,9 +35,13 @@ lark:
   appId: "cli_a668c41a0f64d013"
   appSecret: "REDACTED"
   jwtSecret: "REDACTED"
-  authNames:
-    - "郭晨旭"
-    - "闻豪"
-    - "刘勇"
-    - "程振方"
-    - "冯晋"
+  auth:
+    names:
+    email:
+    mobiles:
+    employee_nos:
+      - D077
+      - P104
+      - D013
+      - D067
+      - D041

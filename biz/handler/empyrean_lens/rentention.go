@@ -455,7 +455,7 @@ func RequestTrends(ctx context.Context, c *app.RequestContext) {
 	}
 
 	resp := new(empyrean_lens.RequestTrendResp)
-	data, err := aliyun2.RequestTrend(ctx, req)
+	data, err := aliyun2.RequestTrendV2(ctx, req)
 	if err != nil {
 		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
 		return

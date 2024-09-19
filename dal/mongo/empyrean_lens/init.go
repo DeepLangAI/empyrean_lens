@@ -26,6 +26,7 @@ func initTableNames() {
 	//TableNameTraceDebugger = prefix + "trace_debugger"
 	TableNameTracebackLog = prefix + "traceback_log"
 	TableNameOnlineOperation = prefix + "online_operation"
+	TableNameScoreBackup = prefix + "score_backup"
 }
 
 func Init(ctx context.Context) {

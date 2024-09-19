@@ -12860,8 +12860,15 @@ func (p *RequestTrendRespData) String() string {
 }
 
 type RequestTrendRespDataItem struct {
-	Time  string `thrift:"time,1" form:"time" json:"time" query:"time"`
-	Count int32  `thrift:"count,2" form:"count" json:"count" query:"count"`
+	Time           string  `thrift:"time,1" form:"time" json:"time" query:"time"`
+	Count          int32   `thrift:"count,2" form:"count" json:"count" query:"count"`
+	ReqCount       int32   `thrift:"req_count,3" form:"req_count" json:"req_count" query:"req_count"`
+	Score          int32   `thrift:"score,4" form:"score" json:"score" query:"score"`
+	FailRate       float64 `thrift:"fail_rate,5" form:"fail_rate" json:"fail_rate" query:"fail_rate"`
+	SlowRate       float64 `thrift:"slow_rate,6" form:"slow_rate" json:"slow_rate" query:"slow_rate"`
+	ProbeFailRate  float64 `thrift:"probe_fail_rate,7" form:"probe_fail_rate" json:"probe_fail_rate" query:"probe_fail_rate"`
+	ProbeFailCount float64 `thrift:"probe_fail_count,8" form:"probe_fail_count" json:"probe_fail_count" query:"probe_fail_count"`
+	NumTraceBack   int32   `thrift:"num_trace_back,9" form:"num_trace_back" json:"num_trace_back" query:"num_trace_back"`
 }
 
 func NewRequestTrendRespDataItem() *RequestTrendRespDataItem {
@@ -12876,9 +12883,44 @@ func (p *RequestTrendRespDataItem) GetCount() (v int32) {
 	return p.Count
 }
 
+func (p *RequestTrendRespDataItem) GetReqCount() (v int32) {
+	return p.ReqCount
+}
+
+func (p *RequestTrendRespDataItem) GetScore() (v int32) {
+	return p.Score
+}
+
+func (p *RequestTrendRespDataItem) GetFailRate() (v float64) {
+	return p.FailRate
+}
+
+func (p *RequestTrendRespDataItem) GetSlowRate() (v float64) {
+	return p.SlowRate
+}
+
+func (p *RequestTrendRespDataItem) GetProbeFailRate() (v float64) {
+	return p.ProbeFailRate
+}
+
+func (p *RequestTrendRespDataItem) GetProbeFailCount() (v float64) {
+	return p.ProbeFailCount
+}
+
+func (p *RequestTrendRespDataItem) GetNumTraceBack() (v int32) {
+	return p.NumTraceBack
+}
+
 var fieldIDToName_RequestTrendRespDataItem = map[int16]string{
 	1: "time",
 	2: "count",
+	3: "req_count",
+	4: "score",
+	5: "fail_rate",
+	6: "slow_rate",
+	7: "probe_fail_rate",
+	8: "probe_fail_count",
+	9: "num_trace_back",
 }
 
 func (p *RequestTrendRespDataItem) Read(iprot thrift.TProtocol) (err error) {
@@ -12911,6 +12953,62 @@ func (p *RequestTrendRespDataItem) Read(iprot thrift.TProtocol) (err error) {
 		case 2:
 			if fieldTypeId == thrift.I32 {
 				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 4:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField4(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 5:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField5(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 6:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField8(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 9:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField9(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -12967,6 +13065,83 @@ func (p *RequestTrendRespDataItem) ReadField2(iprot thrift.TProtocol) error {
 	p.Count = _field
 	return nil
 }
+func (p *RequestTrendRespDataItem) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field int32
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ReqCount = _field
+	return nil
+}
+func (p *RequestTrendRespDataItem) ReadField4(iprot thrift.TProtocol) error {
+
+	var _field int32
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Score = _field
+	return nil
+}
+func (p *RequestTrendRespDataItem) ReadField5(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.FailRate = _field
+	return nil
+}
+func (p *RequestTrendRespDataItem) ReadField6(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.SlowRate = _field
+	return nil
+}
+func (p *RequestTrendRespDataItem) ReadField7(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ProbeFailRate = _field
+	return nil
+}
+func (p *RequestTrendRespDataItem) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ProbeFailCount = _field
+	return nil
+}
+func (p *RequestTrendRespDataItem) ReadField9(iprot thrift.TProtocol) error {
+
+	var _field int32
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.NumTraceBack = _field
+	return nil
+}
 
 func (p *RequestTrendRespDataItem) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -12980,6 +13155,34 @@ func (p *RequestTrendRespDataItem) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField2(oprot); err != nil {
 			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+		if err = p.writeField4(oprot); err != nil {
+			fieldId = 4
+			goto WriteFieldError
+		}
+		if err = p.writeField5(oprot); err != nil {
+			fieldId = 5
+			goto WriteFieldError
+		}
+		if err = p.writeField6(oprot); err != nil {
+			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
+			goto WriteFieldError
+		}
+		if err = p.writeField9(oprot); err != nil {
+			fieldId = 9
 			goto WriteFieldError
 		}
 	}
@@ -13032,6 +13235,125 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *RequestTrendRespDataItem) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("req_count", thrift.I32, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(p.ReqCount); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *RequestTrendRespDataItem) writeField4(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("score", thrift.I32, 4); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(p.Score); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
+}
+
+func (p *RequestTrendRespDataItem) writeField5(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("fail_rate", thrift.DOUBLE, 5); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.FailRate); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
+}
+
+func (p *RequestTrendRespDataItem) writeField6(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("slow_rate", thrift.DOUBLE, 6); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.SlowRate); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *RequestTrendRespDataItem) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("probe_fail_rate", thrift.DOUBLE, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.ProbeFailRate); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *RequestTrendRespDataItem) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("probe_fail_count", thrift.DOUBLE, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.ProbeFailCount); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
+func (p *RequestTrendRespDataItem) writeField9(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("num_trace_back", thrift.I32, 9); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(p.NumTraceBack); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
 }
 
 func (p *RequestTrendRespDataItem) String() string {

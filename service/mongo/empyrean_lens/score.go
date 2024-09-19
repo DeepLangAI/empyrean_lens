@@ -132,5 +132,26 @@ func UpdateLatestScoreInfo(ctx context.Context) error {
 		hlog.CtxErrorf(ctx, "UpdateLatestScoreInfo err:%v", err)
 		return err
 	}
+
+	latestModel := models[0]
+	err = empyrean_lens.NewScoreBackupDao().CreateOrUpdate(ctx, empyrean_lens.ScoreBackupModel{
+		Time:              time.Now(),
+		Score:             latestModel.Score,
+		ScoreDayOverDay:   latestModel.ScoreDayOverDay,
+		ScoreWeekOverWeek: latestModel.ScoreWeekOverWeek,
+		TotalReq:          latestModel.TotalReq,
+		FailReq:           latestModel.FailReq,
+		SlowReq:           latestModel.SlowReq,
+		FailRate:          latestModel.FailRate,
+		SlowRate:          latestModel.SlowRate,
+		ProbeFailReq:      latestModel.ProbeFailReq,
+		ProbeTotalReq:     latestModel.ProbeTotalReq,
+		ProbeFailRate:     latestModel.ProbeFailRate,
+		AvgRespCost:       latestModel.AvgRespCost,
+	})
+	if err != nil {
+		hlog.CtxErrorf(ctx, "UpdateLatestScoreBackupInfo err:%v", err)
+		return err
+	}
 	return nil
 }

@@ -1693,6 +1693,9 @@
                 const logDetailsBody = $('<div>').addClass('log-details-body');
 
                 for (var key in originLog) {
+                    if (originLog[key] == null || originLog[key] == undefined || originLog[key] == '') {
+                        continue
+                    }
                     if (key.startsWith("_")) {
                         var val = originLog[key]
                         key = key + ':' + val

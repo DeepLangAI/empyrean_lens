@@ -1172,7 +1172,7 @@
             />
         </div>
 
-        <input type="text" id="onlineoperation-appname" placeholder=appname class="input-field">
+        <input type="text" id="onlineoperation-appname" placeholder="应用名" class="input-field">
         <div id="onlineoperation_suggestions" class="suggestions"></div>
 
         <div class="button-container">
@@ -1604,6 +1604,10 @@
         $('#userendtoendtrace_result').empty()
     })
 
+    $('#onlineoperation_clean').click(function (){
+        $('#onlineoperation_clean').val('')
+        $('#onlineoperation_result').empty()
+    })
     $('#onlineoperation_submit').click(function (){
         showLoadingStatus()
         let startTime = $('#onlineoperation-begin-time').val().replaceAll('T', ' ') + ':00'
@@ -1620,7 +1624,7 @@
             resultContainer.empty()
             let tabs = $('<div>').addClass('tabs')
             let groupedContainer = $('<div>').addClass('expand-container')
-            let detailedContainer = $('<div>').addClass('expand-container')
+            let detailedContainer = $('<div>').addClass('expand-container').hide()
             resultContainer.append(tabs, groupedContainer, detailedContainer)
             tabs.append(
                 $('<div>').addClass('tab').addClass('active').text('上线总览').click(function () {

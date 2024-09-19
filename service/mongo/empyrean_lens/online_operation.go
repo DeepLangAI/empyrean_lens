@@ -6,10 +6,11 @@ import (
 	"empyrean_lens/consts"
 	empyrean_lens2 "empyrean_lens/dal/mongo/empyrean_lens"
 	"fmt"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 func UpsertOnlineOperations(ctx context.Context, req empyrean_lens.UploadOnlineOperationReq) (*empyrean_lens.UploadOnlineOperationRespData, error) {
@@ -65,9 +66,10 @@ func FindOnlineOperations(ctx context.Context, req empyrean_lens.OnlineOperation
 	}
 	modelsGrouped := make(map[string][]*empyrean_lens.UploadOnlineOperationReqData)
 	for _, model := range models {
-		if req.AppName != "" && strings.Contains(model.AppName, req.AppName) {
+		if req.AppName != "" && !strings.Contains(strings.ToLower(model.AppName), strings.ToLower(req.AppName)) {
 			continue
 		}
+		model.Time = model.Time.Local()
 		if _, ok := modelsGrouped[model.AppName]; !ok {
 			modelsGrouped[model.AppName] = []*empyrean_lens.UploadOnlineOperationReqData{}
 		}

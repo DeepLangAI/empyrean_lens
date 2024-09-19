@@ -427,7 +427,7 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 					}
 				}
 				cache := trendCache[timestamp]
-				cache.ReqCounts += 1
+				cache.ReqCounts = utils.Max(cache.ReqCounts, log.TotalReq)
 				cache.Scores = append(cache.Scores, log.Score)
 				cache.FailRates = append(cache.FailRates, log.FailRate)
 				cache.SlowRates = append(cache.SlowRates, log.SlowRate)

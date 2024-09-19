@@ -50,6 +50,7 @@ func ScoreRelatedDetailQuery(ctx context.Context, req empyrean_lens2.DailyScoreR
 			NumTraceback:  int32(numTb[date]),
 			DayOverDay:    d.ScoreDayOverDay,
 			WeekOverWeek:  d.ScoreWeekOverWeek,
+			TotalReq:      d.TotalReq,
 		})
 	}
 	return data, nil
@@ -103,7 +104,7 @@ func UpdateLatestScoreInfo(ctx context.Context) error {
 	models, err := empyrean_lens.NewSystemScoreDao().FindTimespanScore(
 		ctx,
 		time.Now().AddDate(0, 0, -8),
-		time.Now(),
+		time.Now().Add(8*time.Hour),
 	)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "UpdateLatestScoreInfo err:%v", err)

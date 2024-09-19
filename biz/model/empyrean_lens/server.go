@@ -546,6 +546,7 @@ type DailyScoreRespData struct {
 	SlowRate      float64 `thrift:"slow_rate,6" form:"slow_rate" json:"slow_rate" query:"slow_rate"`
 	ProbeFailRate float64 `thrift:"probe_fail_rate,7" form:"probe_fail_rate" json:"probe_fail_rate" query:"probe_fail_rate"`
 	NumTraceback  int32   `thrift:"num_traceback,8" form:"num_traceback" json:"num_traceback" query:"num_traceback"`
+	TotalReq      int32   `thrift:"total_req,9" form:"total_req" json:"total_req" query:"total_req"`
 }
 
 func NewDailyScoreRespData() *DailyScoreRespData {
@@ -584,6 +585,10 @@ func (p *DailyScoreRespData) GetNumTraceback() (v int32) {
 	return p.NumTraceback
 }
 
+func (p *DailyScoreRespData) GetTotalReq() (v int32) {
+	return p.TotalReq
+}
+
 var fieldIDToName_DailyScoreRespData = map[int16]string{
 	1: "date",
 	2: "score",
@@ -593,6 +598,7 @@ var fieldIDToName_DailyScoreRespData = map[int16]string{
 	6: "slow_rate",
 	7: "probe_fail_rate",
 	8: "num_traceback",
+	9: "total_req",
 }
 
 func (p *DailyScoreRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -673,6 +679,14 @@ func (p *DailyScoreRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 8:
 			if fieldTypeId == thrift.I32 {
 				if err = p.ReadField8(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 9:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField9(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -795,6 +809,17 @@ func (p *DailyScoreRespData) ReadField8(iprot thrift.TProtocol) error {
 	p.NumTraceback = _field
 	return nil
 }
+func (p *DailyScoreRespData) ReadField9(iprot thrift.TProtocol) error {
+
+	var _field int32
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TotalReq = _field
+	return nil
+}
 
 func (p *DailyScoreRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -832,6 +857,10 @@ func (p *DailyScoreRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField8(oprot); err != nil {
 			fieldId = 8
+			goto WriteFieldError
+		}
+		if err = p.writeField9(oprot); err != nil {
+			fieldId = 9
 			goto WriteFieldError
 		}
 	}
@@ -986,6 +1015,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
+func (p *DailyScoreRespData) writeField9(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("total_req", thrift.I32, 9); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(p.TotalReq); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
 }
 
 func (p *DailyScoreRespData) String() string {

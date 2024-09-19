@@ -23,6 +23,7 @@ struct DailyScoreRespData {
     6: double slow_rate
     7: double probe_fail_rate
     8: i32 num_traceback
+    9: i32 total_req
 }
 
 struct DailyScoreResp {

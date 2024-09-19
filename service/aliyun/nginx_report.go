@@ -441,11 +441,11 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 					Time:           timestamp,
 					Count:          cache.ReqCounts,
 					ReqCount:       cache.ReqCounts,
-					Score:          int32(utils.Avg(cache.Scores) + 0.5),
-					FailRate:       utils.Avg(cache.FailRates),
-					SlowRate:       utils.Avg(cache.SlowRates),
-					ProbeFailRate:  utils.Avg(cache.ProbeFailRates),
-					ProbeFailCount: utils.Avg(cache.ProbeFailCounts),
+					Score:          int32(utils.AvgSimple(cache.Scores, true) + 0.5),
+					FailRate:       utils.AvgSimple(cache.FailRates, false),
+					SlowRate:       utils.AvgSimple(cache.SlowRates, false),
+					ProbeFailRate:  utils.AvgSimple(cache.ProbeFailRates, false),
+					ProbeFailCount: utils.AvgSimple(cache.ProbeFailCounts, false),
 				})
 			}
 			sort.Slice(trendItems, func(i, j int) bool {

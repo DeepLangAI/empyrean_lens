@@ -907,15 +907,20 @@
                                     <th onclick="moveToSlide(0)" class="clickable-black">分数</th>
                                     <td>{1}</td>
                                 </tr>
-                                    <th onclick="moveToSlide(1)" class="clickable-black">接口错误率</th>
+                                <tr>
+                                    <th onclick="moveToSlide(1)" class="clickable-black">总请求量</th>
+                                    <td>${detail.total_req}</td>
+                                </tr>
+                                <tr>
+                                    <th onclick="moveToSlide(2)" class="clickable-black">接口错误率</th>
                                     <td class="clickable" onclick="handleErrorList()">{2}%</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(2)" class="clickable-black">慢查询率</th>
+                                    <th onclick="moveToSlide(3)" class="clickable-black">慢查询率</th>
                                     <td class="clickable" onclick="handleSlowList()">{3}%</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(3)" class="clickable-black">探针错误率</th>
+                                    <th onclick="moveToSlide(4)" class="clickable-black">探针错误率</th>
                                     <td class="clickable" onclick="handleProbeList()">{4}%</td>
                                 </tr>
                                 <tr>
@@ -987,16 +992,16 @@
                 date: date,
             }
         }).then(response => {
-            console.log('trend request response', response.data)
+            let container = $('#trends')
             let data = response.data.data
             let chart = drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'req_count', '请求量趋势')
-            let slowTrendChart = drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'slow_rate', '慢查询率趋势')
-            let container = $('#trends')
+            let slowTrendChart = drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'slow_rate', '慢查询率趋势', true)
             container.append(
                 drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'score', '分数变化趋势').addClass('slide'),
                 chart.addClass('slide'),
+                drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'fail_rate', '接口错误率趋势', true).addClass('slide'),
                 slowTrendChart.addClass('slide'),
-                drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'probe_fail_rate', '探针错误率趋势').addClass('slide'),
+                drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'probe_fail_rate', '探针错误率趋势', true).addClass('slide'),
             )
 
         }).catch(error => {
@@ -2710,7 +2715,7 @@
     }
 
     // 绘制多天数据趋势对比图
-    function drawMultiDayTrendChart(todayData, yesterdayData, weekAgoData, key, title) {
+    function drawMultiDayTrendChart(todayData, yesterdayData, weekAgoData, key, title, percent=false) {
         // 根据是否为移动端设置字体大小
         var fontSize = isMobile() ? '25px' : '12px';
         var titleFontSize = isMobile() ? '30px' : '16px';
@@ -2763,7 +2768,11 @@
                                 break;
                         }
                         dateStr = date.toLocaleString();
-                        result += dateStr.slice(5, 15) + ': ' + item.value[1] + '<br>';
+                        if (percent == true){
+                            result += dateStr.slice(5, 15) + ': ' + item.value[1].toFixed(2) + '%' + '<br>';
+                        } else{
+                            result += dateStr.slice(5, 15) + ': ' + item.value[1] + '<br>';
+                        }
                     });
                     return result;
                 },

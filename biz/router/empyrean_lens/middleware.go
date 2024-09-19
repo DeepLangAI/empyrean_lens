@@ -236,3 +236,8 @@ func _systemendtoendusertracelogsMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _getonlineoperationMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

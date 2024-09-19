@@ -1077,6 +1077,11 @@
             <h2>用户日志</h2>
             <p>查询用户使用系统产生日志</p>
         </div>
+
+        <div class="tool" id="entry-online-modal">
+            <h2>上线单</h2>
+            <p>查询上线记录</p>
+        </div>
     </div>
 </div>
 
@@ -1141,6 +1146,40 @@
             <div id="userendtoendtrace_submit" class="btn-submit">查询</div>
         </div>
         <div id="userendtoendtrace_result" class="result-content"></div>
+    </div>
+</div>
+
+<div id="onlineoperation-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>上线单</h2>
+        <div class="datetime-container">
+            <input
+                    type="datetime-local"
+                    id="onlineoperation-begin-time"
+                    name="meeting-time"
+                    value="2024-09-14T00:00"
+                    min="2018-06-07T00:00"
+                    max="2095-06-14T00:00"
+            />
+            <input
+                    type="datetime-local"
+                    id="onlineoperation-end-time"
+                    name="meeting-time"
+                    value="2024-09-14 00:00"
+                    min="2018-06-07 00:00"
+                    max="2095-06-14 00:00"
+            />
+        </div>
+
+        <input type="text" id="onlineoperation-appname" placeholder="应用名" class="input-field">
+        <div id="onlineoperation_suggestions" class="suggestions"></div>
+
+        <div class="button-container">
+            <div id="onlineoperation_clean" class="btn-ghost">清空</div>
+            <div id="onlineoperation_submit" class="btn-submit">查询</div>
+        </div>
+        <div id="onlineoperation_result" class="result-content"></div>
     </div>
 </div>
 
@@ -1508,7 +1547,6 @@
                     for (let i = 0; i < logs.length; i++) {
                         let log = logs[i];
                         let originLog = log['origin_log'];
-                        console.log(originLog)
 
                         const logContainer = $('<div>').addClass('log-container');
                         const logId = $('<div>').addClass('log-id').text(i + 1);
@@ -1566,6 +1604,135 @@
         $('#userendtoendtrace_result').empty()
     })
 
+    $('#onlineoperation_clean').click(function (){
+        $('#onlineoperation-appname').val('')
+        $('#onlineoperation_result').empty()
+    })
+    $('#onlineoperation_submit').click(function (){
+        showLoadingStatus()
+        let startTime = $('#onlineoperation-begin-time').val().replaceAll('T', ' ') + ':00'
+        let endTime = $('#onlineoperation-end-time').val().replaceAll('T', ' ') + ':00'
+        let appName = $('#onlineoperation-appname').val()
+        axios.get('/api/v1/report/online_operation', {
+            params: {
+                time_begin: startTime,
+                time_end: endTime,
+                app_name: appName,
+            }
+        }).then( response => {
+            let resultContainer = $('#onlineoperation_result')
+            resultContainer.empty()
+            let tabs = $('<div>').addClass('tabs')
+            let groupedContainer = $('<div>').addClass('expand-container')
+            let detailedContainer = $('<div>').addClass('expand-container').hide()
+            resultContainer.append(tabs, groupedContainer, detailedContainer)
+            tabs.append(
+                $('<div>').addClass('tab').addClass('active').text('上线总览').click(function () {
+                    $('.tabs .tab').removeClass('active');
+                    $(this).addClass('active');
+                    groupedContainer.show()
+                    detailedContainer.hide()
+                }),
+                $('<div>').addClass('tab').text('上线流水').click(function () {
+                    $('.tabs .tab').removeClass('active');
+                    $(this).addClass('active');
+                    groupedContainer.hide()
+                    detailedContainer.show()
+                })
+            )
+            let data = response.data.data
+            for (let i = 0; i < data.length; i++) {
+                let expandItem = $('<div>').addClass('expand')
+                let dataItem = data[i]
+
+                expandItem.append(
+                    $('<div>').addClass('expand-info').append(
+                        $('<div>').html(`
+                            <strong>应用：${dataItem['app_name']}，构建${dataItem['detail'].length}次</strong>
+                            <table>
+                                <tr>
+                                    <td><strong>最后构建时间</strong></td>
+                                    <td>${dataItem['detail'][0].time}</td>
+                                    <td><strong>最后构建人</strong></td>
+                                    <td>${dataItem['detail'][0].builder}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>最后构建分支</strong></td>
+                                    <td>${dataItem['detail'][0].branch_name}</td>
+                                    <td><strong>最后构建消息</strong></td>
+                                    <td>${dataItem['detail'][0].commit_message}</td>
+                                </tr>
+                            </table>
+                            `),
+                    ).click(function (){
+                        // 找到$tabs下的第二个.tab，点击
+                        tabs.find('.tab').eq(1).click()
+                        showAppOnlineOps(detailedContainer, dataItem['app_name'], dataItem['detail'])
+                    }),
+                )
+                groupedContainer.append(expandItem)
+            }
+        }).catch( error => {
+            console.error('Error fetching online operation details:', error);
+        }).finally( () => {
+            hideLoadingStatus()
+        });
+
+        function showAppOnlineOps($parent, appName, ops) {
+            $parent.empty()
+            $parent.append($('<h3>').text(`应用 ${appName} 的上线操作流水`))
+            for (let i = 0; i < ops.length; i++) {
+                let originLog = ops[i]
+
+                const logContainer = $('<div>').addClass('log-container');
+                const logId = $('<div>').addClass('log-id').text(i + 1);
+                // const logTime = $('<div>').addClass('log-time').text(log.time_begin.slice(11, 19));
+                const logTime = $('<div>').addClass('log-time')
+                const logDetails = $('<div>').addClass('log-details');
+                const logDetailsHeader = $('<div>').addClass('log-details-header');
+                const logDetailsBody = $('<div>').addClass('log-details-body');
+
+                for (var key in originLog) {
+                    if (originLog[key] == null || originLog[key] == undefined || originLog[key] == '') {
+                        continue
+                    }
+                    if (key.startsWith("_")) {
+                        var val = originLog[key]
+                        key = key + ':' + val
+                        if (val.length >= 15) {
+                            val = val.slice(0, 15) + '...' + val.slice(-5, val.length)
+                        }
+                        logDetailsHeader.append(
+                            $("<span>")
+                                .attr("data-field-name", key)
+                                .text(val)
+                        );
+                    } else {
+                        const id = key + '-' + i;
+                        var span = $('<span>')
+                            .addClass('expand-tip')
+                            .text('展开')
+                            .click(function (e) {
+                                e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                handleClickExpand(id)
+                            })
+                        var p = $('<p id="{0}">'.format(id))
+                            .append($("<span>").text(key + ":"))
+                            .append(originLog[key])
+                        if (originLog[key].length >= 150) {
+                            p.append(span)
+                        }
+
+                        logDetailsBody.append(p)
+                    }
+                };
+                logDetails.append(logDetailsHeader, logDetailsBody);
+                logContainer.append(logId, logTime, logDetails);
+                $parent.append(logContainer);
+            }
+        }
+    })
+
 
 
     function getCurrentDateMinusMinutes(minutes) {
@@ -1579,6 +1746,11 @@
         // var seconds = currentDate.getSeconds().toString().padStart(2, '0');
         return `${year}-${month}-${day} ${hours}:${minutes}`;
     }
+
+    $('#entry-online-modal').click(function (){
+        openModal('onlineoperation-modal')
+        $('#onlineoperation_submit').trigger('click')
+    })
 
     $(document).ready(function() {
         hideLoadingStatus()
@@ -1624,6 +1796,9 @@
                 $('#user_suggestions').removeClass('visible').empty();
             }
         })
+
+        $('#onlineoperation-begin-time').val(getCurrentDateMinusMinutes(60 * 12))
+        $('#onlineoperation-end-time').val(getCurrentDateMinusMinutes(0))
     })
 
     function handleClickExpand(pid){

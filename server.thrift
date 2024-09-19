@@ -355,6 +355,22 @@ struct AuthReq{
     2: string state
 }
 
+// 上线单查询
+struct OnlineOperationReq{
+    1: string time_begin
+    2: string time_end
+    3: string app_name
+}
+struct OnlineOperationResp{
+    1: i32 code
+    2: string msg
+    3: list<OnlineOperationRespData> data
+}
+struct OnlineOperationRespData{
+    1: string app_name
+    2: list<UploadOnlineOperationReqData> detail
+}
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -420,6 +436,10 @@ service Rentention{
    // 查用户信息
    UInfoResp GetUInfo(1: UInfoReq req) (
        api.get="/api/v1/report/user/info"
+   )
+   // 上线单查询
+   OnlineOperationResp GetOnlineOperation(1: OnlineOperationReq req) (
+       api.get="/api/v1/report/online_operation"
    )
 
    // 上报数据

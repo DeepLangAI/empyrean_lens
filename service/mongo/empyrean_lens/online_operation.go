@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -64,7 +65,7 @@ func FindOnlineOperations(ctx context.Context, req empyrean_lens.OnlineOperation
 	}
 	modelsGrouped := make(map[string][]*empyrean_lens.UploadOnlineOperationReqData)
 	for _, model := range models {
-		if req.AppName != "" && model.AppName != req.AppName {
+		if req.AppName != "" && strings.Contains(model.AppName, req.AppName) {
 			continue
 		}
 		if _, ok := modelsGrouped[model.AppName]; !ok {
@@ -92,9 +93,8 @@ func FindOnlineOperations(ctx context.Context, req empyrean_lens.OnlineOperation
 		})
 	}
 
-	// 按AppName排序
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].AppName >= result[j].AppName
+		return result[i].Detail[0].Time >= result[j].Detail[0].Time
 	})
 	return result, nil
 }

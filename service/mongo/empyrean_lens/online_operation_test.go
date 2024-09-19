@@ -15,7 +15,7 @@ func TestFindOnlineOperations(t *testing.T) {
 	dal.Init()
 
 	req := empyrean_lens.OnlineOperationReq{
-		TimeBegin: "2024-09-19 12:37:06",
+		TimeBegin: "2024-09-10 12:37:06",
 		TimeEnd:   "2024-09-19 14:37:06",
 		AppName:   "",
 	}

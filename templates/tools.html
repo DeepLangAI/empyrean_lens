@@ -925,7 +925,7 @@
             transition: 0.3s;
         }
 
-        .expand:hover {
+        .expand-info:hover {
             background-color: #e6f7e6; /* Change background on hover to light green */
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Enhance shadow on hover */
             /*可点击效果*/
@@ -949,6 +949,7 @@
             border: none;
             border-radius: 5px;
             padding: 8px 12px;
+            padding-left: 8px;
             font-size: 14px;
             cursor: pointer;
             transition: background-color 0.3s;
@@ -974,16 +975,23 @@
 
         .expand-content .tab-container {
             display: flex;
-            cursor: pointer;
             margin-bottom: 10px;
         }
         .expand-content .tab {
+            cursor: pointer;
             padding: 10px 15px;
             border: 1px solid #ddd;
             border-radius: 4px 4px 0 0;
             margin-right: 5px;
             background-color: #f9f9f9;
             transition: background-color 0.3s;
+        }
+        .expand-content .tab:hover {
+            background-color: #e0e0e0; /* 背景颜色变为浅灰色 */
+            border-color: #bbb; /* 边框颜色变深 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 增加轻微阴影 */
+            /*transform: translateY(-2px); !* 鼠标悬浮时轻微上移 *!*/
+            transition: background-color 0.3s, box-shadow 0.3s, transform 0.3s; /* 添加平滑过渡效果 */
         }
         .expand-content .tab.active {
             background-color: #28a745; /* Green theme color */
@@ -1125,7 +1133,7 @@
             />
         </div>
 
-        <input type="text" id="userendtoendtrace-userid" placeholder="输入用户ID" class="input-field">
+        <input type="text" id="userendtoendtrace-userid" placeholder="输入关键字" class="input-field">
         <div id="user_suggestions" class="suggestions"></div>
 
         <div class="button-container">
@@ -1329,6 +1337,12 @@
         let startTime = $('#userendtoendtrace-begin-time').val().replaceAll('T', ' ') + ':00'
         let endTime = $('#userendtoendtrace-end-time').val().replaceAll('T', ' ') + ':00'
         let userId = $('#userendtoendtrace-userid').val()
+        $('#userendtoendtrace-userid').removeClass('invalid')
+        if (!startTime || !endTime || !userId) {
+            $('#userendtoendtrace-userid').addClass('invalid')
+            return;
+        }
+        showLoadingStatus()
         axios.get('/api/v1/report/user_trace/list', {
             params: {
                 time_begin: startTime,
@@ -1343,13 +1357,13 @@
                 let traceIdLogsContainer = $('<div>').addClass('expand-container').hide()
                 tabs.append(
                     $('<div>').addClass('tab').attr('id', 'timespan-logs').addClass('active').text('时段日志').click(function () {
-                        $('.tab').removeClass('active');
+                        $('.tabs .tab').removeClass('active');
                         $(this).addClass('active');
                         expandContainer.show()
                         traceIdLogsContainer.hide()
                     }),
                     $('<div>').addClass('tab').attr('id', 'userendtoendtrace-logs').text('链路日志').click(function () {
-                        $('.tab').removeClass('active');
+                        $('.tabs .tab').removeClass('active');
                         $(this).addClass('active');
                         expandContainer.hide()
                         traceIdLogsContainer.show()
@@ -1368,9 +1382,14 @@
                 // 创建标签
                 $.each(sceneLogs, function(key) {
                     let tab = $('<div>').addClass('tab').text(`${key}(${sceneLogs[key].length})`).click(function() {
-                        // 切换激活状态
-                        $('.tab').removeClass('active');
+                        // 清除当前tab-container中所有.tab的active状态
+                        tabContainer.find('.tab').removeClass('active');
+                        // 添加当前tab的active状态
                         $(this).addClass('active');
+
+                        // // 切换激活状态
+                        // $('.tab').removeClass('active');
+                        // $(this).addClass('active');
 
                         // 更新内容
                         updateContent(key);
@@ -1407,6 +1426,7 @@
 
                 function showEndToEndTraceLogs(traceId, date) {
                     console.log('展示日志', traceId)
+                    showLoadingStatus()
                     axios.get('/api/v1/report/trace/list', {
                         params: {
                             date_begin: date,
@@ -1476,6 +1496,7 @@
                     }).finally(function () {
                         // 加载完成后，显示加载动画
                         // $('#loading').hide();
+                        hideLoadingStatus()
                     })
                 }
 
@@ -1537,11 +1558,12 @@
         } ).catch(error =>{
             console.error('Error fetching score details:', error);
         }).finally(()=>{
-
+            hideLoadingStatus()
         })
     })
     $('#userendtoendtrace_clean').click(function (){
         $('#userendtoendtrace-userid').val('')
+        $('#userendtoendtrace_result').empty()
     })
 
 

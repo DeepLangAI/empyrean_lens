@@ -7,6 +7,8 @@ import (
 	el "empyrean_lens/dal/mongo/empyrean_lens"
 	aliyun3 "empyrean_lens/service/aliyun"
 	"empyrean_lens/utils"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"sort"
 	"time"
 )
 
@@ -41,7 +43,7 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun3.RealtimeReport, error) 
 	if err != nil {
 		return nil, err
 	}
-	probeFailRates, err := aliyun3.ProbeTimespanFailRate(ctx, consts.TIMESPAN_TODAY)
+	probeFailRates, _, err := aliyun3.ProbeTimespanFailRate(ctx, consts.TIMESPAN_TODAY)
 	if err != nil {
 		return nil, err
 	}
@@ -112,5 +114,93 @@ func SystemRealtimeReport(ctx context.Context) (*aliyun3.RealtimeReport, error) 
 	report.SlowRequest.DayOverDay = slowQueryRates.DayOverDay
 	report.SlowRequest.WeekOverWeek = slowQueryRates.WeekOverWeek
 
+	return report, nil
+}
+func SystemRealtimeReportv1_1(ctx context.Context) (*aliyun3.RealtimeReport, error) {
+	report := &aliyun3.RealtimeReport{
+		Availability: aliyun3.Metric{},
+		TotalRequest: aliyun3.Metric{},
+		ErrorRequest: aliyun3.Metric{},
+		ProbeFailCnt: aliyun3.Metric{},
+	}
+
+	// 查最近7天的分数信息
+	models, err := el.NewSystemScoreDao().FindTimespanScore(
+		ctx,
+		time.Now().AddDate(0, 0, -8),
+		time.Now().Add(8*time.Hour),
+	)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "find timespan score failed, err: %v", err)
+		return nil, err
+	}
+	sort.Slice(models, func(i, j int) bool {
+		return !models[i].Date.Before(models[j].Date)
+	})
+	availabilityScores := map[string]int{}
+	totalRequests := map[string]int{}
+	errorRequests := map[string]int{}
+	SlowRequests := map[string]int{}
+	ProbeFailRequests := map[string]int{}
+
+	dateToModel := map[string]el.SystemScoreModel{}
+	for _, model := range models {
+		date := model.Date.Format("2006-01-02")
+
+		availabilityScores[date] = int(model.Score + 0.5)
+		totalRequests[date] = int(model.TotalReq)
+		errorRequests[date] = int(model.FailReq)
+		SlowRequests[date] = int(model.SlowRate * 100)
+		ProbeFailRequests[date] = int(model.ProbeFailReq)
+
+		dateToModel[date] = model
+	}
+	scoreReventResults := utils.ComputeRevent(availabilityScores)
+	totalRequestsReventResults := utils.ComputeRevent(totalRequests)
+	errorRequestsReventResults := utils.ComputeRevent(errorRequests)
+	slowRequestsReventResults := utils.ComputeRevent(SlowRequests)
+	probeFailRequestsReventResults := utils.ComputeRevent(ProbeFailRequests)
+	// 按日期降序
+	sort.Slice(scoreReventResults, func(i, j int) bool {
+		return scoreReventResults[i].Date > scoreReventResults[j].Date
+	})
+	sort.Slice(totalRequestsReventResults, func(i, j int) bool {
+		return totalRequestsReventResults[i].Date > totalRequestsReventResults[j].Date
+	})
+	sort.Slice(errorRequestsReventResults, func(i, j int) bool {
+		return errorRequestsReventResults[i].Date > errorRequestsReventResults[j].Date
+	})
+	sort.Slice(slowRequestsReventResults, func(i, j int) bool {
+		return slowRequestsReventResults[i].Date > slowRequestsReventResults[j].Date
+	})
+	sort.Slice(probeFailRequestsReventResults, func(i, j int) bool {
+		return probeFailRequestsReventResults[i].Date > probeFailRequestsReventResults[j].Date
+	})
+
+	report.Availability.Value = int(scoreReventResults[0].Score)
+	report.Availability.DayOverDay = scoreReventResults[0].DayOverDay
+	report.Availability.WeekOverWeek = scoreReventResults[0].WeekOverWeek
+
+	report.TotalRequest.Value = int(totalRequestsReventResults[0].Score)
+	report.TotalRequest.DayOverDay = totalRequestsReventResults[0].DayOverDay
+	report.TotalRequest.WeekOverWeek = totalRequestsReventResults[0].WeekOverWeek
+
+	report.ErrorRequest.Value = int(errorRequestsReventResults[0].Score)
+	report.ErrorRequest.DayOverDay = errorRequestsReventResults[0].DayOverDay
+	report.ErrorRequest.WeekOverWeek = errorRequestsReventResults[0].WeekOverWeek
+
+	report.SlowRequest.Value = slowRequestsReventResults[0].Score / 100
+	report.SlowRequest.DayOverDay = slowRequestsReventResults[0].DayOverDay
+	report.SlowRequest.WeekOverWeek = slowRequestsReventResults[0].WeekOverWeek
+
+	probeLogAnlz := aliyun3.RealtimeProbeLoganlz(ctx)
+	report.ProbeFailCnt.Value = probeLogAnlz.Value
+	report.ProbeFailCnt.DayOverDay = probeLogAnlz.DayOverDay
+	report.ProbeFailCnt.WeekOverWeek = probeLogAnlz.WeekOverWeek
+
+	//report.ProbeFailCnt.Value = int(probeFailRequestsReventResults[0].Score)
+	//report.ProbeFailCnt.DayOverDay = probeFailRequestsReventResults[0].DayOverDay
+	//report.ProbeFailCnt.WeekOverWeek = probeFailRequestsReventResults[0].WeekOverWeek
+	//
 	return report, nil
 }

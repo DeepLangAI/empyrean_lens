@@ -19,7 +19,7 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]empyrean_l
 		return nil, err
 	}
 
-	probeFailRates, err := ProbeTimespanFailRate(ctx, timespan)
+	probeFailRates, probeFailReqs, err := ProbeTimespanFailRate(ctx, timespan)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +54,7 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]empyrean_l
 			FailRate:      factor.ApiFailRate * 100,
 			SlowRate:      factor.SlowQueryRate * 100,
 			ProbeFailRate: factor.ProbeFailRate * 100,
+			ProbeFailReq:  probeFailReqs[log.Date],
 			TotalReq:      int32(log.TotalCount),
 			FailReq:       int32(log.FailCount),
 

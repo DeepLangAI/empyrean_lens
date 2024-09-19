@@ -1280,11 +1280,10 @@ func NginxLogQueryByUserId(ctx context.Context, userId string, timeBegin, timeEn
 	from := timeBegin.Unix()
 	to := timeEnd.Unix()
 	query := `
-|select 
+%v|select 
 trace_id, user_id,
 host, url, request_time cost, client_ip, http_user_agent ua, channel, *
 from log
-where user_id = '%v'
 order by time desc
 limit %v
 `
@@ -1351,7 +1350,7 @@ func ModelNginxLogQueryByUserId(ctx context.Context, userId string, timeBegin, t
 	to := timeEnd.Unix()
 
 	query := `
-|select 
+%v|select 
 "content.trace_id" trace_id, 
 "content.user_id" user_id, 
 "content.time" time, 
@@ -1362,7 +1361,6 @@ func ModelNginxLogQueryByUserId(ctx context.Context, userId string, timeBegin, t
 "content.channel" channel,
 *
 from log
-where "content.user_id"='%v' 
 order by "content.time" desc
 limit %v
 `
@@ -1614,14 +1612,13 @@ func BusinessLogQueryByUserId(ctx context.Context, userId string, timeBegin, tim
 	to := timeEnd.Unix()
 
 	query := `
-|select
+%v|select
 user_id, trace_id,
 COALESCE(asctime, time) AS time,
 -- asctime time,
 ip client_ip, message msg,
 *
-from log where
-user_id = '%v'
+from log
 order by asctime desc
 limit %v
 `

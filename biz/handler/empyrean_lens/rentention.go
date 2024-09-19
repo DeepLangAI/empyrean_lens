@@ -45,12 +45,12 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	//realtimeOverview, err := aliyun.RealtimeAvailability(ctx)
-	realtimeOverview, err := empyrean_lens2.SystemRealtimeReport(ctx)
+	realtimeOverview, err := empyrean_lens2.SystemRealtimeReportv1_1(ctx)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())
 		return
 	}
-	timeBegin := time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC)
+	//timeBegin := time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC)
 	//dailyOverview, err := aliyun.SystemTimespanAvailability(ctx, consts2.TIMESPAN_LONGTIME)
 	dailyOverview, err := empyrean_lens2.SystemScoreResult(
 		ctx,
@@ -62,20 +62,13 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
-	//totalDays := int((time.Now().Sub(timeBegin).Hours()) / 24.0)
-	//days := []int{}
-	//for i := 0; i < totalDays; i++ {
-	//	days = append(days, i)
-	//}
-	//aigcCostMetricOverview := aliyun.AigcCostMetricOfDays(ctx, days)
-	//aigcCostOverview := aliyun2.SummaryGeneralOverview(ctx, days)
-	aigcCostOverview, err := empyrean_lens2.SceneResult(ctx, timeBegin, time.Now())
+	//aigcCostOverview, err := empyrean_lens2.SceneResult(ctx, timeBegin, time.Now())
 
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{
 		DailyOverview:    dailyOverview,
 		RealtimeOverview: *realtimeOverview,
-		SceneOverviews:   aigcCostOverview,
+		//SceneOverviews:   aigcCostOverview,
 	}
 
 	tpl, err := template.ParseFiles(filepath.Join(utils.GetProjectPath(), consts2.OVERVIEW_TEMPLATE_PATH))

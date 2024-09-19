@@ -239,6 +239,18 @@ func EndToEndUserTraceLogs(ctx context.Context, req empyrean_lens.EndToEndUserTr
 		"订阅": {
 			"/api/feed/v1/subscription/upsert",
 		},
+		"网页抓取": {
+			"/iapi/subscription/crawler_article",
+		},
+	}
+	groupedContainers := map[string][]string{
+		"wcd":    {"wcd-v2-python-prod", "wcd-v2-python-pre"},
+		"语鲸后端":   {"lingowhale-python-prod", "lingowhale-python-pre"},
+		"语鲸问答后端": {"lingowhale-chat-go-prod", "lingowhale-chat-go-pre"},
+		"网页抓取":   {"webcrawler-python-prod", "webcrawler-python-pre"},
+		"中继服务":   {"lingowhale-repeater-go-prod", "lingowhale-repeater-go-pre"},
+		"edu":    {"edu-arch-go-prod", "edu-arch-go-pre"},
+		"安全":     {"safety-go-prod", "safety-go-pre"},
 	}
 	traceIdGroupedLogs := map[string]*empyrean_lens.EndToEndUserTraceRespData{}
 	for _, log := range parsedLogs {
@@ -265,6 +277,13 @@ func EndToEndUserTraceLogs(ctx context.Context, req empyrean_lens.EndToEndUserTr
 		if key == "" {
 			if strings.Contains(log.APIPath, "safety") {
 				key = "安全"
+			} else {
+				for _key, containerName := range groupedContainers {
+					if utils.Contains(containerName, log.OriginLog["__tag__:_container_name_"]) {
+						key = _key
+						break
+					}
+				}
 			}
 		}
 		if key == "" {

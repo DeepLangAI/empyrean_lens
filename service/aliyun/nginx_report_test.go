@@ -104,9 +104,9 @@ func TestEndToEndUserTraceLogs(t *testing.T) {
 	dal.Init()
 
 	logs, err := EndToEndUserTraceLogs(ctx, empyrean_lens.EndToEndUserTraceReq{
-		TimeBegin: "2024-09-14 20:14:00",
-		TimeEnd:   "2024-09-14 21:14:00",
-		UserID:    "63e0713930c33a167f79d5d8",
+		TimeBegin: "2024-09-19 10:52:00",
+		TimeEnd:   "2024-09-19 11:02:00",
+		UserID:    "8c8680b199ef4c0b9eba736908c66722",
 	})
 	if err != nil {
 		t.Error(err)

@@ -14240,6 +14240,686 @@ func (p *AuthReq) String() string {
 
 }
 
+// 上线单查询
+type OnlineOperationReq struct {
+	TimeBegin string `thrift:"time_begin,1" form:"time_begin" json:"time_begin" query:"time_begin"`
+	TimeEnd   string `thrift:"time_end,2" form:"time_end" json:"time_end" query:"time_end"`
+	AppName   string `thrift:"app_name,3" form:"app_name" json:"app_name" query:"app_name"`
+}
+
+func NewOnlineOperationReq() *OnlineOperationReq {
+	return &OnlineOperationReq{}
+}
+
+func (p *OnlineOperationReq) GetTimeBegin() (v string) {
+	return p.TimeBegin
+}
+
+func (p *OnlineOperationReq) GetTimeEnd() (v string) {
+	return p.TimeEnd
+}
+
+func (p *OnlineOperationReq) GetAppName() (v string) {
+	return p.AppName
+}
+
+var fieldIDToName_OnlineOperationReq = map[int16]string{
+	1: "time_begin",
+	2: "time_end",
+	3: "app_name",
+}
+
+func (p *OnlineOperationReq) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_OnlineOperationReq[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *OnlineOperationReq) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TimeBegin = _field
+	return nil
+}
+func (p *OnlineOperationReq) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TimeEnd = _field
+	return nil
+}
+func (p *OnlineOperationReq) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.AppName = _field
+	return nil
+}
+
+func (p *OnlineOperationReq) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("OnlineOperationReq"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *OnlineOperationReq) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time_begin", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TimeBegin); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *OnlineOperationReq) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time_end", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TimeEnd); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *OnlineOperationReq) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("app_name", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.AppName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *OnlineOperationReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("OnlineOperationReq(%+v)", *p)
+
+}
+
+type OnlineOperationResp struct {
+	Code int32                      `thrift:"code,1" form:"code" json:"code" query:"code"`
+	Msg  string                     `thrift:"msg,2" form:"msg" json:"msg" query:"msg"`
+	Data []*OnlineOperationRespData `thrift:"data,3" form:"data" json:"data" query:"data"`
+}
+
+func NewOnlineOperationResp() *OnlineOperationResp {
+	return &OnlineOperationResp{}
+}
+
+func (p *OnlineOperationResp) GetCode() (v int32) {
+	return p.Code
+}
+
+func (p *OnlineOperationResp) GetMsg() (v string) {
+	return p.Msg
+}
+
+func (p *OnlineOperationResp) GetData() (v []*OnlineOperationRespData) {
+	return p.Data
+}
+
+var fieldIDToName_OnlineOperationResp = map[int16]string{
+	1: "code",
+	2: "msg",
+	3: "data",
+}
+
+func (p *OnlineOperationResp) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_OnlineOperationResp[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *OnlineOperationResp) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field int32
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Code = _field
+	return nil
+}
+func (p *OnlineOperationResp) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Msg = _field
+	return nil
+}
+func (p *OnlineOperationResp) ReadField3(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]*OnlineOperationRespData, 0, size)
+	values := make([]OnlineOperationRespData, size)
+	for i := 0; i < size; i++ {
+		_elem := &values[i]
+
+		if err := _elem.Read(iprot); err != nil {
+			return err
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.Data = _field
+	return nil
+}
+
+func (p *OnlineOperationResp) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("OnlineOperationResp"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *OnlineOperationResp) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("code", thrift.I32, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(p.Code); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *OnlineOperationResp) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("msg", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Msg); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *OnlineOperationResp) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("data", thrift.LIST, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.STRUCT, len(p.Data)); err != nil {
+		return err
+	}
+	for _, v := range p.Data {
+		if err := v.Write(oprot); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *OnlineOperationResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("OnlineOperationResp(%+v)", *p)
+
+}
+
+type OnlineOperationRespData struct {
+	AppName string                          `thrift:"app_name,1" form:"app_name" json:"app_name" query:"app_name"`
+	Detail  []*UploadOnlineOperationReqData `thrift:"detail,2" form:"detail" json:"detail" query:"detail"`
+}
+
+func NewOnlineOperationRespData() *OnlineOperationRespData {
+	return &OnlineOperationRespData{}
+}
+
+func (p *OnlineOperationRespData) GetAppName() (v string) {
+	return p.AppName
+}
+
+func (p *OnlineOperationRespData) GetDetail() (v []*UploadOnlineOperationReqData) {
+	return p.Detail
+}
+
+var fieldIDToName_OnlineOperationRespData = map[int16]string{
+	1: "app_name",
+	2: "detail",
+}
+
+func (p *OnlineOperationRespData) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_OnlineOperationRespData[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *OnlineOperationRespData) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.AppName = _field
+	return nil
+}
+func (p *OnlineOperationRespData) ReadField2(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]*UploadOnlineOperationReqData, 0, size)
+	values := make([]UploadOnlineOperationReqData, size)
+	for i := 0; i < size; i++ {
+		_elem := &values[i]
+
+		if err := _elem.Read(iprot); err != nil {
+			return err
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.Detail = _field
+	return nil
+}
+
+func (p *OnlineOperationRespData) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("OnlineOperationRespData"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *OnlineOperationRespData) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("app_name", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.AppName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *OnlineOperationRespData) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("detail", thrift.LIST, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.STRUCT, len(p.Detail)); err != nil {
+		return err
+	}
+	for _, v := range p.Detail {
+		if err := v.Write(oprot); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *OnlineOperationRespData) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("OnlineOperationRespData(%+v)", *p)
+
+}
+
 type Rentention interface {
 	OverviewRender(ctx context.Context, req *EmptyReq) (r *EmptyResp, err error)
 
@@ -14274,6 +14954,8 @@ type Rentention interface {
 	SystemDbRefresh(ctx context.Context, req *DbRefreshReq) (r *DbRefreshResp, err error)
 	// 查用户信息
 	GetUInfo(ctx context.Context, req *UInfoReq) (r *UInfoResp, err error)
+	// 上线单查询
+	GetOnlineOperation(ctx context.Context, req *OnlineOperationReq) (r *OnlineOperationResp, err error)
 	// 上报数据
 	// - 上线数据上报
 	UploadOnlineOperation(ctx context.Context, req *UploadOnlineOperationReq) (r *BaseResp, err error)
@@ -14460,6 +15142,15 @@ func (p *RententionClient) GetUInfo(ctx context.Context, req *UInfoReq) (r *UInf
 	}
 	return _result.GetSuccess(), nil
 }
+func (p *RententionClient) GetOnlineOperation(ctx context.Context, req *OnlineOperationReq) (r *OnlineOperationResp, err error) {
+	var _args RententionGetOnlineOperationArgs
+	_args.Req = req
+	var _result RententionGetOnlineOperationResult
+	if err = p.Client_().Call(ctx, "GetOnlineOperation", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
 func (p *RententionClient) UploadOnlineOperation(ctx context.Context, req *UploadOnlineOperationReq) (r *BaseResp, err error) {
 	var _args RententionUploadOnlineOperationArgs
 	_args.Req = req
@@ -14516,6 +15207,7 @@ func NewRententionProcessor(handler Rentention) *RententionProcessor {
 	self.AddToProcessorMap("SystemDbTidy", &rententionProcessorSystemDbTidy{handler: handler})
 	self.AddToProcessorMap("SystemDbRefresh", &rententionProcessorSystemDbRefresh{handler: handler})
 	self.AddToProcessorMap("GetUInfo", &rententionProcessorGetUInfo{handler: handler})
+	self.AddToProcessorMap("GetOnlineOperation", &rententionProcessorGetOnlineOperation{handler: handler})
 	self.AddToProcessorMap("UploadOnlineOperation", &rententionProcessorUploadOnlineOperation{handler: handler})
 	self.AddToProcessorMap("WriteProbeLogs", &rententionProcessorWriteProbeLogs{handler: handler})
 	return self
@@ -15337,6 +16029,54 @@ func (p *rententionProcessorGetUInfo) Process(ctx context.Context, seqId int32, 
 		result.Success = retval
 	}
 	if err2 = oprot.WriteMessageBegin("GetUInfo", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 = result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.Flush(ctx); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
+}
+
+type rententionProcessorGetOnlineOperation struct {
+	handler Rentention
+}
+
+func (p *rententionProcessorGetOnlineOperation) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := RententionGetOnlineOperationArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("GetOnlineOperation", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	var err2 error
+	result := RententionGetOnlineOperationResult{}
+	var retval *OnlineOperationResp
+	if retval, err2 = p.handler.GetOnlineOperation(ctx, args.Req); err2 != nil {
+		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing GetOnlineOperation: "+err2.Error())
+		oprot.WriteMessageBegin("GetOnlineOperation", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return true, err2
+	} else {
+		result.Success = retval
+	}
+	if err2 = oprot.WriteMessageBegin("GetOnlineOperation", thrift.REPLY, seqId); err2 != nil {
 		err = err2
 	}
 	if err2 = result.Write(oprot); err == nil && err2 != nil {
@@ -20343,6 +21083,294 @@ func (p *RententionGetUInfoResult) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("RententionGetUInfoResult(%+v)", *p)
+
+}
+
+type RententionGetOnlineOperationArgs struct {
+	Req *OnlineOperationReq `thrift:"req,1"`
+}
+
+func NewRententionGetOnlineOperationArgs() *RententionGetOnlineOperationArgs {
+	return &RententionGetOnlineOperationArgs{}
+}
+
+var RententionGetOnlineOperationArgs_Req_DEFAULT *OnlineOperationReq
+
+func (p *RententionGetOnlineOperationArgs) GetReq() (v *OnlineOperationReq) {
+	if !p.IsSetReq() {
+		return RententionGetOnlineOperationArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+
+var fieldIDToName_RententionGetOnlineOperationArgs = map[int16]string{
+	1: "req",
+}
+
+func (p *RententionGetOnlineOperationArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *RententionGetOnlineOperationArgs) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_RententionGetOnlineOperationArgs[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *RententionGetOnlineOperationArgs) ReadField1(iprot thrift.TProtocol) error {
+	_field := NewOnlineOperationReq()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Req = _field
+	return nil
+}
+
+func (p *RententionGetOnlineOperationArgs) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("GetOnlineOperation_args"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *RententionGetOnlineOperationArgs) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("req", thrift.STRUCT, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Req.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *RententionGetOnlineOperationArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RententionGetOnlineOperationArgs(%+v)", *p)
+
+}
+
+type RententionGetOnlineOperationResult struct {
+	Success *OnlineOperationResp `thrift:"success,0,optional"`
+}
+
+func NewRententionGetOnlineOperationResult() *RententionGetOnlineOperationResult {
+	return &RententionGetOnlineOperationResult{}
+}
+
+var RententionGetOnlineOperationResult_Success_DEFAULT *OnlineOperationResp
+
+func (p *RententionGetOnlineOperationResult) GetSuccess() (v *OnlineOperationResp) {
+	if !p.IsSetSuccess() {
+		return RententionGetOnlineOperationResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var fieldIDToName_RententionGetOnlineOperationResult = map[int16]string{
+	0: "success",
+}
+
+func (p *RententionGetOnlineOperationResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *RententionGetOnlineOperationResult) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 0:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField0(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_RententionGetOnlineOperationResult[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *RententionGetOnlineOperationResult) ReadField0(iprot thrift.TProtocol) error {
+	_field := NewOnlineOperationResp()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Success = _field
+	return nil
+}
+
+func (p *RententionGetOnlineOperationResult) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("GetOnlineOperation_result"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField0(oprot); err != nil {
+			fieldId = 0
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *RententionGetOnlineOperationResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.IsSetSuccess() {
+		if err = oprot.WriteFieldBegin("success", thrift.STRUCT, 0); err != nil {
+			goto WriteFieldBeginError
+		}
+		if err := p.Success.Write(oprot); err != nil {
+			return err
+		}
+		if err = oprot.WriteFieldEnd(); err != nil {
+			goto WriteFieldEndError
+		}
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 end error: ", p), err)
+}
+
+func (p *RententionGetOnlineOperationResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RententionGetOnlineOperationResult(%+v)", *p)
 
 }
 

@@ -533,3 +533,26 @@ func SystemEndToEndUserTraceLogs(ctx context.Context, c *app.RequestContext) {
 
 	base.SuccessResponse(c, resp)
 }
+
+// GetOnlineOperation .
+// @router /api/v1/report/online_operation [GET]
+func GetOnlineOperation(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.OnlineOperationReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.OnlineOperationResp)
+	data, err := empyrean_lens2.FindOnlineOperations(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	resp.Data = data
+	base.SuccessResponse(c, resp)
+}

@@ -1077,6 +1077,11 @@
             <h2>用户日志</h2>
             <p>查询用户使用系统产生日志</p>
         </div>
+
+        <div class="tool" onclick="openModal('onlineoperation-modal')">
+            <h2>上线单</h2>
+            <p>查询上线记录</p>
+        </div>
     </div>
 </div>
 
@@ -1141,6 +1146,40 @@
             <div id="userendtoendtrace_submit" class="btn-submit">查询</div>
         </div>
         <div id="userendtoendtrace_result" class="result-content"></div>
+    </div>
+</div>
+
+<div id="onlineoperation-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>上线单</h2>
+        <div class="datetime-container">
+            <input
+                    type="datetime-local"
+                    id="onlineoperation-begin-time"
+                    name="meeting-time"
+                    value="2024-09-14T00:00"
+                    min="2018-06-07T00:00"
+                    max="2095-06-14T00:00"
+            />
+            <input
+                    type="datetime-local"
+                    id="onlineoperation-end-time"
+                    name="meeting-time"
+                    value="2024-09-14 00:00"
+                    min="2018-06-07 00:00"
+                    max="2095-06-14 00:00"
+            />
+        </div>
+
+        <input type="text" id="onlineoperation-userid" placeholder="输入关键字" class="input-field">
+        <div id="onlineoperation_suggestions" class="suggestions"></div>
+
+        <div class="button-container">
+            <div id="onlineoperation_clean" class="btn-ghost">清空</div>
+            <div id="onlineoperation_submit" class="btn-submit">查询</div>
+        </div>
+        <div id="onlineoperation_result" class="result-content"></div>
     </div>
 </div>
 
@@ -1624,6 +1663,9 @@
                 $('#user_suggestions').removeClass('visible').empty();
             }
         })
+
+        $('#onlineoperation-begin-time').val(getCurrentDateMinusMinutes(120))
+        $('#onlineoperation-end-time').val(getCurrentDateMinusMinutes(0))
     })
 
     function handleClickExpand(pid){

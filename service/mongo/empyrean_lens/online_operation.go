@@ -7,6 +7,7 @@ import (
 	empyrean_lens2 "empyrean_lens/dal/mongo/empyrean_lens"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"sort"
 	"time"
 )
 
@@ -42,4 +43,58 @@ func UpsertOnlineOperations(ctx context.Context, req empyrean_lens.UploadOnlineO
 		return nil, err
 	}
 	return data, nil
+}
+
+func FindOnlineOperations(ctx context.Context, req empyrean_lens.OnlineOperationReq) ([]*empyrean_lens.OnlineOperationRespData, error) {
+	dao := empyrean_lens2.NewOnlineOperationModelDao()
+	timeBegin, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.TimeBegin, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse time error: %v", err)
+		return nil, err
+	}
+	timeEnd, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.TimeEnd, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse time error: %v", err)
+		return nil, err
+	}
+	models, err := dao.FindTimespanModels(ctx, timeBegin, timeEnd)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "find online operation error: %v", err)
+		return nil, err
+	}
+	modelsGrouped := make(map[string][]*empyrean_lens.UploadOnlineOperationReqData)
+	for _, model := range models {
+		if req.AppName != "" && model.AppName != req.AppName {
+			continue
+		}
+		if _, ok := modelsGrouped[model.AppName]; !ok {
+			modelsGrouped[model.AppName] = []*empyrean_lens.UploadOnlineOperationReqData{}
+		}
+		modelsGrouped[model.AppName] = append(modelsGrouped[model.AppName], &empyrean_lens.UploadOnlineOperationReqData{
+			Builder:       model.Builder,
+			BranchName:    model.BranchName,
+			CommitMessage: model.CommitMessage,
+			DomainName:    model.DomainName,
+			Time:          model.Time.Format(consts.DateHourMinuteTemplate),
+			AppName:       model.AppName,
+			RemoteURL:     model.RemoteUrl,
+		})
+	}
+	result := make([]*empyrean_lens.OnlineOperationRespData, 0)
+	for appName, groupModels := range modelsGrouped {
+		sort.Slice(groupModels, func(i, j int) bool {
+			// 降序
+			return groupModels[i].Time >= groupModels[j].Time
+		})
+		result = append(result, &empyrean_lens.OnlineOperationRespData{
+			AppName: appName,
+			Detail:  groupModels,
+		})
+	}
+
+	// 按AppName排序
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].AppName >= result[j].AppName
+	})
+	return result, nil
 }

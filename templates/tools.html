@@ -949,6 +949,7 @@
             border: none;
             border-radius: 5px;
             padding: 8px 12px;
+            padding-left: 8px;
             font-size: 14px;
             cursor: pointer;
             transition: background-color 0.3s;
@@ -1336,7 +1337,9 @@
         let startTime = $('#userendtoendtrace-begin-time').val().replaceAll('T', ' ') + ':00'
         let endTime = $('#userendtoendtrace-end-time').val().replaceAll('T', ' ') + ':00'
         let userId = $('#userendtoendtrace-userid').val()
+        $('#userendtoendtrace-userid').removeClass('invalid')
         if (!startTime || !endTime || !userId) {
+            $('#userendtoendtrace-userid').addClass('invalid')
             return;
         }
         showLoadingStatus()
@@ -1354,13 +1357,13 @@
                 let traceIdLogsContainer = $('<div>').addClass('expand-container').hide()
                 tabs.append(
                     $('<div>').addClass('tab').attr('id', 'timespan-logs').addClass('active').text('时段日志').click(function () {
-                        $('.tab').removeClass('active');
+                        $('.tabs .tab').removeClass('active');
                         $(this).addClass('active');
                         expandContainer.show()
                         traceIdLogsContainer.hide()
                     }),
                     $('<div>').addClass('tab').attr('id', 'userendtoendtrace-logs').text('链路日志').click(function () {
-                        $('.tab').removeClass('active');
+                        $('.tabs .tab').removeClass('active');
                         $(this).addClass('active');
                         expandContainer.hide()
                         traceIdLogsContainer.show()
@@ -1379,9 +1382,14 @@
                 // 创建标签
                 $.each(sceneLogs, function(key) {
                     let tab = $('<div>').addClass('tab').text(`${key}(${sceneLogs[key].length})`).click(function() {
-                        // 切换激活状态
-                        $('.tab').removeClass('active');
+                        // 清除当前tab-container中所有.tab的active状态
+                        tabContainer.find('.tab').removeClass('active');
+                        // 添加当前tab的active状态
                         $(this).addClass('active');
+
+                        // // 切换激活状态
+                        // $('.tab').removeClass('active');
+                        // $(this).addClass('active');
 
                         // 更新内容
                         updateContent(key);

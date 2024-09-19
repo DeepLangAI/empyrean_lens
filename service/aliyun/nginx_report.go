@@ -250,6 +250,7 @@ func EndToEndUserTraceLogs(ctx context.Context, req empyrean_lens.EndToEndUserTr
 		"网页抓取":   {"webcrawler-python-prod", "webcrawler-python-pre"},
 		"中继服务":   {"lingowhale-repeater-go-prod", "lingowhale-repeater-go-pre"},
 		"edu":    {"edu-arch-go-prod", "edu-arch-go-pre"},
+		"安全":     {"safety-go-prod", "safety-go-pre"},
 	}
 	traceIdGroupedLogs := map[string]*empyrean_lens.EndToEndUserTraceRespData{}
 	for _, log := range parsedLogs {

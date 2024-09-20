@@ -37,7 +37,7 @@ lark:
   jwtSecret: "REDACTED"
   auth:
     names:
-    email:
+    emails:
     mobiles:
     employee_nos:
       - D077

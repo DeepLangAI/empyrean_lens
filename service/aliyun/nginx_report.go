@@ -5,6 +5,7 @@ import (
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/aliyun"
+	empyrean_lens2 "empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
 	"fmt"
 	"sort"
@@ -367,6 +368,90 @@ func RequestTrend(ctx context.Context, req empyrean_lens.RequestTrendReq) (*empy
 			sort.Slice(trendItems, func(i, j int) bool {
 				return trendItems[i].Time < trendItems[j].Time
 			})
+			if daysLookback == 0 {
+				data.Data0 = trendItems
+			} else if daysLookback == 1 {
+				data.Data1 = trendItems
+			} else if daysLookback == 7 {
+				data.Data7 = trendItems
+			}
+		}(daysLookback)
+	}
+	wg.Wait()
+	return data, err
+}
+
+type TrendCache struct {
+	ReqCounts       int32
+	Scores          []float64
+	FailRates       []float64
+	SlowRates       []float64
+	ProbeFailRates  []float64
+	ProbeFailCounts []float64
+	NumTraceBacks   []float64
+}
+
+func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*empyrean_lens.RequestTrendRespData, error) {
+	timeBegin, err := time.ParseInLocation(consts.DateTemplate, req.Date, time.Local)
+	if err != nil {
+		return nil, err
+	}
+	timeEnd := timeBegin.Add(time.Hour*23 + time.Minute*59 + time.Second*59 + time.Millisecond*999)
+
+	data := &empyrean_lens.RequestTrendRespData{}
+	wg := sync.WaitGroup{}
+	for _, daysLookback := range []int{0, 1, 7} {
+		wg.Add(1)
+		go func(daysLookback int) {
+			defer wg.Done()
+			scoreLogs, err := empyrean_lens2.NewScoreBackupDao().FindTimespanScore(ctx, timeBegin.AddDate(0, 0, -daysLookback), timeEnd.AddDate(0, 0, -daysLookback))
+			if err != nil {
+				return
+			}
+
+			trendCache := map[string]TrendCache{}
+
+			for _, log := range scoreLogs {
+				log.Time = log.Time.Local()
+				timestamp := log.Time.Format(consts.DateHourTemplate)
+				timestamp = fmt.Sprintf("%v:%02d:00", timestamp[:len(timestamp)-6], log.Time.Minute()-(log.Time.Minute()%15))
+				if _, ok := trendCache[timestamp]; !ok {
+					trendCache[timestamp] = TrendCache{
+						ReqCounts:       0,
+						Scores:          make([]float64, 0),
+						FailRates:       make([]float64, 0),
+						SlowRates:       make([]float64, 0),
+						ProbeFailRates:  make([]float64, 0),
+						ProbeFailCounts: make([]float64, 0),
+						NumTraceBacks:   make([]float64, 0),
+					}
+				}
+				cache := trendCache[timestamp]
+				cache.ReqCounts = utils.Max(cache.ReqCounts, log.TotalReq)
+				cache.Scores = append(cache.Scores, log.Score)
+				cache.FailRates = append(cache.FailRates, log.FailRate)
+				cache.SlowRates = append(cache.SlowRates, log.SlowRate)
+				cache.ProbeFailRates = append(cache.ProbeFailRates, log.ProbeFailRate)
+				cache.ProbeFailCounts = append(cache.ProbeFailCounts, float64(log.ProbeFailReq))
+				trendCache[timestamp] = cache
+			}
+			trendItems := []*empyrean_lens.RequestTrendRespDataItem{}
+			for timestamp, cache := range trendCache {
+				trendItems = append(trendItems, &empyrean_lens.RequestTrendRespDataItem{
+					Time:           timestamp,
+					Count:          cache.ReqCounts,
+					ReqCount:       cache.ReqCounts,
+					Score:          int32(utils.AvgSimple(cache.Scores, true) + 0.5),
+					FailRate:       utils.AvgSimple(cache.FailRates, false),
+					SlowRate:       utils.AvgSimple(cache.SlowRates, false),
+					ProbeFailRate:  utils.AvgSimple(cache.ProbeFailRates, false),
+					ProbeFailCount: utils.AvgSimple(cache.ProbeFailCounts, false),
+				})
+			}
+			sort.Slice(trendItems, func(i, j int) bool {
+				return trendItems[i].Time < trendItems[j].Time
+			})
+
 			if daysLookback == 0 {
 				data.Data0 = trendItems
 			} else if daysLookback == 1 {

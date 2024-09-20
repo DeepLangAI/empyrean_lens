@@ -288,6 +288,11 @@
             text-decoration: none;
             cursor: pointer;
         }
+        .clickable-black {
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
 
         .clickable:hover {
             background-color: #e0e0e0;
@@ -659,6 +664,42 @@
             padding: 20px;
         }
 
+        .carousel {
+            position: relative;
+            max-width: 600px;
+            overflow: hidden;
+            padding-left: 50px;
+        }
+        .slides {
+            display: flex !important;
+            transition: transform 0.2s ease;
+        }
+        .slide {
+            /*min-width: 100%;*/
+            box-sizing: border-box;
+        }
+        .carousel .chart-item {
+            display: block;
+            padding: 0;
+            /*box-sizing: unset;*/
+            box-shadow: unset;
+        }
+        .carousel button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.7);
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .button.prev {
+            left: 10px;
+        }
+        .button.next {
+            right: 10px;
+        }
+
 
     </style>
 </head>
@@ -811,6 +852,30 @@
         }
     }
 
+    let currentSlideIndex = 0;
+
+
+    function moveToSlide(idx){
+        const $slides = $('.slides');
+        currentSlideIndex = idx
+        $slides.css('transform', 'translateX(' + (-idx * 110) + '%)');
+    }
+
+    function changeSlide(direction) {
+        const totalSlides = $('.slide').length;
+
+        // 更新当前索引
+        currentSlideIndex = (currentSlideIndex + direction + totalSlides) % totalSlides;
+
+        // 如果向左翻到第一张，则跳转到最后一张
+        if (currentSlideIndex === totalSlides - 1 && direction === -1) {
+            currentSlideIndex = totalSlides - 1; // 保持在最后一张
+        } else if (currentSlideIndex === 0 && direction === 1) {
+            currentSlideIndex = 0; // 保持在第一张
+        }
+        moveToSlide(currentSlideIndex)
+    }
+
 
     function displayScoreDetails(scoreDetails) {
         // 在这里实现显示分数细节的逻辑
@@ -839,18 +904,23 @@
                                     <td id="date">{0}</td>
                                 </tr>
                                 <tr>
-                                    <th>分数</th>
+                                    <th onclick="moveToSlide(0)" class="clickable-black">分数</th>
                                     <td>{1}</td>
                                 </tr>
-                                    <th>接口错误率</th>
+                                <tr>
+                                    <th onclick="moveToSlide(1)" class="clickable-black">总请求量</th>
+                                    <td>${detail.total_req}</td>
+                                </tr>
+                                <tr>
+                                    <th onclick="moveToSlide(2)" class="clickable-black">接口错误率</th>
                                     <td class="clickable" onclick="handleErrorList()">{2}%</td>
                                 </tr>
                                 <tr>
-                                    <th>慢查询率</th>
+                                    <th onclick="moveToSlide(3)" class="clickable-black">慢查询率</th>
                                     <td class="clickable" onclick="handleSlowList()">{3}%</td>
                                 </tr>
                                 <tr>
-                                    <th>探针错误率</th>
+                                    <th onclick="moveToSlide(4)" class="clickable-black">探针错误率</th>
                                     <td class="clickable" onclick="handleProbeList()">{4}%</td>
                                 </tr>
                                 <tr>
@@ -859,7 +929,12 @@
                                 </tr>
                             </thead>
                         </table>
-                        <div id="请求量趋势"></div>
+                        <div class="carousel">
+                            <div class="slides" id="trends">
+                            </div>
+                            <button class="button prev" onclick="changeSlide(-1)">&#10094;</button>
+                            <button class="button next" onclick="changeSlide(1)">&#10095;</button>
+                        </div>
                     </div>
                     <div id="接口错误列表">
                         <table id="接口错误列表-table" class="table-container" ></table>
@@ -917,13 +992,17 @@
                 date: date,
             }
         }).then(response => {
-            console.log('trend request response', response.data)
+            let container = $('#trends')
             let data = response.data.data
-            let chartContainer = $('<div>').addClass('chart-container')
-            let chart = drawMultiDayTrendChart(data.data0, data.data1, data.data7)
-            chartContainer.append(chart)
-            let container = $('#请求量趋势')
-            container.append(chartContainer)
+            let chart = drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'req_count', '请求量趋势')
+            let slowTrendChart = drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'slow_rate', '慢查询率趋势', true)
+            container.append(
+                drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'score', '分数变化趋势').addClass('slide'),
+                chart.addClass('slide'),
+                drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'fail_rate', '接口错误率趋势', true).addClass('slide'),
+                slowTrendChart.addClass('slide'),
+                drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'probe_fail_rate', '探针错误率趋势', true).addClass('slide'),
+            )
 
         }).catch(error => {
             console.error(error);
@@ -2623,20 +2702,20 @@
     }
 
     // 将时间字符串转换为时间戳
-    function convertToTimestamp(data) {
+    function convertToTimestamp(data, key) {
         let result = []
         data.forEach(function(item) {
             var date = new Date(item.time.replace(/-/g, '/'));
             var today = new Date();
             date.setDate(today.getDate());
             date.setMonth(today.getMonth());
-            result.push([date.getTime(), item.count]);
+            result.push([date.getTime(), item[key]]);
         });
         return result;
     }
 
     // 绘制多天数据趋势对比图
-    function drawMultiDayTrendChart(todayData, yesterdayData, weekAgoData) {
+    function drawMultiDayTrendChart(todayData, yesterdayData, weekAgoData, key, title, percent=false) {
         // 根据是否为移动端设置字体大小
         var fontSize = isMobile() ? '25px' : '12px';
         var titleFontSize = isMobile() ? '30px' : '16px';
@@ -2644,9 +2723,9 @@
 
         // 将数据转换为 ECharts 所需格式
         var chartData = [
-            convertToTimestamp(todayData),
-            convertToTimestamp(yesterdayData),
-            convertToTimestamp(weekAgoData),
+            convertToTimestamp(todayData, key),
+            convertToTimestamp(yesterdayData, key),
+            convertToTimestamp(weekAgoData, key),
         ];
 
         // 初始化 ECharts 实例
@@ -2659,7 +2738,7 @@
         // 配置图表选项
         var option = {
             title: {
-                text: '多天请求量数据趋势图',
+                text: title,
                 textStyle: {
                     fontSize: titleFontSize
                 },
@@ -2689,7 +2768,11 @@
                                 break;
                         }
                         dateStr = date.toLocaleString();
-                        result += dateStr.slice(5, 15) + ': ' + item.value[1] + '<br>';
+                        if (percent == true){
+                            result += dateStr.slice(5, 15) + ': ' + item.value[1].toFixed(2) + '%' + '<br>';
+                        } else{
+                            result += dateStr.slice(5, 15) + ': ' + item.value[1] + '<br>';
+                        }
                     });
                     return result;
                 },

@@ -23,6 +23,7 @@ struct DailyScoreRespData {
     6: double slow_rate
     7: double probe_fail_rate
     8: i32 num_traceback
+    9: i32 total_req
 }
 
 struct DailyScoreResp {
@@ -325,6 +326,13 @@ struct RequestTrendRespData{
 struct RequestTrendRespDataItem{
     1: string time
     2: i32 count
+    3: i32 req_count
+    4: i32 score
+    5: double fail_rate
+    6: double slow_rate
+    7: double probe_fail_rate
+    8: double probe_fail_count
+    9: i32 num_trace_back
 }
 
 // 上报：上线数据

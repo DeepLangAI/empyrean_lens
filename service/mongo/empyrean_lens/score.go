@@ -50,6 +50,7 @@ func ScoreRelatedDetailQuery(ctx context.Context, req empyrean_lens2.DailyScoreR
 			NumTraceback:  int32(numTb[date]),
 			DayOverDay:    d.ScoreDayOverDay,
 			WeekOverWeek:  d.ScoreWeekOverWeek,
+			TotalReq:      d.TotalReq,
 		})
 	}
 	return data, nil
@@ -103,7 +104,7 @@ func UpdateLatestScoreInfo(ctx context.Context) error {
 	models, err := empyrean_lens.NewSystemScoreDao().FindTimespanScore(
 		ctx,
 		time.Now().AddDate(0, 0, -8),
-		time.Now(),
+		time.Now().Add(8*time.Hour),
 	)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "UpdateLatestScoreInfo err:%v", err)
@@ -130,6 +131,27 @@ func UpdateLatestScoreInfo(ctx context.Context) error {
 	err = empyrean_lens.NewSystemScoreDao().CreateOrUpdate(ctx, models[0].Date, models[0])
 	if err != nil {
 		hlog.CtxErrorf(ctx, "UpdateLatestScoreInfo err:%v", err)
+		return err
+	}
+
+	latestModel := models[0]
+	err = empyrean_lens.NewScoreBackupDao().CreateOrUpdate(ctx, empyrean_lens.ScoreBackupModel{
+		Time:              time.Now(),
+		Score:             latestModel.Score,
+		ScoreDayOverDay:   latestModel.ScoreDayOverDay,
+		ScoreWeekOverWeek: latestModel.ScoreWeekOverWeek,
+		TotalReq:          latestModel.TotalReq,
+		FailReq:           latestModel.FailReq,
+		SlowReq:           latestModel.SlowReq,
+		FailRate:          latestModel.FailRate,
+		SlowRate:          latestModel.SlowRate,
+		ProbeFailReq:      latestModel.ProbeFailReq,
+		ProbeTotalReq:     latestModel.ProbeTotalReq,
+		ProbeFailRate:     latestModel.ProbeFailRate,
+		AvgRespCost:       latestModel.AvgRespCost,
+	})
+	if err != nil {
+		hlog.CtxErrorf(ctx, "UpdateLatestScoreBackupInfo err:%v", err)
 		return err
 	}
 	return nil

@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal"
+	"empyrean_lens/utils"
 	"fmt"
 	"testing"
 )
@@ -117,4 +118,16 @@ func TestEndToEndUserTraceLogs(t *testing.T) {
 			fmt.Println(scene, len(sceneLogs))
 		}
 	}
+}
+
+func TestRequestTrendV2(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	dal.Init()
+	req := empyrean_lens.RequestTrendReq{Date: "2024-09-19"}
+	data, err := RequestTrendV2(ctx, req)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(utils.JSONMarshal(data))
 }

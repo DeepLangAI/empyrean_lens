@@ -32,7 +32,7 @@ lark:
   jwtSecret: "REDACTED"
   auth:
     names:
-    email:
+    emails:
       - xinliang.li@deeplang.ai
       - guoxin.li@deeplang.ai
       - enbo.cui@deeplang.ai

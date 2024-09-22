@@ -293,6 +293,10 @@
             text-decoration: none;
             cursor: pointer;
         }
+        .clickable-black:hover {
+            background-color: #e0e0e0;
+            color: #e68a00;
+        }
 
         .clickable:hover {
             background-color: #e0e0e0;
@@ -853,7 +857,17 @@
     }
 
     let currentSlideIndex = 0;
+    let hoverTimer;
 
+    function startHover(index) {
+        hoverTimer = setTimeout(() => {
+            moveToSlide(index);
+        }, 500); // 500 毫秒
+    }
+
+    function cancelHover() {
+        clearTimeout(hoverTimer); // 清除定时器
+    }
 
     function moveToSlide(idx){
         const $slides = $('.slides');
@@ -904,23 +918,23 @@
                                     <td id="date">{0}</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(0)" class="clickable-black">分数</th>
+                                    <th onclick="moveToSlide(0)" onmouseenter="startHover(0)" onmouseleave="cancelHover()" class="clickable-black">分数</th>
                                     <td>{1}</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(1)" class="clickable-black">总请求量</th>
+                                    <th onclick="moveToSlide(1)" onmouseenter="startHover(1)" onmouseleave="cancelHover()" class="clickable-black">总请求量</th>
                                     <td>${detail.total_req}</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(2)" class="clickable-black">接口错误率</th>
+                                    <th onclick="moveToSlide(2)" onmouseenter="startHover(2)" onmouseleave="cancelHover()" class="clickable-black">接口错误率</th>
                                     <td class="clickable" onclick="handleErrorList()">{2}%</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(3)" class="clickable-black">慢查询率</th>
+                                    <th onclick="moveToSlide(3)" onmouseenter="startHover(3)" onmouseleave="cancelHover()" class="clickable-black">慢查询率</th>
                                     <td class="clickable" onclick="handleSlowList()">{3}%</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(4)" class="clickable-black">探针错误率</th>
+                                    <th onclick="moveToSlide(4)" onmouseenter="startHover(4)" onmouseleave="cancelHover()" class="clickable-black">探针错误率</th>
                                     <td class="clickable" onclick="handleProbeList()">{4}%</td>
                                 </tr>
                                 <tr>

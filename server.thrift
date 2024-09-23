@@ -325,7 +325,6 @@ struct RequestTrendRespData{
 }
 struct RequestTrendRespDataItem{
     1: string time
-    2: i32 count
     3: i32 req_count
     4: i32 score
     5: double fail_rate

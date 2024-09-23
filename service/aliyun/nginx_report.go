@@ -361,8 +361,8 @@ func RequestTrend(ctx context.Context, req empyrean_lens.RequestTrendReq) (*empy
 			trendItems := []*empyrean_lens.RequestTrendRespDataItem{}
 			for timestamp, cnt := range trend {
 				trendItems = append(trendItems, &empyrean_lens.RequestTrendRespDataItem{
-					Time:  timestamp,
-					Count: int32(cnt),
+					Time:     timestamp,
+					ReqCount: int32(cnt),
 				})
 			}
 			sort.Slice(trendItems, func(i, j int) bool {
@@ -439,7 +439,6 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 			for timestamp, cache := range trendCache {
 				trendItems = append(trendItems, &empyrean_lens.RequestTrendRespDataItem{
 					Time:           timestamp,
-					Count:          cache.ReqCounts,
 					ReqCount:       cache.ReqCounts,
 					Score:          int32(utils.AvgSimple(cache.Scores, true) + 0.5),
 					FailRate:       utils.AvgSimple(cache.FailRates, false),

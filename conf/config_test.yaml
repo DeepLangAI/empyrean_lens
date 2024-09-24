@@ -17,7 +17,7 @@ mongo_empyreanlens:
 # 日志配置
 logger:
   log_path: './logs/system'
-  log_level: "info"
+  log_level: "error"
 
 # redis:
 #   addrs: ["localhost:7000"]

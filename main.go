@@ -50,6 +50,17 @@ func staticFs(h *server.Hertz) {
 			return []byte("")
 		},
 	})
+	h.StaticFS("/api/static", &app.FS{
+		Root: filepath.Join(root, "./static"),
+		PathRewrite: func(ctx *app.RequestContext) []byte {
+			path := string(ctx.Path())
+			after, found := strings.CutPrefix(path, "/api/static")
+			if found {
+				return []byte(after)
+			}
+			return []byte("")
+		},
+	})
 }
 
 func RecoveryHandler(c context.Context, ctx *app.RequestContext, err interface{}, stack []byte) {

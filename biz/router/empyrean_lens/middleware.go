@@ -3,6 +3,7 @@
 package empyrean_lens
 
 import (
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/middleware"
 	"context"
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
@@ -48,6 +49,7 @@ func CookieMiddleWare() app.HandlerFunc {
 func rootMw() []app.HandlerFunc {
 	// your code...
 	return []app.HandlerFunc{
+		middleware.RequestLogServerMiddleware(),
 		CookieMiddleWare(),
 	}
 }

@@ -753,8 +753,8 @@
             <tr>
                 <td data-label="监控探针错误数">监控探针错误数</td>
                 <td data-label="值"  >{{.RealtimeOverview.ProbeFailCnt.Value}}</td>
-                <td data-label="环比">{{.RealtimeOverview.ProbeFailCnt.DayOverDay}}%</td>
-                <td data-label="同比">{{.RealtimeOverview.ProbeFailCnt.WeekOverWeek}}%</td>
+                <td data-label="环比">{{printf "%.2f" .RealtimeOverview.ProbeFailCnt.DayOverDay}}%</td>
+                <td data-label="同比">{{printf "%.2f" .RealtimeOverview.ProbeFailCnt.WeekOverWeek}}%</td>
             </tr>
         </tbody>
     </table>

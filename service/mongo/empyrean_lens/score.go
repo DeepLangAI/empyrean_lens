@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"math"
 	"sort"
 	"time"
 )
@@ -128,6 +129,30 @@ func UpdateLatestScoreInfo(ctx context.Context) error {
 	reventResult := reventResults[0]
 	models[0].ScoreDayOverDay = reventResult.DayOverDay
 	models[0].ScoreWeekOverWeek = reventResult.WeekOverWeek
+	// 查当日探针数据
+	now := time.Now()
+	probeLogs, err := empyrean_lens.NewApiProbeLogModelDao().FindTimespanApiProbeLog(
+		ctx,
+		time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()),
+		time.Now().Add(8*time.Hour),
+	)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "Find Probe logs err:%v", err)
+		return err
+	}
+	models[0].ProbeTotalReq = 0
+	models[0].ProbeFailReq = 0
+	for _, log := range probeLogs {
+		models[0].ProbeTotalReq += 1
+		if !log.Correct {
+			models[0].ProbeFailReq += 1
+		}
+	}
+	models[0].ProbeFailRate = float64(models[0].ProbeFailReq) / float64(models[0].ProbeTotalReq) * 100
+	if math.IsNaN(models[0].ProbeFailRate) {
+		models[0].ProbeFailRate = 0
+	}
+
 	err = empyrean_lens.NewSystemScoreDao().CreateOrUpdate(ctx, models[0].Date, models[0])
 	if err != nil {
 		hlog.CtxErrorf(ctx, "UpdateLatestScoreInfo err:%v", err)

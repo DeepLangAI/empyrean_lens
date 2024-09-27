@@ -22,6 +22,7 @@ type ApiFailureModel struct {
 	ErrCode3xxCnt int32     `bson:"err_code_3xx_cnt"`
 	ErrCode4xxCnt int32     `bson:"err_code_4xx_cnt"`
 	ErrCode5xxCnt int32     `bson:"err_code_5xx_cnt"`
+	BizFailCnt    int32     `bson:"biz_fail_cnt"`
 
 	Status     int32     `json:"status" bson:"status"`
 	CreateTime time.Time `bson:"create_time" json:"create_time"`

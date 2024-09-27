@@ -220,3 +220,18 @@ func TestBusinessLogQueryByUserId(t *testing.T) {
 		fmt.Println(logs)
 	}
 }
+
+func TestNginxBizErrlogsQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+
+	logs, err := NginxBizErrlogsQuery(ctx, "api.lingowhale.com", "/api/plugin/articles/summary", "2024-09-26")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		for _, log := range logs {
+			fmt.Println(log)
+		}
+	}
+}

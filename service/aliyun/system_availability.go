@@ -250,6 +250,7 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 			ErrCode3xxCnt: int32(report.FailStatus3xx),
 			ErrCode4xxCnt: int32(report.FailStatus4xx),
 			ErrCode5xxCnt: int32(report.FailStatus5xx),
+			BizFailCnt:    int32(report.BizCodeFailCount),
 			Status:        consts.StatusValid,
 			CreateTime:    time.Now(),
 			UpdateTime:    time.Now(),

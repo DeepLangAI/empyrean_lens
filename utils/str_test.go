@@ -1,6 +1,9 @@
 package utils
 
-import "testing"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
 func TestJSONMarshal(t *testing.T) {
 	p := Person{
@@ -9,4 +12,9 @@ func TestJSONMarshal(t *testing.T) {
 	}
 	marshal := JSONMarshal(p)
 	t.Log(marshal)
+}
+
+func TestDecodeMIME(t *testing.T) {
+	s := "=?utf-8?b?5YmN5pa55qih5Z6L5Y2H57qn77yM6K+36YeN5paw5LiK5Lyg5paH56ug6YeN6K+V772e?="
+	assert.True(t, DecodeMIME(s) == "前方模型升级，请重新上传文章重试～")
 }

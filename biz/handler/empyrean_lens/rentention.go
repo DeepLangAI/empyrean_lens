@@ -152,16 +152,17 @@ func SystemDailyApiFailureInfo(ctx context.Context, c *app.RequestContext) {
 	data := []*empyrean_lens.ApiFailureInfoRespData{}
 	for _, r := range result {
 		data = append(data, &empyrean_lens.ApiFailureInfoRespData{
-			Date:        r.Date,
-			APIName:     r.CoreApiName,
-			APIPath:     r.CoreApiPath,
-			Host:        r.HostName,
-			NumTotalReq: int32(r.TotalCount),
-			NumErrorReq: int32(r.FailCount),
-			ErrPercent:  r.FailRate,
-			NumCode3xx:  int32(r.FailStatus3xx),
-			NumCode4xx:  int32(r.FailStatus4xx),
-			NumCode5xx:  int32(r.FailStatus5xx),
+			Date:           r.Date,
+			APIName:        r.CoreApiName,
+			APIPath:        r.CoreApiPath,
+			Host:           r.HostName,
+			NumTotalReq:    int32(r.TotalCount),
+			NumErrorReq:    int32(r.FailCount),
+			ErrPercent:     r.FailRate,
+			NumCode3xx:     int32(r.FailStatus3xx),
+			NumCode4xx:     int32(r.FailStatus4xx),
+			NumCode5xx:     int32(r.FailStatus5xx),
+			NumBizErrorReq: int32(r.BizCodeFailCount),
 		})
 	}
 	resp.Data = data

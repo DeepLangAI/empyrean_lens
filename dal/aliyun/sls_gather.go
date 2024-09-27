@@ -571,6 +571,17 @@ func SceneGeneralOverview(ctx context.Context, days []int) []SceneOverviews {
 	return overviews
 }
 
+func NginxBizErrorLogsOfAPI(ctx context.Context, host, url, date string) ([]NginxErrorLog, error) {
+	//if _, ok := consts.MODEL_NGINX_INGRESS_APIS[host]; ok {
+	//	errLogs, err := ModelNginxErrlogsQuery(ctx, host, url, date)
+	//	return errLogs, err
+	//}
+	if _, ok := consts.NGINX_INGRESS_APIS[host]; ok {
+		errLogs, err := NginxBizErrlogsQuery(ctx, host, url, date)
+		return errLogs, err
+	}
+	return nil, errors.New("query nginx biz error logs, error")
+}
 func NginxErrorLogsOfAPI(ctx context.Context, host, url, date string) ([]NginxErrorLog, error) {
 	if _, ok := consts.MODEL_NGINX_INGRESS_APIS[host]; ok {
 		errLogs, err := ModelNginxErrlogsQuery(ctx, host, url, date)

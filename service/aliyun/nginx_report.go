@@ -457,6 +457,7 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 					trendItems[i].ReqCount = 0
 				}
 			}
+			trendItems[0].ReqCount = 0
 
 			if daysLookback == 0 {
 				data.Data0 = trendItems

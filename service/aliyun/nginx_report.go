@@ -466,7 +466,11 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 			// 对请求量进行差分，计算每个时间戳的请求数量
 			for i := len(trendItems) - 1; i > 0; i-- {
 				trendItems[i].ReqCount = trendItems[i].ReqCount - trendItems[i-1].ReqCount
+				if trendItems[i].ReqCount < 0 || trendItems[i].ReqCount >= 10000 {
+					trendItems[i].ReqCount = 0
+				}
 			}
+			trendItems[0].ReqCount = 0
 
 			if daysLookback == 0 {
 				data.Data0 = trendItems

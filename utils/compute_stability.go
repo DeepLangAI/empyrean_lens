@@ -119,6 +119,16 @@ func ComputeRevent(scores map[string]int) []ReventResult {
 		}
 
 		// 填充结果
+		// 如果score 是nan
+		if math.IsNaN(float64(score)) {
+			score = 0
+		}
+		if math.IsNaN(dayOverDay) {
+			dayOverDay = 0
+		}
+		if math.IsNaN(weekOverWeek) {
+			weekOverWeek = 0
+		}
 		reventResults = append(reventResults, ReventResult{
 			Date:         dateStr,
 			Score:        float64(score),

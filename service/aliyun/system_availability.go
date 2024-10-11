@@ -56,7 +56,7 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]empyrean_l
 			ProbeFailRate: factor.ProbeFailRate * 100,
 			ProbeFailReq:  probeFailReqs[log.Date],
 			TotalReq:      int32(log.TotalCount),
-			FailReq:       int32(log.FailCount),
+			FailReq:       int32(log.FailCount + log.BizCodeFailCount),
 
 			Status:     consts.StatusValid,
 			CreateTime: time.Now(),

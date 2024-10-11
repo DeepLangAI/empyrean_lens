@@ -226,12 +226,12 @@ func TestNginxBizErrlogsQuery(t *testing.T) {
 	conf.InitConfig()
 	Init(ctx)
 
-	logs, err := NginxBizErrlogsQuery(ctx, "api.lingowhale.com", "/api/plugin/articles/summary", "2024-09-26")
+	logs, err := NginxBizErrlogsQuery(ctx, "api.lingowhale.com", "/api/plugin/articles/summary", "2024-10-11")
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		for _, log := range logs {
-			fmt.Println(log)
+		for i, log := range logs {
+			fmt.Println(i+1, log)
 		}
 	}
 }

@@ -49,6 +49,24 @@ func QueryLogsWithRetry(ctx context.Context, logstore *sls.LogStore, from, to in
 	return resp, err
 }
 
+func checkChannelLegal(host, channel string) bool {
+	shouldHaveChannel := utils.Contains([]string{
+		consts.HOST_CRAWLER, consts.HOST_WCD, consts.HOST_EDU,
+		consts.HOST_PRE_CRAWLER, consts.HOST_PRE_WCD, consts.HOST_PRE_EDU,
+	}, host)
+	if !shouldHaveChannel {
+		return true
+	}
+	// 如果channel存在，且不是目标channel，则跳过
+	if (shouldHaveChannel || !utils.Contains([]string{"-", "", "null"}, channel)) && !utils.Contains(
+		[]string{consts.BaseChannelName + "-pre", consts.BaseChannelName + "-prod"},
+		channel,
+	) {
+		return false
+	}
+	return true
+}
+
 func FormatWithTemplate(tplStr string, data map[string]string) string {
 	baseData := map[string]string{
 		"BaseContainerName": consts.BaseContainerName,
@@ -197,10 +215,6 @@ LIMIT %d
 		return nil, err
 	}
 
-	shouldHaveChannel := utils.Contains([]string{
-		consts.HOST_CRAWLER, consts.HOST_WCD, consts.HOST_EDU,
-		consts.HOST_PRE_CRAWLER, consts.HOST_PRE_WCD, consts.HOST_PRE_EDU,
-	}, host)
 	hlog.CtxInfof(ctx, "日期%v，查nginxIngress，host: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), host, resp.Count)
 	nlogs := []NginxLog{}
 	for _, log := range resp.Logs {
@@ -209,11 +223,7 @@ LIMIT %d
 			continue
 		}
 		channel := log["channel"]
-		// 如果channel存在，且不是目标channel，则跳过
-		if (shouldHaveChannel || !utils.Contains([]string{"-", "", "null"}, channel)) && !utils.Contains(
-			[]string{consts.BaseChannelName + "-pre", consts.BaseChannelName + "-prod"},
-			channel,
-		) {
+		if !checkChannelLegal(host, channel) {
 			continue
 		}
 		//if host == "api-repeater.lingoreader.cn" && log["clean_url"] == "/doc/multi/outline" {
@@ -1048,7 +1058,7 @@ func NginxBizErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxE
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
 	query := `
 | 
-select user_id, trace_id, time, status, host, url, request_time cost,client_ip,"lw-code", "lw-msg"
+select user_id, trace_id, time, status, host, url, request_time cost,client_ip,"lw-code", "lw-msg", channel
 from log where
 %v url = '%v' and 
 %v host = '%v' and 
@@ -1086,6 +1096,10 @@ limit %v
 		t, err := time.Parse("02/Jan/2006:15:04:05", log["time"])
 		if err != nil {
 			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+		channel := log["channel"]
+		if !checkChannelLegal(host, channel) {
 			continue
 		}
 		var bizCode int64
@@ -1130,7 +1144,7 @@ func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErro
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
 	query := `
 | 
-select user_id, trace_id, time, status, host, url, request_time cost,client_ip
+select user_id, trace_id, time, status, host, url, request_time cost,client_ip, channel
 from log where
 %v url = '%v' and 
 %v host = '%v' and 
@@ -1168,6 +1182,10 @@ limit %v
 		t, err := time.Parse("02/Jan/2006:15:04:05", log["time"])
 		if err != nil {
 			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+		channel := log["channel"]
+		if !checkChannelLegal(host, channel) {
 			continue
 		}
 		result := NginxErrorLog{

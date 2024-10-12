@@ -1038,7 +1038,7 @@
         pushToMenu('Traceback日志列表')
         var container = $('#Traceback日志列表')
         container.show()
-        container.find('h3').remove()
+        container.empty()
         // var table = $('#Traceback日志列表-table')
         var table = $('<table>').attr('id', '#Traceback日志列表-table')
         container.append(`<h3 >

@@ -49,6 +49,21 @@ func QueryLogsWithRetry(ctx context.Context, logstore *sls.LogStore, from, to in
 	return resp, err
 }
 
+func checkBizCodeSkip(bizCode int, host string) bool {
+	if utils.Contains([]string{
+		consts.HOST_LINGO_BACKEND,
+		consts.HOST_LINGO_PRE_BACKEND,
+	}, host) {
+		if utils.Contains([]int{
+			21001, // 文章小于1000字，暂无法为您生成内容，再试试别的文章吧～
+			10010, // login
+		}, bizCode) {
+			return true
+		}
+	}
+	return false
+}
+
 func checkChannelLegal(host, channel string) bool {
 	shouldHaveChannel := utils.Contains([]string{
 		consts.HOST_CRAWLER, consts.HOST_WCD, consts.HOST_EDU,
@@ -248,6 +263,9 @@ LIMIT %d
 			if e != nil {
 				hlog.CtxErrorf(ctx, "parse bizCode error: %v", e)
 				continue
+			}
+			if checkBizCodeSkip(int(bizCode), host) {
+				bizCode = 0
 			}
 		}
 		nlog := NginxLog{
@@ -1110,6 +1128,12 @@ limit %v
 				hlog.CtxErrorf(ctx, "parse bizCode error: %v", err)
 				continue
 			}
+			if checkBizCodeSkip(int(bizCode), host) {
+				bizCode = 0
+			}
+		}
+		if bizCode == 0 {
+			continue
 		}
 		result := NginxErrorLog{
 			NginxLog: NginxLog{

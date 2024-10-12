@@ -25,14 +25,8 @@ func JSONUnMarshal(data []byte, v interface{}) interface{} {
 	return v
 }
 
-func Contains(data []string, target string) bool {
-	for _, item := range data {
-		if item == target {
-			return true
-		}
-	}
-	return false
-
+func Contains[S ~[]E, E comparable](s S, v E) bool {
+	return Index(s, v) != -1
 }
 
 func DecodeMIME(encodedStr string) string {

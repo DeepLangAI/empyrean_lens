@@ -113,9 +113,9 @@ type API struct {
 }
 
 const (
-	INDEX_PATH     = "https://empyrean-lens.lingowhale.com/public/index.html"
-	FORBIDDEN_PATH = "https://empyrean-lens.lingowhale.com/public/403.html"
-	HOME_PATH      = "https://empyrean-lens.lingowhale.com/"
+	INDEX_PATH     = "/public/index.html"
+	FORBIDDEN_PATH = "/public/403.html"
+	HOME_PATH      = "/"
 	// DOMAIN_PATH    = "cb92-163-123-192-24.ngrok-free.app"
 	DOMAIN_PATH           = "empyrean-lens.lingowhale.com"
 	LARK_COOKIE           = "lark_cookie"

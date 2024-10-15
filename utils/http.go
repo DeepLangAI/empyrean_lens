@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -197,11 +198,36 @@ func DoGetWithAuth(
 	return nil
 }
 
+func ipInRange(ip, ipRange string) bool {
+	parsedIp := net.ParseIP(ip)
+	if parsedIp == nil {
+		return false
+	}
+	_, ipNet, err := net.ParseCIDR(ipRange)
+	if err != nil {
+		return false
+	}
+	return ipNet.Contains(parsedIp)
+}
+
 func IsInnerIp(ip string) bool {
 	if ip == "" {
 		return false
 	}
-	if Contains([]string{"127.0.0.1", "::1"}, ip) {
+	if Contains([]string{
+		"127.0.0.1",
+		"::1",
+		"47.92.55.166",
+		"1.202.165.10",
+		"47.92.241.26",
+		"39.98.67.214",
+		"47.92.248.176",
+		"10.0.6.2",
+		"39.99.129.223",
+	}, ip) {
+		return true
+	}
+	if ipInRange(ip, "172.16.0.0/12") {
 		return true
 	}
 	return false

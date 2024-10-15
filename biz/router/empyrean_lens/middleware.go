@@ -3,12 +3,13 @@
 package empyrean_lens
 
 import (
-	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/middleware"
 	"context"
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/service/passport"
 	"empyrean_lens/utils"
+
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/middleware"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -16,6 +17,18 @@ import (
 
 func CookieMiddleWare() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
+		// 飞书从浏览器中打开
+		openInBrower := false
+		ctx.Request.URI().QueryArgs().VisitAll(func(key, value []byte) {
+			if string(key) == "open_in_browser" && string(value) == "true" {
+				openInBrower = true
+			}
+		})
+		if openInBrower {
+			ctx.Next(c)
+			return
+		}
+
 		// 用于本地调试时免登录用
 		if channel := ctx.Request.Header.Get(consts.HttpHeaderChannel); channel == consts.NonLoginChannel {
 			ctx.Next(c)

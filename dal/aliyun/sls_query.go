@@ -63,6 +63,32 @@ func checkBizCodeSkip(bizCode int, host string) bool {
 	}
 	return false
 }
+func renameBizMessage(bizCode int, host string, msg string) string {
+	if utils.Contains([]string{
+		consts.HOST_LINGO_BACKEND,
+		consts.HOST_LINGO_PRE_BACKEND,
+	}, host) {
+		if utils.Contains([]int{190002}, bizCode) {
+			return "模型生成失败"
+		}
+
+		if utils.Contains([]int{140001}, bizCode) {
+			return "文件不存在"
+		}
+
+		if utils.Contains([]int{26000}, bizCode) {
+			return "url不合法"
+		}
+
+		if utils.Contains([]int{22000}, bizCode) {
+			return "存在安全问题，无法生成"
+		}
+		if utils.Contains([]int{20006}, bizCode) {
+			return "传入参数不符合要求"
+		}
+	}
+	return msg
+}
 
 func checkChannelLegal(host, channel string) bool {
 	shouldHaveChannel := utils.Contains([]string{
@@ -268,6 +294,8 @@ LIMIT %d
 				bizCode = 0
 			}
 		}
+		bizMsg := utils.DecodeMIME(log["lw-msg"])
+		bizMsg = renameBizMessage(int(bizCode), host, bizMsg)
 		nlog := NginxLog{
 			CleanUrl: log["clean_url"],
 			Time:     t,
@@ -276,7 +304,7 @@ LIMIT %d
 			Host:     log["host"],
 			Cost:     cost,
 			BizCode:  bizCode,
-			BizMsg:   log["lw-msg"],
+			BizMsg:   bizMsg,
 		}
 		nlogs = append(nlogs, nlog)
 	}
@@ -1135,6 +1163,8 @@ limit %v
 		if bizCode == 0 {
 			continue
 		}
+		bizMsg := utils.DecodeMIME(log["lw-msg"])
+		bizMsg = renameBizMessage(int(bizCode), host, bizMsg)
 		result := NginxErrorLog{
 			NginxLog: NginxLog{
 				CleanUrl: log["url"],
@@ -1144,7 +1174,7 @@ limit %v
 				Host:     log["host"],
 				Cost:     cost,
 				BizCode:  bizCode,
-				BizMsg:   utils.DecodeMIME(log["lw-msg"]),
+				BizMsg:   bizMsg,
 			},
 			UserId:   log["user_id"],
 			TraceId:  log["trace_id"],

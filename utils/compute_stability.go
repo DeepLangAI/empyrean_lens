@@ -149,7 +149,10 @@ func isZero(value float64) bool {
 }
 
 func DeltaPercent(oldValue, newValue float64) float64 {
-	if isZero(oldValue) {
+	if isZero(oldValue) ||
+		math.IsInf(newValue, 0) || math.IsInf(oldValue, 0) ||
+		math.IsNaN(newValue) || math.IsNaN(oldValue) {
+		fmt.Println("err value oldValue: ", oldValue, " newValue: ", newValue)
 		return 0
 	}
 	return (newValue - oldValue) / oldValue * 100

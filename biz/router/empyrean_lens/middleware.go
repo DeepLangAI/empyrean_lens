@@ -25,7 +25,8 @@ func CookieMiddleWare() app.HandlerFunc {
 			}
 		})
 		if openInBrower {
-			ctx.Next(c)
+			ctx.Redirect(302, []byte(consts.INDEX_PATH))
+			ctx.Abort()
 			return
 		}
 

@@ -195,3 +195,13 @@ func DoGetWithAuth(
 	}
 	return nil
 }
+
+func IsInnerIp(ip string) bool {
+	if ip == "" {
+		return false
+	}
+	if Contains([]string{"127.0.0.1", "::1"}, ip) {
+		return true
+	}
+	return false
+}

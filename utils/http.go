@@ -2,17 +2,18 @@ package utils
 
 import (
 	"bufio"
-	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
+	"github.com/bytedance/sonic"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 func DoPost(
@@ -194,4 +195,14 @@ func DoGetWithAuth(
 		return err
 	}
 	return nil
+}
+
+func IsInnerIp(ip string) bool {
+	if ip == "" {
+		return false
+	}
+	if Contains([]string{"127.0.0.1", "::1"}, ip) {
+		return true
+	}
+	return false
 }

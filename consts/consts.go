@@ -419,3 +419,15 @@ const (
 	HttpHeaderChannel    = "Channel"
 	NonLoginChannel      = "local"
 )
+
+const (
+	PDF   = "pdf"
+	URL   = "url"
+	MULTI = "multi"
+)
+
+type EntryType int64
+
+const (
+	EntryTypePDF = EntryType(10)
+)

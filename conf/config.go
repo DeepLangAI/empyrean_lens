@@ -19,6 +19,7 @@ type Config struct {
 	Server            Server                `yaml:"server"`
 	MongoEmpyreanlens Mongo                 `yaml:"mongo_empyreanlens"`
 	MongoLingo        Mongo                 `yaml:"mongo_lingo"`
+	MongoPlugin       Mongo                 `yaml:"mongo_plugin"`
 	Redis             *redis.ClusterOptions `yaml:"redis"`
 	Logger            conflib.Logger        `yaml:"logger"`
 	Lark              Lark                  `yaml:"lark"`

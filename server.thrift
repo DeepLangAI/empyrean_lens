@@ -378,6 +378,27 @@ struct OnlineOperationRespData{
     2: list<UploadOnlineOperationReqData> detail
 }
 
+// 用户行为
+struct GetUserActionReq{
+    1: string uid
+    2: string start_time
+    3: string end_time
+}
+struct GetUserActionResp{
+    1: i32 code
+    2: string msg
+    3: list<GetUserActionRespData> data
+}
+struct GetUserActionRespData{
+    1: string uid
+    2: string time
+    3: string action
+    4: string title
+    5: bool success
+    6: string cost
+    7: string id
+}
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -447,6 +468,11 @@ service Rentention{
    // 上线单查询
    OnlineOperationResp GetOnlineOperation(1: OnlineOperationReq req) (
        api.get="/api/v1/report/online_operation"
+   )
+
+   // 用户行为查询
+   GetUserActionResp GetUserAction(1: GetUserActionReq req)(
+        api.get="/api/v1/report/user_action"
    )
 
    // 上报数据

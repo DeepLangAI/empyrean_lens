@@ -5,6 +5,7 @@ import (
 	"context"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
+	"errors"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -1866,9 +1867,10 @@ limit %v
 	`
 	query = FormatWithTemplate(query, nil)
 
-	if resourceType == consts.PDF {
+	switch resourceType {
+	case consts.PDF:
 		query = fmt.Sprintf(query, "PDFParser", "单文件上传完成", resourceId, consts.LOG_QUERY_LIMIT)
-	} else if resourceType == consts.URL {
+	case consts.URL:
 		query = fmt.Sprintf(query, "UrlParser", "网页上传完成", resourceId, consts.LOG_QUERY_LIMIT)
 	}
 	hlog.CtxDebugf(ctx, "ResourceUploadQuery query: %s", query)
@@ -1938,7 +1940,6 @@ func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd tim
 }
 
 func WcdParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	// todo web没查到，只查到wcd
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
@@ -1978,6 +1979,7 @@ func TextParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
+// ! 这里只能用traceId查
 func EduParseQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2013,6 +2015,57 @@ func ParseFinishQuery(ctx context.Context, resourceId string, timeBegin, timeEnd
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "ParseFinishQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+// todo 单文档待完成 gather查询聚合结果
+func SingleDocumentBeginQuery(ctx context.Context, resourceId string, generateType int, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	var query string
+	switch generateType {
+	case consts.GenerateTypeOverview:
+		query = fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:1." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	case consts.GenerateTypeOutline:
+	case consts.GenerateTypeViewPoint:
+	default:
+		return nil, errors.New("invalid generate type")
+	}
+	hlog.CtxDebugf(ctx, "SingleDocumentBeginQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SingleDocumentBeginQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func SingleDocumentEndQuery(ctx context.Context, traceId string, generateType int, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	var query string
+	switch generateType {
+	case consts.GenerateTypeOverview:
+		query = `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary core core_name:大纲, node:大纲生成完成" and trace_id:"%s"`
+	case consts.GenerateTypeOutline:
+	case consts.GenerateTypeViewPoint:
+	default:
+		return nil, errors.New("invalid generate type")
+	}
+	hlog.CtxDebugf(ctx, "SingleDocumentEndQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SingleDocumentEndQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)

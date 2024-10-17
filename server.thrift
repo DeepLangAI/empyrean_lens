@@ -379,8 +379,14 @@ struct OnlineOperationRespData{
 }
 
 // 用户行为
+enum UserActionStatus {
+    Success = 1 // 成功
+    Fail = 2 // 失败
+    Slow = 3 // 慢查询
+    Timeout = 4 // 超时失败
+}
 struct GetUserActionReq{
-    1: string uid
+    1: string content // 查询内容
     2: string start_time
     3: string end_time
 }
@@ -394,9 +400,11 @@ struct GetUserActionRespData{
     2: string time
     3: string action
     4: string title
-    5: bool success
-    6: double cost
-    7: string id
+    5: list<string> files // pdf的url
+    6: list<string> urls // 网页的url
+    7: double cost
+    8: UserActionStatus status
+    9: string id // entryId or multiId
 }
 
 service Rentention{

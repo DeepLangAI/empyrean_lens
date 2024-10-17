@@ -373,6 +373,13 @@ const (
 	PROBE_WEIGHT = 0.4
 )
 
+// 单文档生成类型
+const (
+	GenerateTypeOverview   = iota
+	GenerateTypeOutline   
+	GenerateTypeViewPoint
+)
+
 const LOG_DETAIL_TEMPLATE_PATH = "templates/rentention.html"
 const REALDATA_TEMPLATE_PATH = "templates/realdata.html"
 const OVERVIEW_TEMPLATE_PATH = "templates/overview.html"

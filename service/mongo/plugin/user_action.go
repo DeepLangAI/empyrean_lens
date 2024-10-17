@@ -14,6 +14,7 @@ import (
 )
 
 func GetUserAction(ctx context.Context, req empyrean_lens.GetUserActionReq) ([]*empyrean_lens.GetUserActionRespData, *consts.BizCode) {
+	// todo 待修复
 	t1, _ := time.Parse(consts.DateHourMinuteTemplate, req.StartTime)
 	t2, _ := time.Parse(consts.DateHourMinuteTemplate, req.EndTime)
 	if req.UID == "" && (t1.IsZero() || t2.IsZero()) {

@@ -4,9 +4,68 @@ package empyrean_lens
 
 import (
 	"context"
+	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"github.com/apache/thrift/lib/go/thrift"
 )
+
+// 用户行为
+type UserActionStatus int64
+
+const (
+	// 成功
+	UserActionStatus_Success UserActionStatus = 1
+	// 失败
+	UserActionStatus_Fail UserActionStatus = 2
+	// 慢查询
+	UserActionStatus_Slow UserActionStatus = 3
+	// 超时失败
+	UserActionStatus_Timeout UserActionStatus = 4
+)
+
+func (p UserActionStatus) String() string {
+	switch p {
+	case UserActionStatus_Success:
+		return "Success"
+	case UserActionStatus_Fail:
+		return "Fail"
+	case UserActionStatus_Slow:
+		return "Slow"
+	case UserActionStatus_Timeout:
+		return "Timeout"
+	}
+	return "<UNSET>"
+}
+
+func UserActionStatusFromString(s string) (UserActionStatus, error) {
+	switch s {
+	case "Success":
+		return UserActionStatus_Success, nil
+	case "Fail":
+		return UserActionStatus_Fail, nil
+	case "Slow":
+		return UserActionStatus_Slow, nil
+	case "Timeout":
+		return UserActionStatus_Timeout, nil
+	}
+	return UserActionStatus(0), fmt.Errorf("not a valid UserActionStatus string")
+}
+
+func UserActionStatusPtr(v UserActionStatus) *UserActionStatus { return &v }
+func (p *UserActionStatus) Scan(value interface{}) (err error) {
+	var result sql.NullInt64
+	err = result.Scan(value)
+	*p = UserActionStatus(result.Int64)
+	return
+}
+
+func (p *UserActionStatus) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
 
 type BaseResp struct {
 	Code int32  `thrift:"code,1" form:"code" json:"code" query:"code"`
@@ -15424,9 +15483,9 @@ func (p *OnlineOperationRespData) String() string {
 
 }
 
-// 用户行为
 type GetUserActionReq struct {
-	UID       string `thrift:"uid,1" form:"uid" json:"uid" query:"uid"`
+	// 查询内容
+	Content   string `thrift:"content,1" form:"content" json:"content" query:"content"`
 	StartTime string `thrift:"start_time,2" form:"start_time" json:"start_time" query:"start_time"`
 	EndTime   string `thrift:"end_time,3" form:"end_time" json:"end_time" query:"end_time"`
 }
@@ -15438,8 +15497,8 @@ func NewGetUserActionReq() *GetUserActionReq {
 func (p *GetUserActionReq) InitDefault() {
 }
 
-func (p *GetUserActionReq) GetUID() (v string) {
-	return p.UID
+func (p *GetUserActionReq) GetContent() (v string) {
+	return p.Content
 }
 
 func (p *GetUserActionReq) GetStartTime() (v string) {
@@ -15451,7 +15510,7 @@ func (p *GetUserActionReq) GetEndTime() (v string) {
 }
 
 var fieldIDToName_GetUserActionReq = map[int16]string{
-	1: "uid",
+	1: "content",
 	2: "start_time",
 	3: "end_time",
 }
@@ -15536,7 +15595,7 @@ func (p *GetUserActionReq) ReadField1(iprot thrift.TProtocol) error {
 	} else {
 		_field = v
 	}
-	p.UID = _field
+	p.Content = _field
 	return nil
 }
 func (p *GetUserActionReq) ReadField2(iprot thrift.TProtocol) error {
@@ -15599,10 +15658,10 @@ WriteStructEndError:
 }
 
 func (p *GetUserActionReq) writeField1(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("uid", thrift.STRING, 1); err != nil {
+	if err = oprot.WriteFieldBegin("content", thrift.STRING, 1); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteString(p.UID); err != nil {
+	if err := oprot.WriteString(p.Content); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -15910,13 +15969,18 @@ func (p *GetUserActionResp) String() string {
 }
 
 type GetUserActionRespData struct {
-	UID     string  `thrift:"uid,1" form:"uid" json:"uid" query:"uid"`
-	Time    string  `thrift:"time,2" form:"time" json:"time" query:"time"`
-	Action  string  `thrift:"action,3" form:"action" json:"action" query:"action"`
-	Title   string  `thrift:"title,4" form:"title" json:"title" query:"title"`
-	Success bool    `thrift:"success,5" form:"success" json:"success" query:"success"`
-	Cost    float64 `thrift:"cost,6" form:"cost" json:"cost" query:"cost"`
-	ID      string  `thrift:"id,7" form:"id" json:"id" query:"id"`
+	UID    string `thrift:"uid,1" form:"uid" json:"uid" query:"uid"`
+	Time   string `thrift:"time,2" form:"time" json:"time" query:"time"`
+	Action string `thrift:"action,3" form:"action" json:"action" query:"action"`
+	Title  string `thrift:"title,4" form:"title" json:"title" query:"title"`
+	// pdf的url
+	Files []string `thrift:"files,5" form:"files" json:"files" query:"files"`
+	// 网页的url
+	Urls   []string         `thrift:"urls,6" form:"urls" json:"urls" query:"urls"`
+	Cost   float64          `thrift:"cost,7" form:"cost" json:"cost" query:"cost"`
+	Status UserActionStatus `thrift:"status,8" form:"status" json:"status" query:"status"`
+	// entryId or multiId
+	ID string `thrift:"id,9" form:"id" json:"id" query:"id"`
 }
 
 func NewGetUserActionRespData() *GetUserActionRespData {
@@ -15942,12 +16006,20 @@ func (p *GetUserActionRespData) GetTitle() (v string) {
 	return p.Title
 }
 
-func (p *GetUserActionRespData) GetSuccess() (v bool) {
-	return p.Success
+func (p *GetUserActionRespData) GetFiles() (v []string) {
+	return p.Files
+}
+
+func (p *GetUserActionRespData) GetUrls() (v []string) {
+	return p.Urls
 }
 
 func (p *GetUserActionRespData) GetCost() (v float64) {
 	return p.Cost
+}
+
+func (p *GetUserActionRespData) GetStatus() (v UserActionStatus) {
+	return p.Status
 }
 
 func (p *GetUserActionRespData) GetID() (v string) {
@@ -15959,9 +16031,11 @@ var fieldIDToName_GetUserActionRespData = map[int16]string{
 	2: "time",
 	3: "action",
 	4: "title",
-	5: "success",
-	6: "cost",
-	7: "id",
+	5: "files",
+	6: "urls",
+	7: "cost",
+	8: "status",
+	9: "id",
 }
 
 func (p *GetUserActionRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -16016,7 +16090,7 @@ func (p *GetUserActionRespData) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 5:
-			if fieldTypeId == thrift.BOOL {
+			if fieldTypeId == thrift.LIST {
 				if err = p.ReadField5(iprot); err != nil {
 					goto ReadFieldError
 				}
@@ -16024,7 +16098,7 @@ func (p *GetUserActionRespData) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 6:
-			if fieldTypeId == thrift.DOUBLE {
+			if fieldTypeId == thrift.LIST {
 				if err = p.ReadField6(iprot); err != nil {
 					goto ReadFieldError
 				}
@@ -16032,8 +16106,24 @@ func (p *GetUserActionRespData) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 7:
-			if fieldTypeId == thrift.STRING {
+			if fieldTypeId == thrift.DOUBLE {
 				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField8(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 9:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField9(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -16113,17 +16203,52 @@ func (p *GetUserActionRespData) ReadField4(iprot thrift.TProtocol) error {
 	return nil
 }
 func (p *GetUserActionRespData) ReadField5(iprot thrift.TProtocol) error {
-
-	var _field bool
-	if v, err := iprot.ReadBool(); err != nil {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
 		return err
-	} else {
-		_field = v
 	}
-	p.Success = _field
+	_field := make([]string, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem string
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_elem = v
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.Files = _field
 	return nil
 }
 func (p *GetUserActionRespData) ReadField6(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]string, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem string
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_elem = v
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.Urls = _field
+	return nil
+}
+func (p *GetUserActionRespData) ReadField7(iprot thrift.TProtocol) error {
 
 	var _field float64
 	if v, err := iprot.ReadDouble(); err != nil {
@@ -16134,7 +16259,18 @@ func (p *GetUserActionRespData) ReadField6(iprot thrift.TProtocol) error {
 	p.Cost = _field
 	return nil
 }
-func (p *GetUserActionRespData) ReadField7(iprot thrift.TProtocol) error {
+func (p *GetUserActionRespData) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field UserActionStatus
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = UserActionStatus(v)
+	}
+	p.Status = _field
+	return nil
+}
+func (p *GetUserActionRespData) ReadField9(iprot thrift.TProtocol) error {
 
 	var _field string
 	if v, err := iprot.ReadString(); err != nil {
@@ -16178,6 +16314,14 @@ func (p *GetUserActionRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField7(oprot); err != nil {
 			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
+			goto WriteFieldError
+		}
+		if err = p.writeField9(oprot); err != nil {
+			fieldId = 9
 			goto WriteFieldError
 		}
 	}
@@ -16267,10 +16411,18 @@ WriteFieldEndError:
 }
 
 func (p *GetUserActionRespData) writeField5(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("success", thrift.BOOL, 5); err != nil {
+	if err = oprot.WriteFieldBegin("files", thrift.LIST, 5); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteBool(p.Success); err != nil {
+	if err := oprot.WriteListBegin(thrift.STRING, len(p.Files)); err != nil {
+		return err
+	}
+	for _, v := range p.Files {
+		if err := oprot.WriteString(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -16284,10 +16436,18 @@ WriteFieldEndError:
 }
 
 func (p *GetUserActionRespData) writeField6(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("cost", thrift.DOUBLE, 6); err != nil {
+	if err = oprot.WriteFieldBegin("urls", thrift.LIST, 6); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteDouble(p.Cost); err != nil {
+	if err := oprot.WriteListBegin(thrift.STRING, len(p.Urls)); err != nil {
+		return err
+	}
+	for _, v := range p.Urls {
+		if err := oprot.WriteString(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -16301,10 +16461,10 @@ WriteFieldEndError:
 }
 
 func (p *GetUserActionRespData) writeField7(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("id", thrift.STRING, 7); err != nil {
+	if err = oprot.WriteFieldBegin("cost", thrift.DOUBLE, 7); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteString(p.ID); err != nil {
+	if err := oprot.WriteDouble(p.Cost); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -16315,6 +16475,40 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *GetUserActionRespData) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("status", thrift.I32, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
+func (p *GetUserActionRespData) writeField9(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("id", thrift.STRING, 9); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
 }
 
 func (p *GetUserActionRespData) String() string {

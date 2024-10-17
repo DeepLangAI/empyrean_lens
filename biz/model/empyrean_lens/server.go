@@ -15910,13 +15910,13 @@ func (p *GetUserActionResp) String() string {
 }
 
 type GetUserActionRespData struct {
-	UID     string `thrift:"uid,1" form:"uid" json:"uid" query:"uid"`
-	Time    string `thrift:"time,2" form:"time" json:"time" query:"time"`
-	Action  string `thrift:"action,3" form:"action" json:"action" query:"action"`
-	Title   string `thrift:"title,4" form:"title" json:"title" query:"title"`
-	Success bool   `thrift:"success,5" form:"success" json:"success" query:"success"`
-	Cost    string `thrift:"cost,6" form:"cost" json:"cost" query:"cost"`
-	ID      string `thrift:"id,7" form:"id" json:"id" query:"id"`
+	UID     string  `thrift:"uid,1" form:"uid" json:"uid" query:"uid"`
+	Time    string  `thrift:"time,2" form:"time" json:"time" query:"time"`
+	Action  string  `thrift:"action,3" form:"action" json:"action" query:"action"`
+	Title   string  `thrift:"title,4" form:"title" json:"title" query:"title"`
+	Success bool    `thrift:"success,5" form:"success" json:"success" query:"success"`
+	Cost    float64 `thrift:"cost,6" form:"cost" json:"cost" query:"cost"`
+	ID      string  `thrift:"id,7" form:"id" json:"id" query:"id"`
 }
 
 func NewGetUserActionRespData() *GetUserActionRespData {
@@ -15946,7 +15946,7 @@ func (p *GetUserActionRespData) GetSuccess() (v bool) {
 	return p.Success
 }
 
-func (p *GetUserActionRespData) GetCost() (v string) {
+func (p *GetUserActionRespData) GetCost() (v float64) {
 	return p.Cost
 }
 
@@ -16024,7 +16024,7 @@ func (p *GetUserActionRespData) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 6:
-			if fieldTypeId == thrift.STRING {
+			if fieldTypeId == thrift.DOUBLE {
 				if err = p.ReadField6(iprot); err != nil {
 					goto ReadFieldError
 				}
@@ -16125,8 +16125,8 @@ func (p *GetUserActionRespData) ReadField5(iprot thrift.TProtocol) error {
 }
 func (p *GetUserActionRespData) ReadField6(iprot thrift.TProtocol) error {
 
-	var _field string
-	if v, err := iprot.ReadString(); err != nil {
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
 		return err
 	} else {
 		_field = v
@@ -16284,10 +16284,10 @@ WriteFieldEndError:
 }
 
 func (p *GetUserActionRespData) writeField6(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("cost", thrift.STRING, 6); err != nil {
+	if err = oprot.WriteFieldBegin("cost", thrift.DOUBLE, 6); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteString(p.Cost); err != nil {
+	if err := oprot.WriteDouble(p.Cost); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {

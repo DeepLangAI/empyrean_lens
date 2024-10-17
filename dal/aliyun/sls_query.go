@@ -1814,3 +1814,107 @@ func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs
 	}
 	return results, nil
 }
+
+type FileProcessLog struct {
+	Asctime time.Time `json:"asctime"`
+	Message string    `json:"message"`
+	TraceId string    `json:"trace_id"`
+	UserId  string    `json:"user_id"`
+	Cost    float64   `json:"cost"`
+}
+
+func ConvertFileProcessLog(ctx context.Context, logs []map[string]string) ([]FileProcessLog, error) {
+	res := make([]FileProcessLog, len(logs))
+	for i := range logs {
+		t, _ := time.Parse(consts.DateTimeTemplate, logs[i]["asctime"])
+		c, err := utils.GetCostFromMesage(logs[i]["message"])
+		if err != nil {
+			hlog.CtxErrorf(ctx, "ResourceUploadQuery get cost error: %+v", err)
+		}
+		res[i] = FileProcessLog{
+			Asctime: t,
+			Message: logs[i]["message"],
+			TraceId: logs[i]["trace_id"],
+			UserId:  logs[i]["user_id"],
+			Cost:    c,
+		}
+	}
+	return res, nil
+}
+
+// pdf/url上传日志
+func ResourceUploadQuery(ctx context.Context, resourceId, resourceType string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `
+	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and message: "core link core_name:%s, core_node:%s, resource_id:%s"  | select * from log
+limit %v
+	`
+	query = FormatWithTemplate(query, nil)
+
+	if resourceType == consts.PDF {
+		query = fmt.Sprintf(query, "PDFParser", "单文件上传完成", resourceId, consts.LOG_QUERY_LIMIT)
+	} else if resourceType == consts.URL {
+		query = fmt.Sprintf(query, "UrlParser", "网页上传完成", resourceId, consts.LOG_QUERY_LIMIT)
+	}
+	hlog.CtxDebugf(ctx, "ResourceUploadQuery query: %s", query)
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "ResourceUploadQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+// 苏秦解析日志
+func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `
+	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and message: "core link core_name:PDFParser, resource_id:%s" and (message: "PDF解析完成" or message : "苏秦解析完成")  | select * from log
+limit %v
+	`
+	query = FormatWithTemplate(query, nil)
+	query = fmt.Sprintf(query, resourceId, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "ResourceUploadQuery query: %s", query)
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "ResourceUploadQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	// todo
+	return nil, nil
+}
+
+func WcdQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	// todo
+	return nil, nil
+}
+
+func TextParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	// todo
+	
+	return nil, nil
+}
+
+func EduParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	// todo
+	return nil, nil
+}
+
+func ParseFinishQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	// todo
+	return nil, nil
+}

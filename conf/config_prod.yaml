@@ -9,6 +9,11 @@ mongo_lingo:
   databaseName: lingo
   maxPoolSize: 1000
 
+mongo_plugin:
+  addr: "mongodb://svr_lingowhale_plugin:M8Kf%25aMaNckhcn2C6@dds-8vb43194a1bfeef42.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef41.mongodb.zhangbei.rds.aliyuncs.com:3717/lingowhale_plugin?replicaSet=mgset-518525368"
+  databaseName: lingowhale_plugin
+  maxPoolSize: 1000
+
 mongo_empyreanlens:
   addr: "mongodb://svr_empyrean_lens:D2xcKpc_Umk838U@dds-8vb43194a1bfeef42.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef41.mongodb.zhangbei.rds.aliyuncs.com:3717/empyrean_lens?replicaSet=mgset-518525368"
   databaseName: empyrean_lens

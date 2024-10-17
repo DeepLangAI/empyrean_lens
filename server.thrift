@@ -395,7 +395,7 @@ struct GetUserActionRespData{
     3: string action
     4: string title
     5: bool success
-    6: string cost
+    6: double cost
     7: string id
 }
 

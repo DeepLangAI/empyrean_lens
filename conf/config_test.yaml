@@ -10,11 +10,7 @@ mongo_lingo:
 
 mongo_plugin:
   addr: "mongodb://svr_cuienbo:MxaHaUmkBk83@47.92.241.26:27017/plugin_collection"
-  # addr: 47.92.241.26
-  # port: 27017
   databaseName: plugin_collection
-  # username: svr_cuienbo
-  # password: MxaHaUmkBk83
   maxPoolSize: 1000
 
 mongo_empyreanlens:

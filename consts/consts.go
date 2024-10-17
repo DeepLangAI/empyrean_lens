@@ -18,6 +18,8 @@ const (
 	ACCESS_KEY_SECRET          = "REDACTED"
 	SECURE_TOKEN               = ""
 	ENDPOINT                   = "cn-zhangjiakou.log.aliyuncs.com"
+	FC_PROJECT_NAME            = "aliyun-fc-cn-zhangjiakou-81495289-1680-50dc-991e-3d118acdad1d"
+	FC_LOG_STORE_NAME          = "function-log"
 	PROJECT_NAME               = "k8s-log-cefd7f8df3eab44a4a8184343c914af94"
 	BUSINESS_LOG_STORE_NAME    = "business-pod"
 	NGINX_LOG_STORE_NAME       = "nginx-ingress"

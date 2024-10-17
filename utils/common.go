@@ -2,10 +2,12 @@ package utils
 
 import (
 	"empyrean_lens/consts"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -211,4 +213,17 @@ func Max[T Ordered](x T, y ...T) T {
 		}
 	}
 	return x
+}
+
+func GetCostFromMesage(msg string) (float64, error) {
+	cIdx := strings.Index(msg, "cost:")
+	if cIdx == -1 {
+		return -1.0, errors.New("no cost found")
+	}
+	secIdx := strings.Index(msg, "seconds")
+	if secIdx == -1 {
+		return -1.0, errors.New("no seconds found")
+	}
+	t := strings.Trim(msg[cIdx+len("cost:"):secIdx], " ")
+	return strconv.ParseFloat(t, 64)
 }

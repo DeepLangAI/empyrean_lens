@@ -220,3 +220,21 @@ func TestBusinessLogQueryByUserId(t *testing.T) {
 		fmt.Println(logs)
 	}
 }
+
+func TestResourceUploadQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
+	query, _ := ResourceUploadQuery(ctx, "670e0f81d88d44e0c7f5fc62", consts.PDF, timeBegin, timeEnd)
+	t.Log(query)
+}
+
+func TestPDFParserQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
+	query, _ := PDFParserQuery(ctx, "670e0f81d88d44e0c7f5fc62", timeBegin, timeEnd)
+	t.Log(query)
+}

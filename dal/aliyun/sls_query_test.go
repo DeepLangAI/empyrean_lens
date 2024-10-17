@@ -238,3 +238,48 @@ func TestPDFParserQuery(t *testing.T) {
 	query, _ := PDFParserQuery(ctx, "670e0f81d88d44e0c7f5fc62", timeBegin, timeEnd)
 	t.Log(query)
 }
+
+func TestCrawlerQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
+	query, _ := CrawlerQuery(ctx, "670e0f81d88d44e0c7f5fc62", timeBegin, timeEnd)
+	t.Log(query)
+}
+
+func TestTextParseQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
+	query, _ := TextParseQuery(ctx, "6710c80febf6896c921b15c5", timeBegin, timeEnd)
+	t.Log(query)
+}
+
+func TestWcdParseQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
+	query, _ := WcdParseQuery(ctx, "6710c85bcc0b54d924a02884", timeBegin, timeEnd)
+	t.Log(query)
+}
+
+func TestEduParserQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
+	query, _ := EduParseQuery(ctx, "670e051f5784abbeec0af399", timeBegin, timeEnd)
+	t.Log(query)
+}
+
+func TestParseFinishQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
+	query, _ := ParseFinishQuery(ctx, "670e0f81d88d44e0c7f5fc62", timeBegin, timeEnd)
+	t.Log(query)
+}

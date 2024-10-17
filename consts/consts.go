@@ -4,6 +4,7 @@ import "time"
 
 const (
 	BaseContainerName = "lingowhale"
+	EduContainerName  = "edu-arch"
 	BasePodName       = "lingowhale"
 	BaseHostName      = "lingowhale"
 	BaseChannelName   = "lingowhale"

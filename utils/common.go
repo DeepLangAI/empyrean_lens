@@ -2,7 +2,6 @@ package utils
 
 import (
 	"empyrean_lens/consts"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -216,14 +215,39 @@ func Max[T Ordered](x T, y ...T) T {
 }
 
 func GetCostFromMesage(msg string) (float64, error) {
-	cIdx := strings.Index(msg, "cost:")
-	if cIdx == -1 {
-		return -1.0, errors.New("no cost found")
+	// cost:0.123 seconds
+	cost, err := strconv.ParseFloat(findKeyValue(msg, "cost:"), 64)
+	if err == nil {
+		return cost, err
 	}
-	secIdx := strings.Index(msg, "seconds")
-	if secIdx == -1 {
-		return -1.0, errors.New("no seconds found")
+
+	// cost 123 ms
+	cost, err = strconv.ParseFloat(findKeyValue(msg, "cost "), 64)
+	return cost / 1000.0, err
+}
+
+func findKeyValue(log, key string) string {
+	keyPos := strings.Index(log, key)
+	if keyPos == -1 {
+		return ""
 	}
-	t := strings.Trim(msg[cIdx+len("cost:"):secIdx], " ")
-	return strconv.ParseFloat(t, 64)
+
+	valueStart := keyPos + len(key)
+	if valueLen := strings.Index(log[valueStart:], " "); valueLen != -1 {
+		return strings.TrimSpace(log[valueStart : valueStart+valueLen])
+	}
+
+	return strings.TrimSpace(log[valueStart:])
+}
+
+func ExtractLogInfo(log string) (time.Time, string, string, float64) {
+	parts := strings.Split(log, " ")
+
+	timestampStr := parts[0]
+	t, _ := time.Parse(time.RFC3339Nano, timestampStr)
+	userID := findKeyValue(log, "user_id:")
+	traceID := findKeyValue(log, "trace_id:")
+	cost, _ := strconv.ParseFloat(findKeyValue(log, "cost:"), 64)
+
+	return t, userID, traceID, cost
 }

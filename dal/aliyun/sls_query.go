@@ -6,11 +6,12 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
 	"fmt"
-	sls "github.com/aliyun/aliyun-log-go-sdk"
 	"html/template"
 	"strconv"
 	"strings"
 	"time"
+
+	sls "github.com/aliyun/aliyun-log-go-sdk"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
@@ -1827,15 +1828,25 @@ func ConvertFileProcessLog(ctx context.Context, logs []map[string]string) ([]Fil
 	res := make([]FileProcessLog, len(logs))
 	for i := range logs {
 		t, _ := time.Parse(consts.DateTimeTemplate, logs[i]["asctime"])
+		if t.IsZero() {
+			t, _ = time.Parse(consts.DateTimeTemplate, logs[i]["time"])
+		}
+
 		c, err := utils.GetCostFromMesage(logs[i]["message"])
 		if err != nil {
-			hlog.CtxErrorf(ctx, "ResourceUploadQuery get cost error: %+v", err)
+			hlog.CtxErrorf(ctx, "ConvertFileProcessLog get cost error: %+v", err)
 		}
+
+		uid := strings.TrimSpace(logs[i]["user_id"])
+		if uid == "" {
+			uid = strings.TrimSpace(logs[i]["U-Id"])
+		}
+
 		res[i] = FileProcessLog{
 			Asctime: t,
-			Message: logs[i]["message"],
-			TraceId: logs[i]["trace_id"],
-			UserId:  logs[i]["user_id"],
+			Message: strings.TrimSpace(logs[i]["message"]),
+			TraceId: strings.TrimSpace(logs[i]["trace_id"]),
+			UserId:  uid,
 			Cost:    c,
 		}
 	}
@@ -1883,38 +1894,126 @@ limit %v
 	`
 	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, resourceId, consts.LOG_QUERY_LIMIT)
-	hlog.CtxDebugf(ctx, "ResourceUploadQuery query: %s", query)
+	hlog.CtxDebugf(ctx, "PDFParserQuery query: %s", query)
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "ResourceUploadQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "PDFParserQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
 func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	// todo
-	return nil, nil
+	logstore, err := client.GetMetricStore(consts.FC_PROJECT_NAME, consts.FC_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `
+	serviceName:lingowhale_fc AND functionName:web_url_parser_prod and "%s" not funcName
+	`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "CrawlerQuery query: %s", query)
+
+	logResp, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "CrawlerQuery query log error: %v", err)
+		return nil, err
+	}
+
+	logs := logResp.Logs
+	res := make([]FileProcessLog, len(logs))
+	for i := range logs {
+		asctime, userId, traceId, cost := utils.ExtractLogInfo(logs[i]["message"])
+		res[i] = FileProcessLog{
+			Asctime: asctime,
+			UserId:  userId,
+			TraceId: traceId,
+			Cost:    cost,
+			Message: strings.TrimSpace(logs[i]["message"]),
+		}
+	}
+	return res, nil
 }
 
-func WcdQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	// todo
-	return nil, nil
+func WcdParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	// todo web没查到，只查到wcd
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `
+	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "ParseEduNode wcd label entryId:%s"
+	`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "WcdParserQuery query: %s", query)
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "WcdParserQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
 func TextParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	// todo
-	
-	return nil, nil
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `
+	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "ParseEduNode pdf label entryId:%s"
+	`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "TextParserQuery query: %s", query)
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "TextParserQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func EduParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	// todo
-	return nil, nil
+func EduParseQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `
+	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "req path /edu_parse" and trace_id : "%s"
+	`
+	query = fmt.Sprintf(query, traceId)
+	hlog.CtxDebugf(ctx, "EduParseQuery query: %s", query)
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "EduParseQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
 func ParseFinishQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	// todo
-	return nil, nil
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `
+	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and (message: "ParseEduNode parse end entryId:%s" or message: "ParseEduNode wcd text nil entryId:%s" or message: "ParseEduNode wcd worthless end entryId:%s")
+	`
+	query = fmt.Sprintf(query, resourceId, resourceId, resourceId)
+	hlog.CtxDebugf(ctx, "ParseFinishQuery query: %s", query)
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "ParseFinishQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
 }

@@ -32,7 +32,7 @@ func TestGetUserAction(t *testing.T) {
 	dal.Init()
 
 	t.Run("uid time", func(t *testing.T) {
-		res, e := GetUserAction(ctx, empyrean_lens.GetUserActionReq{Content: "Token", StartTime: "2021-06-20 00:00:00", EndTime: "2024-10-10 00:00:00"})
+		res, e := GetUserAction(ctx, empyrean_lens.GetUserActionReq{Content: "成功", StartTime: "2021-06-20 00:00:00", EndTime: "2024-10-30 00:00:00"})
 		if e != nil {
 			t.Errorf("get user action err:%v", e)
 		} else {

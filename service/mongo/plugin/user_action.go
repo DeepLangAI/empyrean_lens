@@ -161,6 +161,16 @@ func findByContentAndTime(ctx context.Context, content string, begin, end time.T
 		mu.Unlock()
 		return nil
 	})
+	funcList = append(funcList, func() error {
+		webs, err := plugin.NewWebReaderDao().FindWebReaderByTitleAndCreateTime(ctx, content, begin, end)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		appendWebReaderActionData(ctx, &data, &set, webs)
+		mu.Unlock()
+		return nil
+	})
 
 	funcList = append(funcList, func() error {
 		multiModel, err := plugin.NewMultiDao().FindMultiByIdAndCreateTime(ctx, content, begin, end)

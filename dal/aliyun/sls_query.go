@@ -5,7 +5,6 @@ import (
 	"context"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
-	"errors"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -1833,10 +1832,10 @@ func ConvertFileProcessLog(ctx context.Context, logs []map[string]string) ([]Fil
 			t, _ = time.Parse(consts.DateTimeTemplate, logs[i]["time"])
 		}
 
-		c, err := utils.GetCostFromMesage(logs[i]["message"])
-		if err != nil {
-			hlog.CtxErrorf(ctx, "ConvertFileProcessLog get cost error: %+v", err)
-		}
+		c, _ := utils.GetCostFromMesage(logs[i]["message"])
+		// if err != nil {
+		// hlog.CtxErrorf(ctx, "ConvertFileProcessLog get cost error: %+v", err)
+		// }
 
 		uid := strings.TrimSpace(logs[i]["user_id"])
 		if uid == "" {
@@ -2020,18 +2019,9 @@ func ParseFinishQuery(ctx context.Context, resourceId string, timeBegin, timeEnd
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-// todo 单文档待完成 gather查询聚合结果
-func SingleDocumentBeginQuery(ctx context.Context, resourceId string, generateType int, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	var query string
-	switch generateType {
-	case consts.GenerateTypeOverview:
-		query = fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:1." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
-	case consts.GenerateTypeOutline:
-	case consts.GenerateTypeViewPoint:
-	default:
-		return nil, errors.New("invalid generate type")
-	}
-	hlog.CtxDebugf(ctx, "SingleDocumentBeginQuery query: %s", query)
+func SingleOutlineBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:1." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	hlog.CtxDebugf(ctx, "SingleOutlineBeginQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2040,23 +2030,16 @@ func SingleDocumentBeginQuery(ctx context.Context, resourceId string, generateTy
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "SingleDocumentBeginQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "SingleOutlineBeginQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func SingleDocumentEndQuery(ctx context.Context, traceId string, generateType int, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	var query string
-	switch generateType {
-	case consts.GenerateTypeOverview:
-		query = `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary core core_name:大纲, node:大纲生成完成" and trace_id:"%s"`
-	case consts.GenerateTypeOutline:
-	case consts.GenerateTypeViewPoint:
-	default:
-		return nil, errors.New("invalid generate type")
-	}
-	hlog.CtxDebugf(ctx, "SingleDocumentEndQuery query: %s", query)
+func SingleOutlineEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary core core_name:大纲, node:大纲生成完成" and trace_id:"%s"`
+	query = fmt.Sprintf(query, traceId)
+	hlog.CtxDebugf(ctx, "SingleOutlineEndQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2065,7 +2048,77 @@ func SingleDocumentEndQuery(ctx context.Context, traceId string, generateType in
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "SingleDocumentEndQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "SingleOutlineEndQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func SingleOverviewBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:0." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	hlog.CtxDebugf(ctx, "SingleOverviewBeginQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SingleOverviewBeginQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func SingleOverviewEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary core core_name:概述, node:生成概述结束" and trace_id:"%s"`
+	query = fmt.Sprintf(query, traceId)
+	hlog.CtxDebugf(ctx, "SingleOverviewEndQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SingleOverviewEndQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func SingleViewpointBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:3." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	hlog.CtxDebugf(ctx, "SingleViewpointBeginQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SingleViewpointBeginQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func SingleViewpointEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "core link core_name:viewpoint, core_node:观点模型输出完成" and trace_id:"%s"`
+	query = fmt.Sprintf(query, traceId)
+	hlog.CtxDebugf(ctx, "SingleViewpointEndQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SingleViewpointEndQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)

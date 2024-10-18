@@ -47,3 +47,9 @@ func TestComputeStablityScore(t *testing.T) {
 	score := ComputeStablityScore(f)
 	fmt.Println(score)
 }
+
+func TestDeltaPercent(t *testing.T) {
+	t.Log(DeltaPercent(0.0, 110))
+	t.Log(DeltaPercent(0.01, 110))
+	t.Log(DeltaPercent(0.0000001, 110))
+}

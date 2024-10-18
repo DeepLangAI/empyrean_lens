@@ -3,12 +3,13 @@
 package empyrean_lens
 
 import (
-	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/middleware"
 	"context"
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/service/passport"
 	"empyrean_lens/utils"
+
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/middleware"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -16,11 +17,28 @@ import (
 
 func CookieMiddleWare() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
+		loginPage := consts.INDEX_PATH
+		// 从飞书浏览器打开，需要在浏览器跳转至index.html鉴权
+		// if ctx.Query("open_in_browser") == "true" {
+		// 	ctx.Redirect(302, []byte(loginPage))
+		// 	ctx.Abort()
+		// 	return
+		// }
+
 		// 用于本地调试时免登录用
 		if channel := ctx.Request.Header.Get(consts.HttpHeaderChannel); channel == consts.NonLoginChannel {
 			ctx.Next(c)
 			return
 		}
+
+		// 根据ip判断是否是内网访问
+		ip := ctx.ClientIP()
+		hlog.CtxInfof(c, "client ip`%v`", ip)
+		if utils.IsInnerIp(ip) {
+			ctx.Next(c)
+			return
+		}
+
 		path := string(ctx.Path())
 		if path == "/api/v1/report/auth" ||
 			path == "/api/v1/report/upload/online_operation" ||
@@ -33,7 +51,8 @@ func CookieMiddleWare() app.HandlerFunc {
 		claim, err := utils.ParseJWT(cookie, conf.GetLark().JwtSecret)
 		if err != nil {
 			hlog.CtxErrorf(c, "jwt parse error: %+v", err)
-			ctx.String(403, "No Auth Forbidden")
+			//ctx.String(403, "No Auth Forbidden")
+			ctx.Redirect(302, []byte(loginPage))
 			ctx.Abort()
 			return
 		}
@@ -41,7 +60,8 @@ func CookieMiddleWare() app.HandlerFunc {
 			ctx.Next(c)
 			return
 		}
-		ctx.String(403, "Auth Fail Forbidden")
+		//ctx.String(403, "Auth Fail Forbidden")
+		ctx.Redirect(302, []byte(loginPage))
 		ctx.Abort()
 	}
 }

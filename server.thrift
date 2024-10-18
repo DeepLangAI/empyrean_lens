@@ -421,10 +421,14 @@ struct UserActionReq {
 struct UserActionResp {
     1: i64 code
     2: string msg
-    3: list<UserActionRespData> data
+    3: UserActionRespData data
 }
 
 struct UserActionRespData {
+    1: bool has_next // 是否有下一页
+    2: list<UserActionRespRow> rows // 表中每行数据
+}
+struct UserActionRespRow {
     1: string user_id
     2: string create_time // DateHourMinSecTemplate
     3: string channel

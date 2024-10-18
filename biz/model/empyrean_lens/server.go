@@ -67,6 +67,230 @@ func (p *UserActionStatus) Value() (driver.Value, error) {
 	return int64(*p), nil
 }
 
+type ActionType int64
+
+const (
+	ActionType_PDF   ActionType = 1
+	ActionType_URL   ActionType = 2
+	ActionType_Multi ActionType = 3
+)
+
+func (p ActionType) String() string {
+	switch p {
+	case ActionType_PDF:
+		return "PDF"
+	case ActionType_URL:
+		return "URL"
+	case ActionType_Multi:
+		return "Multi"
+	}
+	return "<UNSET>"
+}
+
+func ActionTypeFromString(s string) (ActionType, error) {
+	switch s {
+	case "PDF":
+		return ActionType_PDF, nil
+	case "URL":
+		return ActionType_URL, nil
+	case "Multi":
+		return ActionType_Multi, nil
+	}
+	return ActionType(0), fmt.Errorf("not a valid ActionType string")
+}
+
+func ActionTypePtr(v ActionType) *ActionType { return &v }
+func (p *ActionType) Scan(value interface{}) (err error) {
+	var result sql.NullInt64
+	err = result.Scan(value)
+	*p = ActionType(result.Int64)
+	return
+}
+
+func (p *ActionType) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
+
+// 资源渠道的枚举值
+type ChannelType int64
+
+const (
+	// 全部渠道
+	ChannelType_All ChannelType = 0
+	// 语鲸web首页pdf上传button
+	ChannelType_PdfPc ChannelType = 10
+	// 插件阅读面板button
+	ChannelType_PdfPlugin ChannelType = 11
+	// pdf阅读器button
+	ChannelType_PdfReader ChannelType = 12
+	// 语鲸web个人库上传button
+	ChannelType_PdfPcDb ChannelType = 13
+	// web阅读器button
+	ChannelType_PdfWebReader ChannelType = 14
+	// 语鲸web首页url输入框
+	ChannelType_UrlPc ChannelType = 20
+	// 插件
+	ChannelType_UrlPlugin ChannelType = 21
+	// 插件右键菜单
+	ChannelType_UrlPluginMenu ChannelType = 22
+	// 语鲸web个人库上传button
+	ChannelType_UrlPcDb ChannelType = 23
+	// web阅读器button
+	ChannelType_UrlReader ChannelType = 24
+	// url语鲸小助手
+	ChannelType_WechatUrl ChannelType = 30
+	// pdf语鲸小助手
+	ChannelType_WechatPdf ChannelType = 31
+	// 语鲸小程序url
+	ChannelType_MiniUrl ChannelType = 40
+	// 语鲸小程序pdf
+	ChannelType_MiniPdf ChannelType = 41
+	// 灵狗小程序url
+	ChannelType_MiniLingoUrl ChannelType = 42
+	// 灵狗小程序pdf
+	ChannelType_MiniLingoPdf ChannelType = 43
+	// url灵狗小助手
+	ChannelType_WechatLingoUrl ChannelType = 50
+	// pdf灵狗小助手
+	ChannelType_WechatLingoPdf ChannelType = 51
+	// 桌面端url
+	ChannelType_DesktopUrl ChannelType = 60
+	// 桌面端pdf
+	ChannelType_DesktopPdf ChannelType = 61
+	// url 灵狗web 端
+	ChannelType_WebLingoUrl ChannelType = 70
+	// pdf 灵狗web 端
+	ChannelType_WebLingoPdf ChannelType = 71
+	// multi 灵狗web 端
+	ChannelType_WebLingoMulti ChannelType = 72
+)
+
+func (p ChannelType) String() string {
+	switch p {
+	case ChannelType_All:
+		return "All"
+	case ChannelType_PdfPc:
+		return "PdfPc"
+	case ChannelType_PdfPlugin:
+		return "PdfPlugin"
+	case ChannelType_PdfReader:
+		return "PdfReader"
+	case ChannelType_PdfPcDb:
+		return "PdfPcDb"
+	case ChannelType_PdfWebReader:
+		return "PdfWebReader"
+	case ChannelType_UrlPc:
+		return "UrlPc"
+	case ChannelType_UrlPlugin:
+		return "UrlPlugin"
+	case ChannelType_UrlPluginMenu:
+		return "UrlPluginMenu"
+	case ChannelType_UrlPcDb:
+		return "UrlPcDb"
+	case ChannelType_UrlReader:
+		return "UrlReader"
+	case ChannelType_WechatUrl:
+		return "WechatUrl"
+	case ChannelType_WechatPdf:
+		return "WechatPdf"
+	case ChannelType_MiniUrl:
+		return "MiniUrl"
+	case ChannelType_MiniPdf:
+		return "MiniPdf"
+	case ChannelType_MiniLingoUrl:
+		return "MiniLingoUrl"
+	case ChannelType_MiniLingoPdf:
+		return "MiniLingoPdf"
+	case ChannelType_WechatLingoUrl:
+		return "WechatLingoUrl"
+	case ChannelType_WechatLingoPdf:
+		return "WechatLingoPdf"
+	case ChannelType_DesktopUrl:
+		return "DesktopUrl"
+	case ChannelType_DesktopPdf:
+		return "DesktopPdf"
+	case ChannelType_WebLingoUrl:
+		return "WebLingoUrl"
+	case ChannelType_WebLingoPdf:
+		return "WebLingoPdf"
+	case ChannelType_WebLingoMulti:
+		return "WebLingoMulti"
+	}
+	return "<UNSET>"
+}
+
+func ChannelTypeFromString(s string) (ChannelType, error) {
+	switch s {
+	case "All":
+		return ChannelType_All, nil
+	case "PdfPc":
+		return ChannelType_PdfPc, nil
+	case "PdfPlugin":
+		return ChannelType_PdfPlugin, nil
+	case "PdfReader":
+		return ChannelType_PdfReader, nil
+	case "PdfPcDb":
+		return ChannelType_PdfPcDb, nil
+	case "PdfWebReader":
+		return ChannelType_PdfWebReader, nil
+	case "UrlPc":
+		return ChannelType_UrlPc, nil
+	case "UrlPlugin":
+		return ChannelType_UrlPlugin, nil
+	case "UrlPluginMenu":
+		return ChannelType_UrlPluginMenu, nil
+	case "UrlPcDb":
+		return ChannelType_UrlPcDb, nil
+	case "UrlReader":
+		return ChannelType_UrlReader, nil
+	case "WechatUrl":
+		return ChannelType_WechatUrl, nil
+	case "WechatPdf":
+		return ChannelType_WechatPdf, nil
+	case "MiniUrl":
+		return ChannelType_MiniUrl, nil
+	case "MiniPdf":
+		return ChannelType_MiniPdf, nil
+	case "MiniLingoUrl":
+		return ChannelType_MiniLingoUrl, nil
+	case "MiniLingoPdf":
+		return ChannelType_MiniLingoPdf, nil
+	case "WechatLingoUrl":
+		return ChannelType_WechatLingoUrl, nil
+	case "WechatLingoPdf":
+		return ChannelType_WechatLingoPdf, nil
+	case "DesktopUrl":
+		return ChannelType_DesktopUrl, nil
+	case "DesktopPdf":
+		return ChannelType_DesktopPdf, nil
+	case "WebLingoUrl":
+		return ChannelType_WebLingoUrl, nil
+	case "WebLingoPdf":
+		return ChannelType_WebLingoPdf, nil
+	case "WebLingoMulti":
+		return ChannelType_WebLingoMulti, nil
+	}
+	return ChannelType(0), fmt.Errorf("not a valid ChannelType string")
+}
+
+func ChannelTypePtr(v ChannelType) *ChannelType { return &v }
+func (p *ChannelType) Scan(value interface{}) (err error) {
+	var result sql.NullInt64
+	err = result.Scan(value)
+	*p = ChannelType(result.Int64)
+	return
+}
+
+func (p *ChannelType) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
+
 type BaseResp struct {
 	Code int32  `thrift:"code,1" form:"code" json:"code" query:"code"`
 	Msg  string `thrift:"msg,2" form:"msg" json:"msg" query:"msg"`
@@ -15976,11 +16200,13 @@ type GetUserActionRespData struct {
 	// pdf的url
 	Files []string `thrift:"files,5" form:"files" json:"files" query:"files"`
 	// 网页的url
-	Urls   []string         `thrift:"urls,6" form:"urls" json:"urls" query:"urls"`
-	Cost   float64          `thrift:"cost,7" form:"cost" json:"cost" query:"cost"`
-	Status UserActionStatus `thrift:"status,8" form:"status" json:"status" query:"status"`
-	// entryId or multiId
-	ID string `thrift:"id,9" form:"id" json:"id" query:"id"`
+	Urls       []string         `thrift:"urls,6" form:"urls" json:"urls" query:"urls"`
+	Cost       float64          `thrift:"cost,7" form:"cost" json:"cost" query:"cost"`
+	Status     UserActionStatus `thrift:"status,8" form:"status" json:"status" query:"status"`
+	ActionType ActionType       `thrift:"actionType,9" form:"actionType" json:"actionType" query:"actionType"`
+	// 根据actionType，entryId or multiId
+	ID          string      `thrift:"id,10" form:"id" json:"id" query:"id"`
+	ChannelType ChannelType `thrift:"channelType,11" form:"channelType" json:"channelType" query:"channelType"`
 }
 
 func NewGetUserActionRespData() *GetUserActionRespData {
@@ -16022,20 +16248,30 @@ func (p *GetUserActionRespData) GetStatus() (v UserActionStatus) {
 	return p.Status
 }
 
+func (p *GetUserActionRespData) GetActionType() (v ActionType) {
+	return p.ActionType
+}
+
 func (p *GetUserActionRespData) GetID() (v string) {
 	return p.ID
 }
 
+func (p *GetUserActionRespData) GetChannelType() (v ChannelType) {
+	return p.ChannelType
+}
+
 var fieldIDToName_GetUserActionRespData = map[int16]string{
-	1: "uid",
-	2: "time",
-	3: "action",
-	4: "title",
-	5: "files",
-	6: "urls",
-	7: "cost",
-	8: "status",
-	9: "id",
+	1:  "uid",
+	2:  "time",
+	3:  "action",
+	4:  "title",
+	5:  "files",
+	6:  "urls",
+	7:  "cost",
+	8:  "status",
+	9:  "actionType",
+	10: "id",
+	11: "channelType",
 }
 
 func (p *GetUserActionRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -16122,8 +16358,24 @@ func (p *GetUserActionRespData) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 9:
-			if fieldTypeId == thrift.STRING {
+			if fieldTypeId == thrift.I32 {
 				if err = p.ReadField9(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 10:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField10(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 11:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField11(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -16272,6 +16524,17 @@ func (p *GetUserActionRespData) ReadField8(iprot thrift.TProtocol) error {
 }
 func (p *GetUserActionRespData) ReadField9(iprot thrift.TProtocol) error {
 
+	var _field ActionType
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = ActionType(v)
+	}
+	p.ActionType = _field
+	return nil
+}
+func (p *GetUserActionRespData) ReadField10(iprot thrift.TProtocol) error {
+
 	var _field string
 	if v, err := iprot.ReadString(); err != nil {
 		return err
@@ -16279,6 +16542,17 @@ func (p *GetUserActionRespData) ReadField9(iprot thrift.TProtocol) error {
 		_field = v
 	}
 	p.ID = _field
+	return nil
+}
+func (p *GetUserActionRespData) ReadField11(iprot thrift.TProtocol) error {
+
+	var _field ChannelType
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = ChannelType(v)
+	}
+	p.ChannelType = _field
 	return nil
 }
 
@@ -16322,6 +16596,14 @@ func (p *GetUserActionRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField9(oprot); err != nil {
 			fieldId = 9
+			goto WriteFieldError
+		}
+		if err = p.writeField10(oprot); err != nil {
+			fieldId = 10
+			goto WriteFieldError
+		}
+		if err = p.writeField11(oprot); err != nil {
+			fieldId = 11
 			goto WriteFieldError
 		}
 	}
@@ -16495,10 +16777,10 @@ WriteFieldEndError:
 }
 
 func (p *GetUserActionRespData) writeField9(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("id", thrift.STRING, 9); err != nil {
+	if err = oprot.WriteFieldBegin("actionType", thrift.I32, 9); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteString(p.ID); err != nil {
+	if err := oprot.WriteI32(int32(p.ActionType)); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -16509,6 +16791,40 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
+}
+
+func (p *GetUserActionRespData) writeField10(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("id", thrift.STRING, 10); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 10 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 10 end error: ", p), err)
+}
+
+func (p *GetUserActionRespData) writeField11(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("channelType", thrift.I32, 11); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.ChannelType)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 11 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 11 end error: ", p), err)
 }
 
 func (p *GetUserActionRespData) String() string {

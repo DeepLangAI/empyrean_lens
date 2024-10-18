@@ -385,6 +385,46 @@ enum UserActionStatus {
     Slow = 3 // 慢查询
     Timeout = 4 // 超时失败
 }
+enum ActionType {
+    PDF = 1
+    URL = 2
+    Multi = 3
+}
+// 资源渠道的枚举值
+enum ChannelType {
+    All = 0,  // 全部渠道
+
+    PdfPc = 10,  // 语鲸web首页pdf上传button
+    PdfPlugin = 11,  // 插件阅读面板button
+    PdfReader = 12,  // pdf阅读器button
+    PdfPcDb = 13,  // 语鲸web个人库上传button
+    PdfWebReader = 14,  // web阅读器button
+
+    UrlPc = 20,  // 语鲸web首页url输入框
+    UrlPlugin = 21,  // 插件
+    UrlPluginMenu = 22,  // 插件右键菜单
+    UrlPcDb = 23,  // 语鲸web个人库上传button
+    UrlReader = 24,  // web阅读器button
+
+    WechatUrl = 30,  // url语鲸小助手
+    WechatPdf = 31,  // pdf语鲸小助手
+
+    MiniUrl = 40,  // 语鲸小程序url
+    MiniPdf = 41,  // 语鲸小程序pdf
+
+    MiniLingoUrl = 42,  // 灵狗小程序url
+    MiniLingoPdf = 43,  // 灵狗小程序pdf
+
+    WechatLingoUrl = 50,  // url灵狗小助手
+    WechatLingoPdf = 51,  // pdf灵狗小助手
+
+    DesktopUrl = 60,  // 桌面端url
+    DesktopPdf = 61,  // 桌面端pdf
+
+    WebLingoUrl = 70,  // url 灵狗web 端
+    WebLingoPdf = 71,  // pdf 灵狗web 端
+    WebLingoMulti = 72  // multi 灵狗web 端
+}
 struct GetUserActionReq{
     1: string content // 查询内容
     2: string start_time
@@ -404,7 +444,9 @@ struct GetUserActionRespData{
     6: list<string> urls // 网页的url
     7: double cost
     8: UserActionStatus status
-    9: string id // entryId or multiId
+    9: ActionType actionType
+    10: string id // 根据actionType，entryId or multiId
+    11: ChannelType channelType
 }
 
 service Rentention{

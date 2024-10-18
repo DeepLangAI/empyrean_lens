@@ -14,89 +14,218 @@ import (
 )
 
 func GetUserAction(ctx context.Context, req empyrean_lens.GetUserActionReq) ([]*empyrean_lens.GetUserActionRespData, *consts.BizCode) {
-	// todo 待修复
-	t1, _ := time.Parse(consts.DateHourMinuteTemplate, req.StartTime)
-	t2, _ := time.Parse(consts.DateHourMinuteTemplate, req.EndTime)
-	if req.UID == "" && (t1.IsZero() || t2.IsZero()) {
-		return nil, &consts.RetParamError
+	begin, _ := time.Parse(consts.DateHourMinuteTemplate, req.StartTime)
+	end, _ := time.Parse(consts.DateHourMinuteTemplate, req.EndTime)
+	if begin.IsZero() && end.IsZero() {
+		end = time.Now()
+		begin = time.Now().Add(-6 * time.Hour)
+	} else if begin.IsZero() && !end.IsZero() {
+		begin = end.Add(-6 * time.Hour)
+	} else if !begin.IsZero() && end.IsZero() {
+		end = time.Now()
 	}
 
-	res := make([]*empyrean_lens.GetUserActionRespData, 0)
+	var res []*empyrean_lens.GetUserActionRespData
+	var bizCode *consts.BizCode
+	if req.Content == "" {
+		res, bizCode = FindByTime(ctx, begin, end)
+	} else {
+		res, bizCode = FindByContentAndTime(ctx, req.Content, begin, end)
+	}
+	if bizCode != nil {
+		return nil, bizCode
+	}
+	return res, bizCode
+}
 
-	funcList, mu := []utillib.AsyncFunc{}, &sync.Mutex{}
+func FindByTime(ctx context.Context, begin, end time.Time) ([]*empyrean_lens.GetUserActionRespData, *consts.BizCode) {
+	data, set := []*empyrean_lens.GetUserActionRespData{}, map[string]struct{}{}
+	mu := &sync.Mutex{}
+
+	funcList := []utillib.AsyncFunc{}
 	funcList = append(funcList, func() error {
-		fileActions, err := plugin.NewFileDao().FindFileByUserIdAndCreateTime(ctx, req.UID, t1, t2)
+		files, err := plugin.NewFileDao().FindFileByCreateTime(ctx, begin, end)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "GetUserAction FindFileByUserIdAndCreateTime err:%+v", err)
 			return err
 		}
-
 		mu.Lock()
-		defer mu.Unlock()
-		for i := range fileActions {
-			res = append(res, &empyrean_lens.GetUserActionRespData{
-				UID:     fileActions[i].UserID,
-				Time:    fileActions[i].CreateTime.Format(consts.DateHourMinuteTemplate),
-				Action:  consts.PDF,
-				Title:   fileActions[i].Name,
-				Success: fileActions[i].IsGenerated,
-				ID:      fileActions[i].ID.String(),
-			})
-		}
-
-		return nil
-	})
-	funcList = append(funcList, func() error {
-		var err error
-		webReaderActions, err := plugin.NewWebReaderDao().FindWebReaderByUserIdAndCreateTime(ctx, req.UID, t1, t2)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "GetUserAction FindWebReaderByUserIdAndCreateTime err:%+v", err)
-			return err
-		}
-
-		mu.Lock()
-		defer mu.Unlock()
-		for i := range webReaderActions {
-			res = append(res, &empyrean_lens.GetUserActionRespData{
-				UID:     webReaderActions[i].UserID,
-				Time:    webReaderActions[i].CreateTime.Format(consts.DateHourMinuteTemplate),
-				Action:  consts.URL,
-				Title:   webReaderActions[i].Title,
-				Success: webReaderActions[i].IsGenerated,
-				ID:      webReaderActions[i].ID.String(),
-			})
-		}
-
-		return nil
-	})
-	funcList = append(funcList, func() error {
-		var err error
-		multiActions, err := plugin.NewMultiDao().FindMultiByUserIdAndCreateTime(ctx, req.UID, t1, t2)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "GetUserAction FindMultiModlByUserIdAndCreateTime err:%+v", err)
-			return err
-		}
-
-		mu.Lock()
-		defer mu.Unlock()
-		for i := range multiActions {
-			res = append(res, &empyrean_lens.GetUserActionRespData{
-				UID:    multiActions[i].UserID,
-				Time:   multiActions[i].CreateTime.Format(consts.DateHourMinuteTemplate),
-				Action: consts.MULTI,
-				Title:  multiActions[i].Title,
-				// todo  Success: multiActions[i].IsGeneratedaa,
-				ID: multiActions[i].Id.String(),
-			})
-		}
-
+		appendFileActionData(ctx, &data, &set, files)
+		mu.Unlock()
 		return nil
 	})
 
-	err := utillib.ParallelExec(ctx, funcList, len(funcList))
-	if len(err) > 0 {
-		hlog.CtxErrorf(ctx, "GetUserAction err:%+v", utils.JSONMarshal(err))
+	funcList = append(funcList, func() error {
+		readers, err := plugin.NewWebReaderDao().FindWebReaderByCreateTime(ctx, begin, end)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		appendWebReaderActionData(ctx, &data, &set, readers)
+		mu.Unlock()
+		return nil
+	})
+
+	funcList = append(funcList, func() error {
+		multiModels, err := plugin.NewMultiDao().FindMultiByCreateTime(ctx, begin, end)
+		if err != nil {
+			return err
+		}
+		mFileMap, mURLMap := findMutliEntryUrls(ctx, multiModels, begin, end)
+		mu.Lock()
+		appendMultiActionData(ctx, &data, &set, multiModels, mFileMap, mURLMap)
+		mu.Unlock()
+		return nil
+	})
+
+	errs := utillib.ParallelExec(ctx, funcList, len(funcList))
+	if len(errs) > 0 {
+		hlog.CtxErrorf(ctx, "[FindByTime] error: %+v", utils.JSONMarshal(errs))
 		return nil, &consts.SystemErr
 	}
-	return res, nil
+	return data, nil
+}
+
+func FindByContentAndTime(ctx context.Context, content string, begin, end time.Time) ([]*empyrean_lens.GetUserActionRespData, *consts.BizCode) {
+	// todo
+	return nil, nil
+}
+
+func findMutliEntryUrls(ctx context.Context, multiModels []plugin.MultiModel, begin, end time.Time) (*sync.Map, *sync.Map) {
+	mFileMap, mURLMap, multiWg := &sync.Map{}, &sync.Map{}, &sync.WaitGroup{}
+	for _, model := range multiModels {
+		id := model.ID
+		for _, entry := range model.ArticleList {
+			multiWg.Add(1)
+			if entry.EntryType == consts.EntryTypePDF {
+				go func(e plugin.ArticleEntry) {
+					defer multiWg.Done()
+					file, err := plugin.NewFileDao().FindFileByIdAndCreateTime(ctx, e.EntryId, begin, end)
+					if err != nil {
+						return
+					}
+					urls := []string{file.FileURL}
+					if v, ok := mFileMap.Load(id); ok {
+						urls = append(urls, v.([]string)...)
+						mFileMap.Store(id, urls)
+					} else {
+						mFileMap.Store(id, urls)
+					}
+				}(entry)
+			} else if entry.EntryType == consts.EntryTypeWEB {
+				go func(e plugin.ArticleEntry) {
+					defer multiWg.Done()
+					web, err := plugin.NewWebReaderDao().FindWebReaderByIdAndCreateTime(ctx, e.EntryId, begin, end)
+					if err != nil {
+						return
+					}
+					urls := []string{web.URL}
+					if v, ok := mURLMap.Load(id); ok {
+						urls = append(urls, v.([]string)...)
+						mURLMap.Store(id, urls)
+					} else {
+						mURLMap.Store(id, urls)
+					}
+				}(entry)
+			}
+		}
+	}
+	multiWg.Wait()
+	return mFileMap, mURLMap
+}
+
+func appendFileActionData(ctx context.Context, data *[]*empyrean_lens.GetUserActionRespData, set *map[string]struct{}, files []plugin.File) {
+	for _, file := range files {
+		if _, ok := (*set)[file.ID.String()+"/"+consts.PDF]; ok {
+			continue
+		}
+		*data = append(*data, &empyrean_lens.GetUserActionRespData{
+			UID:         file.UserID,
+			Time:        file.CreateTime.Format(consts.DateTimeTemplate),
+			Action:      consts.PDF,
+			Title:       file.Name,
+			Files:       []string{file.FileURL},
+			Cost:        file.UpdateTime.Sub(file.CreateTime).Seconds(),
+			Status:      actionStatus(ctx, consts.PDF, file.Status, -1, -1, -1),
+			ActionType:  empyrean_lens.ActionType_PDF,
+			ID:          file.ID.String(),
+			ChannelType: empyrean_lens.ChannelType(file.ChannelType),
+		})
+		(*set)[file.ID.String()+"/"+consts.PDF] = struct{}{}
+	}
+}
+
+func appendWebReaderActionData(ctx context.Context, data *[]*empyrean_lens.GetUserActionRespData, set *map[string]struct{}, webReaders []plugin.WebReader) {
+	for _, reader := range webReaders {
+		if _, ok := (*set)[reader.ID.String()+"/"+consts.URL]; ok {
+			continue
+		}
+		*data = append(*data, &empyrean_lens.GetUserActionRespData{
+			UID:         reader.UserID,
+			Time:        reader.CreateTime.Format(consts.DateTimeTemplate),
+			Action:      consts.URL,
+			Title:       reader.Title,
+			Urls:        []string{reader.URL},
+			Cost:        reader.UpdateTime.Sub(reader.CreateTime).Seconds(),
+			Status:      actionStatus(ctx, consts.URL, reader.Status, -1, -1, -1),
+			ActionType:  empyrean_lens.ActionType_PDF,
+			ID:          reader.ID.String(),
+			ChannelType: empyrean_lens.ChannelType(reader.ChannelType),
+		})
+		(*set)[reader.ID.String()+"/"+consts.URL] = struct{}{}
+	}
+}
+
+func appendMultiActionData(ctx context.Context, data *[]*empyrean_lens.GetUserActionRespData, set *map[string]struct{}, multiModels []plugin.MultiModel, fileMap, webMap *sync.Map) {
+	for _, multi := range multiModels {
+		if _, ok := (*set)[multi.ID.String()+"/"+consts.MULTI]; ok {
+			continue
+		}
+		var fileUrls, webUrls []string
+		if files, ok := fileMap.Load(multi.ID); ok {
+			fileUrls = files.([]string)
+		}
+		if urls, ok := webMap.Load(multi.ID); ok {
+			webUrls = urls.([]string)
+		}
+		*data = append(*data, &empyrean_lens.GetUserActionRespData{
+			UID:         multi.UserID,
+			Time:        multi.CreateTime.Format(consts.DateTimeTemplate),
+			Action:      consts.MULTI,
+			Title:       multi.Title,
+			Files:       fileUrls,
+			Urls:        webUrls,
+			Cost:        multi.UpdateTime.Sub(multi.CreateTime).Seconds(),
+			Status:      actionStatus(ctx, consts.URL, -1, multi.AnalysisStatus, multi.MergeStatus, multi.SummaryStatus),
+			ActionType:  empyrean_lens.ActionType_PDF,
+			ID:          multi.ID.String(),
+			ChannelType: empyrean_lens.ChannelType(multi.ChannelType),
+		})
+		(*set)[multi.ID.String()+"/"+consts.MULTI] = struct{}{}
+	}
+}
+
+func actionStatus(ctx context.Context, actionType string, status, analysisStatus, mergeStatus, summaryStatus int) empyrean_lens.UserActionStatus {
+	switch actionType {
+	case consts.PDF:
+		if status == consts.PDFSuccessStatus {
+			return empyrean_lens.UserActionStatus_Success
+		} else {
+			return empyrean_lens.UserActionStatus_Fail
+		}
+	case consts.URL:
+		if status == consts.URLSuccessStatus {
+			return empyrean_lens.UserActionStatus_Success
+		} else {
+			return empyrean_lens.UserActionStatus_Fail
+		}
+	case consts.MULTI:
+		if analysisStatus == consts.MultiSuccessAnalysisStatus && mergeStatus == consts.MultiSuccessMergeStatus && summaryStatus == consts.MultiSuccessSummaryStatus {
+			return empyrean_lens.UserActionStatus_Success
+		} else {
+			return empyrean_lens.UserActionStatus_Fail
+		}
+	default:
+		hlog.CtxErrorf(ctx, "error actionType: %s", actionType)
+		return -1
+	}
 }

@@ -5,6 +5,8 @@ import (
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/conf"
 	"empyrean_lens/dal"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -29,7 +31,7 @@ func TestGetUserAction(t *testing.T) {
 	dal.Init()
 
 	t.Run("uid time", func(t *testing.T) {
-		res, e := GetUserAction(ctx, empyrean_lens.GetUserActionReq{UID: uid, StartTime: "2024-06-20 00:00:00", EndTime: "2024-07-01 00:00:00"})
+		res, e := GetUserAction(ctx, empyrean_lens.GetUserActionReq{Content: uid, StartTime: "2024-06-20 00:00:00", EndTime: "2024-07-01 00:00:00"})
 		if e != nil {
 			t.Errorf("get user action err:%v", e)
 		} else {
@@ -38,11 +40,20 @@ func TestGetUserAction(t *testing.T) {
 	})
 	t.Run("uid error", func(t *testing.T) {
 		uid = "123"
-		res, e := GetUserAction(ctx, empyrean_lens.GetUserActionReq{UID: uid})
+		res, e := GetUserAction(ctx, empyrean_lens.GetUserActionReq{Content: uid})
 		if e != nil {
 			t.Errorf("get user action err:%v", e)
 		} else {
 			t.Log(res)
 		}
 	})
+}
+
+func TestSyncMap(t *testing.T) {
+	sm := &sync.Map{}
+	sm.Store(1, []string{"1", "2", "3"})
+	if v, ok := sm.Load(1); ok {
+		s := strings.Join(v.([]string), "/")
+		t.Log(s)
+	}
 }

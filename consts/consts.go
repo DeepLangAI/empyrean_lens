@@ -375,9 +375,17 @@ const (
 
 // 单文档生成类型
 const (
-	GenerateTypeOverview   = iota
-	GenerateTypeOutline   
+	GenerateTypeOverview = iota
+	GenerateTypeOutline
 	GenerateTypeViewPoint
+)
+
+const (
+	PDFSuccessStatus    = 8
+	URLSuccessStatus    = 0
+	MultiSuccessAnalysisStatus = 2
+	MultiSuccessMergeStatus    = 2
+	MultiSuccessSummaryStatus  = 2
 )
 
 const LOG_DETAIL_TEMPLATE_PATH = "templates/rentention.html"
@@ -439,5 +447,7 @@ const (
 type EntryType int64
 
 const (
-	EntryTypePDF = EntryType(10)
+	EntryTypeWEB   = 7
+	EntryTypePDF   = 10
+	EntryTypeMulti = 12
 )

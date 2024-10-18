@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"empyrean_lens/consts"
 	"errors"
 	"sync"
 	"time"
@@ -97,7 +98,7 @@ func (d *FileDao) FindFileByIdAndCreateTime(ctx context.Context, id string, star
 	}
 	if res.ID.IsZero() {
 		hlog.CtxInfof(ctx, "[FindFileByIdAndCreateTime] mongo find nil: id=%s", id)
-		return res, errors.New("not found")
+		return res, errors.New(consts.DB_NOT_FOUND_ERR)
 	}
 	return res, nil
 }

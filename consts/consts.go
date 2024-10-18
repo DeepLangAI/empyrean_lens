@@ -451,3 +451,5 @@ const (
 	EntryTypePDF   = 10
 	EntryTypeMulti = 12
 )
+
+const DB_NOT_FOUND_ERR = "not fountd"

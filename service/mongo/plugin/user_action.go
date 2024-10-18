@@ -28,9 +28,9 @@ func GetUserAction(ctx context.Context, req empyrean_lens.GetUserActionReq) ([]*
 	var res []*empyrean_lens.GetUserActionRespData
 	var bizCode *consts.BizCode
 	if req.Content == "" {
-		res, bizCode = FindByTime(ctx, begin, end)
+		res, bizCode = findByTime(ctx, begin, end)
 	} else {
-		res, bizCode = FindByContentAndTime(ctx, req.Content, begin, end)
+		res, bizCode = findByContentAndTime(ctx, req.Content, begin, end)
 	}
 	if bizCode != nil {
 		return nil, bizCode
@@ -38,7 +38,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.GetUserActionReq) ([]*
 	return res, bizCode
 }
 
-func FindByTime(ctx context.Context, begin, end time.Time) ([]*empyrean_lens.GetUserActionRespData, *consts.BizCode) {
+func findByTime(ctx context.Context, begin, end time.Time) ([]*empyrean_lens.GetUserActionRespData, *consts.BizCode) {
 	data, set := []*empyrean_lens.GetUserActionRespData{}, map[string]struct{}{}
 	mu := &sync.Mutex{}
 
@@ -85,9 +85,125 @@ func FindByTime(ctx context.Context, begin, end time.Time) ([]*empyrean_lens.Get
 	return data, nil
 }
 
-func FindByContentAndTime(ctx context.Context, content string, begin, end time.Time) ([]*empyrean_lens.GetUserActionRespData, *consts.BizCode) {
-	// todo
-	return nil, nil
+func findByContentAndTime(ctx context.Context, content string, begin, end time.Time) ([]*empyrean_lens.GetUserActionRespData, *consts.BizCode) {
+	data, set := []*empyrean_lens.GetUserActionRespData{}, map[string]struct{}{}
+	mu := &sync.Mutex{}
+
+	funcList := []utillib.AsyncFunc{}
+	funcList = append(funcList, func() error {
+		files, err := plugin.NewFileDao().FindFileByFileURLAndCreateTime(ctx, content, begin, end)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		appendFileActionData(ctx, &data, &set, files)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		file, err := plugin.NewFileDao().FindFileByIdAndCreateTime(ctx, content, begin, end)
+		if err != nil && err.Error() != consts.DB_NOT_FOUND_ERR {
+			return err
+		}
+		mu.Lock()
+		appendFileActionData(ctx, &data, &set, []plugin.File{file})
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		files, err := plugin.NewFileDao().FindFileByNameAndCreateTime(ctx, content, begin, end)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		appendFileActionData(ctx, &data, &set, files)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		files, err := plugin.NewFileDao().FindFileByUserIdAndCreateTime(ctx, content, begin, end)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		appendFileActionData(ctx, &data, &set, files)
+		mu.Unlock()
+		return nil
+	})
+
+	funcList = append(funcList, func() error {
+		web, err := plugin.NewWebReaderDao().FindWebReaderByIdAndCreateTime(ctx, content, begin, end)
+		if err != nil && err.Error() != consts.DB_NOT_FOUND_ERR {
+			return err
+		}
+		mu.Lock()
+		appendWebReaderActionData(ctx, &data, &set, []plugin.WebReader{web})
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		webs, err := plugin.NewWebReaderDao().FindWebReaderByUserIdAndCreateTime(ctx, content, begin, end)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		appendWebReaderActionData(ctx, &data, &set, webs)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		webs, err := plugin.NewWebReaderDao().FindWebReaderByWebReaderURLAndCreateTime(ctx, content, begin, end)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		appendWebReaderActionData(ctx, &data, &set, webs)
+		mu.Unlock()
+		return nil
+	})
+
+	funcList = append(funcList, func() error {
+		multiModel, err := plugin.NewMultiDao().FindMultiByIdAndCreateTime(ctx, content, begin, end)
+		if err != nil && err.Error() != consts.DB_NOT_FOUND_ERR {
+			return err
+		}
+		mFileMap, mURLMap := findMutliEntryUrls(ctx, []plugin.MultiModel{multiModel}, begin, end)
+		mu.Lock()
+		appendMultiActionData(ctx, &data, &set, []plugin.MultiModel{multiModel}, mFileMap, mURLMap)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		multiModels, err := plugin.NewMultiDao().FindMultiByTitleAndCreateTime(ctx, content, begin, end)
+		hlog.CtxInfof(ctx, "multi search title...%v", content)
+		hlog.CtxInfof(ctx, "%+s", utils.JSONMarshal(multiModels))
+		if err != nil {
+			return err
+		}
+		mFileMap, mURLMap := findMutliEntryUrls(ctx, multiModels, begin, end)
+		mu.Lock()
+		appendMultiActionData(ctx, &data, &set, multiModels, mFileMap, mURLMap)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		multiModels, err := plugin.NewMultiDao().FindMultiByUserIdAndCreateTime(ctx, content, begin, end)
+		if err != nil {
+			return err
+		}
+		mFileMap, mURLMap := findMutliEntryUrls(ctx, multiModels, begin, end)
+		mu.Lock()
+		appendMultiActionData(ctx, &data, &set, multiModels, mFileMap, mURLMap)
+		mu.Unlock()
+		return nil
+	})
+
+	errs := utillib.ParallelExec(ctx, funcList, len(funcList))
+	if len(errs) > 0 {
+		hlog.CtxErrorf(ctx, "[findByContentAndTime] error: %+v", utils.JSONMarshal(errs))
+		return nil, &consts.SystemErr
+	}
+	return data, nil
 }
 
 func findMutliEntryUrls(ctx context.Context, multiModels []plugin.MultiModel, begin, end time.Time) (*sync.Map, *sync.Map) {
@@ -135,7 +251,10 @@ func findMutliEntryUrls(ctx context.Context, multiModels []plugin.MultiModel, be
 
 func appendFileActionData(ctx context.Context, data *[]*empyrean_lens.GetUserActionRespData, set *map[string]struct{}, files []plugin.File) {
 	for _, file := range files {
-		if _, ok := (*set)[file.ID.String()+"/"+consts.PDF]; ok {
+		if file.ID.IsZero() {
+			continue
+		}
+		if _, ok := (*set)[file.ID.Hex()+"/"+consts.PDF]; ok {
 			continue
 		}
 		*data = append(*data, &empyrean_lens.GetUserActionRespData{
@@ -147,16 +266,19 @@ func appendFileActionData(ctx context.Context, data *[]*empyrean_lens.GetUserAct
 			Cost:        file.UpdateTime.Sub(file.CreateTime).Seconds(),
 			Status:      actionStatus(ctx, consts.PDF, file.Status, -1, -1, -1),
 			ActionType:  empyrean_lens.ActionType_PDF,
-			ID:          file.ID.String(),
+			ID:          file.ID.Hex(),
 			ChannelType: empyrean_lens.ChannelType(file.ChannelType),
 		})
-		(*set)[file.ID.String()+"/"+consts.PDF] = struct{}{}
+		(*set)[file.ID.Hex()+"/"+consts.PDF] = struct{}{}
 	}
 }
 
 func appendWebReaderActionData(ctx context.Context, data *[]*empyrean_lens.GetUserActionRespData, set *map[string]struct{}, webReaders []plugin.WebReader) {
 	for _, reader := range webReaders {
-		if _, ok := (*set)[reader.ID.String()+"/"+consts.URL]; ok {
+		if reader.ID.IsZero() {
+			continue
+		}
+		if _, ok := (*set)[reader.ID.Hex()+"/"+consts.URL]; ok {
 			continue
 		}
 		*data = append(*data, &empyrean_lens.GetUserActionRespData{
@@ -168,16 +290,19 @@ func appendWebReaderActionData(ctx context.Context, data *[]*empyrean_lens.GetUs
 			Cost:        reader.UpdateTime.Sub(reader.CreateTime).Seconds(),
 			Status:      actionStatus(ctx, consts.URL, reader.Status, -1, -1, -1),
 			ActionType:  empyrean_lens.ActionType_PDF,
-			ID:          reader.ID.String(),
+			ID:          reader.ID.Hex(),
 			ChannelType: empyrean_lens.ChannelType(reader.ChannelType),
 		})
-		(*set)[reader.ID.String()+"/"+consts.URL] = struct{}{}
+		(*set)[reader.ID.Hex()+"/"+consts.URL] = struct{}{}
 	}
 }
 
 func appendMultiActionData(ctx context.Context, data *[]*empyrean_lens.GetUserActionRespData, set *map[string]struct{}, multiModels []plugin.MultiModel, fileMap, webMap *sync.Map) {
 	for _, multi := range multiModels {
-		if _, ok := (*set)[multi.ID.String()+"/"+consts.MULTI]; ok {
+		if multi.ID.IsZero() {
+			continue
+		}
+		if _, ok := (*set)[multi.ID.Hex()+"/"+consts.MULTI]; ok {
 			continue
 		}
 		var fileUrls, webUrls []string
@@ -197,10 +322,10 @@ func appendMultiActionData(ctx context.Context, data *[]*empyrean_lens.GetUserAc
 			Cost:        multi.UpdateTime.Sub(multi.CreateTime).Seconds(),
 			Status:      actionStatus(ctx, consts.URL, -1, multi.AnalysisStatus, multi.MergeStatus, multi.SummaryStatus),
 			ActionType:  empyrean_lens.ActionType_PDF,
-			ID:          multi.ID.String(),
+			ID:          multi.ID.Hex(),
 			ChannelType: empyrean_lens.ChannelType(multi.ChannelType),
 		})
-		(*set)[multi.ID.String()+"/"+consts.MULTI] = struct{}{}
+		(*set)[multi.ID.Hex()+"/"+consts.MULTI] = struct{}{}
 	}
 }
 

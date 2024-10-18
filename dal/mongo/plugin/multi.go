@@ -104,7 +104,7 @@ func (d *MultiDao) FindMultiByIdAndCreateTime(ctx context.Context, id string, st
 	}
 	if res.ID.IsZero() {
 		hlog.CtxInfof(ctx, "[FindMultiByIdAndCreateTime] mongo find nil: id=%s", id)
-		return res, errors.New("not found")
+		return res, errors.New(consts.DB_NOT_FOUND_ERR)
 	}
 	return res, nil
 }

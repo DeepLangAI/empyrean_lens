@@ -410,10 +410,10 @@ enum LinkNodeTypeEnum{
 
 // 用户行为查询
 struct UserActionReq {
-    1: string query // 关键词、url、uid、entry-id、multiid等
+    1: string query // 关键词、url、uid、entry-id、multiid等。如果为空则表示不限制
     2: string start_time // consts.DateHourMinSecTemplate
     3: string end_time // consts.DateHourMinSecTemplate
-    4: ActionStatusEnum status
+    4: ActionStatusEnum status // 如果为UNK则表示所有状态
     5: i64 skip // 分页查询，跳过多少条数据，0起
     6: i64 limit // 分页查询，每页多少条数据
 }

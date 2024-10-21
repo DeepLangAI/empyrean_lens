@@ -52,7 +52,7 @@ func (d *MultiDao) FindMultiById(ctx context.Context, id string) (*MultiModel, e
 
 	_id, _ := primitive.ObjectIDFromHex(id)
 	filter := bson.M{"$and": []bson.M{{"is_delete": false}, {"_id": _id}}}
-	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter)
+	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, filter)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindMultiById] mongo find error:%+v", err)
 		return nil, err

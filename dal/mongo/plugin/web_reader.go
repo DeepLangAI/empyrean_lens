@@ -44,8 +44,8 @@ func (d *WebReaderDao) FindWebReaderById(ctx context.Context, id string) (*WebRe
 	var res []*WebReader
 
 	_id, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"$and": []bson.M{{"is_delete": false}, {"_id": _id}}}
-	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter)
+	filter := bson.M{"$and": []bson.M{{"is_deleted": false}, {"_id": _id}}}
+	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo find error:%+v", err)
 		return nil, err

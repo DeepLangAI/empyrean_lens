@@ -2,14 +2,13 @@ package plugin
 
 import (
 	"context"
-	"empyrean_lens/consts"
-	"errors"
 	"sync"
 	"time"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type WebReader struct {
@@ -19,6 +18,7 @@ type WebReader struct {
 	Title       string             `bson:"title" json:"title" default:""`
 	Status      int                `bson:"status" json:"status"`
 	ChannelType int                `bson:"channel_type" json:"channel_type"`
+	MultiId     string             `bson:"multi_id" json:"multi_id"`
 	IsDeleted   bool               `bson:"is_deleted" json:"is_deleted" default:"false"`
 	CreateTime  time.Time          `bson:"create_time" json:"create_time"`
 	UpdateTime  time.Time          `bson:"update_time" json:"update_time"`
@@ -40,99 +40,66 @@ func NewWebReaderDao() *WebReaderDao {
 	return webReaderDao
 }
 
-func (d *WebReaderDao) FindWebReaderByCreateTime(ctx context.Context, startTime, endTime time.Time) ([]WebReader, error) {
-	var res []WebReader
-
-	filter := bson.M{"is_deleted": false, "create_time": bson.M{"$gte": startTime, "$lt": endTime}}
-	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderByCreateTime] mongo find error:%+v", err)
-		return nil, err
-	}
-	defer cur.Close(ctx)
-
-	if err = cur.All(ctx, &res); err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderByCreateTime] mongo all error:%+v", err)
-		return nil, err
-	}
-	return res, nil
-}
-
-func (d *WebReaderDao) FindWebReaderByUserIdAndCreateTime(ctx context.Context, userId string, startTime, endTime time.Time) ([]WebReader, error) {
-	var res []WebReader
-
-	filter := bson.M{"user_id": userId, "is_deleted": false, "create_time": bson.M{"$gte": startTime, "$lt": endTime}}
-	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderByUserIdAndCreateTime] mongo find error:%+v", err)
-		return nil, err
-	}
-	defer cur.Close(ctx)
-
-	if err = cur.All(ctx, &res); err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderByUserIdAndCreateTime] mongo all error:%+v", err)
-		return nil, err
-	}
-	return res, nil
-}
-
-func (d *WebReaderDao) FindWebReaderByIdAndCreateTime(ctx context.Context, id string, startTime, endTime time.Time) (WebReader, error) {
-	var res WebReader
+func (d *WebReaderDao) FindWebReaderById(ctx context.Context, id string) (*WebReader, error) {
+	var res []*WebReader
 
 	_id, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"_id": _id, "is_deleted": false, "create_time": bson.M{"$gte": startTime, "$lt": endTime}}
-	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter)
+	filter := bson.M{"$and": []bson.M{{"is_delete": false}, {"_id": _id}}}
+	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderByIdAndCreateTime] mongo find error:%+v", err)
-		return res, err
-	}
-	defer cur.Close(ctx)
-
-	for cur.Next(ctx) {
-		err = cur.Decode(&res)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "db error, [FindWebReaderByIdAndCreateTime], err:%v", err)
-			return res, err
-		}
-	}
-	if res.ID.IsZero() {
-		hlog.CtxInfof(ctx, "[FindWebReaderByIdAndCreateTime] mongo find nil: id=%s", id)
-		return res, errors.New(consts.DB_NOT_FOUND_ERR)
-	}
-	return res, nil
-}
-
-func (d *WebReaderDao) FindWebReaderByWebReaderURLAndCreateTime(ctx context.Context, url string, startTime, endTime time.Time) ([]WebReader, error) {
-	var res []WebReader
-
-	filter := bson.M{"url": url, "is_deleted": false, "create_time": bson.M{"$gte": startTime, "$lt": endTime}}
-	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderByUrlAndCreateTime] mongo find error:%+v", err)
+		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo find error:%+v", err)
 		return nil, err
 	}
 	defer cur.Close(ctx)
 
 	if err = cur.All(ctx, &res); err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderByUrlAndCreateTime] mongo all error:%+v", err)
+		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo all error:%+v", err)
 		return nil, err
 	}
-	return res, nil
+	if len(res) == 0 {
+		return nil, nil
+	}
+	return res[0], nil
 }
 
-func (d *WebReaderDao) FindWebReaderByTitleAndCreateTime(ctx context.Context, title string, startTime, endTime time.Time) ([]WebReader, error) {
-	var res []WebReader
+func (d *WebReaderDao) FindWebReaderByTimeRange(ctx context.Context, status []int32, startTime, endTime time.Time, skip, limit int64) ([]*WebReader, error) {
+	var res []*WebReader
 
-	filter := bson.M{"title": bson.M{"$regex": title, "$options": "i"}, "is_deleted": false, "create_time": bson.M{"$gte": startTime, "$lt": endTime}}
-	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter)
+	filter := bson.M{"is_deleted": false, "create_time": bson.M{"$gte": startTime, "$lt": endTime}}
+	if len(status) > 0 {
+		filter["status"] = bson.M{"$in": status}
+	}
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderByTitleAndCreateTime] mongo find error:%+v", err)
+		hlog.CtxErrorf(ctx, "[FindWebReaderByTimeRange] mongo find error:%+v", err)
 		return nil, err
 	}
 	defer cur.Close(ctx)
 
 	if err = cur.All(ctx, &res); err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderByTitleAndCreateTime] mongo all error:%+v", err)
+		hlog.CtxErrorf(ctx, "[FindWebReaderByTimeRange] mongo all error:%+v", err)
+		return nil, err
+	}
+	return res, nil
+}
+
+func (d *WebReaderDao) FindWebReaderByQueryAndTimeRange(ctx context.Context, query string, status []int32, startTime, endTime time.Time, skip, limit int64) ([]*WebReader, error) {
+	var res []*WebReader
+
+	_id, _ := primitive.ObjectIDFromHex(query)
+	queryFilter := bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}}
+	filter := bson.M{"$and": []bson.M{queryFilter, {"is_delete": false}, {"create_time": bson.M{"$gte": startTime, "$lt": endTime}}}}
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindWebReaderByQueryAndTimeRange] mongo find error:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	if err = cur.All(ctx, &res); err != nil {
+		hlog.CtxErrorf(ctx, "[FindWebReaderByQueryAndTimeRange] mongo all error:%+v", err)
 		return nil, err
 	}
 	return res, nil

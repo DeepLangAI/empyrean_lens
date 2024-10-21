@@ -2,17 +2,19 @@ package utils
 
 import (
 	"bufio"
-	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
+	"github.com/bytedance/sonic"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 func DoPost(
@@ -194,4 +196,42 @@ func DoGetWithAuth(
 		return err
 	}
 	return nil
+}
+
+func ipInRange(ip, ipRange string) bool {
+	parsedIp := net.ParseIP(ip)
+	if parsedIp == nil {
+		return false
+	}
+	_, ipNet, err := net.ParseCIDR(ipRange)
+	if err != nil {
+		return false
+	}
+	return ipNet.Contains(parsedIp)
+}
+
+func IsInnerIp(ip string) bool {
+	if ip == "" {
+		return false
+	}
+	if Contains([]string{
+		"127.0.0.1",
+		"::1",
+		"1.202.165.10",
+		"10.0.6.1",
+		"10.0.6.2",
+		"39.98.121.22",
+		"39.98.42.59",
+		"39.98.67.214",
+		"39.99.129.223",
+		"47.92.241.26",
+		"47.92.248.176",
+		"47.92.55.166",
+	}, ip) {
+		return true
+	}
+	if ipInRange(ip, "172.16.0.0/12") {
+		return true
+	}
+	return false
 }

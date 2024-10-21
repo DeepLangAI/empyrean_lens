@@ -9,7 +9,7 @@ mongo_lingo:
   maxPoolSize: 1000
 
 mongo_plugin:
-  addr: "mongodb://svr_cuienbo:MxaHaUmkBk83@47.92.241.26:27017/plugin_collection"
+  addr: "mongodb://svr_yanxubin:9fck23!g$i7k1%40eA@10.0.6.1:27017/plugin_collection?authSource=admin&directConnection=true"
   databaseName: plugin_collection
   maxPoolSize: 1000
 

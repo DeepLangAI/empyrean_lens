@@ -144,8 +144,15 @@ func ComputeRevent(scores map[string]int) []ReventResult {
 	return reventResults
 }
 
+func isZero(value float64) bool {
+	return math.Abs(value) < 1e-6
+}
+
 func DeltaPercent(oldValue, newValue float64) float64 {
-	if oldValue == 0 {
+	if isZero(oldValue) ||
+		math.IsInf(newValue, 0) || math.IsInf(oldValue, 0) ||
+		math.IsNaN(newValue) || math.IsNaN(oldValue) {
+		fmt.Println("err value oldValue: ", oldValue, " newValue: ", newValue)
 		return 0
 	}
 	return (newValue - oldValue) / oldValue * 100

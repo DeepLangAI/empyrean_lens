@@ -436,7 +436,7 @@ const (
 	LinkNodeTypeEnum_KEY_INFO_FINISH LinkNodeTypeEnum = 8
 	// 大纲生成
 	LinkNodeTypeEnum_OUTLINE_FINISH LinkNodeTypeEnum = 9
-	// 单文档分析
+	// 单文档解析
 	LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH LinkNodeTypeEnum = 10
 	// 主题生成
 	LinkNodeTypeEnum_MULTI_TOPIC_FINISH LinkNodeTypeEnum = 11
@@ -465,7 +465,7 @@ func (p LinkNodeTypeEnum) String() string {
 	case LinkNodeTypeEnum_OUTLINE_FINISH:
 		return "OUTLINE_FINISH"
 	case LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH:
-		return "MULTI_MERGE_FINISH"
+		return "MULTI_ANALYSIS_FINISH"
 	case LinkNodeTypeEnum_MULTI_TOPIC_FINISH:
 		return "MULTI_TOPIC_FINISH"
 	case LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:
@@ -494,7 +494,7 @@ func LinkNodeTypeEnumFromString(s string) (LinkNodeTypeEnum, error) {
 		return LinkNodeTypeEnum_KEY_INFO_FINISH, nil
 	case "OUTLINE_FINISH":
 		return LinkNodeTypeEnum_OUTLINE_FINISH, nil
-	case "MULTI_MERGE_FINISH":
+	case "MULTI_ANALYSIS_FINISH":
 		return LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH, nil
 	case "MULTI_TOPIC_FINISH":
 		return LinkNodeTypeEnum_MULTI_TOPIC_FINISH, nil

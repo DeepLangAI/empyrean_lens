@@ -460,7 +460,7 @@ enum LinkNodeTypeEnum{
     SUMMARY_FINISH = 7  // 概述生成
     KEY_INFO_FINISH = 8  // 关键信息生成
     OUTLINE_FINISH = 9  // 大纲生成
-    MULTI_MERGE_FINISH = 10  // 多文档合并
+    MULTI_ANALYSIS_FINISH = 10  // 单文档解析
     MULTI_TOPIC_FINISH = 11  // 主题生成
     MULTI_OUTLINE_FINISH = 12  // 大纲生成
 }

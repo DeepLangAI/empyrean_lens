@@ -2,9 +2,10 @@ package plugin
 
 import (
 	"context"
-	"empyrean_lens/consts"
 	"sync"
 	"time"
+
+	"empyrean_lens/consts"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"

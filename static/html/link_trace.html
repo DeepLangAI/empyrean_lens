@@ -1,0 +1,1699 @@
+<!-- Write HTML code here -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>
+        语鲸稳定性
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="/public/js/jquery-3.6.0.min.js"></script>
+    <script src="/public/js/axios.min.js"></script>
+    <script src="/public/js/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+
+    <link rel="stylesheet" href="/public/css/jquery-ui.css">
+    <script src="/public/js/jquery-ui.js"></script>
+
+
+    <style>
+        body {
+            background-color: #f0f2f5; /* 更柔和的浅灰色背景 */
+            color: #333; /* 深灰色文本 */
+            font-family: 'Helvetica Neue', Arial, sans-serif; /* 更具吸引力的字体 */
+            font-size: 14px; /* 基础字体大小 */
+            text-align: left; /* 全局左对齐 */
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            color: #444; /* 更柔和的深灰色标题 */
+            text-align: center; /* 标题居中对齐 */
+            margin-top: 20px;
+        }
+
+        .container {
+            width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        table {
+            border-collapse: collapse; /* 合并边框 */
+            width: 100%; /* 表格宽度为100% */
+            margin: 20px 0; /* 表格上下间距 */
+            background-color: #fff; /* 白色背景 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 轻微的阴影效果 */
+        }
+
+        th, td {
+            border: 1px solid #ddd; /* 更柔和的边框颜色 */
+            padding: 10px; /* 增加内边距 */
+            text-align: center; /* 单元格内容居中对齐 */
+            font-size: 12px; /* 调整字体大小 */
+        }
+
+        th {
+            background-color: #f2f2f2; /* 表头背景颜色 */
+            font-weight: bold; /* 表头加粗 */
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9; /* 隔行变色 */
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 2px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pagination button.disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* 移动端样式 */
+        @media (max-width: 767px) {
+            #menu{
+                padding-top: 45px;
+            }
+            .table-container {
+                /*max-height: 60vh; !* 设置最大高度为视口高度的60% *!*/
+                overflow-y: auto; /* 添加垂直滚动 */
+                font-size: xx-large;
+            }
+            tr{
+                height: 80px;
+            }
+
+            h2 {
+                font-size: xx-large; /* 增大移动端h2字体大小 */
+            }
+            h3 {
+                font-size: x-large; /* 增大移动端h2字体大小 */
+            }
+
+            nav a {
+                font-size: 18px; /* 增大移动端字体大小 */
+                margin: 5px 0;
+            }
+        }
+
+
+
+        /* CSS styles for the navigation bar */
+        nav {
+            background-color: #333;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        nav a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        nav a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        /* Styles for the content area */
+        body {
+            padding-top: 60px; /* Add some padding to the top of the content */
+        }
+
+        .clickable {
+            color: #ff9900;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .clickable-black {
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .clickable-black:hover {
+            background-color: #e0e0e0;
+            color: #e68a00;
+        }
+
+        .clickable:hover {
+            background-color: #e0e0e0;
+            color: #e68a00;
+        }
+        /* 添加CSS样式使面包屑横排 */
+        .breadcrumb {
+            list-style: none; /* 移除列表默认样式 */
+            padding-left: 10px !important; /* 移除默认的内边距 */
+            /*margin-left: 5px;*/
+            height: 35px;
+            margin: 0; /* 移除默认的外边距 */
+            display: flex; /* 使用Flexbox */
+            align-items: stretch; /* 使子项在交叉轴上的对齐方式居中（垂直居中） */
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            /*padding-left: 10px;*/
+            /*padding-right: 10px;*/
+            align-items: center; /* 垂直居中面包屑项内容 */
+            justify-content: center; /* 水平居中面包屑项内容 */
+        }
+
+        .breadcrumb-item:hover {
+            cursor: pointer;
+            background-color: #ddd;
+            color: black !important;
+            /*transition: background-color 0.5s ease;*/
+            /*transition: color 0.3s ease;*/
+            transition-delay: 0.1s;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "/"; /* 在面包屑项之间添加分隔符 */
+            padding: 0 0.5rem; /* 添加一些内边距以提高可读性 */
+
+        }
+
+        .breadcrumb-item.active {
+            color:  white; /* 通常活动或当前项的文本颜色会有所不同 */
+        }
+
+        .breadcrumb-item.active:first-child {
+            padding-left: 10px;
+        }
+        .breadcrumb-item.active:last-child {
+            font-weight: bold;
+        }
+
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .loading-container.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            border: 4px solid #333;
+            border-top-color: transparent;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 日志样式 */
+        .log-container {
+            font-size: 13px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-start;
+
+        }
+        .log-id {
+            width: 15px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        .log-time {
+            width: 50px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 20px;
+            font-family: inherit;
+        }
+        .log-details {
+            flex-grow: 1;
+        }
+        .log-details-header {
+            background-color: #f5f5f5;
+            padding: 5px 10px;
+            font-weight: lighter;
+            border-radius: 3px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-header span {
+            position: relative;
+            margin-right: 20px;
+            white-space: pre-wrap;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+        .log-details-header span:hover::after {
+            content: attr(data-field-name);
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #333;
+            color: #fff;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1;
+        }
+        .log-details-body {
+            padding: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-body > p {
+            text-align: left;
+            margin: -5px 0;
+            /*font-weight: bold;*/
+            padding: 5px 0px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            opacity: 0.9;
+
+            position: relative;
+            overflow: hidden;
+            max-height: 4.5em; /* 假设行高为1.5em，3行就是4.5em */
+            line-height: 1.5em;
+        }
+        .log-details-body p.expanded {
+            max-height: none;
+        }
+        .log-details-body p span {
+            font-family: inherit;
+            font-weight: normal;
+            background: #edeff3;
+            margin-right: 10px;
+        }
+        .expand-tip {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: white;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
+        .expand-tip:hover {
+            text-decoration: underline;
+        }
+
+        .page {
+            position: absolute;
+            /*top: 0;*/
+            left: 0;
+            width: 100%;
+            /*width: 800px;*/
+            height: 100%;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+            /*box-shadow: 0 0 20px rgba(0,0,0,0.1);*/
+            z-index: 2;
+        }
+
+        /*.page-header {*/
+        /*    background-color: #f0f0f0;*/
+        /*    padding: 10px;*/
+        /*    display: flex;*/
+        /*    align-items: center;*/
+        /*    justify-content: center; !* Center all content horizontally *!*/
+        /*    position: relative; !* Allows absolute positioning of the button *!*/
+        /*}*/
+        .page-body {
+            flex-grow: 1;
+            padding: 8px;
+            overflow-y: auto;
+        }
+        .page-tail {
+            background-color: #f0f0f0;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .home-button {
+            background: none;
+            border: none;
+            font-size: 16px;
+            margin-right: auto; /* Pushes the button to the far left */
+            cursor: pointer;
+            /*position: absolute; !* Positions the button within the header *!*/
+            /*left: 55px; !* Align the button to the right side *!*/
+            width: 20px;
+            transition: transform 0.3s, box-shadow 0.3s; /* 添加过渡效果 */
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 16px;
+            margin-right: auto; /* Pushes the button to the far left */
+            cursor: pointer;
+            position: absolute; /* Positions the button within the header */
+            left: 15px; /* Align the button to the left side */
+            width: 20px;
+            transition: transform 0.3s, box-shadow 0.3s; /* 添加过渡效果 */
+        }
+
+        .home-button:hover,
+        .back-button:hover {
+            transform: scale(1.1); /* 放大按钮 */
+            /*box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); !* 添加阴影 *!*/
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-bar input[type="text"],
+        .search-bar input[type="datetime-local"] {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            transition: border-color 0.3s;
+            width: 200px; /* 可根据需要调整 */
+        }
+
+        .search-bar input[type="text"]:focus,
+        .search-bar input[type="datetime-local"]:focus {
+            border-color: #00c20d; /* 聚焦时边框颜色 */
+            outline: none;
+        }
+
+        .search-bar .timerange-btn {
+            cursor: pointer;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            transition: background-color 0.3s;
+        }
+
+        .search-bar .timerange-btn:hover {
+            background-color: #f0f0f0; /* 鼠标悬停颜色 */
+        }
+        .search-bar .time-select {
+            display: flex;
+        }
+
+        .search-bar .time-select .dropdown {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 3;
+            top: 60px; /* 根据需要调整 */
+            left: 700px;   /* 根据需要调整 */
+        }
+
+        .search-bar .time-select .dropdown .dropdown-content {
+            color: black;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .search-bar .time-select .dropdown .dropdown-content:hover {
+            background-color: #ddd; /* 下拉内容悬停效果 */
+        }
+
+        .search-bar button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #00c20d;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .search-bar button:hover {
+            background-color: #008007; /* 按钮悬停颜色 */
+        }
+
+        .sticky-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+
+            border-radius: 8px; /* 添加圆角 */
+            /*box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); !* 添加阴影效果 *!*/
+        }
+
+        .sticky-table th {
+            background: linear-gradient(to bottom, #f8f8f8, #e0e0e0);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            word-wrap: break-word; /* 允许单词折行 */
+            white-space: normal; /* 允许文本换行 */
+            max-width: 150px; /* 设置最大宽度 */
+            border-right: 1px solid #ddd; /* 添加右边框 */
+        }
+
+        .sticky-table th:last-child,
+        .sticky-table td:last-child {
+            border-right: none; /* 移除最后一列的右边框 */
+        }
+
+        .sticky-table td {
+            /*padding: 12px; !* 增加内边距以提升舒适度 *!*/
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-left: 3px;
+            padding-right: 3px;
+
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+            /*text-align: left;*/
+            font-size: 14px; /* 提高可读性 */
+            color: #333; /* 现代化的深灰色字体 */
+            border-right: 1px solid #ddd; /* 添加右边框 */
+        }
+
+        .sticky-table thead th {
+            background: linear-gradient(to bottom, #f8f8f8, #e0e0e0); /* 使用渐变色增强视觉效果 */
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            text-transform: uppercase; /* 添加大写字母样式 */
+            letter-spacing: 0.05em; /* 增加字母间距 */
+            font-weight: 600; /* 加粗字体 */
+        }
+
+        .table-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #444; /* 深灰色的标题色 */
+        }
+
+        .sticky-column {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            background-color: #fff;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05); /* 修改阴影效果为更柔和的样式 */
+            border-right: 1px solid #ddd; /* 添加边框以增强视觉分隔 */
+        }
+
+        /* 确保首列和表头首列的样式一致，保留冻结效果 */
+        .sticky-table thead th.sticky-column {
+            z-index: 3;
+            background: linear-gradient(to bottom, #f8f8f8, #e0e0e0); /* 确保表头固定列颜色一致 */
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+        }
+
+        .sticky-table tbody tr:nth-child(even) {
+            background-color: #f7f9fc; /* 更柔和的蓝色背景 */
+        }
+
+        .sticky-table tbody tr:hover {
+            background-color: #e2e6ea; /* 提供悬停效果的颜色变化 */
+            transition: background-color 0.3s ease; /* 增加平滑的过渡效果 */
+        }
+
+        /* 确保固定列的背景色与行的背景色一致，并且完全不透明 */
+        .sticky-table tbody tr td.sticky-column {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            background-color: #fff;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05); /* 为固定列添加轻微的阴影效果 */
+            border-right: 1px solid #ddd; /* 增加边框分隔效果 */
+        }
+
+        .sticky-table tbody tr:nth-child(even) td.sticky-column {
+            background-color: #f7f9fc; /* 与其他偶数行颜色保持一致 */
+        }
+
+        .sticky-table tbody tr:hover td.sticky-column {
+            background-color: #e2e6ea; /* 与悬停行颜色一致 */
+            transition: background-color 0.3s ease; /* 添加过渡效果 */
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            /*margin-top: 20px;*/
+            position: relative;
+        }
+        .table-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #444; /* 深灰色的标题色 */
+        }
+
+        .next-button {
+            background-color: #5cd50a;
+            color: white;
+            border: none;
+            padding: 10px 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border-radius: 6px;
+            margin-left: 20px;
+        }
+        .next-button:hover {
+            background-color: #67ad5b;
+        }
+        /*不可用状态的.next-button*/
+        .next-button.disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .next-button-container{
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .node rect {
+            stroke: #000;
+            stroke-width: 1px;
+        }
+        .node text {
+            /*font: 16px sans-serif;*/
+        }
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 1px;
+        }
+        .svg-container{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .status-bar{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/api/log/overview">语鲸稳定性一览</a>
+    <a href="/api/log/tools">高效工具箱</a>
+    <a href="/public/html/link_trace.html" class="active">链路追踪</a>
+</nav>
+
+<div id="app"></div>
+
+<script>
+    const ChartTypeEnum = {
+        NoChart: -1,
+        LineChart: 0,
+        PieChart: 1,
+    }
+
+    const ActionStatusEnum = {
+        UNK : -1,
+        SUCCESS : 0, // 表示正常完成
+        SLOW_SUCCESS : 1, //表示完成但比较慢（对齐稳定性指标的慢查询指标
+        SLOW_FAIL : 2, // 模块超时失败
+        FAIL : 3, // 模块执行失败
+        UNREACHED : 4, // 未执行
+    }
+    const COLORS = {}
+    COLORS[ActionStatusEnum.SUCCESS] = '#87e578'
+    COLORS[ActionStatusEnum.SLOW_SUCCESS] = '#fff81c'
+    COLORS[ActionStatusEnum.SLOW_FAIL] = '#f17900'
+    COLORS[ActionStatusEnum.FAIL] = '#ff0404'
+    COLORS[ActionStatusEnum.UNREACHED] = '#b9b9b9'
+
+    function statusToString(status){
+        if (status == ActionStatusEnum.SUCCESS){
+            return "成功"
+        }else if (status == ActionStatusEnum.SLOW_SUCCESS){
+            return "慢成功"
+        }else if (status == ActionStatusEnum.SLOW_FAIL){
+            return "慢失败"
+        }else if (status == ActionStatusEnum.FAIL){
+            return "失败"
+        }else if (status == ActionStatusEnum.UNREACHED){
+            return "未执行"
+        }else{
+            return "未知"
+        }
+    }
+
+    function cellIsClickable(row, column){
+        if (column.clickable != undefined){
+            return column.clickable(row)
+        }
+        if (column.click && column.header == "UID"){
+            return true
+        }
+        if (
+            column.click &&
+            column.value(row) != '' &&
+            column.value(row) != '-' &&
+            parseFloat(column.value(row)) != 0 &&
+            parseFloat(column.value(row)) != NaN
+        ){
+            return true
+        }
+        return false
+    }
+
+
+
+    // 显示加载状态
+    function showLoadingStatus(loadingContainer) {
+        loadingContainer.removeClass('hide');
+    }
+
+    // 隐藏加载状态
+    function hideLoadingStatus(loadingContainer) {
+        loadingContainer.addClass('hide');
+    }
+
+    function createLoadingContainer(){
+        let loadingContainer = $('<div>')
+            .addClass('loading-container')
+            .addClass('hide')
+            .append(
+                $('<div>').addClass('loading-spinner')
+            )
+        return loadingContainer
+    }
+
+    function handleClickExpand(pid){
+        var p = $('#' + pid)
+        if (p.hasClass('expanded')){
+            p.removeClass('expanded')
+            p.find('.expand-tip').text('展开')
+        }else{
+            p.addClass('expanded')
+            p.find('.expand-tip').text('收起')
+        }
+    }
+
+
+    $(document).ready(function() {
+        const $app = $('#app');
+        let $backButton = $('<img>')
+            .addClass('home-button')
+            .attr('src', '/public/img/back.svg')
+            .on('click', goBack);
+        let $homeButton = $('<img>')
+            .addClass('home-button')
+            .attr('src', '/public/img/home.svg')
+            .on('click', goHome);
+
+        let $backContainer = $('<div>').css({
+            'display': 'flex',
+            'align-items': 'center'
+        }).append($backButton, $homeButton)
+        let $navStatusBar = $('<div>').addClass('status-bar')
+        let $navBreadCrumb = $('<div>')
+            .addClass('breadcrumb')
+            .on('click', '.breadcrumb-item', function() {
+                // 判断在breadcrumb中是第几个
+                let index = $(this).index();
+                // 移除index之后的元素
+                $(this).parent().children().slice(index + 1).remove();
+                // 移除pageStack中index之后的元素
+                while (pageStack.length > index + 1) {
+                    pageStack.pop().remove();
+                }
+            })
+        $navStatusBar.append($navBreadCrumb, $backContainer)
+        $app.append($navStatusBar)
+
+        let pageStack = [];
+        function createTable(config) {
+            const {
+                data,
+                columns,
+                title,
+                tableClass = 'sticky-table',
+                containerClass = 'table-container',
+                titleClass = 'table-title',
+                titleChild,
+                parent,
+            } = config;
+
+            // 创建一个居中的容器
+            const $centerContainer = $('<div>').addClass('center-container');
+
+            // 添加标题（如果提供）
+            let $title = $('<h3>').addClass(titleClass);
+            if (title) {
+                // 如果title是字符串，则直接使用
+                if (typeof title === 'string') {
+                    $title = $('<h3>').text(title).addClass(titleClass);
+                } else{
+                    $title = title;
+                }
+                $centerContainer.append($title);
+            }
+            // 如果提供了titleChild，则添加到标题后
+            if (titleChild) {
+                $centerContainer.append(titleChild);
+            }
+
+            // 创建一个可滚动的表格容器
+            const $tableContainer = $('<div>').addClass(containerClass);
+
+            // 创建表格
+            const $table = $('<table>').addClass(tableClass);
+            const $thead = $('<thead>');
+            const $headerRow = $('<tr>');
+
+            // 创建表头
+            columns.forEach((column, index) => {
+                const $th = $('<th>').text(column.header);
+                if (index === 0) {
+                    $th.addClass('sticky-column');
+                }
+                if (index != 0 && column.chartType != ChartTypeEnum.NoChart){
+                    $th.addClass('th-clickable');
+                }
+
+                // 添加点击事件监听器
+                $th.click(() => {
+                    if (index != 0){
+                        if (column.chartType == ChartTypeEnum.NoChart){
+                            return
+                        }
+                        if (column.chartType == 1){
+                            drawPieChart(index)
+                        } else{
+                            drawChart(index);
+                        }
+                    }
+                });
+
+                $headerRow.append($th);
+            });
+            $thead.append($headerRow);
+            $table.append($thead);
+
+            // 创建表格主体
+            const $tbody = $('<tbody>');
+            data.forEach(row => {
+                const $row = $('<tr>');
+                columns.forEach((column, index) => {
+                    const $td = $('<td>').text(column.value(row));
+                    if (index === 0) {
+                        $td.addClass('sticky-column');
+                    }
+                    if (cellIsClickable(row, column)){
+                        $td.click(() => {
+                            column.click(row)
+                        })
+                        $td.addClass('clickable')
+                    }
+                    if (column.style != undefined){
+                        $td.css(column.style(row))
+                    }
+                    $row.append($td);
+                });
+                $tbody.append($row);
+            });
+            $table.append($tbody);
+
+            // 将表格添加到容器中
+            $tableContainer.append($table);
+            $centerContainer.append($tableContainer);
+
+            // 如果提供了父元素，则将表格添加到父元素
+            if (parent) {
+                parent.append($centerContainer);
+            }
+
+            return $centerContainer;
+        }
+
+
+        function goHome(){
+            if (pageStack.length > 1) {
+                const $currentPage = pageStack.pop();
+                const $previousPage = pageStack[0];
+
+                while (pageStack.length > 1) {
+                    pageStack.pop().remove();
+                    $navBreadCrumb.children().last().remove();
+                }
+                $navBreadCrumb.children().last().remove();
+
+                $currentPage.css({
+                    'transition': 'transform 0.3s ease, opacity 0.3s ease', // Faster transition for slide-out
+                    // 'transform': 'translateX(100%) scale(1)', // Move out of view
+                    'opacity': '0' // Fade out
+                });
+
+                $previousPage.css({
+                    'transform': 'translateX(0) scale(1)',
+                    'opacity': '1'
+                });
+
+                setTimeout(() => {
+                    $currentPage.remove();
+                }, 500);
+            }
+        }
+
+        function goBack() {
+            if (pageStack.length > 1) {
+                const $currentPage = pageStack.pop();
+                const $previousPage = pageStack[pageStack.length - 1];
+
+                $currentPage.css({
+                    'transition': 'transform 0.3s ease, opacity 0.3s ease', // Faster transition for slide-out
+                    // 'transform': 'translateX(100%) scale(1)', // Move out of view
+                    'opacity': '0' // Fade out
+                });
+
+                $previousPage.css({
+                    'transform': 'translateX(0) scale(1)',
+                    'opacity': '1'
+                });
+
+                $navBreadCrumb.children().last().remove();
+                setTimeout(() => {
+                    $currentPage.remove();
+                }, 500);
+            }
+        }
+
+        function createPage(title, content) {
+            const $page = $('<div>').addClass('page');
+            $navBreadCrumb.append(
+                $('<div>').addClass('breadcrumb-item').text(title)
+            )
+
+            // Set initial state for sliding animation
+            if (pageStack.length > 0) {
+                // For subsequent pages, set the initial CSS to slide in from the right
+                $page.css({
+                    // 'transform': 'translateX(100%) scale(1)', // Start off-screen
+                    'opacity': '0', // Start invisible
+                    'transition': 'transform 0.2s ease, opacity 0.2s ease' // Add transition for animation
+                });
+            }
+
+            const $header = $('<div>').addClass('page-header')
+            if (pageStack.length > 0) {
+                const $backButton = $('<img>')
+                    .addClass('back-button')
+                    .attr('src', '/public/img/back.svg')
+                    .on('click', goBack);
+                // $header.append($backButton);
+            }
+            if (pageStack.length > 1){
+                let $homeButton = $('<img>')
+                    .addClass('home-button')
+                    .attr('src', '/public/img/home.svg')
+                    .on('click', goHome);
+                // $header.append($homeButton);
+            }
+            // $header.append(`<h3>${title}</h3>`);
+            $page.append($header);
+            $page.append(content);
+
+            $app.append($page);
+            pageStack.push($page);
+
+            if (pageStack.length > 1) {
+                // Trigger the animation for all pages except the homepage
+                setTimeout(() => {
+                    $page.css({
+                        // 'transform': 'translateX(0) scale(1)', // Move into view
+                        'transition': 'transform 0.2s ease, opacity 0.2s ease', // Add transition for animation
+                        'opacity': '1' // Fade in
+                    });
+                }, 50); // Short delay to ensure CSS transition takes effect
+            }
+
+            return $page;
+        }
+        // 转换为层次结构的函数
+        function buildHierarchy(graphData, rootName='用户上传') {
+            const map = {};
+            graphData.nodes.forEach(node => {
+                map[node.id] = { ...node, children: [] }; // 初始化每个节点
+            });
+
+            const root = { name: rootName, children: [] }; // 创建一个虚拟根节点
+
+            graphData.nodes.forEach(node => {
+                if (graphData.edges[node.id]) {
+                    graphData.edges[node.id].forEach(childId => {
+                        if (map[childId]) {
+                            map[node.id].children.push(map[childId]); // 添加子节点
+                        }
+                    });
+                }
+                // 将没有父节点的节点添加到根节点
+                if (!Object.values(graphData.edges).flat().includes(node.id)) {
+                    root.children.push(map[node.id]);
+                }
+            });
+
+            return root;
+        }
+
+        // 创建树形图的函数
+        function createTreeDiagram(graphData, rootName='用户上传') {
+            function nameWidth(name){
+                if (!name){
+                    return 0
+                }
+                // 判断名字中有多少英文字符、数字、下划线
+                let count = 0;
+                for (let i = 0; i < name.length; i++) {
+                    if ((name.charCodeAt(i) >= 65 && name.charCodeAt(i) <= 90) || (name.charCodeAt(i) >= 97 && name.charCodeAt(i) <= 122) || (name.charCodeAt(i) >= 48 && name.charCodeAt(i) <= 57) || name.charCodeAt(i) == 95) {
+                        count++;
+                    }
+                }
+                console.log(name, name.length, count)
+                return name.length - count / 2
+            }
+            function calculateDepth(data){
+                let ans = 1
+                let depths = []
+                for (let i = 0; i < data.children.length; i++){
+                    depths.push(calculateDepth(data.children[i]))
+                }
+                if (depths.length > 0){
+                    ans += Math.max(...depths)
+                }
+                return ans
+            }
+
+            function calculateWidth(data){
+                let ans = 0
+                if (data.children.length >= 2){
+                    ans += data.children.length
+                }
+                for (let i = 0; i < data.children.length; i++){
+                    ans += calculateWidth(data.children[i])
+                }
+                return ans
+            }
+            const data = buildHierarchy(graphData, rootName);
+
+            // 设置图表尺寸
+            const margin = { top: 20, right: 20, bottom: 30, left: 20 };
+
+            // 计算需要的宽度，假设每个节点宽度为 50px
+            const nodeWidth = 110;
+            const maxWidth = calculateWidth(data) + 1
+            const maxDepth = calculateDepth(data)
+
+            // 创建一个新的 div 作为 SVG 的容器
+            let svgContainer = $('<div>').css({
+                'width': Math.max((maxWidth) * nodeWidth + margin.left + margin.right, 200), // 计算宽度
+                'height': maxDepth * 60 + margin.top + margin.bottom, // 可以根据需要调整高度
+                'position': 'relative',
+            });
+            // 获取容器的宽高
+            const width = svgContainer.width() - margin.left - margin.right;
+            const height = svgContainer.height() - margin.top - margin.bottom;
+
+            // 创建SVG
+            const svg = d3.select(svgContainer[0])
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            // 添加边框
+            svg.append("rect")
+                .attr("width", width)
+                .attr("height", height)
+                .style("stroke", "black")
+                .style("fill", "none")
+                .style("stroke-width", 1)
+                .style("stroke-dasharray", "5,5")
+                .attr("transform", `translate(${-margin.left},${-margin.top})`)
+                .attr("rx", 5)
+                .attr("ry", 5);
+
+            // 创建树形布局
+            const tree = d3.tree()
+                .size([width - margin.left - margin.right, height - margin.top - margin.bottom])
+                .separation((a, b) => (a.parent == b.parent ? 0.9 : 1.2));
+
+            // 创建层次结构
+            const root = d3.hierarchy(data);
+
+            // 分配树形布局到数据
+            tree(root);
+
+            // // 添加连接线
+            // svg.selectAll(".link")
+            //     .data(root.links())
+            //     .enter().append("path")
+            //     .attr("class", "link")
+            //     .attr("d", d3.linkVertical()
+            //         .x(d => d.x)
+            //         .y(d => d.y-15))
+            // 添加连接线和箭头
+            const links = svg.selectAll(".link")
+                .data(root.links())
+                .enter().append("g")
+                .attr("class", "link");
+
+            // 绘制连接线
+            links.append("path")
+                .attr("d", d3.linkVertical()
+                    .x(d => d.x)
+                    .y(d => {
+                        if (d.data.name == '用户上传'){
+                            return d.y
+                        }
+                        return d.y-25
+                    }))
+                .style("fill", "none")
+                .style("stroke", "#000");
+
+            // 绘制箭头
+            links.append("polygon")
+                .attr("points", (d) => {
+                    const x1 = d.target.x; // 目标节点的 x 坐标
+                    const y1 = d.target.y; // 目标节点的 y 坐标
+                    const x2 = d.source.x; // 源节点的 x 坐标
+                    const y2 = d.source.y; // 源节点的 y 坐标
+
+                    // 计算箭头坐标
+                    const arrowLength = 8; // 箭头长度
+                    const arrowWidth = 5; // 箭头宽度
+
+                    // 箭头的起始点在目标节点的上方
+                    const arrowX = x1; // 箭头的 x 坐标
+                    const arrowY = y1 - 10; // 箭头的 y 坐标（上方）
+
+                    return `
+                ${arrowX},${arrowY}
+                ${arrowX - arrowLength * Math.cos(Math.PI / 3)},${arrowY - arrowLength * Math.sin(Math.PI / 3)}
+                ${arrowX + arrowLength * Math.cos(Math.PI / 3)},${arrowY - arrowLength * Math.sin(Math.PI / 3)}
+            `;
+                })
+                .style("fill", "#000"); // 箭头颜色
+
+            // 创建 tooltip
+            const tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("position", "absolute")
+                .style("visibility", "hidden")
+                .style("background", "lightsteelblue")
+                .style("padding", "5px")
+                .style("border-radius", "5px")
+                .style("z-index", "999")
+                .style("pointer-events", "none");
+
+            // 创建节点
+            const node = svg.selectAll(".node")
+                .data(root.descendants())
+                .enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.x},${d.y})`)
+                .on("mouseover", function(event, d) {
+                    const $this = $(this)
+
+                    tooltip.style("visibility", "visible")
+                        .html(`节点: ${d.data.name}<br>进入节点时间: ${d.data.enter_time}<br>节点状态: ${statusToString(d.data.status)}`) // 显示详细信息
+                        .style("top", (event.pageY - 10) + "px") // 设置 tooltip 的位置
+                        .style("left", (event.pageX + 10) + "px");
+                    // 为节点添加边框
+                    d3.select(this).select("rect")
+                        .style("stroke-width", 2)
+                        .style("stroke", "black");
+                })
+                .on("mousemove", function(event) {
+                    tooltip.style("top", (event.pageY - 10) + "px")
+                        .style("left", (event.pageX + 10) + "px");
+                })
+                .on("mouseout", function() {
+                    tooltip.style("visibility", "hidden");
+                    // 移除节点边框
+                    d3.select(this).select("rect")
+                        .style("stroke-width", 0);
+                })
+                .on('click', function (){
+                    CreateNodeApiLogsPage(-1, -1, -1)
+                });
+
+
+            // 为节点添加长方形
+            node.append("rect")
+                // .attr("width", d => Math.max((nameWidth(d.data.name)) * 12, 60))
+                .attr("width", nodeWidth + 10)
+                .attr("height", 25) // 减小高度
+                // .attr("x", d => -Math.max(nameWidth(d.data.name) * 12, 60) / 2)
+                .attr("x", -60)
+                .attr("y", -12.5)
+                .attr("rx", 5)
+                .style("stroke-width", 0)
+                .attr("ry", 5);
+
+            // 为节点添加文本（节点名称）
+            node.append("text")
+                .attr("dy", "0.35em")
+                .attr("text-anchor", "middle")
+                .text(d => d.data.name);
+
+            // 为节点添加文本（创建时间）
+            node.append("text")
+                .attr("dy", "0.35em")
+                .attr("text-anchor", "end") // 右对齐
+                // .attr("x", d => -(nameWidth(d.data.name)) * 12) // 左侧偏移
+                .attr("y", -20)
+                .text(d => (d.data.enter_time || "").slice(10)); // 显示 create_time 字段
+
+            node.select("rect")
+                .attr("fill", (d, i) => {
+                    return COLORS[d.data.status] || "#fff"
+                });
+            return svgContainer
+        }
+
+        function renderNodeApiLogs(){
+            let data = {
+                'code': 0,
+                'msg': 'success',
+                'data': {
+                    'cost': 123.45,
+                    'logs': [
+                        {'path': '/api/v1/link_trace/node_logs1', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
+                        {'path': '/api/v1/link_trace/node_logs2', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
+                        {'path': '/api/v1/link_trace/node_logs3', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
+                        {'path': '/api/v1/link_trace/node_logs4', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
+                        {'path': '/api/v1/link_trace/node_logs5', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
+                        {'path': '/api/v1/link_trace/node_logs6', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
+                        {'path': '/api/v1/link_trace/node_logs7', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
+                    ]
+                }
+            }
+            let $page = $('<div>').addClass('page-body');
+            let logs = data.data.logs
+            let $logs = $('<div>').addClass('logs');
+            for (let i = 0; i < logs.length; i++)  {
+                let log = logs[i];
+                let logContainer = $('<div>').addClass('log-container')
+                let logId = $('<div>').addClass('log-id').text(i + 1)
+                let logTime = $('<div>').addClass('log-time').text(log.enter_time)
+                let logDetails = $('<div>').addClass('log-details')
+                let logDetailsHeader = $('<div>').addClass('log-details-header');
+                let logDetailsBody = $('<div>').addClass('log-details-body');
+                for (var key in log){
+                    const id = key +'-' + i;
+
+                    var span = $('<span>')
+                        .addClass('expand-tip')
+                        .text('展开')
+                        .click(function(e) {
+                            e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                            handleClickExpand(id)
+                        })
+                    var p = $('<p>')
+                        .attr('id', id)
+                        .append($("<span>").text(key + ":"))
+                        .append(log[key])
+                    if(log[key].length >= 150){
+                        p.append(span)
+                    }
+
+                    logDetailsBody.append(p)
+                }
+                logDetails.append(logDetailsHeader, logDetailsBody)
+                logContainer.append(logId, logTime, logDetails)
+                $logs.append(logContainer)
+            }
+            $page.append($logs)
+            createPage("节点关键日志", $page)
+        }
+
+        function CreateNodeApiLogsPage(entry_id, entry_type, node_type){
+            renderNodeApiLogs()
+            return
+            let loadingContainer = createLoadingContainer()
+            showLoadingStatus(loadingContainer)
+
+            axios.get('/api/v1/link_trace/node_logs',{
+                params: {
+                    entry_id: entry_id,
+                    entry_type: entry_type,
+                    node_type: node_type,
+                }
+            }).then(response => {
+                const data = response.data.data;
+
+            }).catch(error => {
+                console.error('Error fetching merged activity data:', error);
+            }).finally(() => {
+                hideLoadingStatus(loadingContainer)
+            });
+        }
+
+        function CreateSingleDocTraceGraphPage(){
+            let graphData = {
+                'nodes': [
+                    {'id': '123', 'name': '上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '124', 'name': '抓取完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '125', 'name': 'wcd解析完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '126', 'name': '生成概述', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '127', 'name': '生成大纲', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '128', 'name': '生成关键信息', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                ],
+                'edges': {
+                    '123': ['124'],
+                    '124': ['125'],
+                    '125': ['126', '127', '128'],
+                }
+            }
+            let $page = $('<div>').addClass('page-body')
+            let $svgContainer = $('<div>').addClass('svg-container')
+
+            let $svg = createTreeDiagram(graphData, '用户上传')
+            $svgContainer.append($svg)
+            $page.append($svgContainer)
+            createPage("单文档核心链路", $page)
+        }
+
+        function CreateMultiDocTraceGraphPage(){
+
+            let graphData = {
+                'nodes': [
+                    {'id': '123', 'name': '上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '124', 'name': '抓取完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '125', 'name': 'wcd解析完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_SUCCESS},
+                    {'id': '126', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_FAIL},
+                    {'id': '127', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.UNREACHED},
+
+                    {'id': '223', 'name': 'pdf上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '224', 'name': '苏秦解析', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '226', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.FAIL},
+                    {'id': '227', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.UNREACHED},
+
+                    {'id': '323', 'name': 'pdf上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '324', 'name': '苏秦解析', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '326', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '327', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+
+                    {'id': '423', 'name': '上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '424', 'name': '抓取完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '425', 'name': 'wcd解析完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_SUCCESS},
+                    {'id': '426', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_FAIL},
+                    {'id': '427', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.UNREACHED},
+
+                    {'id': '523', 'name': '上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '524', 'name': '抓取完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '525', 'name': 'wcd解析完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_SUCCESS},
+                    {'id': '526', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_FAIL},
+                    {'id': '527', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.FAIL},
+
+                ],
+                'edges': {
+                    '123': ['124'],
+                    '124': ['125'],
+                    '125': ['126'],
+                    '126': ['127'],
+
+                    '223': ['224'],
+                    '224': ['225'],
+                    '225': ['226'],
+                    '226': ['227'],
+
+                    '323': ['324'],
+                    '324': ['325'],
+                    '325': ['326'],
+                    '326': ['327'],
+
+                    '423': ['424'],
+                    '424': ['425'],
+                    '425': ['426'],
+                    '426': ['427'],
+
+                    '523': ['524'],
+                    '524': ['525'],
+                    '525': ['526'],
+                    '526': ['527'],
+                    // '127': ['424'],
+                    // '227': ['424'],
+                    // '327': ['424'],
+
+                }
+            }
+            let multiDocsGraphData = {
+                'nodes':[
+                    {'id': '424', 'name': '多文档合并', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '425', 'name': '主题生成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                    {'id': '426', 'name': '大纲生成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
+                ],
+                'edges': {
+                    '424': ['425'],
+                    '425': ['426'],
+                }
+            }
+            let $page = $('<div>').addClass('page-body')
+            let $svgContainer = $('<div>').addClass('svg-container')
+
+            let $svg1 = createTreeDiagram(graphData)
+            let $svg2 = createTreeDiagram(multiDocsGraphData, '预处理完成')
+
+            $svgContainer.append($svg1, $svg2)
+            $page.append($svgContainer)
+            createPage("多文档核心链路", $page)
+        }
+
+        function CreateHomePage() {
+
+            function setTimeRange(startTime, endTime) {
+                let startTimeStr = startTime.toLocaleString().replace(/\//g, '-').slice(0, 16);
+                let endTimeStr = endTime.toLocaleString().replace(/\//g, '-').slice(0, 16);
+                $startDatetime.val(startTimeStr);
+                $endDatetime.val(endTimeStr);
+            }
+
+            let currentPage = 0;
+            let hasMoreData = true;
+
+            const pageSize = 10;
+
+            let $page = $('<div>').addClass('page-body')
+            let $table = $('<div>');
+
+            const $buttonContainer = $('<div>').addClass('next-button-container');
+            let loadingContainer = createLoadingContainer()
+
+            let $searchBar = $('<div>').addClass('search-bar')
+            let $startDatetime = $('<input>')
+                    .attr('type', 'datetime-local')
+            let $endDatetime = $('<input>')
+                .attr('type', 'datetime-local')
+
+            let $query = $('<input type="text" placeholder="内容关键词,url,uid,multi-id,entry-id等">')
+            let $submitBtn = $('<button>').text('查询').on('click', function () {
+                fetchData()
+            })
+            $searchBar.append(
+                $query,
+                $('<div>').addClass('time-select').append(
+                    $startDatetime,
+                    $endDatetime,
+                    $('<div>').addClass('timerange-btn')
+                        .text('时间范围')
+                        .hover(function () {
+                            $(this).next().show();
+                        })
+                        .mouseleave(function () {
+                            let $this = $(this)
+                            setTimeout(function () {
+                                // 如果光标还没有hover到div上，则隐藏
+                                if (!$this.next().is(":hover")) {
+                                    $this.next().hide();
+                                }
+                            }, 300)
+                        })
+                    ,
+                    $('<div>').addClass('dropdown').append(
+                        $('<div>').addClass('dropdown-content').text('最近6小时').click(function () {
+                            let now = new Date();
+                            let startTime = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+                            let endTime = new Date(now.getTime());
+                            setTimeRange(startTime, endTime)
+                        }),
+                        $('<div>').addClass('dropdown-content').text('今天').click(function () {
+                            let now = new Date();
+                            let startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            let endTime = new Date(now.getTime())
+                            setTimeRange(startTime, endTime)
+                        }),
+                        $('<div>').addClass('dropdown-content').text('昨天').click(function () {
+                            let now = new Date();
+                            let startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                            let endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            setTimeRange(startTime, endTime)
+                        }),
+                        $('<div>').addClass('dropdown-content').text('过去7天').click(function () {
+                            let now = new Date();
+                            let startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+                            let endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            setTimeRange(startTime, endTime)
+                        }),
+                    ).hover(function () {
+                        $(this).show()
+                    }).mouseleave(function () {
+                        let $this = $(this)
+                        setTimeout(function () {
+                            // 如果光标还没有hover到div上，则隐藏
+                            if (!$this.prev().is(":hover")) {
+                                $this.hide()
+                            }
+                        }, 300)
+
+                    }),
+                ),
+
+                $submitBtn,
+            )
+            function createPagination() {
+                const $prevButton = $('<div>')
+                    .addClass('next-button')
+                    .text('上一页')
+                    .prop('disabled', currentPage === 0)
+                    .click(() => {
+                        if (currentPage > 0) {
+                            currentPage--;
+                            fetchData();
+                        }
+                    });
+
+                const $nextButton = $('<div>')
+                    .addClass('next-button')
+                    .text('下一页')
+                    .prop('disabled', !hasMoreData)
+                    .click(() => {
+                        if (hasMoreData) {
+                            currentPage++;
+                            fetchData();
+                        }
+                    });
+
+                $buttonContainer.append($prevButton, $nextButton);
+            }
+
+            function updateTable(data) {
+                data = {
+                    'rows': [
+                        {'user_id': '123123', 'create_time': '2024-10-20 17:57:21', 'channel': '小程序', 'action_name': '行为', 'title': '标题123123', 'file_types': ['pdf'], 'cost': 12.3456, 'status': ActionStatusEnum.SUCCESS},
+                        {'user_id': '123123', 'create_time': '2024-10-20 17:57:21', 'channel': '小程序', 'action_name': '行为', 'title': '标题123123', 'file_types': ['url'], 'cost': 12.3456, 'status': ActionStatusEnum.SLOW_SUCCESS},
+                        {'user_id': '123123', 'create_time': '2024-10-20 17:57:21', 'channel': '小程序', 'action_name': '行为', 'title': '标题123123', 'file_types': ['url'], 'cost': 12.3456, 'status': ActionStatusEnum.SLOW_FAIL},
+                        {'user_id': '123123', 'create_time': '2024-10-20 17:57:21', 'channel': '小程序', 'action_name': '行为', 'title': '标题123123', 'file_types': ['url'], 'cost': 12.3456, 'status': ActionStatusEnum.FAIL},
+                        {'user_id': '123123', 'create_time': '2024-10-20 17:57:21', 'channel': '小程序', 'action_name': '行为', 'title': '标题123123', 'file_types': ['pdf', 'url'], 'cost': 12.3456, 'status': ActionStatusEnum.SUCCESS},
+                    ]
+                }
+                const columns = [
+                    { header: '用户id', value: row => row.user_id },
+                    { header: '时间', value: row => row.create_time},
+                    { header: '产品端', value: row => row.channel},
+                    { header: '行为', value: row => row.action_name},
+                    { header: '标题', value: row => row.title},
+                    { header: '数据类型', value: row => row.file_types},
+                    { header: '耗时（秒）', value: row => row.cost},
+                    { header: '结果', value: row => statusToString(row.status),
+                        clickable: row=>true, click: row=> {
+                            if (row.file_types.length >= 2) {
+                                CreateMultiDocTraceGraphPage()
+                            } else {
+                                CreateSingleDocTraceGraphPage()
+                            }
+                        }, style: row => {
+                            return {
+                                'background-color': COLORS[row.status] || '#fff',
+                            }
+                        }
+                    },
+                ];
+
+                if ($table.is(':empty')) {
+                    $table = createTable({
+                        data: data.rows,
+                        columns: columns,
+                        title: '用户行为',
+                        parent: $table
+                    });
+                } else {
+                    const $tbody = $table.find('tbody');
+                    $tbody.empty();
+                    data.rows.forEach(row => {
+                        const $row = $('<tr>');
+                        columns.forEach((column, index) => {
+                            const $td = $('<td>').text(column.value(row));
+                            if (index === 0) {
+                                $td.addClass('sticky-column');
+                            }
+                            if (column.click && parseFloat(column.value(row)) != 0){
+                                $td.click(() => {
+                                    column.click(row)
+                                })
+                                $td.addClass('clickable')
+                            }
+                            if (column.style) {
+                                $td.css(column.style(row))
+                            }
+                            $row.append($td);
+                        });
+                        $tbody.append($row);
+                    });
+
+                    $table.find('.table-title').text(`每日用户行为总结 (第 ${currentPage + 1} 页)`);
+                }
+            }
+
+            function updatePagination() {
+                const $prevButton = $buttonContainer.find('.next-button:first');
+                const $nextButton = $buttonContainer.find('.next-button:last');
+
+                if (currentPage === 0) {
+                    $prevButton.addClass('disabled');
+                } else{
+                    $prevButton.removeClass('disabled');
+                }
+                if (!hasMoreData) {
+                    $nextButton.addClass('disabled');
+                } else{
+                    $nextButton.removeClass('disabled');
+                }
+            }
+
+            function fetchData(mute=false) {
+                if (!mute){
+                    showLoadingStatus(loadingContainer)
+                }
+                let currentPageBkp = currentPage;
+                let query = $query.val()
+                let startTime = $startDatetime.val().replace('T', ' ') + ':00';
+                let endTime = $endDatetime.val().replace('T', ' ') + ':00';
+                console.log(query, startTime, endTime)
+                axios.get('/api/v1/link_trace/user_actions', {
+                    params: {
+                        query: query,
+                        start_time: startTime,
+                        end_time: endTime,
+                        status: -1,
+                        skip: currentPage * pageSize,
+                        limit: pageSize,
+                    }
+                }).then(response => {
+                    const data = response.data.data;
+
+                    // hasMoreData = data.has_next;
+
+                    // 如果当前页码没有变化，则更新表格数据，防止收到到新数据时页码已变化
+                    if (currentPageBkp !== currentPage) {
+                        return
+                    }
+                    updateTable(data);
+                    updatePagination();
+
+                }).catch(error => {
+                    console.error('Error fetching merged activity data:', error);
+                }).finally(() => {
+                    hideLoadingStatus(loadingContainer)
+                });
+            }
+
+            let now = new Date();
+            let startTime = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+            let endTime = new Date(now.getTime());
+            setTimeRange(startTime, endTime)
+
+            $page.append($searchBar, loadingContainer, $table, $buttonContainer);
+            fetchData()
+            createPagination();
+
+            createPage("用户行为", $page)
+        }
+
+        function main() {
+            CreateHomePage()
+        }
+
+        main()
+    })
+
+</script>
+
+
+</body>
+</html>

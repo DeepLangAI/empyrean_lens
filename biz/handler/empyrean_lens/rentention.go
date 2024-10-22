@@ -8,7 +8,6 @@ import (
 	consts2 "empyrean_lens/consts"
 	aliyun2 "empyrean_lens/service/aliyun"
 	empyrean_lens2 "empyrean_lens/service/mongo/empyrean_lens"
-	"empyrean_lens/service/mongo/plugin"
 	"empyrean_lens/service/passport"
 	"empyrean_lens/utils"
 	"fmt"
@@ -555,27 +554,5 @@ func GetOnlineOperation(ctx context.Context, c *app.RequestContext) {
 	}
 
 	resp.Data = data
-	base.SuccessResponse(c, resp)
-}
-
-// GetUserAction .
-// @router /api/v1/report/user_action [GET]
-func GetUserAction(ctx context.Context, c *app.RequestContext) {
-	base := handler.BaseHandler{}
-	var err error
-	var req empyrean_lens.GetUserActionReq
-	err = c.BindAndValidate(&req)
-	if err != nil {
-		c.String(consts.StatusBadRequest, err.Error())
-		return
-	}
-
-	resp := new(empyrean_lens.GetUserActionResp)
-	data, bizCode := plugin.GetUserAction(ctx, req)
-	if bizCode != nil {
-		base.ErrorResponse(ctx, c, bizCode, nil)
-		return
-	}
-	resp.Code, resp.Msg, resp.Data = consts2.ResSuccess.Code, consts2.ResSuccess.Msg, data
 	base.SuccessResponse(c, resp)
 }

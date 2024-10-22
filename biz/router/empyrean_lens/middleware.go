@@ -268,3 +268,28 @@ func _getuseractionMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _link_traceMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _multidoclinktraceMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _linknodelogsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _doclinktraceMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _useractionsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

@@ -1272,6 +1272,7 @@ limit %v
 	}
 	return logs, nil
 }
+
 func NginxLogQueryByUserId(ctx context.Context, userId string, timeBegin, timeEnd time.Time) ([]EndToEndLog, error) {
 	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
 	if err != nil {
@@ -1340,6 +1341,7 @@ limit %v
 	}
 	return logs, nil
 }
+
 func ModelNginxLogQueryByUserId(ctx context.Context, userId string, timeBegin, timeEnd time.Time) ([]EndToEndLog, error) {
 	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.MODEL_NGINX_LOG_STORE_NAME)
 	if err != nil {
@@ -1527,6 +1529,7 @@ limit %v
 	hlog.CtxInfof(ctx, "日期%v，查modelIngress, trace_id: %v, 共%v条日志", date, traceId, len(nlogs))
 	return nlogs, nil
 }
+
 func BusinessLogQueryByTraceId(ctx context.Context, traceId, date string) ([]EndToEndLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
@@ -1861,16 +1864,15 @@ func ResourceUploadQuery(ctx context.Context, resourceId, resourceType string, t
 	}
 
 	query := `
-	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and message: "core link core_name:%s, core_node:%s, resource_id:%s"  | select * from log
-limit %v
+	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s %s" and funcName: core_link_print_cost | select * from log limit %v
 	`
 	query = FormatWithTemplate(query, nil)
 
 	switch resourceType {
 	case consts.PDF:
-		query = fmt.Sprintf(query, "PDFParser", "单文件上传完成", resourceId, consts.LOG_QUERY_LIMIT)
+		query = fmt.Sprintf(query, "PDFParser", "单文件上传完成", consts.LOG_QUERY_LIMIT)
 	case consts.URL:
-		query = fmt.Sprintf(query, "UrlParser", "网页上传完成", resourceId, consts.LOG_QUERY_LIMIT)
+		query = fmt.Sprintf(query, "UrlParser", "网页上传完成", consts.LOG_QUERY_LIMIT)
 	}
 	hlog.CtxDebugf(ctx, "ResourceUploadQuery query: %s", query)
 
@@ -1879,7 +1881,13 @@ limit %v
 		hlog.CtxErrorf(ctx, "ResourceUploadQuery query log error: %v", err)
 		return nil, err
 	}
-	return ConvertFileProcessLog(ctx, logs.Logs)
+	resLogs := []map[string]string{}
+	for _, log := range logs.Logs {
+		if strings.Contains(log["message"], resourceId) {
+			resLogs = append(resLogs, log)
+		}
+	}
+	return ConvertFileProcessLog(ctx, resLogs)
 }
 
 // 苏秦解析日志
@@ -1912,7 +1920,7 @@ func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd tim
 	}
 
 	query := `
-	serviceName:lingowhale_fc AND functionName:web_url_parser_prod and "%s" not funcName
+	serviceName:lingowhale_fc AND (functionName:web_url_parser_pre or functionName:web_url_parser_prod) and message: %s and not funcName
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerQuery query: %s", query)
@@ -1965,7 +1973,7 @@ func TextParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "ParseEduNode pdf label entryId:%s"
+	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "ParseEduNode end" and message: "%s"
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "TextParserQuery query: %s", query)
@@ -2119,6 +2127,60 @@ func SingleViewpointEndQuery(ctx context.Context, traceId string, timeBegin, tim
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "SingleViewpointEndQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func MultiAnalysisQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query = fmt.Sprintf(query, multiID, "ANALYSIS")
+	hlog.CtxDebugf(ctx, "MultiThemeQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiAnalysisQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func MultiThemeQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query = fmt.Sprintf(query, multiID, "MERGE")
+	hlog.CtxDebugf(ctx, "MultiThemeQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiThemeQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func MultiOutlineQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query = fmt.Sprintf(query, multiID, "THEME_ALL_SUMMARY")
+	hlog.CtxDebugf(ctx, "MultiOutlineQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiOutlineQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)

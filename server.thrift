@@ -382,8 +382,52 @@ struct OnlineOperationRespData{
 //               链路追踪相关接口定义
 // ========================================================
 
+// 用户行为
+enum UserActionStatus {
+    Success = 1 // 成功
+    Fail = 2 // 失败
+    Slow = 3 // 慢查询
+    Timeout = 4 // 超时失败
+}
+
+// 资源渠道的枚举值
+enum ChannelType {
+    All = 0,  // 全部渠道
+
+    PdfPc = 10,  // 语鲸web首页pdf上传button
+    PdfPlugin = 11,  // 插件阅读面板button
+    PdfReader = 12,  // pdf阅读器button
+    PdfPcDb = 13,  // 语鲸web个人库上传button
+    PdfWebReader = 14,  // web阅读器button
+
+    UrlPc = 20,  // 语鲸web首页url输入框
+    UrlPlugin = 21,  // 插件
+    UrlPluginMenu = 22,  // 插件右键菜单
+    UrlPcDb = 23,  // 语鲸web个人库上传button
+    UrlReader = 24,  // web阅读器button
+
+    WechatUrl = 30,  // url语鲸小助手
+    WechatPdf = 31,  // pdf语鲸小助手
+
+    MiniUrl = 40,  // 语鲸小程序url
+    MiniPdf = 41,  // 语鲸小程序pdf
+
+    MiniLingoUrl = 42,  // 灵狗小程序url
+    MiniLingoPdf = 43,  // 灵狗小程序pdf
+
+    WechatLingoUrl = 50,  // url灵狗小助手
+    WechatLingoPdf = 51,  // pdf灵狗小助手
+
+    DesktopUrl = 60,  // 桌面端url
+    DesktopPdf = 61,  // 桌面端pdf
+
+    WebLingoUrl = 70,  // url 灵狗web 端
+    WebLingoPdf = 71,  // pdf 灵狗web 端
+    WebLingoMulti = 72  // multi 灵狗web 端
+}
+
+// 实体类型
 enum EntryTypeEnum{
-//    """实体类型"""
     WORD = 1  # 词
     QUOTE = 2  # 句
     COLL = 3  # 搭配
@@ -405,7 +449,20 @@ enum ActionStatusEnum {
     FAIL = 3 // 模块执行失败
     UNREACHEAD = 4 // 未执行
 }
+
 enum LinkNodeTypeEnum{
+    UPLOAD_FINISH = 1  // 上传完成
+    CRAWLER_FINISH = 2  // 抓取完成
+    WCD_PARSE_FINISH = 3  // wcd解析完成
+    SUQIN_PARSE_FINISH = 4  // 苏秦解析完成
+    TEXT_PARSE_FINISH = 5  // text-parse完成
+    EDU_PARSE_FINISH = 6  // edu-parse完成
+    SUMMARY_FINISH = 7  // 概述生成
+    KEY_INFO_FINISH = 8  // 关键信息生成
+    OUTLINE_FINISH = 9  // 大纲生成
+    MULTI_ANALYSIS_FINISH = 10  // 单文档解析
+    MULTI_TOPIC_FINISH = 11  // 主题生成
+    MULTI_OUTLINE_FINISH = 12  // 大纲生成
 }
 
 // 用户行为查询
@@ -428,6 +485,7 @@ struct UserActionRespData {
     1: bool has_next // 是否有下一页
     2: list<UserActionRespRow> rows // 表中每行数据
 }
+
 struct UserActionRespRow {
     1: string user_id
     2: string create_time // DateHourMinSecTemplate
@@ -452,6 +510,7 @@ struct GraphNode {
     3: string enter_time // 节点接收到请求的时间戳。DateHourMinSecTemplate
     4: string finish_time // 节点处理完成的时间戳。DateHourMinSecTemplate
     5: ActionStatusEnum status // 节点状态，如成功、失败、超时等
+    6: string trace_id // trace id
 }
 
 // 单文档链路查询
@@ -485,9 +544,17 @@ struct MultiDocLinkTraceResp {
     3: MultiDocLinkTraceRespData data
 }
 
+struct Article {
+    1: EntryTypeEnum entry_type
+    2: string entry_id
+    3: NodeId start_id
+}
+
 struct MultiDocLinkTraceRespData {
     1: TraceLinkGraph graph // 关于多文档本身的链路图，如多文档合并、主题生成、多文档大纲生成完成等，有可能退化为链表。
     2: double cost // end to end cost, seconds
+    3: list<Article> articles // 多文档中包含的文档列表
+    4: string title
 }
 
 // 链路中某节点的日志查询
@@ -589,11 +656,6 @@ service Rentention{
    // 上线单查询
    OnlineOperationResp GetOnlineOperation(1: OnlineOperationReq req) (
        api.get="/api/v1/report/online_operation"
-   )
-
-   // 用户行为查询
-   GetUserActionResp GetUserAction(1: GetUserActionReq req)(
-        api.get="/api/v1/report/user_action"
    )
 
    // 上报数据

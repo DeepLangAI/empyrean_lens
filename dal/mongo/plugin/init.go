@@ -20,7 +20,7 @@ func Init(ctx context.Context) {
 	var (
 		mode          = os.Getenv(constslib.ModeEnvName)
 		clientOptions *options.ClientOptions
-		cfg           = conf.GetConfig().MongoLingo
+		cfg           = conf.GetConfig().MongoPlugin
 	)
 	if mode == constslib.ModeEnvPre || mode == constslib.ModeEnvProd || cfg.Port == "" {
 		clientOptions = options.Client().ApplyURI(cfg.Addr)

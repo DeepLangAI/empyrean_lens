@@ -5,7 +5,7 @@ package empyrean_lens
 import (
 	"context"
 
-	empyrean_lens "empyrean_lens/biz/model/empyrean_lens"
+	"empyrean_lens/biz/model/empyrean_lens"
 	consts2 "empyrean_lens/consts"
 	"empyrean_lens/service/link_trace"
 

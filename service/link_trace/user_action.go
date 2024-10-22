@@ -17,8 +17,17 @@ import (
 
 func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 确定时间范围
-	begin, _ := time.Parse(consts.DateHourMinuteTemplate, req.StartTime)
-	end, _ := time.Parse(consts.DateHourMinuteTemplate, req.EndTime)
+	var err error
+	begin, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.StartTime, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse start time error, err:%v", err)
+		return nil, &consts.RetParamError
+	}
+	end, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.EndTime, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse end time error, err:%v", err)
+		return nil, &consts.RetParamError
+	}
 	if begin.IsZero() && end.IsZero() {
 		end = time.Now()
 		begin = time.Now().Add(-6 * time.Hour)

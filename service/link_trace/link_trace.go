@@ -139,6 +139,7 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*empyrean_lens.MultiDo
 		}()
 	}
 	go func() {
+		defer wg.Done()
 		articleGraph, bizCode := LinkTraceGraph(ctx, multiID, consts.MULTI, start, end, consts.MultiProcessList, consts.MultiProcessMapping)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get article graph failed, err: %v", err)

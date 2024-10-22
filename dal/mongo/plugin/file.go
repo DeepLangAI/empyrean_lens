@@ -44,7 +44,10 @@ func (d *FileDao) FindFileById(ctx context.Context, id string) (*File, error) {
 	var res []*File
 
 	_id, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"$and": []bson.M{{"is_delete": false}, {"_id": _id}}}
+	filter := bson.M{"$and": []bson.M{
+		//{"is_delete": false},
+		{"_id": _id},
+	}}
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindFileById] mongo find error:%+v", err)
@@ -59,13 +62,18 @@ func (d *FileDao) FindFileById(ctx context.Context, id string) (*File, error) {
 	if len(res) == 0 {
 		return nil, nil
 	}
+	res[0].CreateTime = res[0].CreateTime.Local()
+	res[0].UpdateTime = res[0].UpdateTime.Local()
 	return res[0], nil
 }
 
 func (d *FileDao) FindFileByTimeRange(ctx context.Context, status []int32, startTime, endTime time.Time, skip, limit int64) ([]*File, error) {
 	var res []*File
 
-	filter := bson.M{"is_delete": false, "create_time": bson.M{"$gte": startTime, "$lt": endTime}}
+	filter := bson.M{
+		//"is_delete": false,
+		"create_time": bson.M{"$gte": startTime, "$lt": endTime},
+	}
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
 	}
@@ -81,6 +89,10 @@ func (d *FileDao) FindFileByTimeRange(ctx context.Context, status []int32, start
 		hlog.CtxErrorf(ctx, "[FindFileByTimeRange] mongo all error:%+v", err)
 		return nil, err
 	}
+	for i := 0; i < len(res); i++ {
+		res[i].CreateTime = res[i].CreateTime.Local()
+		res[i].UpdateTime = res[i].UpdateTime.Local()
+	}
 	return res, nil
 }
 
@@ -89,7 +101,11 @@ func (d *FileDao) FindFileByQueryAndTimeRange(ctx context.Context, query string,
 
 	_id, _ := primitive.ObjectIDFromHex(query)
 	queryFilter := bson.M{"$or": []bson.M{{"name": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}}
-	filter := bson.M{"$and": []bson.M{queryFilter, {"is_delete": false}, {"create_time": bson.M{"$gte": startTime, "$lt": endTime}}}}
+	filter := bson.M{"$and": []bson.M{
+		queryFilter,
+		//{"is_delete": false},
+		{"create_time": bson.M{"$gte": startTime, "$lt": endTime}},
+	}}
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
 	}
@@ -104,6 +120,10 @@ func (d *FileDao) FindFileByQueryAndTimeRange(ctx context.Context, query string,
 	if err = cur.All(ctx, &res); err != nil {
 		hlog.CtxErrorf(ctx, "[FindFileByQueryAndTimeRange] mongo all error:%+v", err)
 		return nil, err
+	}
+	for i := 0; i < len(res); i++ {
+		res[i].CreateTime = res[i].CreateTime.Local()
+		res[i].UpdateTime = res[i].UpdateTime.Local()
 	}
 	return res, nil
 }

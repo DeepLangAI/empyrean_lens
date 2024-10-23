@@ -470,7 +470,7 @@ struct UserActionReq {
     1: string query // 关键词、url、uid、entry-id、multiid等。如果为空则表示不限制
     2: string start_time // consts.DateHourMinSecTemplate
     3: string end_time // consts.DateHourMinSecTemplate
-    4: ActionStatusEnum status // 如果为UNK则表示所有状态
+    4: list<ActionStatusEnum> status // 如果为UNK则表示所有状态
     5: i64 skip // 分页查询，跳过多少条数据，0起
     6: i64 limit // 分页查询，每页多少条数据
 }
@@ -495,6 +495,7 @@ struct UserActionRespRow {
     6: list<string> file_types
     7: double cost // seconds
     8: ActionStatusEnum status
+    9: string entry_id
 }
 
 // 节点链路图
@@ -548,6 +549,7 @@ struct Article {
     1: EntryTypeEnum entry_type
     2: string entry_id
     3: NodeId start_id
+    4: TraceLinkGraph graph
 }
 
 struct MultiDocLinkTraceRespData {

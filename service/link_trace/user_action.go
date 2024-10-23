@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -83,7 +82,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 		rows = append(rows, v.Rows...)
 	}
 	sort.Slice(rows, func(i, j int) bool {
-		return strings.Compare(rows[i].CreateTime, rows[j].CreateTime) == -1
+		return rows[i].CreateTime > rows[j].CreateTime
 	})
 	hasNext := false
 	for _, v := range res {
@@ -106,11 +105,20 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 状态
 	status := []int32{}
-	switch req.Status {
-	case empyrean_lens.ActionStatusEnum_SUCCESS:
-		status = []int32{8}
-	case empyrean_lens.ActionStatusEnum_FAIL:
-		status = []int32{3, 6, 9, 10, 20}
+	for _, s := range req.Status {
+		switch s {
+		case empyrean_lens.ActionStatusEnum_SUCCESS:
+			for _, v := range []int32{8} {
+				status = append(status, v)
+			}
+		case empyrean_lens.ActionStatusEnum_FAIL:
+			for _, v := range []int32{3, 6, 9, 10, 20} {
+				status = append(status, v)
+			}
+		}
+	}
+	if len(status) == 0 {
+		status = append(status, -1)
 	}
 	// 查询数据库
 	files, err := []*plugin.File(nil), error(nil)
@@ -141,12 +149,22 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 状态
 	status := []int32{}
-	switch req.Status {
-	case empyrean_lens.ActionStatusEnum_SUCCESS:
-		status = []int32{0}
-	case empyrean_lens.ActionStatusEnum_FAIL:
-		status = []int32{2, 3}
+	for _, s := range req.Status {
+		switch s {
+		case empyrean_lens.ActionStatusEnum_SUCCESS:
+			for _, v := range []int32{0} {
+				status = append(status, v)
+			}
+		case empyrean_lens.ActionStatusEnum_FAIL:
+			for _, v := range []int32{2, 3} {
+				status = append(status, v)
+			}
+		}
 	}
+	if len(status) == 0 {
+		status = append(status, -1)
+	}
+
 	// 查询数据库
 	webReaders, err := []*plugin.WebReader(nil), error(nil)
 	if req.Query == "" {
@@ -176,12 +194,22 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 状态
 	status := []int32{}
-	switch req.Status {
-	case empyrean_lens.ActionStatusEnum_SUCCESS:
-		status = []int32{0}
-	case empyrean_lens.ActionStatusEnum_FAIL:
-		status = []int32{2, 3}
+	for _, s := range req.Status {
+		switch s {
+		case empyrean_lens.ActionStatusEnum_SUCCESS:
+			for _, v := range []int32{0} {
+				status = append(status, v)
+			}
+		case empyrean_lens.ActionStatusEnum_FAIL:
+			for _, v := range []int32{2, 3} {
+				status = append(status, v)
+			}
+		}
 	}
+	if len(status) == 0 {
+		status = append(status, -1)
+	}
+
 	// 查询数据库
 	multis, err := []*plugin.MultiModel(nil), error(nil)
 	if req.Query == "" {
@@ -217,7 +245,8 @@ func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserA
 		FileTypes:  []string{string("pdf")},
 		CreateTime: file.CreateTime.Format(consts.DateHourMinSecTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus("multi", file.Status, 0, 0, 0),
+		Status:     actionStatus(consts.PDF, file.Status, 0, 0, 0),
+		EntryID:    file.ID.Hex(),
 	}
 }
 
@@ -230,7 +259,8 @@ func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empy
 		FileTypes:  []string{string("url")},
 		CreateTime: webReader.CreateTime.Format(consts.DateHourMinSecTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus("multi", webReader.Status, 0, 0, 0),
+		Status:     actionStatus(consts.URL, webReader.Status, 0, 0, 0),
+		EntryID:    webReader.ID.Hex(),
 	}
 }
 
@@ -253,7 +283,8 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel) *empyrean
 		FileTypes:  fileTypes,
 		CreateTime: multiModel.CreateTime.Format(consts.DateHourMinSecTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus("multi", 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
+		Status:     actionStatus(consts.MULTI, 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
+		EntryID:    multiModel.ID.Hex(),
 	}
 }
 

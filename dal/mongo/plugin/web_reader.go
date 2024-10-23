@@ -77,7 +77,7 @@ func (d *WebReaderDao) FindWebReaderByTimeRange(ctx context.Context, status []in
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
 	}
-	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindWebReaderByTimeRange] mongo find error:%+v", err)
@@ -108,7 +108,7 @@ func (d *WebReaderDao) FindWebReaderByQueryAndTimeRange(ctx context.Context, que
 			{"create_time": bson.M{"$gte": startTime, "$lt": endTime}},
 		},
 	}
-	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindWebReaderByQueryAndTimeRange] mongo find error:%+v", err)

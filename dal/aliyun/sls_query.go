@@ -1864,15 +1864,15 @@ func ResourceUploadQuery(ctx context.Context, resourceId, resourceType string, t
 	}
 
 	query := `
-	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s %s" and funcName: core_link_print_cost | select * from log limit %v
+	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s %s %s" and funcName: core_link_print_cost | select * from log limit %v
 	`
 	query = FormatWithTemplate(query, nil)
 
 	switch resourceType {
 	case consts.PDF:
-		query = fmt.Sprintf(query, "PDFParser", "单文件上传完成", consts.LOG_QUERY_LIMIT)
+		query = fmt.Sprintf(query, "PDFParser", "单文件上传完成", resourceId, consts.LOG_QUERY_LIMIT)
 	case consts.URL:
-		query = fmt.Sprintf(query, "UrlParser", "网页上传完成", consts.LOG_QUERY_LIMIT)
+		query = fmt.Sprintf(query, "UrlParser", "网页上传完成", resourceId, consts.LOG_QUERY_LIMIT)
 	}
 	hlog.CtxDebugf(ctx, "ResourceUploadQuery query: %s", query)
 
@@ -1881,13 +1881,7 @@ func ResourceUploadQuery(ctx context.Context, resourceId, resourceType string, t
 		hlog.CtxErrorf(ctx, "ResourceUploadQuery query log error: %v", err)
 		return nil, err
 	}
-	resLogs := []map[string]string{}
-	for _, log := range logs.Logs {
-		if strings.Contains(log["message"], resourceId) {
-			resLogs = append(resLogs, log)
-		}
-	}
-	return ConvertFileProcessLog(ctx, resLogs)
+	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
 // 苏秦解析日志

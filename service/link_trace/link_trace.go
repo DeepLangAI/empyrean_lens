@@ -43,19 +43,19 @@ func FileLinkTrace(ctx context.Context, fileID string) (*empyrean_lens.DocLinkTr
 	if fileInfo.MultiId != "" {
 		fileGraph, bizCode := LinkTraceGraph(ctx, fileID, consts.PDF, start, end, consts.MultiFileProcessList, consts.MultiFileProcessMapping)
 		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", err)
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 			return nil, bizCode
 		}
 		multi, bizCode := LinkTraceGraph(ctx, fileInfo.MultiId, consts.PDF, start, end, consts.MultiProcessList, consts.MultiProcessMapping)
 		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", err)
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 			return nil, bizCode
 		}
 		linkTraceGraph = mergeLinkTraceGraph([]*empyrean_lens.TraceLinkGraph{fileGraph}, multi)
 	} else {
 		linkTraceGraph, bizCode = LinkTraceGraph(ctx, fileID, consts.PDF, start, end, consts.SingleFileProcessList, consts.SingleFileProcessMapping)
 		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", err)
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 			return nil, bizCode
 		}
 	}
@@ -65,7 +65,7 @@ func FileLinkTrace(ctx context.Context, fileID string) (*empyrean_lens.DocLinkTr
 		Cost:      getLinkTraceCost(linkTraceGraph.Nodes),
 		EntryID:   fileID,
 		EntryType: empyrean_lens.EntryTypeEnum_FILE,
-		Title:     fileInfo.Name,
+		Title:     "",
 	}, nil
 }
 
@@ -83,19 +83,19 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string) (*empyrean_lens
 	if webReaderInfo.MultiId != "" {
 		webReaderGraph, bizCode := LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.MultiWebReaderProcessList, consts.MultiWebReaderProcessMapping)
 		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", err)
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 			return nil, bizCode
 		}
 		multi, bizCode := LinkTraceGraph(ctx, webReaderInfo.MultiId, consts.URL, start, end, consts.MultiProcessList, consts.MultiProcessMapping)
 		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", err)
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 			return nil, bizCode
 		}
 		linkTraceGraph = mergeLinkTraceGraph([]*empyrean_lens.TraceLinkGraph{webReaderGraph}, multi)
 	} else {
 		linkTraceGraph, bizCode = LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.SingleWebReaderProcessList, consts.SingleWebReaderProcessMapping)
 		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", err)
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 			return nil, bizCode
 		}
 	}
@@ -105,7 +105,7 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string) (*empyrean_lens
 		Cost:      getLinkTraceCost(linkTraceGraph.Nodes),
 		EntryID:   webReaderID,
 		EntryType: empyrean_lens.EntryTypeEnum_WEB,
-		Title:     webReaderInfo.Title,
+		Title:     "",
 	}, nil
 }
 
@@ -128,11 +128,11 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*empyrean_lens.MultiDo
 			entrtId, entryType := articleEntry.EntryId, articleEntry.EntryType
 			resourceType, processList, processMapping := consts.PDF, consts.MultiFileProcessList, consts.MultiFileProcessMapping
 			if entryType == consts.EntryTypeWEB {
-				resourceType, processList, processMapping = consts.URL, consts.MultiFileProcessList, consts.MultiFileProcessMapping
+				resourceType, processList, processMapping = consts.URL, consts.MultiWebReaderProcessList, consts.MultiWebReaderProcessMapping
 			}
 			articleGraph, bizCode := LinkTraceGraph(ctx, entrtId, resourceType, start, end, processList, processMapping)
 			if bizCode != nil {
-				hlog.CtxErrorf(ctx, "[LinkTraceGraph] get article graph failed, err: %v", err)
+				hlog.CtxErrorf(ctx, "[LinkTraceGraph] get article graph failed, err: %v", bizCode)
 				return
 			}
 			graphMapping.Store(entrtId, articleGraph)
@@ -142,7 +142,7 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*empyrean_lens.MultiDo
 		defer wg.Done()
 		articleGraph, bizCode := LinkTraceGraph(ctx, multiID, consts.MULTI, start, end, consts.MultiProcessList, consts.MultiProcessMapping)
 		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get article graph failed, err: %v", err)
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get article graph failed, err: %v", bizCode)
 			return
 		}
 		multiGrap = articleGraph
@@ -169,7 +169,7 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*empyrean_lens.MultiDo
 		Graph:    multiGrap,
 		Cost:     getLinkTraceCost(linkTraceGraph.Nodes),
 		Articles: articles,
-		Title:    multiInfo.Title,
+		Title:    "",
 	}, nil
 }
 

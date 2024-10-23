@@ -2,9 +2,10 @@ package plugin
 
 import (
 	"context"
-	"empyrean_lens/consts"
 	"sync"
 	"time"
+
+	"empyrean_lens/consts"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
@@ -51,11 +52,9 @@ func (d *MultiDao) FindMultiById(ctx context.Context, id string) (*MultiModel, e
 	var res []*MultiModel
 
 	_id, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{
-		"$and": []bson.M{
-			//{"is_delete": false},
-			{"_id": _id},
-		},
+	filter := bson.M{"$and": []bson.M{
+		// {"is_deleted": false},
+		{"_id": _id}},
 	}
 	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, filter)
 	if err != nil {

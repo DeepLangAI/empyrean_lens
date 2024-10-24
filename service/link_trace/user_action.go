@@ -2,6 +2,7 @@ package link_trace
 
 import (
 	"context"
+	"empyrean_lens/utils"
 	"fmt"
 	"sort"
 	"sync"
@@ -123,13 +124,13 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 	// 查询数据库
 	files, err := []*plugin.File(nil), error(nil)
 	if req.Query == "" {
-		files, err = plugin.NewFileDao().FindFileByTimeRange(ctx, status, begin, end, 0, req.Skip+req.Limit)
+		files, err = plugin.NewFileDao().FindFileByTimeRange(ctx, status, begin, end, 0, req.Skip+req.Limit+1)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindFileByTimeRange] error: %+v", err)
 			return nil, &consts.QueryRecordError
 		}
 	} else {
-		files, err = plugin.NewFileDao().FindFileByQueryAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit)
+		files, err = plugin.NewFileDao().FindFileByQueryAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit+1)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindFileByQueryAndTimeRange] error: %+v", err)
 			return nil, &consts.QueryRecordError
@@ -141,7 +142,7 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 		fileDatas = append(fileDatas, fileToActionData("单文档", file))
 	}
 	return &empyrean_lens.UserActionRespData{
-		HasNext: len(fileDatas) == int(req.Skip+req.Limit),
+		HasNext: len(fileDatas) >= int(req.Skip+req.Limit+1),
 		Rows:    fileDatas,
 	}, nil
 }
@@ -168,13 +169,13 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 	// 查询数据库
 	webReaders, err := []*plugin.WebReader(nil), error(nil)
 	if req.Query == "" {
-		webReaders, err = plugin.NewWebReaderDao().FindWebReaderByTimeRange(ctx, status, begin, end, 0, req.Skip+req.Limit)
+		webReaders, err = plugin.NewWebReaderDao().FindWebReaderByTimeRange(ctx, status, begin, end, 0, req.Skip+req.Limit+1)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindWebReaderByTimeRange] error: %+v", err)
 			return nil, &consts.QueryRecordError
 		}
 	} else {
-		webReaders, err = plugin.NewWebReaderDao().FindWebReaderByQueryAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit)
+		webReaders, err = plugin.NewWebReaderDao().FindWebReaderByQueryAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit+1)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindWebReaderByQueryAndTimeRange] error: %+v", err)
 			return nil, &consts.QueryRecordError
@@ -186,7 +187,7 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 		webReaderDatas = append(webReaderDatas, webReaderToActionData("单文档", webReader))
 	}
 	return &empyrean_lens.UserActionRespData{
-		HasNext: len(webReaderDatas) == int(req.Skip+req.Limit),
+		HasNext: len(webReaderDatas) >= int(req.Skip+req.Limit+1),
 		Rows:    webReaderDatas,
 	}, nil
 }
@@ -213,13 +214,13 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 	// 查询数据库
 	multis, err := []*plugin.MultiModel(nil), error(nil)
 	if req.Query == "" {
-		multis, err = plugin.NewMultiDao().FindMultiByTimeRange(ctx, status, begin, end, 0, req.Skip+req.Limit)
+		multis, err = plugin.NewMultiDao().FindMultiByTimeRange(ctx, status, begin, end, 0, req.Skip+req.Limit+1)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindMultiByTimeRange] error: %+v", err)
 			return nil, &consts.QueryRecordError
 		}
 	} else {
-		multis, err = plugin.NewMultiDao().FindMultiByQueryAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit)
+		multis, err = plugin.NewMultiDao().FindMultiByQueryAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit+1)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
 			return nil, &consts.QueryRecordError
@@ -231,7 +232,7 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 		multiDatas = append(multiDatas, multiActionData("单文档", multi))
 	}
 	return &empyrean_lens.UserActionRespData{
-		HasNext: len(multiDatas) == int(req.Skip+req.Limit),
+		HasNext: len(multiDatas) >= int(req.Skip+req.Limit+1),
 		Rows:    multiDatas,
 	}, nil
 }
@@ -239,7 +240,7 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserActionRespRow {
 	return &empyrean_lens.UserActionRespRow{
 		UserID:     file.UserID,
-		Channel:    fmt.Sprintf("%d", file.ChannelType), // todo
+		Channel:    utils.ChannelIntToString(file.ChannelType),
 		Title:      file.Name,
 		ActionName: actionName,
 		FileTypes:  []string{string("pdf")},
@@ -253,7 +254,7 @@ func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserA
 func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empyrean_lens.UserActionRespRow {
 	return &empyrean_lens.UserActionRespRow{
 		UserID:     webReader.UserID,
-		Channel:    fmt.Sprintf("%d", webReader.ChannelType), // todo
+		Channel:    utils.ChannelIntToString(webReader.ChannelType),
 		Title:      webReader.Title,
 		ActionName: actionName,
 		FileTypes:  []string{string("url")},
@@ -277,7 +278,7 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel) *empyrean
 	}
 	return &empyrean_lens.UserActionRespRow{
 		UserID:     multiModel.UserID,
-		Channel:    fmt.Sprintf("%d", multiModel.ChannelType), // todo
+		Channel:    utils.ChannelIntToString(multiModel.ChannelType),
 		Title:      multiModel.Title,
 		ActionName: actionName,
 		FileTypes:  fileTypes,

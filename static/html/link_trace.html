@@ -97,7 +97,7 @@
             }
             .table-container {
                 /*max-height: 60vh; !* 设置最大高度为视口高度的60% *!*/
-                overflow-y: auto; /* 添加垂直滚动 */
+                /*overflow-y: auto; !* 添加垂直滚动 *!*/
                 font-size: xx-large;
             }
             tr{
@@ -378,7 +378,7 @@
         .page-body {
             flex-grow: 1;
             padding: 8px;
-            overflow-y: auto;
+            /*overflow-y: auto;*/
         }
         .page-tail {
             background-color: #f0f0f0;
@@ -728,6 +728,60 @@
             /*width: 20px; !* 图标宽度 *!*/
             /*height: 20px; !* 图标高度 *!*/
             object-fit: contain; /* 使图标保持比例 */
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+        /*.tooltip:hover {*/
+        /*!*    hover时，文字颜色变化*!*/
+        /*    color: #105705;*/
+        /*    transition: color 0.3s ease; !* 增加平滑的过渡效果 *!*/
+        /*!*    bold*!*/
+        /*    font-weight: bold;*/
+        /*}*/
+        .tooltip:hover {
+            color: #105705;
+            font-weight: bold;
+            text-decoration: underline; /* 添加下划线 */
+            /*background-color: rgba(16, 87, 5, 0.1); !* 添加背景色变化 *!*/
+            /*text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); !* 添加文字阴影 *!*/
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            padding: 5px;
+            position: absolute;
+            z-index: 5;
+            bottom: 125%; /* 调整 tooltip 的位置 */
+            left: 50%;
+            margin-left: -60px; /* 使 tooltip 居中 */
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: x-small;
+        }
+
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%; /* 三角形位置 */
+            left: 50%;
+            margin-left: -5px; /* 居中三角形 */
+            border-width: 5px;
+            border-style: solid;
+            border-color: black transparent transparent transparent; /* 三角形颜色 */
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
         }
 
     </style>
@@ -1438,9 +1492,33 @@
             });
         }
 
-        function CreateSingleDocTraceGraphPage(entry_id, entry_type){
-            // let loadingContainer = createLoadingContainer()
+        function CreateSingleDocTraceGraphPage(entry_id, entry_type, {userId, time, isMulti, title, status}){
             showLoadingStatus($loadingContainer)
+            let $info = $('<h3>').html(`
+                <div class="tooltip">
+                    ${userId}
+                    <div class="tooltiptext">用户id</div>
+                </div>
+                <div class="tooltip">
+                    ${time}
+                    <div class="tooltiptext">时间</div>
+                </div>
+                <div class="tooltip">
+                    ${isMulti ? '多文档': '单文档'}
+                    <div class="tooltiptext">文档类型</div>
+                </div>
+                <div class="tooltip">
+                    ${title}
+                    <div class="tooltiptext">标题</div>
+                </div>
+                <div class="tooltip">
+                    ${statusToString(status)}
+                    <div class="tooltiptext">结果</div>
+                </div>
+                `).css({
+                'text-align': 'center'
+            })
+
             axios.get('/api/v1/link_trace/single_doc', {
                 params: {
                     entry_id: entry_id,
@@ -1459,7 +1537,7 @@
 
                 let $svg = createTreeDiagram(graphData, '用户上传')
                 $svgContainer.append($svg)
-                $page.append($svgContainer)
+                $page.append($info, $svgContainer)
                 createPage("单文档核心链路", $page)
             }).catch(error => {
                 console.error('Error fetching merged activity data:', error);
@@ -1468,83 +1546,16 @@
             });
         }
 
-        function CreateMultiDocTraceGraphPage(entry_id){
+        function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status}){
 
-            // let graphData = {
-            //     'nodes': [
-            //         {'id': '123', 'name': '上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '124', 'name': '抓取完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '125', 'name': 'wcd解析完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_SUCCESS},
-            //         {'id': '126', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_FAIL},
-            //         {'id': '127', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.UNREACHED},
-            //
-            //         {'id': '223', 'name': 'pdf上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '224', 'name': '苏秦解析', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '226', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.FAIL},
-            //         {'id': '227', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.UNREACHED},
-            //
-            //         {'id': '323', 'name': 'pdf上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '324', 'name': '苏秦解析', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '326', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '327', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //
-            //         {'id': '423', 'name': '上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '424', 'name': '抓取完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '425', 'name': 'wcd解析完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_SUCCESS},
-            //         {'id': '426', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_FAIL},
-            //         {'id': '427', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.UNREACHED},
-            //
-            //         {'id': '523', 'name': '上传完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '524', 'name': '抓取完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '525', 'name': 'wcd解析完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_SUCCESS},
-            //         {'id': '526', 'name': 'text-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SLOW_FAIL},
-            //         {'id': '527', 'name': 'edu-parse完成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.FAIL},
-            //
-            //     ],
-            //     'edges': {
-            //         '123': ['124'],
-            //         '124': ['125'],
-            //         '125': ['126'],
-            //         '126': ['127'],
-            //
-            //         '223': ['224'],
-            //         '224': ['225'],
-            //         '225': ['226'],
-            //         '226': ['227'],
-            //
-            //         '323': ['324'],
-            //         '324': ['325'],
-            //         '325': ['326'],
-            //         '326': ['327'],
-            //
-            //         '423': ['424'],
-            //         '424': ['425'],
-            //         '425': ['426'],
-            //         '426': ['427'],
-            //
-            //         '523': ['524'],
-            //         '524': ['525'],
-            //         '525': ['526'],
-            //         '526': ['527'],
-            //         // '127': ['424'],
-            //         // '227': ['424'],
-            //         // '327': ['424'],
-            //
-            //     }
-            // }
-            // let multiDocsGraphData = {
-            //     'nodes':[
-            //         {'id': '424', 'name': '多文档合并', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '425', 'name': '主题生成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //         {'id': '426', 'name': '大纲生成', 'enter_time': '2024-10-20 18:36:56', 'finish_time': '2024-10-20 18:37:08', 'status': ActionStatusEnum.SUCCESS},
-            //     ],
-            //     'edges': {
-            //         '424': ['425'],
-            //         '425': ['426'],
-            //     }
-            // }
-            // let $loadingContainer = createLoadingContainer()
             showLoadingStatus($loadingContainer)
+
+            let $info = $('<h3>').html(
+                `${userId} ${time} ${isMulti ? '多文档': '单文档'} ${title} ${statusToString(status)}`
+            ).css({
+                'text-align': 'center'
+            })
+
             axios.get('/api/v1/link_trace/multi_doc',{
                 params: {
                     multi_id: entry_id,
@@ -1576,7 +1587,7 @@
                 let $svg2 = createTreeDiagram(data.graph, '预处理完成')
 
                 $svgContainer.append($svg1, $svg2)
-                $page.append($svgContainer)
+                $page.append($info, $svgContainer)
                 createPage("多文档核心链路", $page)
 
             }).catch(error => {
@@ -1613,6 +1624,7 @@
 
             let $query = $('<input type="text" placeholder="内容关键词,url,uid,multi-id,entry-id等">')
             let $submitBtn = $('<button>').text('查询').on('click', function () {
+                currentPage = 0
                 fetchData()
             })
             let $statusSelectDropdownContents = [
@@ -1706,7 +1718,7 @@
                     ),
                     $('<div>').addClass('status-select').append(
                         $('<div>').addClass('status-btn')
-                            .text('选择状态')
+                            .text('结果状态')
                             .hover(function () {
                                     $(this).next().show();
                                 })
@@ -1777,9 +1789,21 @@
                     { header: '结果', value: row => statusToString(row.status),
                         clickable: row=>true, click: row=> {
                             if (row.file_types.length >= 2) {
-                                CreateMultiDocTraceGraphPage(row.entry_id)
+                                CreateMultiDocTraceGraphPage(row.entry_id,{
+                                    'userId': row.user_id,
+                                    'time': row.create_time,
+                                    'isMulti': row.file_types.length >= 2,
+                                    'title': row.title,
+                                    'status': row.status,
+                                })
                             } else {
-                                CreateSingleDocTraceGraphPage(row.entry_id, fileTypeToEntryType(row.file_types[0]))
+                                CreateSingleDocTraceGraphPage(row.entry_id, fileTypeToEntryType(row.file_types[0]), {
+                                    'userId': row.user_id,
+                                    'time': row.create_time,
+                                    'isMulti': row.file_types.length >= 2,
+                                    'title': row.title,
+                                    'status': row.status,
+                                })
                             }
                         }, style: row => {
                             return {
@@ -1881,6 +1905,7 @@
                     data.rows.forEach((item, index) => {
                         item.index = index + 1 + currentPage * pageSize;
                     })
+                    hasMoreData = data.has_next;
                     updateTable(data);
                     updatePagination();
 

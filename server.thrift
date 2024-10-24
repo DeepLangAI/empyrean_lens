@@ -495,6 +495,8 @@ struct UserActionRespRow {
     6: list<string> file_types
     7: double cost // seconds
     8: ActionStatusEnum status
+    9: EntryTypeEnum entry_type
+    10: string entry_id
 }
 
 // 节点链路图
@@ -507,10 +509,11 @@ struct TraceLinkGraph {
 struct GraphNode {
     1: NodeId id // 节点id，可用bson.objectid来生成，方便查询
     2: string name // 节点名称，如上传完成、抓取完成、多文档合并等
-    3: string enter_time // 节点接收到请求的时间戳。DateHourMinSecTemplate
-    4: string finish_time // 节点处理完成的时间戳。DateHourMinSecTemplate
-    5: ActionStatusEnum status // 节点状态，如成功、失败、超时等
-    6: string trace_id // trace id
+    3: LinkNodeTypeEnum type // 节点类型
+    4: string enter_time // 节点接收到请求的时间戳。DateHourMinSecTemplate
+    5: string finish_time // 节点处理完成的时间戳。DateHourMinSecTemplate
+    6: ActionStatusEnum status // 节点状态，如成功、失败、超时等
+    7: string trace_id // trace id
 }
 
 // 单文档链路查询

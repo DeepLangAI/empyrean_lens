@@ -16578,8 +16578,10 @@ type UserActionRespRow struct {
 	Title      string   `thrift:"title,5" form:"title" json:"title" query:"title"`
 	FileTypes  []string `thrift:"file_types,6" form:"file_types" json:"file_types" query:"file_types"`
 	// seconds
-	Cost   float64          `thrift:"cost,7" form:"cost" json:"cost" query:"cost"`
-	Status ActionStatusEnum `thrift:"status,8" form:"status" json:"status" query:"status"`
+	Cost      float64          `thrift:"cost,7" form:"cost" json:"cost" query:"cost"`
+	Status    ActionStatusEnum `thrift:"status,8" form:"status" json:"status" query:"status"`
+	EntryType EntryTypeEnum    `thrift:"entry_type,9" form:"entry_type" json:"entry_type" query:"entry_type"`
+	EntryID   string           `thrift:"entry_id,10" form:"entry_id" json:"entry_id" query:"entry_id"`
 }
 
 func NewUserActionRespRow() *UserActionRespRow {
@@ -16618,15 +16620,25 @@ func (p *UserActionRespRow) GetStatus() (v ActionStatusEnum) {
 	return p.Status
 }
 
+func (p *UserActionRespRow) GetEntryType() (v EntryTypeEnum) {
+	return p.EntryType
+}
+
+func (p *UserActionRespRow) GetEntryID() (v string) {
+	return p.EntryID
+}
+
 var fieldIDToName_UserActionRespRow = map[int16]string{
-	1: "user_id",
-	2: "create_time",
-	3: "channel",
-	4: "action_name",
-	5: "title",
-	6: "file_types",
-	7: "cost",
-	8: "status",
+	1:  "user_id",
+	2:  "create_time",
+	3:  "channel",
+	4:  "action_name",
+	5:  "title",
+	6:  "file_types",
+	7:  "cost",
+	8:  "status",
+	9:  "entry_type",
+	10: "entry_id",
 }
 
 func (p *UserActionRespRow) Read(iprot thrift.TProtocol) (err error) {
@@ -16707,6 +16719,22 @@ func (p *UserActionRespRow) Read(iprot thrift.TProtocol) (err error) {
 		case 8:
 			if fieldTypeId == thrift.I32 {
 				if err = p.ReadField8(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 9:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField9(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 10:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField10(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -16841,6 +16869,28 @@ func (p *UserActionRespRow) ReadField8(iprot thrift.TProtocol) error {
 	p.Status = _field
 	return nil
 }
+func (p *UserActionRespRow) ReadField9(iprot thrift.TProtocol) error {
+
+	var _field EntryTypeEnum
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = EntryTypeEnum(v)
+	}
+	p.EntryType = _field
+	return nil
+}
+func (p *UserActionRespRow) ReadField10(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.EntryID = _field
+	return nil
+}
 
 func (p *UserActionRespRow) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -16878,6 +16928,14 @@ func (p *UserActionRespRow) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField8(oprot); err != nil {
 			fieldId = 8
+			goto WriteFieldError
+		}
+		if err = p.writeField9(oprot); err != nil {
+			fieldId = 9
+			goto WriteFieldError
+		}
+		if err = p.writeField10(oprot); err != nil {
+			fieldId = 10
 			goto WriteFieldError
 		}
 	}
@@ -17040,6 +17098,40 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
+func (p *UserActionRespRow) writeField9(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("entry_type", thrift.I32, 9); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.EntryType)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
+}
+
+func (p *UserActionRespRow) writeField10(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("entry_id", thrift.STRING, 10); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.EntryID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 10 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 10 end error: ", p), err)
 }
 
 func (p *UserActionRespRow) String() string {
@@ -17306,14 +17398,16 @@ type GraphNode struct {
 	ID NodeId `thrift:"id,1" form:"id" json:"id" query:"id"`
 	// 节点名称，如上传完成、抓取完成、多文档合并等
 	Name string `thrift:"name,2" form:"name" json:"name" query:"name"`
+	// 节点类型
+	Type LinkNodeTypeEnum `thrift:"type,3" form:"type" json:"type" query:"type"`
 	// 节点接收到请求的时间戳。DateHourMinSecTemplate
-	EnterTime string `thrift:"enter_time,3" form:"enter_time" json:"enter_time" query:"enter_time"`
+	EnterTime string `thrift:"enter_time,4" form:"enter_time" json:"enter_time" query:"enter_time"`
 	// 节点处理完成的时间戳。DateHourMinSecTemplate
-	FinishTime string `thrift:"finish_time,4" form:"finish_time" json:"finish_time" query:"finish_time"`
+	FinishTime string `thrift:"finish_time,5" form:"finish_time" json:"finish_time" query:"finish_time"`
 	// 节点状态，如成功、失败、超时等
-	Status ActionStatusEnum `thrift:"status,5" form:"status" json:"status" query:"status"`
+	Status ActionStatusEnum `thrift:"status,6" form:"status" json:"status" query:"status"`
 	// trace id
-	TraceID string `thrift:"trace_id,6" form:"trace_id" json:"trace_id" query:"trace_id"`
+	TraceID string `thrift:"trace_id,7" form:"trace_id" json:"trace_id" query:"trace_id"`
 }
 
 func NewGraphNode() *GraphNode {
@@ -17326,6 +17420,10 @@ func (p *GraphNode) GetID() (v NodeId) {
 
 func (p *GraphNode) GetName() (v string) {
 	return p.Name
+}
+
+func (p *GraphNode) GetType() (v LinkNodeTypeEnum) {
+	return p.Type
 }
 
 func (p *GraphNode) GetEnterTime() (v string) {
@@ -17347,10 +17445,11 @@ func (p *GraphNode) GetTraceID() (v string) {
 var fieldIDToName_GraphNode = map[int16]string{
 	1: "id",
 	2: "name",
-	3: "enter_time",
-	4: "finish_time",
-	5: "status",
-	6: "trace_id",
+	3: "type",
+	4: "enter_time",
+	5: "finish_time",
+	6: "status",
+	7: "trace_id",
 }
 
 func (p *GraphNode) Read(iprot thrift.TProtocol) (err error) {
@@ -17389,7 +17488,7 @@ func (p *GraphNode) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 3:
-			if fieldTypeId == thrift.STRING {
+			if fieldTypeId == thrift.I32 {
 				if err = p.ReadField3(iprot); err != nil {
 					goto ReadFieldError
 				}
@@ -17405,7 +17504,7 @@ func (p *GraphNode) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 5:
-			if fieldTypeId == thrift.I32 {
+			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField5(iprot); err != nil {
 					goto ReadFieldError
 				}
@@ -17413,8 +17512,16 @@ func (p *GraphNode) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 6:
-			if fieldTypeId == thrift.STRING {
+			if fieldTypeId == thrift.I32 {
 				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField7(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -17473,13 +17580,13 @@ func (p *GraphNode) ReadField2(iprot thrift.TProtocol) error {
 }
 func (p *GraphNode) ReadField3(iprot thrift.TProtocol) error {
 
-	var _field string
-	if v, err := iprot.ReadString(); err != nil {
+	var _field LinkNodeTypeEnum
+	if v, err := iprot.ReadI32(); err != nil {
 		return err
 	} else {
-		_field = v
+		_field = LinkNodeTypeEnum(v)
 	}
-	p.EnterTime = _field
+	p.Type = _field
 	return nil
 }
 func (p *GraphNode) ReadField4(iprot thrift.TProtocol) error {
@@ -17490,10 +17597,21 @@ func (p *GraphNode) ReadField4(iprot thrift.TProtocol) error {
 	} else {
 		_field = v
 	}
-	p.FinishTime = _field
+	p.EnterTime = _field
 	return nil
 }
 func (p *GraphNode) ReadField5(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.FinishTime = _field
+	return nil
+}
+func (p *GraphNode) ReadField6(iprot thrift.TProtocol) error {
 
 	var _field ActionStatusEnum
 	if v, err := iprot.ReadI32(); err != nil {
@@ -17504,7 +17622,7 @@ func (p *GraphNode) ReadField5(iprot thrift.TProtocol) error {
 	p.Status = _field
 	return nil
 }
-func (p *GraphNode) ReadField6(iprot thrift.TProtocol) error {
+func (p *GraphNode) ReadField7(iprot thrift.TProtocol) error {
 
 	var _field string
 	if v, err := iprot.ReadString(); err != nil {
@@ -17544,6 +17662,10 @@ func (p *GraphNode) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField6(oprot); err != nil {
 			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
 			goto WriteFieldError
 		}
 	}
@@ -17599,10 +17721,10 @@ WriteFieldEndError:
 }
 
 func (p *GraphNode) writeField3(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("enter_time", thrift.STRING, 3); err != nil {
+	if err = oprot.WriteFieldBegin("type", thrift.I32, 3); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteString(p.EnterTime); err != nil {
+	if err := oprot.WriteI32(int32(p.Type)); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -17616,10 +17738,10 @@ WriteFieldEndError:
 }
 
 func (p *GraphNode) writeField4(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("finish_time", thrift.STRING, 4); err != nil {
+	if err = oprot.WriteFieldBegin("enter_time", thrift.STRING, 4); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteString(p.FinishTime); err != nil {
+	if err := oprot.WriteString(p.EnterTime); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -17633,10 +17755,10 @@ WriteFieldEndError:
 }
 
 func (p *GraphNode) writeField5(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("status", thrift.I32, 5); err != nil {
+	if err = oprot.WriteFieldBegin("finish_time", thrift.STRING, 5); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+	if err := oprot.WriteString(p.FinishTime); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -17650,10 +17772,10 @@ WriteFieldEndError:
 }
 
 func (p *GraphNode) writeField6(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("trace_id", thrift.STRING, 6); err != nil {
+	if err = oprot.WriteFieldBegin("status", thrift.I32, 6); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteString(p.TraceID); err != nil {
+	if err := oprot.WriteI32(int32(p.Status)); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -17664,6 +17786,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *GraphNode) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("trace_id", thrift.STRING, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TraceID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
 }
 
 func (p *GraphNode) String() string {

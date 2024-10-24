@@ -356,6 +356,7 @@ func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []al
 		enterTime := processLogs[0].Asctime.Add(-time.Millisecond * time.Duration(processLogs[0].Cost*1000))
 		return &empyrean_lens.GraphNode{
 			ID:         empyrean_lens.NodeId(primitive.NewObjectID().Hex()),
+			Type:       nodeType,
 			Name:       nodeType.String(),
 			EnterTime:  enterTime.Format(consts.DateHourMinuteTemplate),
 			FinishTime: processLogs[1].Asctime.Format(consts.DateHourMinuteTemplate),
@@ -366,6 +367,7 @@ func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []al
 	enterTime := processLogs[0].Asctime.Add(-time.Millisecond * time.Duration(processLogs[0].Cost*1000))
 	return &empyrean_lens.GraphNode{
 		ID:         empyrean_lens.NodeId(primitive.NewObjectID().Hex()),
+		Type:       nodeType,
 		Name:       consts.LinkNodeTypeName[nodeType],
 		EnterTime:  enterTime.Format(consts.DateHourMinuteTemplate),
 		FinishTime: processLogs[0].Asctime.Format(consts.DateHourMinuteTemplate),

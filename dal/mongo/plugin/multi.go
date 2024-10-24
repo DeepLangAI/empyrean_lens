@@ -75,15 +75,22 @@ func (d *MultiDao) FindMultiById(ctx context.Context, id string) (*MultiModel, e
 	return res[0], nil
 }
 
-func (d *MultiDao) FindMultiByTimeRange(ctx context.Context, status []int32, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
+func (d *MultiDao) FindMultiByTimeRange(ctx context.Context, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
 	var res []*MultiModel
 
 	filter := bson.M{
 		//"is_deleted": false,
 		"create_time": bson.M{"$gte": startTime, "$lt": endTime},
-	}
-	if len(status) > 0 {
-		filter["status"] = bson.M{"$in": status}
+		"$and": []bson.M{
+			{"$or": []bson.M{
+				{"copy_from_multi_id": bson.M{"$exists": false}},
+				{"copy_from_multi_id": ""},
+			}},
+			{"$or": []bson.M{
+				{"copy_from_resource_id": bson.M{"$exists": false}},
+				{"copy_from_resource_id": ""},
+			}},
+		},
 	}
 	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, filter, options)
@@ -104,7 +111,54 @@ func (d *MultiDao) FindMultiByTimeRange(ctx context.Context, status []int32, sta
 	return res, nil
 }
 
-func (d *MultiDao) FindMultiByQueryAndTimeRange(ctx context.Context, query string, status []int32, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
+func (d *MultiDao) FindMultiByStatusAndTimeRange(ctx context.Context, success bool, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
+	var res []*MultiModel
+
+	filter := bson.M{
+		//"is_deleted": false,
+		"create_time": bson.M{"$gte": startTime, "$lt": endTime},
+		"$and": []bson.M{
+			{"$or": []bson.M{
+				{"copy_from_multi_id": bson.M{"$exists": false}},
+				{"copy_from_multi_id": ""},
+			}},
+			{"$or": []bson.M{
+				{"copy_from_resource_id": bson.M{"$exists": false}},
+				{"copy_from_resource_id": ""},
+			}},
+		},
+	}
+	if success {
+		filter["analysis_status"] = 2
+		filter["merge_status"] = 2
+		filter["summary_status"] = 2
+	} else {
+		filter["$or"] = []bson.M{
+			{"analysis_status": bson.M{"$in": []int64{3, 4}}},
+			{"merge_status": bson.M{"$in": []int64{3, 4}}},
+			{"summary_status": bson.M{"$in": []int64{3, 4}}},
+		}
+	}
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, filter, options)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByTimeRange] mongo find error:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	if err = cur.All(ctx, &res); err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByTimeRange] mongo all error:%+v", err)
+		return nil, err
+	}
+	for i := 0; i < len(res); i++ {
+		res[i].CreateTime = res[i].CreateTime.Local()
+		res[i].UpdateTime = res[i].UpdateTime.Local()
+	}
+	return res, nil
+}
+
+func (d *MultiDao) FindMultiByQueryAndTimeRange(ctx context.Context, query string, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
 	var res []*MultiModel
 
 	_id, _ := primitive.ObjectIDFromHex(query)
@@ -113,9 +167,50 @@ func (d *MultiDao) FindMultiByQueryAndTimeRange(ctx context.Context, query strin
 		queryFilter,
 		//{"is_delete": false},
 		{"create_time": bson.M{"$gte": startTime, "$lt": endTime}},
+		{"copy_from_resource_id": ""},
+		{"copy_from_multi_id": ""},
 	}}
-	if len(status) > 0 {
-		filter["status"] = bson.M{"$in": status}
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, filter, options)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] mongo find error:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	if err = cur.All(ctx, &res); err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] mongo all error:%+v", err)
+		return nil, err
+	}
+	for i := 0; i < len(res); i++ {
+		res[i].CreateTime = res[i].CreateTime.Local()
+		res[i].UpdateTime = res[i].UpdateTime.Local()
+	}
+	return res, nil
+}
+
+func (d *MultiDao) FindMultiByQueryAndStatusAndTimeRange(ctx context.Context, query string, success bool, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
+	var res []*MultiModel
+
+	_id, _ := primitive.ObjectIDFromHex(query)
+	queryFilter := bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}}
+	filter := bson.M{"$and": []bson.M{
+		queryFilter,
+		//{"is_delete": false},
+		{"create_time": bson.M{"$gte": startTime, "$lt": endTime}},
+		{"copy_from_resource_id": ""},
+		{"copy_from_multi_id": ""},
+	}}
+	if success {
+		filter["analysis_status"] = 2
+		filter["merge_status"] = 2
+		filter["summary_status"] = 2
+	} else {
+		filter["$or"] = []bson.M{
+			{"analysis_status": bson.M{"$in": []int64{3, 4}}},
+			{"merge_status": bson.M{"$in": []int64{3, 4}}},
+			{"summary_status": bson.M{"$in": []int64{3, 4}}},
+		}
 	}
 	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, filter, options)

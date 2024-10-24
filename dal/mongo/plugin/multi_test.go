@@ -19,7 +19,7 @@ func TestMultiDaoFind(t *testing.T) {
 
 	t.Run("find multi", func(t *testing.T) {
 		d := NewMultiDao()
-		model, err := d.FindMultiByTimeRange(ctx, []int32{0}, t1, t2, 0, 10)
+		model, err := d.FindMultiByTimeRange(ctx, t1, t2, 0, 10)
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -29,7 +29,7 @@ func TestMultiDaoFind(t *testing.T) {
 
 	t.Run("title", func(t *testing.T) {
 		d := NewMultiDao()
-		models, err := d.FindMultiByQueryAndTimeRange(ctx, "总结", []int32{0}, t1, t2, 0, 10)
+		models, err := d.FindMultiByQueryAndTimeRange(ctx, "总结", t1, t2, 0, 10)
 		if err != nil {
 			t.Error(err)
 		} else {

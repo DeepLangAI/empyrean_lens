@@ -2,7 +2,6 @@ package link_trace
 
 import (
 	"context"
-	"empyrean_lens/utils"
 	"fmt"
 	"sort"
 	"sync"
@@ -11,6 +10,7 @@ import (
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/mongo/plugin"
+	"empyrean_lens/utils"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 )

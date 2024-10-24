@@ -80,7 +80,7 @@ func (d *FileDao) FindFileByTimeRange(ctx context.Context, status []int32, start
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
 	}
-	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindFileByTimeRange] mongo find error:%+v", err)
@@ -115,7 +115,7 @@ func (d *FileDao) FindFileByQueryAndTimeRange(ctx context.Context, query string,
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
 	}
-	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindFileByQueryAndTimeRange] mongo find error:%+v", err)

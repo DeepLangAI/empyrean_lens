@@ -18934,9 +18934,10 @@ func (p *MultiDocLinkTraceResp) String() string {
 }
 
 type Article struct {
-	EntryType EntryTypeEnum `thrift:"entry_type,1" form:"entry_type" json:"entry_type" query:"entry_type"`
-	EntryID   string        `thrift:"entry_id,2" form:"entry_id" json:"entry_id" query:"entry_id"`
-	StartID   NodeId        `thrift:"start_id,3" form:"start_id" json:"start_id" query:"start_id"`
+	EntryType EntryTypeEnum   `thrift:"entry_type,1" form:"entry_type" json:"entry_type" query:"entry_type"`
+	EntryID   string          `thrift:"entry_id,2" form:"entry_id" json:"entry_id" query:"entry_id"`
+	StartID   NodeId          `thrift:"start_id,3" form:"start_id" json:"start_id" query:"start_id"`
+	Graph     *TraceLinkGraph `thrift:"graph,4" form:"graph" json:"graph" query:"graph"`
 }
 
 func NewArticle() *Article {
@@ -18955,10 +18956,24 @@ func (p *Article) GetStartID() (v NodeId) {
 	return p.StartID
 }
 
+var Article_Graph_DEFAULT *TraceLinkGraph
+
+func (p *Article) GetGraph() (v *TraceLinkGraph) {
+	if !p.IsSetGraph() {
+		return Article_Graph_DEFAULT
+	}
+	return p.Graph
+}
+
 var fieldIDToName_Article = map[int16]string{
 	1: "entry_type",
 	2: "entry_id",
 	3: "start_id",
+	4: "graph",
+}
+
+func (p *Article) IsSetGraph() bool {
+	return p.Graph != nil
 }
 
 func (p *Article) Read(iprot thrift.TProtocol) (err error) {
@@ -18999,6 +19014,14 @@ func (p *Article) Read(iprot thrift.TProtocol) (err error) {
 		case 3:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 4:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField4(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -19066,6 +19089,14 @@ func (p *Article) ReadField3(iprot thrift.TProtocol) error {
 	p.StartID = _field
 	return nil
 }
+func (p *Article) ReadField4(iprot thrift.TProtocol) error {
+	_field := NewTraceLinkGraph()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Graph = _field
+	return nil
+}
 
 func (p *Article) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -19083,6 +19114,10 @@ func (p *Article) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField3(oprot); err != nil {
 			fieldId = 3
+			goto WriteFieldError
+		}
+		if err = p.writeField4(oprot); err != nil {
+			fieldId = 4
 			goto WriteFieldError
 		}
 	}
@@ -19152,6 +19187,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *Article) writeField4(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("graph", thrift.STRUCT, 4); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Graph.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
 }
 
 func (p *Article) String() string {

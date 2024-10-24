@@ -92,7 +92,7 @@ func (d *MultiDao) FindMultiByTimeRange(ctx context.Context, startTime, endTime 
 			}},
 		},
 	}
-	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindMultiByTimeRange] mongo find error:%+v", err)
@@ -212,7 +212,7 @@ func (d *MultiDao) FindMultiByQueryAndStatusAndTimeRange(ctx context.Context, qu
 			{"summary_status": bson.M{"$in": []int64{3, 4}}},
 		}
 	}
-	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(limit).SetSkip(skip)
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] mongo find error:%+v", err)

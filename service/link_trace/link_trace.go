@@ -153,18 +153,20 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*empyrean_lens.MultiDo
 	for _, article := range multiInfo.ArticleList {
 		articleGraph, ok := graphMapping.Load(article.EntryId)
 		if ok && articleGraph != nil {
-			graphs = append(graphs, articleGraph.(*empyrean_lens.TraceLinkGraph))
+			graph := articleGraph.(*empyrean_lens.TraceLinkGraph)
+			graphs = append(graphs, graph)
 			articles = append(articles, &empyrean_lens.Article{
 				EntryType: empyrean_lens.EntryTypeEnum(article.EntryType),
 				EntryID:   article.EntryId,
 				StartID:   articleGraph.(*empyrean_lens.TraceLinkGraph).Nodes[0].ID,
+				Graph:     graph,
 			})
 		}
 	}
 	linkTraceGraph := mergeLinkTraceGraph(graphs, multiGrap)
 	// 返回
 	return &empyrean_lens.MultiDocLinkTraceRespData{
-		Graph:    linkTraceGraph,
+		Graph:    multiGrap,
 		Cost:     getLinkTraceCost(linkTraceGraph.Nodes),
 		Articles: articles,
 		Title:    "",

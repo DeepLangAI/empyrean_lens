@@ -551,6 +551,7 @@ struct Article {
     1: EntryTypeEnum entry_type
     2: string entry_id
     3: NodeId start_id
+    4: TraceLinkGraph graph
 }
 
 struct MultiDocLinkTraceRespData {

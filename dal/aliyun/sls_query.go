@@ -1947,7 +1947,7 @@ func WcdParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd ti
 	}
 
 	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "ParseEduNode wcd label entryId:%s"
+	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "ParseEduNode wcd" and message:"%s"
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "WcdParserQuery query: %s", query)

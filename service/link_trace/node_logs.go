@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -352,12 +353,16 @@ func getReqAndResp(apiLogsInput, apiLogsOuput []aliyun.FileProcessLog) []*empyre
 	if len(apiLogsInput) == 0 && len(apiLogsOuput) == 0 {
 		return []*empyrean_lens.ApiLog{}
 	}
-	for idx := range apiLogsInput {
-		if idx >= len(apiLogsOuput) {
-			break
+	maxLex := int(math.Max(float64(len(apiLogsInput)), float64(len(apiLogsOuput))))
+	for idx := 0; idx < maxLex; idx++ {
+		input := aliyun.FileProcessLog{}
+		if idx < len(apiLogsInput) {
+			input = apiLogsInput[idx]
 		}
-		input := apiLogsInput[idx]
-		output := apiLogsOuput[idx]
+		output := aliyun.FileProcessLog{}
+		if idx < len(apiLogsOuput) {
+			output = apiLogsOuput[idx]
+		}
 		apiLog := &empyrean_lens.ApiLog{}
 		apiLog.HTTPCode = 200
 		apiLog.EnterTime = input.Asctime.Format(consts.DateTimeTemplate)

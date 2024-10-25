@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
+	"strings"
 	"time"
 )
 
@@ -112,6 +113,9 @@ func SlowQueryRate(ctx context.Context, timespan int) (map[string]float64, error
 	slowCnts := map[string]int32{}
 	result := map[string]float64{}
 	for _, log := range sceneLogs {
+		if strings.Contains(log.Scene, "多文档") && log.Scene != "多文档：4总结端到端" {
+			continue
+		}
 		date := log.Date.Format("2006-01-02")
 		totalCnts[date] += log.TotalCnt
 		slowCnts[date] += log.SlowCnt

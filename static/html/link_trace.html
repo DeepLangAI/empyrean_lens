@@ -818,6 +818,17 @@
         PDF: 10,
         MULTI: 12,
     }
+    function entryTypeToString(status){
+        if (status == EntryTypeEnum.WEB){
+            return "网页"
+        }else if (status == EntryTypeEnum.PDF){
+            return "PDF"
+        }else if (status == EntryTypeEnum.MULTI){
+            return "多文档"
+        }else{
+            return "未知"
+        }
+    }
 
     const ChartTypeEnum = {
         NoChart: -1,
@@ -1737,7 +1748,9 @@
                     'nodes': [],
                     'edges': {},
                 }
+                let fileTypes = []
                 for (const article of data.articles) {
+                    fileTypes.push(entryTypeToString(article.entry_type))
                     let articleGraph = article.graph
                     for (const node of articleGraph.nodes) {
                         node.entry_id = article.entry_id
@@ -1757,7 +1770,8 @@
                 let $page = $('<div>').addClass('page-body')
                 let $svgContainer = $('<div>').addClass('svg-container')
 
-                let $svg1 = createTreeDiagram(graphData, '用户上传', new Array(data.articles.length).fill('title'))
+                // let $svg1 = createTreeDiagram(graphData, '用户上传', new Array(data.articles.length).fill('title'))
+                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTypes)
                 let $svg2 = createTreeDiagram(data.graph, '预处理完成')
 
                 $svgContainer.append($svg1, $svg2)

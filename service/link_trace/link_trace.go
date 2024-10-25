@@ -166,7 +166,7 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*empyrean_lens.MultiDo
 	linkTraceGraph := mergeLinkTraceGraph(graphs, multiGrap)
 	// 返回
 	return &empyrean_lens.MultiDocLinkTraceRespData{
-		Graph:    linkTraceGraph,
+		Graph:    multiGrap,
 		Cost:     getLinkTraceCost(linkTraceGraph.Nodes),
 		Articles: articles,
 		Title:    "",

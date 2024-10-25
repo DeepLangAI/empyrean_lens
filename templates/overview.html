@@ -1467,7 +1467,7 @@
 <!--                    <th>日期</th>-->
                     <th>核心功能</th>
                     <th>总请求数</th>
-                    <th>异常请求数</th>
+<!--                    <th>异常请求数</th>-->
 <!--                    <th>异常请求率</th>-->
                     <th>慢查询数</th>
                     <th>慢查询率</th>
@@ -1497,7 +1497,7 @@
                     })
                 }
 
-                $row.append(failReqTd);
+                // $row.append(failReqTd);
 
                 slowReqTd = $('<td>').text(item.num_slow_req);
                 if (item.num_slow_req > 0){

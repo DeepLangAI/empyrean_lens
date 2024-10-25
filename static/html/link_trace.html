@@ -330,11 +330,19 @@
 
             position: relative;
             overflow: hidden;
-            max-height: 4.5em; /* 假设行高为1.5em，3行就是4.5em */
+            /*max-height: 4.5em; !* 假设行高为1.5em，3行就是4.5em *!*/
             line-height: 1.5em;
             max-width: 700px;
         }
         .log-details-body p.expanded {
+            /*max-height: 400px;*/
+            /*overflow: scroll;*/
+        }
+        .log-details-body pre {
+            max-height: 20px;
+            /*overflow: scroll;*/
+        }
+        .log-details-body pre.expanded {
             max-height: 400px;
             overflow: scroll;
         }
@@ -915,7 +923,7 @@
     }
 
     function handleClickExpand(pid){
-        var p = $('#' + pid)
+        var p = $('#' + pid).find('pre')
         if (p.hasClass('expanded')){
             p.removeClass('expanded')
             p.find('.expand-tip').text('展开')
@@ -1232,7 +1240,7 @@
         }
 
         // 创建树形图的函数
-        function createTreeDiagram(graphData, rootName='用户上传', titles=[]) {
+        function createTreeDiagram(graphData, rootName='用户上传', titles=[], docInfo=null) {
             function nameWidth(name){
                 if (!name){
                     return 0
@@ -1451,7 +1459,7 @@
                         .style("stroke-width", 0);
                 })
                 .on('click', function (event, d){
-                    CreateNodeApiLogsPage(d.data.entry_id, d.data.entry_type, d.data.type)
+                    CreateNodeApiLogsPage(d.data.entry_id, d.data.entry_type, d.data.type, d.data.name, docInfo)
                 });
 
 
@@ -1489,7 +1497,7 @@
             return svgContainer
         }
 
-        function renderNodeApiLogs(data){
+        function renderNodeApiLogs(data, nodeName){
             let $page = $('<div>').addClass('page-body');
             let logs = data.logs
             let $logs = $('<div>').addClass('logs');
@@ -1497,14 +1505,24 @@
                 let log = logs[i];
                 let logContainer = $('<div>').addClass('log-container')
                 let logId = $('<div>').addClass('log-id').text(i + 1)
-                let logTime = $('<div>').addClass('log-time').text(log.enter_time)
+                let logTime = $('<div>').addClass('log-time').text(log.enter_time.slice(10, 19))
                 let logDetails = $('<div>').addClass('log-details')
                 let logDetailsHeader = $('<div>').addClass('log-details-header');
                 let logDetailsBody = $('<div>').addClass('log-details-body');
+
+                let keysInHeader = ["http_code", "enter_time", "finish_time"]
                 for (var key in log){
                     const id = key +'-' + i;
                     let value = log[key]
                     if (!value){
+                        continue
+                    }
+                    if (keysInHeader.includes(key)){
+                        logDetailsHeader.append(
+                            $("<span>")
+                                .attr("data-field-name", key)
+                                .text(log[key])
+                        );
                         continue
                     }
 
@@ -1546,7 +1564,7 @@
                         var p = $('<p class="expanded">')
                             .attr('id', id)
                             .append($("<span>").text(key + ":"))
-                            .append($('<pre>').append($('<code class="json">').text(jsonStr)))
+                            .append($('<pre class="expanded">').append($('<code class="json">').text(jsonStr)))
                         span.text('收起')
                         p.append(span)
                     } else{
@@ -1571,11 +1589,20 @@
                 let code = codeElement[i];
                 hljs.highlightBlock(code);
             }
+            let docInfo = null
+            if (data.docInfo){
+                docInfo = data.docInfo.clone()
+                // 找到docInfo中的最后一个tr
+                const lastTr = docInfo.find('table tbody tr:last-child');
+                lastTr.append($('<td class="key">').text('节点：'))
+                lastTr.append($('<td class="value">').text(nodeName))
+                $page.append(docInfo)
+            }
             $page.append($logs)
             createPage("节点关键日志", $page)
         }
 
-        function CreateNodeApiLogsPage(entry_id, entry_type, node_type){
+        function CreateNodeApiLogsPage(entry_id, entry_type, node_type, node_name, docInfo=null){
             // return
             // let loadingContainer = createLoadingContainer()
             showLoadingStatus($loadingContainer)
@@ -1602,7 +1629,8 @@
                         }
                     });
                 } else{
-                    renderNodeApiLogs(data)
+                    data.docInfo = docInfo
+                    renderNodeApiLogs(data, node_name)
                 }
 
             }).catch(error => {
@@ -1679,7 +1707,7 @@
                         <td class="value">${isMulti ? '多文档': '单文档'}</td>
 
                         <td class="key">结果：</td>
-                        <td class="value">${statusToString(status)}</td>
+                        <td class="value" style="background: ${COLORS[status]}">${statusToString(status)}</td>
                     </tr>
                     <tr>
                         <td class="key">标题：</td>
@@ -1719,7 +1747,7 @@
                 let $page = $('<div>').addClass('page-body')
                 let $svgContainer = $('<div>').addClass('svg-container')
 
-                let $svg = createTreeDiagram(graphData, '用户上传')
+                let $svg = createTreeDiagram(graphData, '用户上传', [], $info.clone())
                 $svgContainer.append($svg)
                 $page.append($info, $svgContainer)
                 createPage("单文档核心链路", $page)
@@ -1771,8 +1799,8 @@
                 let $svgContainer = $('<div>').addClass('svg-container')
 
                 // let $svg1 = createTreeDiagram(graphData, '用户上传', new Array(data.articles.length).fill('title'))
-                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTypes)
-                let $svg2 = createTreeDiagram(data.graph, '预处理完成')
+                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTypes, $info.clone())
+                let $svg2 = createTreeDiagram(data.graph, '预处理完成', [], $info.clone())
 
                 $svgContainer.append($svg1, $svg2)
                 $page.append($info, $svgContainer)

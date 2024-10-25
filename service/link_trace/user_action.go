@@ -106,11 +106,16 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 状态
 	status := []int32{}
-	switch req.Status {
-	case empyrean_lens.ActionStatusEnum_SUCCESS:
-		status = []int32{8}
-	case empyrean_lens.ActionStatusEnum_FAIL:
-		status = []int32{3, 6, 9, 10, 20}
+	for _, v := range req.Status {
+		switch v {
+		case empyrean_lens.ActionStatusEnum_SUCCESS:
+			status = append(status, []int32{8}...)
+		case empyrean_lens.ActionStatusEnum_FAIL:
+			status = append(status, []int32{3, 6, 9, 10, 20}...)
+		}
+	}
+	if len(status) == 0 {
+		status = append(status, -1)
 	}
 	// 查询数据库
 	files, err := []*plugin.File(nil), error(nil)
@@ -141,11 +146,16 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 状态
 	status := []int32{}
-	switch req.Status {
-	case empyrean_lens.ActionStatusEnum_SUCCESS:
-		status = []int32{0}
-	case empyrean_lens.ActionStatusEnum_FAIL:
-		status = []int32{2, 3}
+	for _, v := range req.Status {
+		switch v {
+		case empyrean_lens.ActionStatusEnum_SUCCESS:
+			status = append(status, []int32{0}...)
+		case empyrean_lens.ActionStatusEnum_FAIL:
+			status = append(status, []int32{2, 3}...)
+		}
+	}
+	if len(status) == 0 {
+		status = append(status, -1)
 	}
 
 	// 查询数据库
@@ -175,31 +185,27 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 }
 
 func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
-	// 查询数据库
-	multis, err := []*plugin.MultiModel(nil), error(nil)
-	if req.Query == "" {
-		if req.Status == empyrean_lens.ActionStatusEnum_UNK {
-			multis, err = plugin.NewMultiDao().FindMultiByTimeRange(ctx, begin, end, 0, req.Skip+req.Limit)
-		} else {
-			success := req.Status == empyrean_lens.ActionStatusEnum_SUCCESS
-			multis, err = plugin.NewMultiDao().FindMultiByStatusAndTimeRange(ctx, success, begin, end, 0, req.Skip+req.Limit)
-		}
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[FindMultiByTimeRange] error: %+v", err)
-			return nil, &consts.QueryRecordError
-		}
-	} else {
-		if req.Status == empyrean_lens.ActionStatusEnum_UNK {
-			multis, err = plugin.NewMultiDao().FindMultiByQueryAndTimeRange(ctx, req.Query, begin, end, 0, req.Skip+req.Limit)
-		} else {
-			success := req.Status == empyrean_lens.ActionStatusEnum_SUCCESS
-			multis, err = plugin.NewMultiDao().FindMultiByQueryAndStatusAndTimeRange(ctx, req.Query, success, begin, end, 0, req.Skip+req.Limit)
-		}
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
-			return nil, &consts.QueryRecordError
+	status := []int32{}
+	for _, v := range req.Status {
+		switch v {
+		case empyrean_lens.ActionStatusEnum_SUCCESS:
+			status = append(status, []int32{2}...)
+		case empyrean_lens.ActionStatusEnum_FAIL:
+			status = append(status, []int32{3, 4}...)
 		}
 	}
+	if len(status) == 0 {
+		status = append(status, -1)
+	}
+	// 查询数据库
+	multis, err := []*plugin.MultiModel(nil), error(nil)
+
+	multis, err = plugin.NewMultiDao().FindMultiByQueryAndStatusAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
+		return nil, &consts.QueryRecordError
+	}
+
 	// 转换
 	multiDatas := []*empyrean_lens.UserActionRespRow{}
 	for _, multi := range multis {
@@ -217,10 +223,10 @@ func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserA
 		Channel:    utils.ChannelIntToString(file.ChannelType),
 		Title:      file.Name,
 		ActionName: actionName,
-		FileTypes:  []string{string("pdf")},
+		FileTypes:  []string{consts.PDF},
 		CreateTime: file.CreateTime.Format(consts.DateHourMinSecTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus("multi", file.Status, 0, 0, 0),
+		Status:     actionStatus(consts.PDF, file.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_FILE,
 		EntryID:    string(file.ID.Hex()),
 	}
@@ -232,10 +238,10 @@ func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empy
 		Channel:    utils.ChannelIntToString(webReader.ChannelType),
 		Title:      webReader.Title,
 		ActionName: actionName,
-		FileTypes:  []string{string("url")},
+		FileTypes:  []string{consts.URL},
 		CreateTime: webReader.CreateTime.Format(consts.DateHourMinSecTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus("multi", webReader.Status, 0, 0, 0),
+		Status:     actionStatus(consts.URL, webReader.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_WEB,
 		EntryID:    string(webReader.ID.Hex()),
 	}
@@ -260,7 +266,7 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel) *empyrean
 		FileTypes:  fileTypes,
 		CreateTime: multiModel.CreateTime.Format(consts.DateHourMinSecTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus("multi", 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
+		Status:     actionStatus(consts.MULTI, 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
 		EntryType:  empyrean_lens.EntryTypeEnum_MULTI,
 		EntryID:    string(multiModel.ID.Hex()),
 	}

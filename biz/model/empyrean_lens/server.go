@@ -15765,7 +15765,7 @@ type UserActionReq struct {
 	// consts.DateHourMinSecTemplate
 	EndTime string `thrift:"end_time,3" form:"end_time" json:"end_time" query:"end_time"`
 	// 如果为UNK则表示所有状态
-	Status ActionStatusEnum `thrift:"status,4" form:"status" json:"status" query:"status"`
+	Status []ActionStatusEnum `thrift:"status,4" form:"status" json:"status" query:"status"`
 	// 分页查询，跳过多少条数据，0起
 	Skip int64 `thrift:"skip,5" form:"skip" json:"skip" query:"skip"`
 	// 分页查询，每页多少条数据
@@ -15788,7 +15788,7 @@ func (p *UserActionReq) GetEndTime() (v string) {
 	return p.EndTime
 }
 
-func (p *UserActionReq) GetStatus() (v ActionStatusEnum) {
+func (p *UserActionReq) GetStatus() (v []ActionStatusEnum) {
 	return p.Status
 }
 
@@ -15853,7 +15853,7 @@ func (p *UserActionReq) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 4:
-			if fieldTypeId == thrift.I32 {
+			if fieldTypeId == thrift.LIST {
 				if err = p.ReadField4(iprot); err != nil {
 					goto ReadFieldError
 				}
@@ -15939,12 +15939,24 @@ func (p *UserActionReq) ReadField3(iprot thrift.TProtocol) error {
 	return nil
 }
 func (p *UserActionReq) ReadField4(iprot thrift.TProtocol) error {
-
-	var _field ActionStatusEnum
-	if v, err := iprot.ReadI32(); err != nil {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
 		return err
-	} else {
-		_field = ActionStatusEnum(v)
+	}
+	_field := make([]ActionStatusEnum, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem ActionStatusEnum
+		if v, err := iprot.ReadI32(); err != nil {
+			return err
+		} else {
+			_elem = ActionStatusEnum(v)
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
 	}
 	p.Status = _field
 	return nil
@@ -16072,10 +16084,18 @@ WriteFieldEndError:
 }
 
 func (p *UserActionReq) writeField4(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("status", thrift.I32, 4); err != nil {
+	if err = oprot.WriteFieldBegin("status", thrift.LIST, 4); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+	if err := oprot.WriteListBegin(thrift.I32, len(p.Status)); err != nil {
+		return err
+	}
+	for _, v := range p.Status {
+		if err := oprot.WriteI32(int32(v)); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {

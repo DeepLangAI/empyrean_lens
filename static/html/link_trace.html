@@ -23,7 +23,8 @@
 
     <style>
         body {
-            background-color: #f0f2f5; /* 更柔和的浅灰色背景 */
+            /*background-color: #f0f2f5; !* 更柔和的浅灰色背景 *!*/
+            background-color: #ffffff; /* 更柔和的浅灰色背景 */
             color: #333; /* 深灰色文本 */
             font-family: 'Helvetica Neue', Arial, sans-serif; /* 更具吸引力的字体 */
             font-size: 14px; /* 基础字体大小 */
@@ -358,7 +359,7 @@
             left: 0;
             width: 100%;
             /*width: 800px;*/
-            height: 100%;
+            /*height: 100%;*/
             background-color: #fff;
             display: flex;
             flex-direction: column;
@@ -557,7 +558,7 @@
             letter-spacing: 0.05em;
             font-weight: 600;
             /*word-wrap: break-word; !* 允许单词折行 *!*/
-            white-space: normal; /* 允许文本换行 */
+            white-space: nowrap; /* 允许文本换行 */
             max-width: 150px; /* 设置最大宽度 */
             border-right: 1px solid #ddd; /* 添加右边框 */
         }
@@ -580,6 +581,7 @@
             font-size: 14px; /* 提高可读性 */
             color: #333; /* 现代化的深灰色字体 */
             border-right: 1px solid #ddd; /* 添加右边框 */
+            white-space: nowrap;
         }
 
         .sticky-table thead th {
@@ -686,6 +688,7 @@
         .node rect {
             stroke: #000;
             stroke-width: 1px;
+            cursor: pointer;
         }
         .node text {
             /*font: 16px sans-serif;*/
@@ -752,7 +755,7 @@
 
         .tooltip .tooltiptext {
             visibility: hidden;
-            width: 120px;
+            width: 60px;
             background-color: black;
             color: #fff;
             text-align: center;
@@ -762,7 +765,7 @@
             z-index: 5;
             bottom: 125%; /* 调整 tooltip 的位置 */
             left: 50%;
-            margin-left: -60px; /* 使 tooltip 居中 */
+            margin-left: -30px; /* 使 tooltip 居中 */
             opacity: 0;
             transition: opacity 0.3s;
             font-size: x-small;
@@ -811,27 +814,18 @@
         FAIL : 3, // 模块执行失败
         UNREACHED : 4, // 未执行
     }
-    function actionStatusEnumString(status){
-        if (status == ActionStatusEnum.SUCCESS){
-            return "成功"
-        }else if (status == ActionStatusEnum.SLOW_SUCCESS){
-            return "慢成功"
-        }else if (status == ActionStatusEnum.SLOW_FAIL){
-            return "慢失败"
-        }else if (status == ActionStatusEnum.FAIL){
-            return "失败"
-        }else if (status == ActionStatusEnum.UNREACHED){
-            return "未执行"
-        }else{
-            return "未知"
-        }
-    }
     const COLORS = {}
-    COLORS[ActionStatusEnum.SUCCESS] = '#87e578'
-    COLORS[ActionStatusEnum.SLOW_SUCCESS] = '#fff81c'
-    COLORS[ActionStatusEnum.SLOW_FAIL] = '#f17900'
-    COLORS[ActionStatusEnum.FAIL] = '#ff0404'
-    COLORS[ActionStatusEnum.UNREACHED] = '#b9b9b9'
+    // COLORS[ActionStatusEnum.SUCCESS] = '#87e578'
+    // COLORS[ActionStatusEnum.SLOW_SUCCESS] = '#fff81c'
+    // COLORS[ActionStatusEnum.SLOW_FAIL] = '#f17900'
+    // COLORS[ActionStatusEnum.FAIL] = '#ff0404'
+    // COLORS[ActionStatusEnum.UNREACHED] = '#b9b9b9'
+
+    COLORS[ActionStatusEnum.SUCCESS] = 'rgba(135, 229, 120, 0.9)'; // 80% 不透明度
+    COLORS[ActionStatusEnum.SLOW_SUCCESS] = 'rgba(255, 248, 28, 0.8)'; // 80% 不透明度
+    COLORS[ActionStatusEnum.SLOW_FAIL] = 'rgba(241, 121, 0, 0.8)'; // 80% 不透明度
+    COLORS[ActionStatusEnum.FAIL] = 'rgba(255, 4, 4, 0.8)'; // 80% 不透明度
+    COLORS[ActionStatusEnum.UNREACHED] = 'rgba(185, 185, 185, 0.6)'; // 80% 不透明度
 
     function statusToString(status){
         if (status == ActionStatusEnum.SUCCESS){
@@ -959,6 +953,10 @@
                 while (pageStack.length > index + 1) {
                     pageStack.pop().remove();
                 }
+                let $currentPage = pageStack[index];
+                $currentPage.css({
+                    'opacity': 1,
+                })
             })
         $navStatusBar.append($navBreadCrumb, $backContainer)
         $app.append($loadingContainer, $navStatusBar)
@@ -1155,12 +1153,18 @@
             $page.append($header);
             $page.append(content);
 
+            let $lastPage = pageStack[pageStack.length - 1];
+
             $app.append($page);
             pageStack.push($page);
 
             if (pageStack.length > 1) {
                 // Trigger the animation for all pages except the homepage
                 setTimeout(() => {
+                    $lastPage.css({
+                        'transition': 'transform 0.2s ease, opacity 0.2s ease', // Add transition for animation
+                        'opacity': '0' // Fade in
+                    })
                     $page.css({
                         // 'transform': 'translateX(0) scale(1)', // Move into view
                         'transition': 'transform 0.2s ease, opacity 0.2s ease', // Add transition for animation
@@ -1492,8 +1496,7 @@
             });
         }
 
-        function CreateSingleDocTraceGraphPage(entry_id, entry_type, {userId, time, isMulti, title, status}){
-            showLoadingStatus($loadingContainer)
+        function createDocHeaderWithTooltip(userId, time, isMulti, title, status){
             let $info = $('<h3>').html(`
                 <div class="tooltip">
                     ${userId}
@@ -1516,8 +1519,40 @@
                     <div class="tooltiptext">结果</div>
                 </div>
                 `).css({
-                'text-align': 'center'
+                'text-align': 'center',
+                'margin-top': '30px'
             })
+            // 给$info中的.tooltip添加点击事件
+            $info.find('.tooltip').click(function() {
+                //     复制文本到剪贴板，仅取div内的一级文本，不取内部子节点的文本
+                const text = $(this).contents().filter(function() {
+                    return this.nodeType === Node.TEXT_NODE; // 只选择文本节点
+                }).text().trim(); // 获取文本并去除多余空格
+                let title = $(this).find('.tooltiptext').text()
+
+                navigator.clipboard.writeText(text).then(function() {
+                    Swal.fire({
+                        position: "top-end",
+                        icon: "success",
+                        title: title + ' 已复制',
+                        showConfirmButton: false,
+                        timer: 1000,
+                        customClass: {
+                            popup: 'custom-popup',
+                            title: 'custom-popup-title',
+                            icon: 'custom-popup-icon',
+                        }
+                    });
+                }).catch(function(error) {
+                    console.error('Failed to copy text to clipboard:', error);
+                });
+            });
+            return $info
+        }
+
+        function CreateSingleDocTraceGraphPage(entry_id, entry_type, {userId, time, isMulti, title, status}){
+            showLoadingStatus($loadingContainer)
+            let $info = createDocHeaderWithTooltip(userId, time, isMulti, title, status)
 
             axios.get('/api/v1/link_trace/single_doc', {
                 params: {
@@ -1549,12 +1584,7 @@
         function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status}){
 
             showLoadingStatus($loadingContainer)
-
-            let $info = $('<h3>').html(
-                `${userId} ${time} ${isMulti ? '多文档': '单文档'} ${title} ${statusToString(status)}`
-            ).css({
-                'text-align': 'center'
-            })
+            let $info = createDocHeaderWithTooltip(userId, time, isMulti, title, status)
 
             axios.get('/api/v1/link_trace/multi_doc',{
                 params: {
@@ -1628,21 +1658,32 @@
                 fetchData()
             })
             let $statusSelectDropdownContents = [
+                // $('<div>').addClass('dropdown-content')
+                //     .append(
+                //         $('<div>').text('全选'),
+                //         $('<div>').text('反选'),
+                //     ),
+
                 $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + actionStatusEnumString(ActionStatusEnum.SUCCESS))
-                    .attr('status', ActionStatusEnum.SUCCESS),
+                    .text('✅ ' + statusToString(ActionStatusEnum.SUCCESS))
+                    .attr('status', ActionStatusEnum.SUCCESS)
+                    .css({'background': COLORS[ActionStatusEnum.SUCCESS]}),
                 $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + actionStatusEnumString(ActionStatusEnum.SLOW_SUCCESS))
-                    .attr('status', ActionStatusEnum.SLOW_SUCCESS),
+                    .text('✅ ' + statusToString(ActionStatusEnum.SLOW_SUCCESS))
+                    .attr('status', ActionStatusEnum.SLOW_SUCCESS)
+                    .css({'background': COLORS[ActionStatusEnum.SLOW_SUCCESS]}),
                 $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + actionStatusEnumString(ActionStatusEnum.SLOW_FAIL))
-                    .attr('status', ActionStatusEnum.SLOW_FAIL),
+                    .text('✅ ' + statusToString(ActionStatusEnum.SLOW_FAIL))
+                    .attr('status', ActionStatusEnum.SLOW_FAIL)
+                    .css({'background': COLORS[ActionStatusEnum.SLOW_FAIL]}),
                 $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + actionStatusEnumString(ActionStatusEnum.FAIL))
-                    .attr('status', ActionStatusEnum.FAIL),
+                    .text('✅ ' + statusToString(ActionStatusEnum.FAIL))
+                    .attr('status', ActionStatusEnum.FAIL)
+                    .css({'background': COLORS[ActionStatusEnum.FAIL]}),
                 $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + actionStatusEnumString(ActionStatusEnum.UNREACHED))
-                    .attr('status', ActionStatusEnum.UNREACHED),
+                    .text('✅ ' + statusToString(ActionStatusEnum.UNREACHED))
+                    .attr('status', ActionStatusEnum.UNREACHED)
+                    .css({'background': COLORS[ActionStatusEnum.UNREACHED]}),
             ]
             console.log($statusSelectDropdownContents)
             // 批量添加点击事件

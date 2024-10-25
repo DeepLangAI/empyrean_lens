@@ -528,8 +528,8 @@ var MultiWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean
 var LinkNodeTypeName = map[empyrean_lens.LinkNodeTypeEnum]string{
 	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:         "上传完成",
 	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:        "抓取完成",
-	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:      "wcd解析完成",
-	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:    "苏秦解析完成",
+	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:      "网页解析完成",
+	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:    "pdf解析完成",
 	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:     "text-parse完成",
 	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:      "edu-parse完成",
 	empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:        "概述生成",

@@ -27,6 +27,18 @@ func UserActions(ctx context.Context, c *app.RequestContext) {
 		})
 		return
 	}
+	// 未传status 返回空
+	if len(req.Status) == 0 {
+		c.JSON(consts.StatusOK, &empyrean_lens.UserActionResp{
+			Code: 0,
+			Msg:  "success",
+			Data: &empyrean_lens.UserActionRespData{
+				Rows:    []*empyrean_lens.UserActionRespRow{},
+				HasNext: false,
+			},
+		})
+		return
+	}
 	data, bizCode := link_trace.GetUserAction(ctx, req)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[GetUserAction] error: %+v", bizCode)

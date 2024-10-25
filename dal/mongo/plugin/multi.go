@@ -75,7 +75,34 @@ func (d *MultiDao) FindMultiById(ctx context.Context, id string) (*MultiModel, e
 	return res[0], nil
 }
 
-func (d *MultiDao) FindMultiByQueryAndStatusAndTimeRange(ctx context.Context, query string, status []int32, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
+func (d *MultiDao) FindMultiByQueryAndStatusAndTimeRange(ctx context.Context, query string, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
+	var res []*MultiModel
+	queryFilter := []bson.M{}
+	if query != "" {
+		_id, _ := primitive.ObjectIDFromHex(query)
+		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}})
+	}
+	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, bson.M{"$and": queryFilter}, options)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] mongo find error:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	if err = cur.All(ctx, &res); err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] mongo all error:%+v", err)
+		return nil, err
+	}
+	for i := 0; i < len(res); i++ {
+		res[i].CreateTime = res[i].CreateTime.Local()
+		res[i].UpdateTime = res[i].UpdateTime.Local()
+	}
+	return res, nil
+}
+
+func (d *MultiDao) FindFailMultiByQueryAndStatusAndTimeRange(ctx context.Context, query string, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
 	var res []*MultiModel
 	queryFilter := []bson.M{}
 	if query != "" {
@@ -84,9 +111,41 @@ func (d *MultiDao) FindMultiByQueryAndStatusAndTimeRange(ctx context.Context, qu
 	}
 	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{
-		{"analysis_status": bson.M{"$in": status}},
-		{"merge_status": bson.M{"$in": status}},
-		{"summary_status": bson.M{"$in": status}},
+		{"analysis_status": bson.M{"$in": []int{3, 4}}},
+		{"merge_status": bson.M{"$in": []int{3, 4}}},
+		{"summary_status": bson.M{"$in": []int{3, 4}}},
+	}})
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, bson.M{"$and": queryFilter}, options)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] mongo find error:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	if err = cur.All(ctx, &res); err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] mongo all error:%+v", err)
+		return nil, err
+	}
+	for i := 0; i < len(res); i++ {
+		res[i].CreateTime = res[i].CreateTime.Local()
+		res[i].UpdateTime = res[i].UpdateTime.Local()
+	}
+	return res, nil
+}
+
+func (d *MultiDao) FindSuccessMultiByQueryAndStatusAndTimeRange(ctx context.Context, query string, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
+	var res []*MultiModel
+	queryFilter := []bson.M{}
+	if query != "" {
+		_id, _ := primitive.ObjectIDFromHex(query)
+		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}})
+	}
+	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
+	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{
+		{"analysis_status": bson.M{"$in": []int{2}}},
+		{"merge_status": bson.M{"$in": []int{2}}},
+		{"summary_status": bson.M{"$in": []int{2}}},
 	}})
 	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, bson.M{"$and": queryFilter}, options)

@@ -115,7 +115,10 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 		}
 	}
 	if len(status) == 0 {
-		status = append(status, -1)
+		return &empyrean_lens.UserActionRespData{
+			HasNext: false,
+			Rows:    []*empyrean_lens.UserActionRespRow{},
+		}, nil
 	}
 	// 查询数据库
 	files, err := []*plugin.File(nil), error(nil)
@@ -155,9 +158,11 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 		}
 	}
 	if len(status) == 0 {
-		status = append(status, -1)
+		return &empyrean_lens.UserActionRespData{
+			HasNext: false,
+			Rows:    []*empyrean_lens.UserActionRespRow{},
+		}, nil
 	}
-
 	// 查询数据库
 	webReaders, err := []*plugin.WebReader(nil), error(nil)
 	if req.Query == "" {
@@ -185,27 +190,24 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 }
 
 func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
-	status := []int32{}
-	for _, v := range req.Status {
-		switch v {
-		case empyrean_lens.ActionStatusEnum_SUCCESS:
-			status = append(status, []int32{2}...)
-		case empyrean_lens.ActionStatusEnum_FAIL:
-			status = append(status, []int32{3, 4}...)
-		}
-	}
-	if len(status) == 0 {
-		status = append(status, -1)
-	}
 	// 查询数据库
 	multis, err := []*plugin.MultiModel(nil), error(nil)
-
-	multis, err = plugin.NewMultiDao().FindMultiByQueryAndStatusAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
-		return nil, &consts.QueryRecordError
+	for _, v := range req.Status {
+		multisSplit := []*plugin.MultiModel{}
+		if v == empyrean_lens.ActionStatusEnum_SUCCESS {
+			multisSplit, err = plugin.NewMultiDao().FindSuccessMultiByQueryAndStatusAndTimeRange(ctx, req.Query, begin, end, 0, req.Skip+req.Limit+1)
+		} else if v == empyrean_lens.ActionStatusEnum_FAIL {
+			multisSplit, err = plugin.NewMultiDao().FindFailMultiByQueryAndStatusAndTimeRange(ctx, req.Query, begin, end, 0, req.Skip+req.Limit+1)
+		}
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
+			return nil, &consts.QueryRecordError
+		}
+		multis = append(multis, multisSplit...)
 	}
-
+	sort.Slice(multis, func(i, j int) bool {
+		return multis[i].CreateTime.After(multis[j].CreateTime)
+	})
 	// 转换
 	multiDatas := []*empyrean_lens.UserActionRespRow{}
 	for _, multi := range multis {

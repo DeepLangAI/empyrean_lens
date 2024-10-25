@@ -83,6 +83,8 @@ func (d *MultiDao) FindMultiByQueryAndStatusAndTimeRange(ctx context.Context, qu
 		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}})
 	}
 	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
+	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_multi_id": bson.M{"$exists": false}}, {"copy_from_multi_id": ""}}})
+	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_resource_id": bson.M{"$exists": false}}, {"copy_from_resource_id": ""}}})
 	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, bson.M{"$and": queryFilter}, options)
 	if err != nil {
@@ -110,6 +112,8 @@ func (d *MultiDao) FindFailMultiByQueryAndStatusAndTimeRange(ctx context.Context
 		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}})
 	}
 	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
+	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_multi_id": bson.M{"$exists": false}}, {"copy_from_multi_id": ""}}})
+	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_resource_id": bson.M{"$exists": false}}, {"copy_from_resource_id": ""}}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{
 		{"analysis_status": bson.M{"$in": []int{3, 4}}},
 		{"merge_status": bson.M{"$in": []int{3, 4}}},
@@ -142,6 +146,8 @@ func (d *MultiDao) FindSuccessMultiByQueryAndStatusAndTimeRange(ctx context.Cont
 		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}})
 	}
 	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
+	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_multi_id": bson.M{"$exists": false}}, {"copy_from_multi_id": ""}}})
+	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_resource_id": bson.M{"$exists": false}}, {"copy_from_resource_id": ""}}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{
 		{"analysis_status": bson.M{"$in": []int{2}}},
 		{"merge_status": bson.M{"$in": []int{2}}},

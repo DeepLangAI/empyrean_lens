@@ -360,8 +360,8 @@ func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []al
 			ID:         empyrean_lens.NodeId(primitive.NewObjectID().Hex()),
 			Type:       nodeType,
 			Name:       nodeType.String(),
-			EnterTime:  enterTime.Format(consts.DateHourMinuteTemplate),
-			FinishTime: processLogs[1].Asctime.Format(consts.DateHourMinuteTemplate),
+			EnterTime:  enterTime.Format(consts.DateHourMinSecTemplate),
+			FinishTime: processLogs[1].Asctime.Format(consts.DateHourMinSecTemplate),
 			Status:     empyrean_lens.ActionStatusEnum_SUCCESS,
 			TraceID:    processLogs[0].TraceId,
 		}
@@ -371,8 +371,8 @@ func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []al
 		ID:         empyrean_lens.NodeId(primitive.NewObjectID().Hex()),
 		Type:       nodeType,
 		Name:       consts.LinkNodeTypeName[nodeType],
-		EnterTime:  enterTime.Format(consts.DateHourMinuteTemplate),
-		FinishTime: processLogs[0].Asctime.Format(consts.DateHourMinuteTemplate),
+		EnterTime:  enterTime.Format(consts.DateHourMinSecTemplate),
+		FinishTime: processLogs[0].Asctime.Format(consts.DateHourMinSecTemplate),
 		Status:     empyrean_lens.ActionStatusEnum_SUCCESS,
 		TraceID:    processLogs[0].TraceId,
 	}
@@ -410,8 +410,8 @@ func getLinkTraceCost(nodes []*empyrean_lens.GraphNode) float64 {
 			endAt = node.FinishTime
 		}
 	}
-	startAtT, _ := time.Parse(consts.DateHourMinuteTemplate, startAt)
-	endAtT, _ := time.Parse(consts.DateHourMinuteTemplate, endAt)
+	startAtT, _ := time.Parse(consts.DateHourMinSecTemplate, startAt)
+	endAtT, _ := time.Parse(consts.DateHourMinSecTemplate, endAt)
 	return endAtT.Sub(startAtT).Seconds()
 }
 

@@ -2128,7 +2128,7 @@ func SingleViewpointEndQuery(ctx context.Context, traceId string, timeBegin, tim
 
 func MultiAnalysisQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
-	query = fmt.Sprintf(query, multiID, "ANALYSIS")
+	query = fmt.Sprintf(query, multiID, "ANALYSIS_ALL")
 	hlog.CtxDebugf(ctx, "MultiThemeQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)

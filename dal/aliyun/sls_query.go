@@ -2325,7 +2325,7 @@ func SuqinOutResponseQuery(ctx context.Context, resourceId string, timeBegin, ti
 }
 
 func TextParseOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest text parse req" and "%s"`
+	query := `message: "OutRequest text_parser req" and "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "TextParseOutRequestQuery query: %s", query)
 
@@ -2343,7 +2343,7 @@ func TextParseOutRequestQuery(ctx context.Context, resourceId string, timeBegin,
 }
 
 func TextParseOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest text parse resp" and "%s"`
+	query := `message: "OutRequest text_parser resp" and "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "TextParseOutResponseQuery query: %s", query)
 

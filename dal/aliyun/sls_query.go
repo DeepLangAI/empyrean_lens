@@ -2180,9 +2180,81 @@ func MultiOutlineQuery(ctx context.Context, multiID string, timeBegin, timeEnd t
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func WcdOutRequestQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest wcd req" and "%s"`
-	query = fmt.Sprintf(query, traceID)
+func UploadOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest upload req" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "UploadOutRequestQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "UploadOutRequestQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func UploadOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest upload resp" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "UploadOutResponseQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "UploadOutResponseQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func CrawlerOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest crawler req" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "CrawlerOutRequestQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "CrawlerOutRequestQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func CrawlerOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest crawler resp" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "CrawlerOutResponseQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "CrawlerOutResponseQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func WcdOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest wcd req" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "WcdOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2198,10 +2270,10 @@ func WcdOutRequestQuery(ctx context.Context, traceID string, timeBegin, timeEnd 
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func WcdOutResponseQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest wcd resp" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "WcdOutRequestQuery query: %s", query)
+func WcdOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest wcd resp" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "WcdOutResponseQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2210,15 +2282,87 @@ func WcdOutResponseQuery(ctx context.Context, traceID string, timeBegin, timeEnd
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "WcdOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "WcdOutResponseQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func EduParserOutRequestQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest edu_parser req" and "%s"`
-	query = fmt.Sprintf(query, traceID)
+func SuqinOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest suqin req" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "SuqinOutRequestQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SuqinOutRequestQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func SuqinOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest suqin resp" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "SuqinOutResponseQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SuqinOutResponseQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func TextParseOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest text parse req" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "TextParseOutRequestQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "TextParseOutRequestQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func TextParseOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest text parse resp" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "TextParseOutResponseQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "TextParseOutResponseQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func EduParserOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest edu_parser req" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2234,9 +2378,9 @@ func EduParserOutRequestQuery(ctx context.Context, traceID string, timeBegin, ti
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func EduParserOutResponseQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest edu_parser resp" and "%s"`
-	query = fmt.Sprintf(query, traceID)
+func EduParserOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest edu_parser resp" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2252,10 +2396,10 @@ func EduParserOutResponseQuery(ctx context.Context, traceID string, timeBegin, t
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func AbstractModelOutRequestQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest abstract_model req" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func AbstractModelOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest abstract_model req" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "AbstractModelOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2264,16 +2408,16 @@ func AbstractModelOutRequestQuery(ctx context.Context, traceID string, timeBegin
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "AbstractModelOutRequestQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func AbstractModelOutResponseQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest abstract_model resp" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func AbstractModelOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest abstract_model resp" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "AbstractModelOutResponseQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2282,16 +2426,16 @@ func AbstractModelOutResponseQuery(ctx context.Context, traceID string, timeBegi
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "AbstractModelOutResponseQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func ViewPointModelOutRequestQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest viewpoint_model req" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func ViewPointModelOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest viewpoint_model req" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "ViewPointModelOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2300,16 +2444,16 @@ func ViewPointModelOutRequestQuery(ctx context.Context, traceID string, timeBegi
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "ViewPointModelOutRequestQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func ViewPointModelOutResponseQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest viewpoint_model resp" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func ViewPointModelOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest viewpoint_model resp" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "ViewPointModelOutResponseQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2318,16 +2462,16 @@ func ViewPointModelOutResponseQuery(ctx context.Context, traceID string, timeBeg
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "ViewPointModelOutResponseQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func OutlineModelOutRequestQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest outline_model req" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func OutlineModelOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest outline_model req" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "OutlineModelOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2336,16 +2480,16 @@ func OutlineModelOutRequestQuery(ctx context.Context, traceID string, timeBegin,
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "OutlineModelOutRequestQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func OutlineModelOutResponseQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest outline_model resp" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func OutlineModelOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest outline_model resp" and "%s"`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "OutlineModelOutResponseQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2354,15 +2498,15 @@ func OutlineModelOutResponseQuery(ctx context.Context, traceID string, timeBegin
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "OutlineModelOutResponseQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
-func MultiSingleAnalysisModelOutRequestQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest single_analysis req" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func MultiSingleAnalysisModelOutRequestQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest single_analysis req" and "%s"`
+	query = fmt.Sprintf(query, multiID)
+	hlog.CtxDebugf(ctx, "MultiSingleAnalysisModelOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2371,34 +2515,16 @@ func MultiSingleAnalysisModelOutRequestQuery(ctx context.Context, traceID string
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
-		return nil, err
-	}
-	return ConvertFileProcessLog(ctx, logs.Logs)
-}
-
-func MultiSingleAnalysisModelOutResponseQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest single_analysis resp" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
-
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	if err != nil {
-		return nil, err
-	}
-
-	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "MultiSingleAnalysisModelOutRequestQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func MultiThemeModelOutRequestQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest multi_theme req" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func MultiSingleAnalysisModelOutResponseQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest single_analysis resp" and "%s"`
+	query = fmt.Sprintf(query, multiID)
+	hlog.CtxDebugf(ctx, "MultiSingleAnalysisModelOutResponseQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2407,16 +2533,16 @@ func MultiThemeModelOutRequestQuery(ctx context.Context, traceID string, timeBeg
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "MultiSingleAnalysisModelOutResponseQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func MultiThemeModelOutResponseQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest multi_theme resp" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func MultiThemeModelOutRequestQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest multi_theme req" and "%s"`
+	query = fmt.Sprintf(query, multiID)
+	hlog.CtxDebugf(ctx, "MultiThemeModelOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2425,16 +2551,16 @@ func MultiThemeModelOutResponseQuery(ctx context.Context, traceID string, timeBe
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "MultiThemeModelOutRequestQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func MultiOutlineModelOutRequestQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest multi_outline req" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func MultiThemeModelOutResponseQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest multi_theme resp" and "%s"`
+	query = fmt.Sprintf(query, multiID)
+	hlog.CtxDebugf(ctx, "MultiThemeModelOutResponseQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2443,16 +2569,16 @@ func MultiOutlineModelOutRequestQuery(ctx context.Context, traceID string, timeB
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "MultiThemeModelOutResponseQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func MultiOutlineModelOutResponseQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "OutRequest multi_outline resp" and "%s"`
-	query = fmt.Sprintf(query, traceID)
-	hlog.CtxDebugf(ctx, "EduParserOutRequestQuery query: %s", query)
+func MultiOutlineModelOutRequestQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest multi_outline req" and "%s"`
+	query = fmt.Sprintf(query, multiID)
+	hlog.CtxDebugf(ctx, "MultiOutlineModelOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
@@ -2461,7 +2587,25 @@ func MultiOutlineModelOutResponseQuery(ctx context.Context, traceID string, time
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		hlog.CtxErrorf(ctx, "MultiOutlineModelOutRequestQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func MultiOutlineModelOutResponseQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest multi_outline resp" and "%s"`
+	query = fmt.Sprintf(query, multiID)
+	hlog.CtxDebugf(ctx, "MultiOutlineModelOutResponseQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiOutlineModelOutResponseQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)

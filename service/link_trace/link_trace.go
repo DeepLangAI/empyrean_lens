@@ -71,7 +71,7 @@ func FileLinkTrace(ctx context.Context, fileID string) (*empyrean_lens.DocLinkTr
 
 func WebReaderLinkTrace(ctx context.Context, webReaderID string) (*empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
 	// 获取文章详情
-	webReaderInfo, err := plugin.NewWebReaderDao().FindWebReaderById(ctx, "671651b714b85f032926d2f6")
+	webReaderInfo, err := plugin.NewWebReaderDao().FindWebReaderById(ctx, webReaderID)
 	if err != nil || webReaderInfo == nil {
 		hlog.CtxErrorf(ctx, "get web reader info failed, err: %v", err)
 		return nil, &consts.QueryRecordError

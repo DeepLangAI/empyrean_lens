@@ -330,6 +330,7 @@
             overflow: hidden;
             max-height: 4.5em; /* 假设行高为1.5em，3行就是4.5em */
             line-height: 1.5em;
+            max-width: 700px;
         }
         .log-details-body p.expanded {
             max-height: none;
@@ -800,6 +801,12 @@
 <div id="app"></div>
 
 <script>
+    const EntryTypeEnum = {
+        WEB: 7,
+        PDF: 10,
+        MULTI: 12,
+    }
+
     const ChartTypeEnum = {
         NoChart: -1,
         LineChart: 0,
@@ -1179,7 +1186,7 @@
         function buildHierarchy(graphData, rootName='用户上传') {
             const map = {};
             graphData.nodes.forEach(node => {
-                map[node.id] = { ...node, children: [] }; // 初始化每个节点
+                map[node.id] = { ...node, children: []}; // 初始化每个节点
             });
 
             const root = { name: rootName, children: [] }; // 创建一个虚拟根节点
@@ -1240,18 +1247,19 @@
                 return ans
             }
             const data = buildHierarchy(graphData, rootName);
+            console.log(graphData, data)
 
             // 设置图表尺寸
             const margin = { top: 20, right: 20, bottom: 30, left: 20 };
 
             // 计算需要的宽度，假设每个节点宽度为 50px
-            const nodeWidth = 110;
+            const nodeWidth = 210;
             const maxWidth = calculateWidth(data) + 1
             const maxDepth = calculateDepth(data)
 
             // 创建一个新的 div 作为 SVG 的容器
             let svgContainer = $('<div>').css({
-                'width': Math.max((maxWidth) * nodeWidth + margin.left + margin.right, 200), // 计算宽度
+                'width': Math.max((maxWidth) * nodeWidth + margin.left + margin.right, 400), // 计算宽度
                 'height': maxDepth * 60 + margin.top + margin.bottom, // 可以根据需要调整高度
                 'position': 'relative',
             });
@@ -1380,8 +1388,8 @@
                     d3.select(this).select("rect")
                         .style("stroke-width", 0);
                 })
-                .on('click', function (){
-                    CreateNodeApiLogsPage(-1, -1, -1)
+                .on('click', function (event, d){
+                    CreateNodeApiLogsPage(d.data.entry_id, d.data.entry_type, d.data.type)
                 });
 
 
@@ -1389,9 +1397,9 @@
             node.append("rect")
                 // .attr("width", d => Math.max((nameWidth(d.data.name)) * 12, 60))
                 .attr("width", nodeWidth + 10)
-                .attr("height", 25) // 减小高度
+                .attr("height", 35) // 减小高度
                 // .attr("x", d => -Math.max(nameWidth(d.data.name) * 12, 60) / 2)
-                .attr("x", -60)
+                .attr("x", -nodeWidth / 2 - 5)
                 .attr("y", -12.5)
                 .attr("rx", 5)
                 .style("stroke-width", 0)
@@ -1401,6 +1409,7 @@
             node.append("text")
                 .attr("dy", "0.35em")
                 .attr("text-anchor", "middle")
+                .attr("y", 5)
                 .text(d => d.data.name);
 
             // 为节点添加文本（创建时间）
@@ -1418,25 +1427,9 @@
             return svgContainer
         }
 
-        function renderNodeApiLogs(){
-            let data = {
-                'code': 0,
-                'msg': 'success',
-                'data': {
-                    'cost': 123.45,
-                    'logs': [
-                        {'path': '/api/v1/link_trace/node_logs1', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json datainput json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
-                        {'path': '/api/v1/link_trace/node_logs2', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
-                        {'path': '/api/v1/link_trace/node_logs3', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
-                        {'path': '/api/v1/link_trace/node_logs4', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
-                        {'path': '/api/v1/link_trace/node_logs5', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
-                        {'path': '/api/v1/link_trace/node_logs6', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
-                        {'path': '/api/v1/link_trace/node_logs7', 'host': 'api-repeater.lingowhale.com', 'method': 'GET', 'http_code': 200, 'biz_code': 0, 'biz_msg': 'success', 'input': 'input json data', 'output': 'output json data', 'enter_time': '2024-10-21 15:52:14', 'finish_time': '2024-10-21 15:54:14', },
-                    ]
-                }
-            }
+        function renderNodeApiLogs(data){
             let $page = $('<div>').addClass('page-body');
-            let logs = data.data.logs
+            let logs = data.logs
             let $logs = $('<div>').addClass('logs');
             for (let i = 0; i < logs.length; i++)  {
                 let log = logs[i];
@@ -1475,8 +1468,7 @@
         }
 
         function CreateNodeApiLogsPage(entry_id, entry_type, node_type){
-            renderNodeApiLogs()
-            return
+            // return
             // let loadingContainer = createLoadingContainer()
             showLoadingStatus($loadingContainer)
 
@@ -1488,6 +1480,22 @@
                 }
             }).then(response => {
                 const data = response.data.data;
+                if (data.logs.length == 0){
+                    Swal.fire({
+                        position: "top-end",
+                        icon: "error",
+                        title: '无日志',
+                        showConfirmButton: false,
+                        timer: 1000,
+                        customClass: {
+                            popup: 'custom-popup',
+                            title: 'custom-popup-title',
+                            icon: 'custom-popup-icon',
+                        }
+                    });
+                } else{
+                    renderNodeApiLogs(data)
+                }
 
             }).catch(error => {
                 console.error('Error fetching merged activity data:', error);
@@ -1566,6 +1574,10 @@
                 }
                 console.log(data)
                 let graphData = data.link_graph
+                for(let i = 0; i < graphData.nodes.length; i++){
+                    graphData.nodes[i].entry_id = data.entry_id
+                    graphData.nodes[i].entry_type = data.entry_type
+                }
 
                 let $page = $('<div>').addClass('page-body')
                 let $svgContainer = $('<div>').addClass('svg-container')
@@ -1602,12 +1614,18 @@
                 for (const article of data.articles) {
                     let articleGraph = article.graph
                     for (const node of articleGraph.nodes) {
+                        node.entry_id = article.entry_id
+                        node.entry_type = article.entry_type
                         graphData.nodes.push(node)
                     }
                     // 遍历边: map[str, list[str]]
                     Object.keys(articleGraph.edges).forEach(function (from) {
                         graphData.edges[from] = articleGraph.edges[from]
                     })
+                }
+                for (const node of data.graph.nodes){
+                    node.entry_id = entry_id
+                    node.entry_type = EntryTypeEnum.MULTI
                 }
 
                 let $page = $('<div>').addClass('page-body')

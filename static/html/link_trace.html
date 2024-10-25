@@ -787,6 +787,14 @@
             visibility: visible;
             opacity: 1;
         }
+        td.key{
+            text-align: right;
+            padding-right: 0px;
+        }
+        td.value{
+            text-align: left;
+            padding-left: 5px;
+        }
 
     </style>
 </head>
@@ -1557,10 +1565,40 @@
             });
             return $info
         }
+        function createDocHeaderWithTable(userId, time, isMulti, title, status, entry_id){
+            let $info = $('<h3>').html(`
+                <table class="table-container">
+                    <tr>
+                        <td class="key">用户id：</tdc>
+                        <td class="value">${userId}</td>
+
+                        <td class="key">时间：</td>
+                        <td class="value">${time}</td>
+
+                        <td class="key">文档类型：</td>
+                        <td class="value">${isMulti ? '多文档': '单文档'}</td>
+
+                        <td class="key">结果：</td>
+                        <td class="value">${statusToString(status)}</td>
+                    </tr>
+                    <tr>
+                        <td class="key">标题：</td>
+                        <td class="value">${title}</td>
+
+                        <td class="key">entry_id：</td>
+                        <td class="value">${entry_id}</td>
+                    </tr>
+                </table>
+                `).css({
+                'width': '80%',
+                'margin': 'auto',
+            })
+            return $info
+        }
 
         function CreateSingleDocTraceGraphPage(entry_id, entry_type, {userId, time, isMulti, title, status}){
             showLoadingStatus($loadingContainer)
-            let $info = createDocHeaderWithTooltip(userId, time, isMulti, title, status)
+            let $info = createDocHeaderWithTable(userId, time, isMulti, title, status, entry_id)
 
             axios.get('/api/v1/link_trace/single_doc', {
                 params: {
@@ -1572,7 +1610,6 @@
                 if (!checkResponse(response.data)){
                     return
                 }
-                console.log(data)
                 let graphData = data.link_graph
                 for(let i = 0; i < graphData.nodes.length; i++){
                     graphData.nodes[i].entry_id = data.entry_id
@@ -1596,7 +1633,7 @@
         function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status}){
 
             showLoadingStatus($loadingContainer)
-            let $info = createDocHeaderWithTooltip(userId, time, isMulti, title, status)
+            let $info = createDocHeaderWithTable(userId, time, isMulti, title, status, entry_id)
 
             axios.get('/api/v1/link_trace/multi_doc',{
                 params: {
@@ -1854,6 +1891,7 @@
                                     'isMulti': row.file_types.length >= 2,
                                     'title': row.title,
                                     'status': row.status,
+                                    'entry_id': row.entry_id,
                                 })
                             } else {
                                 CreateSingleDocTraceGraphPage(row.entry_id, fileTypeToEntryType(row.file_types[0]), {

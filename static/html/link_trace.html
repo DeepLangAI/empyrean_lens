@@ -12,6 +12,8 @@
     <script src="/public/js/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
 
     <script src="/public/js/sweetalert2.min.js"></script>
     <link rel="stylesheet" href="/public/css/sweetalert2.min.css">
@@ -333,7 +335,8 @@
             max-width: 700px;
         }
         .log-details-body p.expanded {
-            max-height: none;
+            max-height: 400px;
+            overflow: scroll;
         }
         .log-details-body p span {
             font-family: inherit;
@@ -809,6 +812,7 @@
 <div id="app"></div>
 
 <script>
+
     const EntryTypeEnum = {
         WEB: 7,
         PDF: 10,
@@ -1217,7 +1221,7 @@
         }
 
         // 创建树形图的函数
-        function createTreeDiagram(graphData, rootName='用户上传') {
+        function createTreeDiagram(graphData, rootName='用户上传', titles=[]) {
             function nameWidth(name){
                 if (!name){
                     return 0
@@ -1274,6 +1278,38 @@
             // 获取容器的宽高
             const width = svgContainer.width() - margin.left - margin.right;
             const height = svgContainer.height() - margin.top - margin.bottom;
+            // 放置各title，均匀分布
+            const titlesContainer = $('<div>').css({
+                'position': 'absolute',
+                'top': 0,
+                'left': 0,
+                'width': '100%',
+                'height': '100%',
+                'pointer-events': 'none',
+            });
+            for (let i = 0; i < titles.length; i++){
+                const title = $('<div>').text(titles[i]).css({
+                    'position': 'absolute',
+                    'top': margin.top + 5,
+                    'left': (i + 1) * (width) / (titles.length + 1) + margin.left,
+                    'text-align': 'center',
+                    'pointer-events': 'none',
+                    'white-space': 'nowrap',
+                    'overflow': 'hidden',
+                    'text-overflow': 'ellipsis',
+                    'font-size': '14px',
+                    'font-weight': 'bold',
+                    'color': '#333',
+                    'text-shadow': '1px 1px 1px rgba(0, 0, 0, 0.1)',
+                    'background-color': 'rgba(255, 255, 255, 0.8)',
+                    'padding': '5px',
+                    'border-radius': '5px',
+                    'transform': 'translateX(-50%)',
+                })
+                titlesContainer.append(title);
+            }
+            svgContainer.append(titlesContainer);
+
 
             // 创建SVG
             const svg = d3.select(svgContainer[0])
@@ -1376,9 +1412,16 @@
                 .attr("transform", d => `translate(${d.x},${d.y})`)
                 .on("mouseover", function(event, d) {
                     const $this = $(this)
+                    let htmlStr = `节点: ${d.data.name}`
+                    if (d.data.enter_time) {
+                        htmlStr += `<br>进入节点时间: ${d.data.enter_time}`
+                    }
+                    if (d.data.status != ActionStatusEnum.UNK && d.data.status != undefined) {
+                        htmlStr += `<br>节点状态: ${statusToString(d.data.status)}`
+                    }
 
                     tooltip.style("visibility", "visible")
-                        .html(`节点: ${d.data.name}<br>进入节点时间: ${d.data.enter_time}<br>节点状态: ${statusToString(d.data.status)}`) // 显示详细信息
+                        .html(htmlStr) // 显示详细信息
                         .style("top", (event.pageY - 10) + "px") // 设置 tooltip 的位置
                         .style("left", (event.pageX + 10) + "px");
                     // 为节点添加边框
@@ -1449,20 +1492,61 @@
                 let logDetailsBody = $('<div>').addClass('log-details-body');
                 for (var key in log){
                     const id = key +'-' + i;
+                    let value = log[key]
+                    if (!value){
+                        continue
+                    }
 
                     var span = $('<span>')
                         .addClass('expand-tip')
-                        .text('展开')
                         .click(function(e) {
                             e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
                             handleClickExpand(id)
                         })
-                    var p = $('<p>')
-                        .attr('id', id)
-                        .append($("<span>").text(key + ":"))
-                        .append(log[key])
-                    if(log[key].length >= 150){
+                    if (key == 'input' || key == 'output'){
+                        // 格式化json字符串，需要先loads再dumps
+                        try {
+                            var jsonStr = JSON.stringify(JSON.parse(value), null, 4)
+                        } catch (e) {
+                            // 分别提取出json内容和非json内容，有可能在{}中，也有可能是[]中
+                            var jsonContent = value.match(/({.*})/g)
+                            if (jsonContent){
+                                try {
+                                    var jsonStr = JSON.stringify(JSON.parse(jsonContent[0]), null, 4)
+                                } catch (e) {
+                                    var jsonStr = value
+                                }
+                            }else{
+                                jsonContent = value.match(/(\[.*\])/g)
+                                if (jsonContent){
+                                    try {
+                                        var jsonStr = JSON.stringify(JSON.parse(jsonContent[0]), null, 4)
+                                    } catch (e) {
+                                        var jsonStr = value
+                                    }
+                                }else{
+                                    var jsonStr = value
+                                }
+                            }
+                        }
+                        // 去除前后空格
+                        jsonStr = jsonStr.trim()
+
+                        var p = $('<p class="expanded">')
+                            .attr('id', id)
+                            .append($("<span>").text(key + ":"))
+                            .append($('<pre>').append($('<code class="json">').text(jsonStr)))
+                        span.text('收起')
                         p.append(span)
+                    } else{
+                        var p = $('<p>')
+                            .attr('id', id)
+                            .append($("<span>").text(key + ":"))
+                            .append(log[key])
+                        if(log[key].length >= 150){
+                            span.text('展开')
+                            p.append(span)
+                        }
                     }
 
                     logDetailsBody.append(p)
@@ -1470,6 +1554,11 @@
                 logDetails.append(logDetailsHeader, logDetailsBody)
                 logContainer.append(logId, logTime, logDetails)
                 $logs.append(logContainer)
+            }
+            const codeElement = $logs.find('code');
+            for (let i = 0; i < codeElement.length; i++){
+                let code = codeElement[i];
+                hljs.highlightBlock(code);
             }
             $page.append($logs)
             createPage("节点关键日志", $page)
@@ -1668,7 +1757,7 @@
                 let $page = $('<div>').addClass('page-body')
                 let $svgContainer = $('<div>').addClass('svg-container')
 
-                let $svg1 = createTreeDiagram(graphData)
+                let $svg1 = createTreeDiagram(graphData, '用户上传', new Array(data.articles.length).fill('title'))
                 let $svg2 = createTreeDiagram(data.graph, '预处理完成')
 
                 $svgContainer.append($svg1, $svg2)

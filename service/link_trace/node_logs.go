@@ -2,6 +2,8 @@ package link_trace
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -44,7 +46,11 @@ func FileNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyr
 		return nil, bizCode
 	}
 	// 获取日志列表
-	apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, []plugin.ArticleEntry{}, node)
+	articles := []plugin.ArticleEntry{{
+		EntryId:   req.EntryID,
+		EntryType: consts.EntryTypePDF,
+	}}
+	apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, articles, node)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
@@ -71,7 +77,11 @@ func WebReaderNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*
 		return nil, bizCode
 	}
 	// 获取日志列表
-	apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, []plugin.ArticleEntry{}, node)
+	articles := []plugin.ArticleEntry{{
+		EntryId:   req.EntryID,
+		EntryType: consts.EntryTypeWEB,
+	}}
+	apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, articles, node)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
@@ -83,7 +93,7 @@ func WebReaderNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*
 }
 
 func MultiNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyrean_lens.LinkNodeLogRespData, *consts.BizCode) {
-	// 获取文章详情
+	// 获取多文档详情
 	multiInfo, err := plugin.NewMultiDao().FindMultiById(ctx, req.EntryID)
 	if err != nil || multiInfo == nil {
 		hlog.CtxErrorf(ctx, "get multi info failed, err: %v", err)
@@ -115,17 +125,66 @@ func NodeApiLogs(ctx context.Context, resourceId string, articleList []plugin.Ar
 	end := timeAt.Add(24 * time.Hour)
 	switch node.Type {
 	case empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:
-		apiLogsInput, err := aliyun.UploadOutRequestQuery(ctx, resourceId, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
-			return nil, &consts.QueryRecordError
+		// 查数据库，伪造输入输出
+		wg := sync.WaitGroup{}
+		wg.Add(len(articleList))
+		inputListMapping, ouputListMapping := sync.Map{}, sync.Map{}
+		for idx := range articleList {
+			article := articleList[idx]
+			go func() {
+				defer wg.Done()
+				if article.EntryType == consts.EntryTypeWEB {
+					webReaderInfo, err := plugin.NewWebReaderDao().FindWebReaderById(ctx, article.EntryId)
+					if err != nil || webReaderInfo == nil {
+						hlog.CtxErrorf(ctx, "get web reader info failed, err: %v", err)
+						return
+					}
+					msg, _ := json.Marshal(webReaderInfo)
+					inputListMapping.Store(article.EntryId, []aliyun.FileProcessLog{{
+						Asctime: webReaderInfo.CreateTime,
+						Message: fmt.Sprintf("req:{\"url\": \"%s\"}", webReaderInfo.URL),
+						UserId:  webReaderInfo.UserID,
+					}})
+					ouputListMapping.Store(article.EntryId, []aliyun.FileProcessLog{{
+						Asctime: webReaderInfo.CreateTime,
+						Message: fmt.Sprintf("resp:%s", string(msg)),
+						UserId:  webReaderInfo.UserID,
+					}})
+				} else {
+					fileInfo, err := plugin.NewFileDao().FindFileById(ctx, article.EntryId)
+					if err != nil || fileInfo == nil {
+						hlog.CtxErrorf(ctx, "get file info failed, err: %v", err)
+						return
+					}
+					msg, _ := json.Marshal(fileInfo)
+					inputListMapping.Store(article.EntryId, []aliyun.FileProcessLog{{
+						Asctime: fileInfo.CreateTime,
+						Message: fmt.Sprintf("req:{\"file_name\": \"%s\"}", fileInfo.Name),
+						UserId:  fileInfo.UserID,
+					}})
+					ouputListMapping.Store(article.EntryId, []aliyun.FileProcessLog{{
+						Asctime: fileInfo.CreateTime,
+						Message: fmt.Sprintf("resp:%s", string(msg)),
+						UserId:  fileInfo.UserID,
+					}})
+				}
+			}()
 		}
-		apiLogsOuput, err := aliyun.UploadOutResponseQuery(ctx, resourceId, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
-			return nil, &consts.QueryRecordError
+		wg.Wait()
+		apiLogsInputs, apiLogsOuputs := []aliyun.FileProcessLog{}, []aliyun.FileProcessLog{}
+		for _, article := range articleList {
+			if input, ok := inputListMapping.Load(article.EntryId); ok {
+				apiLogsInputs = append(apiLogsInputs, input.([]aliyun.FileProcessLog)...)
+			} else {
+				apiLogsInputs = append(apiLogsInputs, []aliyun.FileProcessLog{}...)
+			}
+			if output, ok := ouputListMapping.Load(article.EntryId); ok {
+				apiLogsOuputs = append(apiLogsOuputs, output.([]aliyun.FileProcessLog)...)
+			} else {
+				apiLogsOuputs = append(apiLogsOuputs, []aliyun.FileProcessLog{}...)
+			}
 		}
-		return getReqAndResp(apiLogsInput, apiLogsOuput), nil
+		return getReqAndResp(apiLogsInputs, apiLogsOuputs), nil
 	case empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:
 		apiLogsInput, err := aliyun.CrawlerOutRequestQuery(ctx, resourceId, start, end)
 		if err != nil {

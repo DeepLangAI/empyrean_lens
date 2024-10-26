@@ -346,7 +346,7 @@
             max-height: 400px;
             overflow: scroll;
         }
-        .log-details-body p span {
+        .log-details-body p>span {
             font-family: inherit;
             font-weight: normal;
             background: #edeff3;
@@ -962,6 +962,47 @@
         return true
     }
 
+    function reformatJsonStr(jsonStr){
+        let jsonObj = JSON.parse(jsonStr)
+        // 如果是数组，则将数组中的每个元素都parse
+        if (Array.isArray(jsonObj)){
+            for (let i = 0; i < jsonObj.length; i++){
+                try {
+                    jsonObj[i] = JSON.parse(jsonObj[i])
+                } catch (e) {
+                    // do nothing
+                }
+            }
+        }
+        return JSON.stringify(jsonObj, null, 4)
+        try {
+            var jsonStr = JSON.stringify(JSON.parse(jsonStr), null, 4)
+        } catch (e) {
+            // 分别提取出json内容和非json内容，有可能在{}中，也有可能是[]中
+            var jsonContent = jsonStr.match(/({.*})/g)
+            if (jsonContent){
+                try {
+                    var jsonStr = JSON.stringify(JSON.parse(jsonContent[0]), null, 4)
+                } catch (e) {
+                    var jsonStr = jsonStr
+                }
+            }else{
+                jsonContent = jsonStr.match(/(\[.*\])/g)
+                if (jsonContent){
+                    try {
+                        var jsonStr = JSON.stringify(JSON.parse(jsonContent[0]), null, 4)
+                    } catch (e) {
+                        var jsonStr = jsonStr
+                    }
+                }else{
+                    var jsonStr = value
+                }
+            }
+        }
+        jsonStr = jsonStr.trim()
+        return jsonStr
+    }
+
 
     $(document).ready(function() {
         let $loadingContainer = createLoadingContainer()
@@ -1534,32 +1575,7 @@
                         })
                     if (key == 'input' || key == 'output'){
                         // 格式化json字符串，需要先loads再dumps
-                        try {
-                            var jsonStr = JSON.stringify(JSON.parse(value), null, 4)
-                        } catch (e) {
-                            // 分别提取出json内容和非json内容，有可能在{}中，也有可能是[]中
-                            var jsonContent = value.match(/({.*})/g)
-                            if (jsonContent){
-                                try {
-                                    var jsonStr = JSON.stringify(JSON.parse(jsonContent[0]), null, 4)
-                                } catch (e) {
-                                    var jsonStr = value
-                                }
-                            }else{
-                                jsonContent = value.match(/(\[.*\])/g)
-                                if (jsonContent){
-                                    try {
-                                        var jsonStr = JSON.stringify(JSON.parse(jsonContent[0]), null, 4)
-                                    } catch (e) {
-                                        var jsonStr = value
-                                    }
-                                }else{
-                                    var jsonStr = value
-                                }
-                            }
-                        }
-                        // 去除前后空格
-                        jsonStr = jsonStr.trim()
+                        let jsonStr = reformatJsonStr(value)
 
                         var p = $('<p class="expanded">')
                             .attr('id', id)

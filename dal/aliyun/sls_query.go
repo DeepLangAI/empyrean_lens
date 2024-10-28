@@ -55,8 +55,9 @@ func checkBizCodeSkip(bizCode int, host string) bool {
 		consts.HOST_LINGO_PRE_BACKEND,
 	}, host) {
 		if utils.Contains([]int{
-			21001, // 文章小于1000字，暂无法为您生成内容，再试试别的文章吧～
-			10010, // login
+			21001,  // 文章小于1000字，暂无法为您生成内容，再试试别的文章吧～
+			10010,  // login
+			140007, // 前方模型升级，请重新上传文章重试～
 		}, bizCode) {
 			return true
 		}

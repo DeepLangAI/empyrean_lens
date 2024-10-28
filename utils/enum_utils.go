@@ -32,7 +32,8 @@ func ChannelIntToString(channel int) string {
 	case empyrean_lens.ChannelType_WebLingoUrl,
 		empyrean_lens.ChannelType_WebLingoPdf,
 		empyrean_lens.ChannelType_WebLingoMulti:
-		return "灵狗web"
+		// 原本是灵狗，但由于前端传参没改回来，只能在这里改成语鲸
+		return "语鲸web"
 	}
 	return fmt.Sprintf("%v", channel)
 }

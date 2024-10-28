@@ -590,6 +590,7 @@ struct ApiLog {
     8: string output // 响应结果
     9: string enter_time // DateHourMinSecTemplate
     10: string finish_time // DateHourMinSecTemplate
+    11: string error_msg // 错误响应信息
 }
 
 service Rentention{

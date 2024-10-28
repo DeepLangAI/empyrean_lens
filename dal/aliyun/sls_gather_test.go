@@ -631,3 +631,15 @@ func TestEndToEndUserLogsQuery(t *testing.T) {
 		fmt.Println("场景：", key, "日志数：", len(groupedLogs[key]))
 	}
 }
+
+func TestTraceSingleDocument(t *testing.T) {
+	ctx := context.Background()
+	conf.TestInit()
+	Init(ctx)
+	logs, err := TraceSingleDocument(ctx, "6711ca9d3ff9fe2b21448b42", time.Now().AddDate(0, 0, -1), time.Now())
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Log(utils.JSONMarshal(logs))
+	}
+}

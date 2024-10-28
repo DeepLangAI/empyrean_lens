@@ -27,6 +27,13 @@ func Register(r *server.Hertz) {
 		{
 			_v1 := _api.Group("/v1", _v1Mw()...)
 			{
+				_link_trace := _v1.Group("/link_trace", _link_traceMw()...)
+				_link_trace.GET("/multi_doc", append(_multidoclinktraceMw(), empyrean_lens.MultiDocLinkTrace)...)
+				_link_trace.GET("/node_logs", append(_linknodelogsMw(), empyrean_lens.LinkNodeLogs)...)
+				_link_trace.GET("/single_doc", append(_doclinktraceMw(), empyrean_lens.DocLinkTrace)...)
+				_link_trace.GET("/user_actions", append(_useractionsMw(), empyrean_lens.UserActions)...)
+			}
+			{
 				_report := _v1.Group("/report", _reportMw()...)
 				_report.GET("/auth", append(_authMw(), empyrean_lens.Auth)...)
 				_report.GET("/online_operation", append(_getonlineoperationMw(), empyrean_lens.GetOnlineOperation)...)

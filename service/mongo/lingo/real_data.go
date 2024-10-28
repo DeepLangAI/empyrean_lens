@@ -1,14 +1,16 @@
 package lingo
 
 import (
-	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"context"
-	"empyrean_lens/biz/model/empyrean_lens"
-	"empyrean_lens/dal/mongo/lingo"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"os"
 	"sync"
 	"time"
+
+	"empyrean_lens/biz/model/empyrean_lens"
+	"empyrean_lens/dal/mongo/lingo"
+
+	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 const (

@@ -8,10 +8,21 @@ mongo_lingo:
   databaseName: lingo
   maxPoolSize: 1000
 
+mongo_plugin:
+  # addr: "mongodb://svr_yanxubin:9fck23!g$i7k1%40eA@10.0.6.1:27017/plugin_collection?authSource=admin&directConnection=true"
+  # databaseName: plugin_collection
+  # maxPoolSize: 1000
+  addr: "mongodb://svr_liuyong:KSsCNS0SLpHY#S9Oro@dds-8vb43194a1bfeef41943-pub.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef42299-pub.mongodb.zhangbei.rds.aliyuncs.com:3717/lingowhale_plugin?replicaSet=mgset-518525368"
+  databaseName: lingowhale_plugin
+  maxPoolSize: 1000
+
 mongo_empyreanlens:
   # 暂时先用lingo测试环境的数据库
-  addr: "mongodb://svr_yanxubin:9fck23!g$i7k1%40eA@10.0.6.1:27017/empyrean_lens?authSource=admin&directConnection=true"
-  databaseName: empyrean_lens
+  # addr: "mongodb://svr_yanxubin:9fck23!g$i7k1%40eA@10.0.6.1:27017/empyrean_lens?authSource=admin&directConnection=true"
+  # databaseName: empyrean_lens
+  # maxPoolSize: 1000
+  addr: "mongodb://svr_liuyong:KSsCNS0SLpHY#S9Oro@dds-8vb43194a1bfeef41943-pub.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef42299-pub.mongodb.zhangbei.rds.aliyuncs.com:3717/lingowhale_plugin?replicaSet=mgset-518525368"
+  databaseName: lingowhale_plugin
   maxPoolSize: 1000
 
 # 日志配置

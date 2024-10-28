@@ -797,3 +797,85 @@ func TracebackQueryOfDays(ctx context.Context, days []int) []TracebackDetail {
 	})
 	return results
 }
+
+func TraceSingleDocument(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	res, funcList := []FileProcessLog{}, []utillib.AsyncFunc{}
+	mu := &sync.Mutex{}
+	funcList = append(funcList, func() error {
+		overviewLogs, err := QuerySingleLogs(ctx, resourceId, timeBegin, timeEnd, SingleOverviewBeginQuery, SingleOverviewEndQuery)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		res = append(res, overviewLogs...)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		overviewLogs, err := QuerySingleLogs(ctx, resourceId, timeBegin, timeEnd, SingleOutlineBeginQuery, SingleOutlineEndQuery)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		res = append(res, overviewLogs...)
+		mu.Unlock()
+		return nil
+	})
+	funcList = append(funcList, func() error {
+		overviewLogs, err := QuerySingleLogs(ctx, resourceId, timeBegin, timeEnd, SingleViewpointBeginQuery, SingleViewpointEndQuery)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		res = append(res, overviewLogs...)
+		mu.Unlock()
+		return nil
+	})
+
+	errs := utillib.ParallelExec(ctx, funcList, len(funcList))
+	if len(errs) > 0 {
+		hlog.CtxErrorf(ctx, "[TraceSingleDocument] error:%+v", utils.JSONMarshal(errs))
+		return nil, errs[0]
+	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Asctime.Before(res[i].Asctime)
+	})
+	return res, nil
+}
+
+type SingleQueryFunc func(ctx context.Context, id string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error)
+
+func QuerySingleLogs(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time, beginFunc, endFunc SingleQueryFunc) ([]FileProcessLog, error) {
+	var res []FileProcessLog
+	logs, err := beginFunc(ctx, resourceId, timeBegin, timeEnd)
+	if err != nil {
+		return nil, err
+	}
+	res = append(res, logs...)
+
+	wg, logChannel, errChan := &sync.WaitGroup{}, make(chan []FileProcessLog, len(res)), make(chan error, len(res))
+	for _, log := range logs {
+		wg.Add(1)
+		go func(traceId string) {
+			defer wg.Done()
+			logs, err := endFunc(ctx, traceId, timeBegin, timeEnd)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			logChannel <- logs
+		}(log.TraceId)
+	}
+	wg.Wait()
+	close(logChannel)
+	close(errChan)
+
+	if len(errChan) > 0 {
+		return nil, <-errChan
+	}
+
+	for logs := range logChannel {
+		res = append(res, logs...)
+	}
+	return res, nil
+}

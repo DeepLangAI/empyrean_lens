@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -211,4 +212,43 @@ func Max[T Ordered](x T, y ...T) T {
 		}
 	}
 	return x
+}
+
+func GetCostFromMesage(msg string) (float64, error) {
+	// cost:0.123 seconds
+	cost, err := strconv.ParseFloat(findKeyValue(msg, "cost:"), 64)
+	if err == nil {
+		return cost, err
+	}
+
+	// cost 123 ms
+	cost, err = strconv.ParseFloat(findKeyValue(msg, "cost "), 64)
+	return cost / 1000.0, err
+}
+
+func findKeyValue(log, key string) string {
+	keyPos := strings.Index(log, key)
+	if keyPos == -1 {
+		return ""
+	}
+
+	valueStart := keyPos + len(key)
+	if valueLen := strings.Index(log[valueStart:], " "); valueLen != -1 {
+		return strings.TrimSpace(log[valueStart : valueStart+valueLen])
+	}
+
+	return strings.TrimSpace(log[valueStart:])
+}
+
+func ExtractLogInfo(log string) (time.Time, string, string, float64) {
+	parts := strings.Split(log, " ")
+
+	timestampStr := parts[0]
+	t, _ := time.Parse(time.RFC3339Nano, timestampStr)
+	t = t.Local()
+	userID := findKeyValue(log, "user_id:")
+	traceID := findKeyValue(log, "trace_id:")
+	cost, _ := strconv.ParseFloat(findKeyValue(log, "cost:"), 64)
+
+	return t, userID, traceID, cost
 }

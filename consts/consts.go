@@ -1,9 +1,13 @@
 package consts
 
-import "time"
+import (
+	"empyrean_lens/biz/model/empyrean_lens"
+	"time"
+)
 
 const (
 	BaseContainerName = "lingowhale"
+	EduContainerName  = "edu-arch"
 	BasePodName       = "lingowhale"
 	BaseHostName      = "lingowhale"
 	BaseChannelName   = "lingowhale"
@@ -18,6 +22,8 @@ const (
 	ACCESS_KEY_SECRET          = "REDACTED"
 	SECURE_TOKEN               = ""
 	ENDPOINT                   = "cn-zhangjiakou.log.aliyuncs.com"
+	FC_PROJECT_NAME            = "aliyun-fc-cn-zhangjiakou-81495289-1680-50dc-991e-3d118acdad1d"
+	FC_LOG_STORE_NAME          = "function-log"
 	PROJECT_NAME               = "k8s-log-cefd7f8df3eab44a4a8184343c914af94"
 	BUSINESS_LOG_STORE_NAME    = "business-pod"
 	NGINX_LOG_STORE_NAME       = "nginx-ingress"
@@ -370,6 +376,21 @@ const (
 	PROBE_WEIGHT = 0.4
 )
 
+// 单文档生成类型
+const (
+	GenerateTypeOverview = iota
+	GenerateTypeOutline
+	GenerateTypeViewPoint
+)
+
+const (
+	PDFSuccessStatus           = 8
+	URLSuccessStatus           = 0
+	MultiSuccessAnalysisStatus = 2
+	MultiSuccessMergeStatus    = 2
+	MultiSuccessSummaryStatus  = 2
+)
+
 const LOG_DETAIL_TEMPLATE_PATH = "templates/rentention.html"
 const REALDATA_TEMPLATE_PATH = "templates/realdata.html"
 const OVERVIEW_TEMPLATE_PATH = "templates/overview.html"
@@ -419,3 +440,102 @@ const (
 	HttpHeaderChannel    = "Channel"
 	NonLoginChannel      = "local"
 )
+
+const (
+	PDF   = "pdf"
+	URL   = "url"
+	MULTI = "multi"
+)
+
+type EntryType int64
+
+const (
+	EntryTypeWEB   = 7
+	EntryTypePDF   = 10
+	EntryTypeMulti = 12
+)
+
+const DB_NOT_FOUND_ERR = "not fountd"
+
+// 链路追踪
+var SingleFileProcessList = []empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+}
+var SingleWebReaderProcessList = []empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH,
+	//empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+}
+var MultiProcessList = []empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH,
+}
+var MultiFileProcessList = []empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
+}
+var MultiWebReaderProcessList = []empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH,
+	//empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
+	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
+}
+
+var SingleFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:      {empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:  {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:   {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
+}
+var SingleWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:  {empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH: {empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH},
+	//empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
+}
+var MultiProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH: {empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH:    {empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH},
+}
+var MultiFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:      {empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:  {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
+}
+var MultiWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
+	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:  {empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH: {empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH},
+	//empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH},
+	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
+}
+
+var LinkNodeTypeName = map[empyrean_lens.LinkNodeTypeEnum]string{
+	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:         "上传完成",
+	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:        "抓取完成",
+	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:      "网页解析完成",
+	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:    "pdf解析完成",
+	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:     "text-parse完成",
+	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:      "edu-parse完成",
+	empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:        "概述生成",
+	empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:       "关键信息生成",
+	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:        "大纲生成",
+	empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH: "单文档分析",
+	empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH:    "主题生成",
+	empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:  "大纲生成",
+}

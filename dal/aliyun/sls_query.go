@@ -2221,7 +2221,7 @@ func CrawlerOutRequestQuery(ctx context.Context, resourceId string, timeBegin, t
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerOutRequestQuery query: %s", query)
 
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetMetricStore(consts.FC_PROJECT_NAME, consts.FC_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
 	}
@@ -2239,7 +2239,7 @@ func CrawlerOutResponseQuery(ctx context.Context, resourceId string, timeBegin, 
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerOutResponseQuery query: %s", query)
 
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	logstore, err := client.GetMetricStore(consts.FC_PROJECT_NAME, consts.FC_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
 	}

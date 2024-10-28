@@ -221,6 +221,12 @@ func LinkTraceGraph(ctx context.Context, resourceId, resourceType string, start,
 			edges[node1.ID] = append(edges[node1.ID], node2.ID)
 		}
 	}
+	// 修改状态，子节点成功，父节点也要成功
+	for _, node := range nodes {
+		if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && isChildSuccess(node, nodes, edges) {
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+	}
 	return &empyrean_lens.TraceLinkGraph{
 		Nodes: nodes,
 		Edges: edges,
@@ -423,4 +429,23 @@ func makeEmptyNode(nodeType empyrean_lens.LinkNodeTypeEnum) *empyrean_lens.Graph
 		FinishTime: "",
 		Status:     empyrean_lens.ActionStatusEnum_FAIL,
 	}
+}
+
+func isChildSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNode, nodeIDMapping map[empyrean_lens.NodeId][]empyrean_lens.NodeId) bool {
+	nodeMapping := map[empyrean_lens.NodeId]*empyrean_lens.GraphNode{}
+	for _, node := range nodes {
+		nodeMapping[node.ID] = node
+	}
+	nodeIds := []empyrean_lens.NodeId{node.ID}
+	for len(nodeIds) > 0 {
+		newNodeIds := []empyrean_lens.NodeId{}
+		for _, id := range nodeIds {
+			if nodeMapping[id].Status == empyrean_lens.ActionStatusEnum_SUCCESS {
+				return true
+			}
+			newNodeIds = append(newNodeIds, nodeIDMapping[id]...)
+		}
+		nodeIds = newNodeIds
+	}
+	return false
 }

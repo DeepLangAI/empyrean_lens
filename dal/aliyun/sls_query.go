@@ -1899,7 +1899,7 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and message: "core link core_name:PDFParser, resource_id:%s" and (message: "PDF解析完成" or message : "苏秦解析完成")  | select * from log
+	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and message: "core link core_name:PDFParser, resource_id:%s" and (message: "PDF解析完成" or message : "PDF解析完成")  | select * from log
 limit %v
 	`
 	query = FormatWithTemplate(query, nil)

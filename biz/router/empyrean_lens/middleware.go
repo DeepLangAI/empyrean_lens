@@ -48,7 +48,6 @@ func CookieMiddleWare() app.HandlerFunc {
 
 		cookie := string(ctx.Request.Header.Cookie(consts.LARK_COOKIE))
 		claim, err := utils.ParseJWT(cookie, conf.GetLark().JwtSecret)
-		loginPage := "/public/index.html"
 		if err != nil {
 			hlog.CtxErrorf(c, "jwt parse error: %+v", err)
 			//ctx.String(403, "No Auth Forbidden")

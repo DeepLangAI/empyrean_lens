@@ -448,6 +448,7 @@ enum ActionStatusEnum {
     SLOW_FAIL = 2 // 模块超时失败
     FAIL = 3 // 模块执行失败
     UNREACHEAD = 4 // 未执行
+    WORTHLESS = 5 // 无意义
 }
 
 enum LinkNodeTypeEnum{

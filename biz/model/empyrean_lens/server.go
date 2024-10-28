@@ -362,6 +362,8 @@ const (
 	ActionStatusEnum_FAIL ActionStatusEnum = 3
 	// 未执行
 	ActionStatusEnum_UNREACHEAD ActionStatusEnum = 4
+	// 无意义
+	ActionStatusEnum_WORTHLESS ActionStatusEnum = 5
 )
 
 func (p ActionStatusEnum) String() string {
@@ -378,6 +380,8 @@ func (p ActionStatusEnum) String() string {
 		return "FAIL"
 	case ActionStatusEnum_UNREACHEAD:
 		return "UNREACHEAD"
+	case ActionStatusEnum_WORTHLESS:
+		return "WORTHLESS"
 	}
 	return "<UNSET>"
 }
@@ -396,6 +400,8 @@ func ActionStatusEnumFromString(s string) (ActionStatusEnum, error) {
 		return ActionStatusEnum_FAIL, nil
 	case "UNREACHEAD":
 		return ActionStatusEnum_UNREACHEAD, nil
+	case "WORTHLESS":
+		return ActionStatusEnum_WORTHLESS, nil
 	}
 	return ActionStatusEnum(0), fmt.Errorf("not a valid ActionStatusEnum string")
 }

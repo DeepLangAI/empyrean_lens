@@ -368,7 +368,7 @@ func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []al
 			Name:       nodeType.String(),
 			EnterTime:  enterTime.Format(consts.DateHourMinSecTemplate),
 			FinishTime: processLogs[1].Asctime.Format(consts.DateHourMinSecTemplate),
-			Status:     empyrean_lens.ActionStatusEnum_SUCCESS,
+			Status:     getActionStatus(nodeType, processLogs[0]),
 			TraceID:    processLogs[0].TraceId,
 		}
 	}
@@ -379,7 +379,7 @@ func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []al
 		Name:       consts.LinkNodeTypeName[nodeType],
 		EnterTime:  enterTime.Format(consts.DateHourMinSecTemplate),
 		FinishTime: processLogs[0].Asctime.Format(consts.DateHourMinSecTemplate),
-		Status:     empyrean_lens.ActionStatusEnum_SUCCESS,
+		Status:     getActionStatus(nodeType, processLogs[0]),
 		TraceID:    processLogs[0].TraceId,
 	}
 }
@@ -448,4 +448,14 @@ func isChildSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphN
 		nodeIds = newNodeIds
 	}
 	return false
+}
+
+func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLog aliyun.FileProcessLog) empyrean_lens.ActionStatusEnum {
+	switch nodeType {
+	case empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:
+		if strings.Contains(processLog.Message, "wcd text nil") || strings.Contains(processLog.Message, "wcd worthless") {
+			return empyrean_lens.ActionStatusEnum_WORTHLESS
+		}
+	}
+	return empyrean_lens.ActionStatusEnum_SUCCESS
 }

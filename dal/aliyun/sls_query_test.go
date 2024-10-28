@@ -221,65 +221,17 @@ func TestBusinessLogQueryByUserId(t *testing.T) {
 	}
 }
 
-func TestResourceUploadQuery(t *testing.T) {
+func TestNginxBizErrlogsQuery(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	Init(ctx)
-	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
-	query, _ := ResourceUploadQuery(ctx, "670e0f81d88d44e0c7f5fc62", consts.PDF, timeBegin, timeEnd)
-	t.Log(query)
-}
 
-func TestPDFParserQuery(t *testing.T) {
-	ctx := context.Background()
-	conf.InitConfig()
-	Init(ctx)
-	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
-	query, _ := PDFParserQuery(ctx, "670e0f81d88d44e0c7f5fc62", timeBegin, timeEnd)
-	t.Log(query)
-}
-
-func TestCrawlerQuery(t *testing.T) {
-	ctx := context.Background()
-	conf.InitConfig()
-	Init(ctx)
-	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
-	query, _ := CrawlerQuery(ctx, "670e0f81d88d44e0c7f5fc62", timeBegin, timeEnd)
-	t.Log(query)
-}
-
-func TestTextParseQuery(t *testing.T) {
-	ctx := context.Background()
-	conf.InitConfig()
-	Init(ctx)
-	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
-	query, _ := TextParseQuery(ctx, "6710c80febf6896c921b15c5", timeBegin, timeEnd)
-	t.Log(query)
-}
-
-func TestWcdParseQuery(t *testing.T) {
-	ctx := context.Background()
-	conf.InitConfig()
-	Init(ctx)
-	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
-	query, _ := WcdParseQuery(ctx, "6710c85bcc0b54d924a02884", timeBegin, timeEnd)
-	t.Log(query)
-}
-
-func TestEduParserQuery(t *testing.T) {
-	ctx := context.Background()
-	conf.InitConfig()
-	Init(ctx)
-	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
-	query, _ := EduParseQuery(ctx, "670e051f5784abbeec0af399", timeBegin, timeEnd)
-	t.Log(query)
-}
-
-func TestParseFinishQuery(t *testing.T) {
-	ctx := context.Background()
-	conf.InitConfig()
-	Init(ctx)
-	timeBegin, timeEnd := time.Now().AddDate(0, 0, -10), time.Now()
-	query, _ := ParseFinishQuery(ctx, "670e0f81d88d44e0c7f5fc62", timeBegin, timeEnd)
-	t.Log(query)
+	logs, err := NginxBizErrlogsQuery(ctx, "api.lingowhale.com", "/api/plugin/articles/summary", "2024-10-11")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		for i, log := range logs {
+			fmt.Println(i+1, log)
+		}
+	}
 }

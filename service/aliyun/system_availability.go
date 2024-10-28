@@ -57,7 +57,7 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]empyrean_l
 			ProbeFailRate: factor.ProbeFailRate * 100,
 			ProbeFailReq:  probeFailReqs[log.Date],
 			TotalReq:      int32(log.TotalCount),
-			FailReq:       int32(log.FailCount),
+			FailReq:       int32(log.FailCount + log.BizCodeFailCount),
 
 			Status:     consts.StatusValid,
 			CreateTime: time.Now(),
@@ -254,6 +254,7 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 			ErrCode3xxCnt: int32(report.FailStatus3xx),
 			ErrCode4xxCnt: int32(report.FailStatus4xx),
 			ErrCode5xxCnt: int32(report.FailStatus5xx),
+			BizFailCnt:    int32(report.BizCodeFailCount),
 			Status:        consts.StatusValid,
 			CreateTime:    time.Now(),
 			UpdateTime:    time.Now(),

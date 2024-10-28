@@ -1039,7 +1039,7 @@
         pushToMenu('Traceback日志列表')
         var container = $('#Traceback日志列表')
         container.show()
-        container.find('h3').remove()
+        container.empty()
         // var table = $('#Traceback日志列表-table')
         var table = $('<table>').attr('id', '#Traceback日志列表-table')
         container.append(`<h3 >
@@ -1571,11 +1571,12 @@
             return true
         }
         let failCnt = tr.find('td:nth-child(3)').text()
+        let bizFailCnt = tr.find('td:nth-child(9)').text()
         // 找到id为status-choice的div下的两个choice-btn
         let statusBtns = $('#status-choice').find('.choice-btn')
         // 判断哪个按钮被选中
         if (statusBtns.eq(0).hasClass('highlighted')){
-            return failCnt > 0
+            return failCnt > 0 || bizFailCnt > 0
         } else if (statusBtns.eq(1).hasClass('highlighted')){
             return failCnt == 0
         } else {
@@ -1736,6 +1737,7 @@
                     <th>异常码3xx数量</th>
                     <th>异常码4xx数量</th>
                     <th>异常码5xx数量</th>
+                    <th>业务码异常数量</th>
                 </tr>
             `
             table.append(rowhead);
@@ -1752,6 +1754,7 @@
                         <td>{5}</td>
                         <td>{6}</td>
                         <td>{7}</td>
+                        <td {10}>${response.data.data[i].num_biz_error_req}</td>
                     </tr>
                 `.format(
                     // response.data.data[i].date,
@@ -1759,20 +1762,27 @@
                     response.data.data[i].host,
                     response.data.data[i].num_error_req,
                     response.data.data[i].num_total_req,
-                    (response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2),
+                    (response.data.data[i].err_percent).toFixed(2),
                     response.data.data[i].num_code_3xx,
                     response.data.data[i].num_code_4xx,
                     response.data.data[i].num_code_5xx,
                     getColor((response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2)),
                     response.data.data[i].num_error_req > 0 && response.data.data[i].api_name != '当日总览'? `
                         class="clickable"
-                        onclick=handleErrorDetail('{0}','{1}','{2}')`.format(
+                        onclick=handleErrorDetail('{0}','{1}','{2}','{3}')`.format(
+                        response.data.data[i].host,
+                        response.data.data[i].api_path,
+                        date,
+                        0,
+                    ) :  '',
+                    response.data.data[i].num_biz_error_req > 0 && response.data.data[i].api_name != '当日总览'? `
+                        class="clickable"
+                        onclick=handleErrorDetail('{0}','{1}','{2}','{3}')`.format(
                             response.data.data[i].host,
                             response.data.data[i].api_path,
                             date,
-                        )
-                        :  '',
-
+                            1,
+                        ) :  '',
                     );
                 table.append(row);
                 hideLoadingStatus();
@@ -1786,13 +1796,14 @@
         })
 
     }
-    function handleErrorDetail(host, path, date){
+    function handleErrorDetail(host, path, date, codeType=0){
         showLoadingStatus()
         axios.get('/api/v1/report/fail/detail', {
             params:{
                 date_begin: date,
                 host: host,
                 path: path,
+                code_type: codeType,
             }
         }).then(response => {
             // console.log('response', response.data)
@@ -1818,6 +1829,8 @@
                     <th>trace_id</th>
                     <th>user_id</th>
                     <th>客户端IP</th>
+                    <th>业务响应码</th>
+                    <th>业务错误信息</th>
                 </tr>
             `
             table.append(rowhead);
@@ -1839,6 +1852,8 @@
                 tr.append(td)
                 tr.append($('<td>').text(response.data.data[i].user_id))
                 tr.append($('<td>').text(response.data.data[i].client_ip))
+                tr.append($('<td>').text(response.data.data[i].biz_code))
+                tr.append($('<td>').text(response.data.data[i].biz_msg))
                 table.append(tr)
             }
             setGridColor()

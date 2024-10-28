@@ -30,7 +30,6 @@ func CookieMiddleWare() app.HandlerFunc {
 			ctx.Next(c)
 			return
 		}
-
 		// 根据ip判断是否是内网访问
 		ip := ctx.ClientIP()
 		hlog.CtxInfof(c, "client ip`%v`", ip)
@@ -49,6 +48,7 @@ func CookieMiddleWare() app.HandlerFunc {
 
 		cookie := string(ctx.Request.Header.Cookie(consts.LARK_COOKIE))
 		claim, err := utils.ParseJWT(cookie, conf.GetLark().JwtSecret)
+		loginPage := "/public/index.html"
 		if err != nil {
 			hlog.CtxErrorf(c, "jwt parse error: %+v", err)
 			//ctx.String(403, "No Auth Forbidden")

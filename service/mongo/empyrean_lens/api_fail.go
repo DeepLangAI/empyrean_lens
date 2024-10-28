@@ -17,17 +17,18 @@ func ApiFailResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]aliyun.
 	for _, model := range models {
 		date := model.Date.Format("2006-01-02 15:04:05")
 		reports = append(reports, aliyun.NginxTimeSpanReportModel{
-			Date:          date,
-			HostName:      model.HostName,
-			CoreApiName:   model.ApiName,
-			CoreApiPath:   model.ApiPath,
-			FailCount:     int(model.FailCnt),
-			TotalCount:    int(model.TotalCnt),
-			FailRate:      float64(model.FailCnt) / float64(model.TotalCnt) * 100,
-			FailStatus:    "",
-			FailStatus3xx: int(model.ErrCode3xxCnt),
-			FailStatus4xx: int(model.ErrCode4xxCnt),
-			FailStatus5xx: int(model.ErrCode5xxCnt),
+			Date:             date,
+			HostName:         model.HostName,
+			CoreApiName:      model.ApiName,
+			CoreApiPath:      model.ApiPath,
+			FailCount:        int(model.FailCnt),
+			TotalCount:       int(model.TotalCnt),
+			FailRate:         float64(model.FailCnt+model.BizFailCnt) / float64(model.TotalCnt) * 100,
+			FailStatus:       "",
+			FailStatus3xx:    int(model.ErrCode3xxCnt),
+			FailStatus4xx:    int(model.ErrCode4xxCnt),
+			FailStatus5xx:    int(model.ErrCode5xxCnt),
+			BizCodeFailCount: int(model.BizFailCnt),
 		})
 	}
 	sort.Slice(reports, func(i, j int) bool {

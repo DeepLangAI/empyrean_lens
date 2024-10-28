@@ -23,6 +23,8 @@ type NginxLog struct {
 	Status   string    `json:"status"`
 	Host     string    `json:"host"`
 	Cost     float64   `json:"cost"`
+	BizCode  int64     `json:"biz_code"`
+	BizMsg   string    `json:"biz_msg"`
 }
 
 type NginxErrorLog struct {
@@ -46,6 +48,66 @@ func QueryLogsWithRetry(ctx context.Context, logstore *sls.LogStore, from, to in
 		break
 	}
 	return resp, err
+}
+
+func checkBizCodeSkip(bizCode int, host string) bool {
+	if utils.Contains([]string{
+		consts.HOST_LINGO_BACKEND,
+		consts.HOST_LINGO_PRE_BACKEND,
+	}, host) {
+		if utils.Contains([]int{
+			21001,  // 文章小于1000字，暂无法为您生成内容，再试试别的文章吧～
+			10010,  // login
+			140007, // 前方模型升级，请重新上传文章重试～
+		}, bizCode) {
+			return true
+		}
+	}
+	return false
+}
+func renameBizMessage(bizCode int, host string, msg string) string {
+	if utils.Contains([]string{
+		consts.HOST_LINGO_BACKEND,
+		consts.HOST_LINGO_PRE_BACKEND,
+	}, host) {
+		if utils.Contains([]int{190002}, bizCode) {
+			return "模型生成失败"
+		}
+
+		if utils.Contains([]int{140001}, bizCode) {
+			return "文件不存在"
+		}
+
+		if utils.Contains([]int{26000}, bizCode) {
+			return "url不合法"
+		}
+
+		if utils.Contains([]int{22000}, bizCode) {
+			return "存在安全问题，无法生成"
+		}
+		if utils.Contains([]int{20006}, bizCode) {
+			return "传入参数不符合要求"
+		}
+	}
+	return msg
+}
+
+func checkChannelLegal(host, channel string) bool {
+	shouldHaveChannel := utils.Contains([]string{
+		consts.HOST_CRAWLER, consts.HOST_WCD, consts.HOST_EDU,
+		consts.HOST_PRE_CRAWLER, consts.HOST_PRE_WCD, consts.HOST_PRE_EDU,
+	}, host)
+	if !shouldHaveChannel {
+		return true
+	}
+	// 如果channel存在，且不是目标channel，则跳过
+	if (shouldHaveChannel || !utils.Contains([]string{"-", "", "null"}, channel)) && !utils.Contains(
+		[]string{consts.BaseChannelName + "-pre", consts.BaseChannelName + "-prod"},
+		channel,
+	) {
+		return false
+	}
+	return true
 }
 
 func FormatWithTemplate(tplStr string, data map[string]string) string {
@@ -172,6 +234,7 @@ host: %v |
 SELECT  * FROM  (
   SELECT 
     REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host, http_referer, request_time cost,channel
+	,"lw-code", "lw-msg", trace_id
   FROM log WHERE method IN ('GET', 'POST')
 ) t
 WHERE clean_url IN (
@@ -195,10 +258,6 @@ LIMIT %d
 		return nil, err
 	}
 
-	shouldHaveChannel := utils.Contains([]string{
-		consts.HOST_CRAWLER, consts.HOST_WCD, consts.HOST_EDU,
-		consts.HOST_PRE_CRAWLER, consts.HOST_PRE_WCD, consts.HOST_PRE_EDU,
-	}, host)
 	hlog.CtxInfof(ctx, "日期%v，查nginxIngress，host: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), host, resp.Count)
 	nlogs := []NginxLog{}
 	for _, log := range resp.Logs {
@@ -207,11 +266,7 @@ LIMIT %d
 			continue
 		}
 		channel := log["channel"]
-		// 如果channel存在，且不是目标channel，则跳过
-		if (shouldHaveChannel || !utils.Contains([]string{"-", "", "null"}, channel)) && !utils.Contains(
-			[]string{consts.BaseChannelName + "-pre", consts.BaseChannelName + "-prod"},
-			channel,
-		) {
+		if !checkChannelLegal(host, channel) {
 			continue
 		}
 		//if host == "api-repeater.lingoreader.cn" && log["clean_url"] == "/doc/multi/outline" {
@@ -229,6 +284,20 @@ LIMIT %d
 			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
 			continue
 		}
+		bizCodeStr := log["lw-code"]
+		var bizCode int64
+		if bizCodeStr != "" && bizCodeStr != "null" && bizCodeStr != "-" {
+			bizCode, e = strconv.ParseInt(log["lw-code"], 10, 64)
+			if e != nil {
+				hlog.CtxErrorf(ctx, "parse bizCode error: %v", e)
+				continue
+			}
+			if checkBizCodeSkip(int(bizCode), host) {
+				bizCode = 0
+			}
+		}
+		bizMsg := utils.DecodeMIME(log["lw-msg"])
+		bizMsg = renameBizMessage(int(bizCode), host, bizMsg)
 		nlog := NginxLog{
 			CleanUrl: log["clean_url"],
 			Time:     t,
@@ -236,6 +305,8 @@ LIMIT %d
 			Status:   log["status"],
 			Host:     log["host"],
 			Cost:     cost,
+			BizCode:  bizCode,
+			BizMsg:   bizMsg,
 		}
 		nlogs = append(nlogs, nlog)
 	}
@@ -1023,6 +1094,100 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 
 }
 
+func NginxBizErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErrorLog, error) {
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
+
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, err
+	}
+
+	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
+	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
+	query := `
+| 
+select user_id, trace_id, time, status, host, url, request_time cost,client_ip,"lw-code", "lw-msg", channel
+from log where
+%v url = '%v' and 
+%v host = '%v' and 
+
+method in ('GET', 'POST') and
+"lw-code" != 0
+order by time desc
+limit %v
+`
+	urlMute := ""
+	if url == "" {
+		urlMute = "--"
+	}
+	hostMute := ""
+	if host == "" {
+		hostMute = "--"
+	}
+	query = fmt.Sprintf(query, urlMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "date: %v, nginx bizErrlogs query: %v", date, query)
+	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
+	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
+
+	if err != nil {
+		hlog.CtxErrorf(ctx, "NginxBizErrlogsQuery query log error: %v", err)
+		return nil, err
+	}
+
+	results := []NginxErrorLog{}
+	for _, log := range resp.Logs {
+		cost, err := strconv.ParseFloat(log["cost"], 64)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", err)
+			continue
+		}
+		t, err := time.Parse("02/Jan/2006:15:04:05", log["time"])
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+		channel := log["channel"]
+		if !checkChannelLegal(host, channel) {
+			continue
+		}
+		var bizCode int64
+		bizCodeStr := log["lw-code"]
+		if bizCodeStr != "" && bizCodeStr != "null" && bizCodeStr != "-" {
+			bizCode, err = strconv.ParseInt(log["lw-code"], 10, 64)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "parse bizCode error: %v", err)
+				continue
+			}
+			if checkBizCodeSkip(int(bizCode), host) {
+				bizCode = 0
+			}
+		}
+		if bizCode == 0 {
+			continue
+		}
+		bizMsg := utils.DecodeMIME(log["lw-msg"])
+		bizMsg = renameBizMessage(int(bizCode), host, bizMsg)
+		result := NginxErrorLog{
+			NginxLog: NginxLog{
+				CleanUrl: log["url"],
+				Time:     t,
+				Method:   log["method"],
+				Status:   log["status"],
+				Host:     log["host"],
+				Cost:     cost,
+				BizCode:  bizCode,
+				BizMsg:   bizMsg,
+			},
+			UserId:   log["user_id"],
+			TraceId:  log["trace_id"],
+			ClientIp: log["client_ip"],
+		}
+		results = append(results, result)
+	}
+	hlog.CtxDebugf(ctx, "date: %v, nginx BizErrlogs query result lenth: %v", date, len(results))
+	return results, nil
+}
+
 func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErrorLog, error) {
 	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
 
@@ -1035,7 +1200,7 @@ func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErro
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
 	query := `
 | 
-select user_id, trace_id, time, status, host, url, request_time cost,client_ip
+select user_id, trace_id, time, status, host, url, request_time cost,client_ip, channel
 from log where
 %v url = '%v' and 
 %v host = '%v' and 
@@ -1075,6 +1240,10 @@ limit %v
 			hlog.CtxErrorf(ctx, "parse time error: %v", err)
 			continue
 		}
+		channel := log["channel"]
+		if !checkChannelLegal(host, channel) {
+			continue
+		}
 		result := NginxErrorLog{
 			NginxLog: NginxLog{
 				CleanUrl: log["url"],
@@ -1104,8 +1273,6 @@ func ModelNginxErrlogsQuery(ctx context.Context, host, url, date string) ([]Ngin
 
 	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
-	//from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Unix()
-	//to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Unix()
 	query := `
 | 
 select

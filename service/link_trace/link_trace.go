@@ -425,6 +425,7 @@ func makeEmptyNode(nodeType empyrean_lens.LinkNodeTypeEnum) *empyrean_lens.Graph
 	return &empyrean_lens.GraphNode{
 		ID:         empyrean_lens.NodeId(primitive.NewObjectID().Hex()),
 		Name:       consts.LinkNodeTypeName[nodeType],
+		Type:       nodeType,
 		EnterTime:  "",
 		FinishTime: "",
 		Status:     empyrean_lens.ActionStatusEnum_UNREACHEAD,

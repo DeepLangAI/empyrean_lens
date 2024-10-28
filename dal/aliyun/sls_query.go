@@ -1832,7 +1832,14 @@ func ConvertFileProcessLog(ctx context.Context, logs []map[string]string) ([]Fil
 	for i := range logs {
 		t, _ := time.Parse(consts.DateTimeTemplate, logs[i]["asctime"])
 		if t.IsZero() {
-			t, _ = time.Parse(consts.DateTimeTemplate, logs[i]["time"])
+			if _, ok := logs[i]["time"]; ok {
+				t, _ = time.Parse(consts.DateTimeTemplate, logs[i]["time"])
+			} else if _, ok := logs[i]["__time__"]; ok {
+				ts, _ := strconv.Atoi(logs[i]["__time__"])
+				t = time.Unix(int64(ts), 0)
+			} else {
+				t = time.Now()
+			}
 		}
 
 		c, _ := utils.GetCostFromMesage(logs[i]["message"])
@@ -1892,7 +1899,7 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and message: "core link core_name:PDFParser, resource_id:%s" and (message: "PDF解析完成" or message : "苏秦解析完成")  | select * from log
+	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and message: "core link core_name:PDFParser, resource_id:%s" and (message: "PDF解析完成" or message : "PDF解析完成")  | select * from log
 limit %v
 	`
 	query = FormatWithTemplate(query, nil)
@@ -1930,7 +1937,7 @@ func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd tim
 	for i := range logs {
 		asctime, userId, traceId, cost := utils.ExtractLogInfo(logs[i]["message"])
 		res[i] = FileProcessLog{
-			Asctime: asctime,
+			Asctime: asctime.Add(time.Hour * 8),
 			UserId:  userId,
 			TraceId: traceId,
 			Cost:    cost,
@@ -2217,7 +2224,7 @@ func UploadOutResponseQuery(ctx context.Context, resourceId string, timeBegin, t
 }
 
 func CrawlerOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest crawler req" and "%s"`
+	query := `message: "OutRequest crawler req" and "%s" and not "asctime"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerOutRequestQuery query: %s", query)
 
@@ -2235,7 +2242,7 @@ func CrawlerOutRequestQuery(ctx context.Context, resourceId string, timeBegin, t
 }
 
 func CrawlerOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest crawler resp" and "%s"`
+	query := `message: "OutRequest crawler resp" and "%s" and not "asctime"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerOutResponseQuery query: %s", query)
 
@@ -2319,6 +2326,24 @@ func SuqinOutResponseQuery(ctx context.Context, resourceId string, timeBegin, ti
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "SuqinOutResponseQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func SuqinOutErrorQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `"pdf解析异常，file_id:%s" and levelname : ERROR`
+	query = fmt.Sprintf(query, traceID)
+	hlog.CtxDebugf(ctx, "SuqinOutErrorQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SuqinOutErrorQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)

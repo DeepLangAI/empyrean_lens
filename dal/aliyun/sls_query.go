@@ -2224,7 +2224,7 @@ func UploadOutResponseQuery(ctx context.Context, resourceId string, timeBegin, t
 }
 
 func CrawlerOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest crawler req" and "%s"`
+	query := `message: "OutRequest crawler req" and "%s" and not "asctime"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerOutRequestQuery query: %s", query)
 
@@ -2242,7 +2242,7 @@ func CrawlerOutRequestQuery(ctx context.Context, resourceId string, timeBegin, t
 }
 
 func CrawlerOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest crawler resp" and "%s"`
+	query := `message: "OutRequest crawler resp" and "%s" and not "asctime"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerOutResponseQuery query: %s", query)
 

@@ -851,6 +851,7 @@
         SLOW_FAIL : 2, // 模块超时失败
         FAIL : 3, // 模块执行失败
         UNREACHED : 4, // 未执行
+        WORTHLESS: 5, // 无意义
     }
     const COLORS = {}
     // COLORS[ActionStatusEnum.SUCCESS] = '#87e578'
@@ -864,6 +865,7 @@
     COLORS[ActionStatusEnum.SLOW_FAIL] = 'rgba(241, 121, 0, 0.8)'; // 80% 不透明度
     COLORS[ActionStatusEnum.FAIL] = 'rgba(255, 4, 4, 0.8)'; // 80% 不透明度
     COLORS[ActionStatusEnum.UNREACHED] = 'rgba(185, 185, 185, 0.6)'; // 80% 不透明度
+    COLORS[ActionStatusEnum.WORTHLESS] = 'rgba(43,92,255,0.8)'; // 80% 不透明度
 
     function statusToString(status){
         if (status == ActionStatusEnum.SUCCESS){
@@ -876,6 +878,8 @@
             return "失败"
         }else if (status == ActionStatusEnum.UNREACHED){
             return "未执行"
+        }else if (status == ActionStatusEnum.WORTHLESS){
+            return "无意义"
         }else{
             return "未知"
         }

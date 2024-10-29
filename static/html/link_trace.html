@@ -2109,8 +2109,12 @@
                             if (shouldAddPostfix) {
                                 text += `(${entryCnt[r.entry_type]})`
                             }
+                            let url = r.url
+                            if (r.entry_type == EntryTypeEnum.PDF){
+                                url = '/public/html/pdf_view.html?file='+url
+                            }
                             ans.push(
-                                $('<a>').attr('target', '_blank').attr('href', r.url).text(text)
+                                $('<a>').attr('target', '_blank').attr('href', url).text(text)
                             )
                         });
                         return ans

@@ -207,10 +207,23 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 	sort.Slice(multis, func(i, j int) bool {
 		return multis[i].CreateTime.After(multis[j].CreateTime)
 	})
+	// 获取文章信息
+	fileIDs, webReaderIDs := []string{}, []string{}
+	for _, multi := range multis {
+		for _, article := range multi.ArticleList {
+			if article.EntryType == consts.EntryType(empyrean_lens.EntryTypeEnum_FILE) {
+				fileIDs = append(fileIDs, string(article.EntryId))
+			} else if article.EntryType == consts.EntryType(empyrean_lens.EntryTypeEnum_WEB) {
+				webReaderIDs = append(webReaderIDs, string(article.EntryId))
+			}
+		}
+	}
+	fileMapping, _ := plugin.NewFileDao().FindFileByIds(ctx, fileIDs)
+	webReaderMapping, _ := plugin.NewWebReaderDao().FindWebReaderByIds(ctx, webReaderIDs)
 	// 转换
 	multiDatas := []*empyrean_lens.UserActionRespRow{}
 	for _, multi := range multis {
-		multiDatas = append(multiDatas, multiActionData(ctx, "多文档", multi))
+		multiDatas = append(multiDatas, multiActionData("多文档", multi, fileMapping, webReaderMapping))
 	}
 	return &empyrean_lens.UserActionRespData{
 		HasNext: len(multiDatas) >= int(req.Skip+req.Limit+1),
@@ -262,18 +275,7 @@ func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empy
 	}
 }
 
-func multiActionData(ctx context.Context, actionName string, multiModel *plugin.MultiModel) *empyrean_lens.UserActionRespRow {
-	// 获取文章信息
-	fileIDs, webReaderIDs := []string{}, []string{}
-	for _, article := range multiModel.ArticleList {
-		if article.EntryType == consts.EntryType(empyrean_lens.EntryTypeEnum_FILE) {
-			fileIDs = append(fileIDs, string(article.EntryId))
-		} else if article.EntryType == consts.EntryType(empyrean_lens.EntryTypeEnum_WEB) {
-			webReaderIDs = append(webReaderIDs, string(article.EntryId))
-		}
-	}
-	fileMapping, _ := plugin.NewFileDao().FindFileByIds(ctx, fileIDs)
-	webReaderMapping, _ := plugin.NewWebReaderDao().FindWebReaderByIds(ctx, webReaderIDs)
+func multiActionData(actionName string, multiModel *plugin.MultiModel, fileMapping map[string]*plugin.File, webReaderMapping map[string]*plugin.WebReader) *empyrean_lens.UserActionRespRow {
 	resources := make([]*empyrean_lens.ResourceInfo, 0)
 	for _, article := range multiModel.ArticleList {
 		if article.EntryType == consts.EntryType(empyrean_lens.EntryTypeEnum_FILE) {

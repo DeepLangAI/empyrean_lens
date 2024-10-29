@@ -62,6 +62,10 @@
             text-align: center; /* 单元格内容居中对齐 */
             font-size: 12px; /* 调整字体大小 */
         }
+        td>a{
+            margin-left: 5px;
+            margin-right: 5px;
+        }
 
         th {
             background-color: #f2f2f2; /* 表头背景颜色 */
@@ -1133,7 +1137,15 @@
             data.forEach(row => {
                 const $row = $('<tr>');
                 columns.forEach((column, index) => {
-                    const $td = $('<td>').text(column.value(row));
+                    let value = column.value(row);
+                    // 如果value是字符串或数字，则直接使用
+                    let $td = $('<td>');
+                    if (typeof value === 'string' || typeof value === 'number') {
+                        $td = $('<td>').text(column.value(row));
+                    } else{
+                        $td = $('<td>').append(value);
+                    }
+
                     if (index === 0) {
                         $td.addClass('sticky-column');
                     }
@@ -2051,7 +2063,22 @@
                     { header: '产品端', value: row => row.channel},
                     { header: '行为', value: row => row.action_name},
                     { header: '标题', value: row => row.title},
-                    { header: '数据类型', value: row => row.file_types},
+                    { header: '数据类型', value: row => {
+                        let ans = [];
+                        let numPdf = 0;
+                        let numUrl = 0;
+                        row.resources.forEach(r => {
+                            if (r.entry_type == EntryTypeEnum.PDF){
+                                numPdf += 1
+                            } else if (r.entry_type == EntryTypeEnum.WEB){
+                                numUrl += 1
+                            }
+                            ans.push(
+                                $('<a>').attr('target', '_blank').attr('href', r.url).text(entryTypeToString(r.entry_type))
+                            )
+                        });
+                        return ans
+                    }},
                     { header: '耗时（秒）', value: row => row.cost},
                     { header: '结果', value: row => statusToString(row.status),
                         clickable: row=>true, click: row=> {

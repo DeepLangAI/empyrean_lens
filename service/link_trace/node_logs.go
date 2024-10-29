@@ -19,6 +19,11 @@ import (
 )
 
 func NodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyrean_lens.LinkNodeLogRespData, *consts.BizCode) {
+	// 由于网页链路中，wcd目前入参并没有entry_id，所以无法查到text-parser日志。
+	// 当entry_type为web时，node_type为text-parser时，将node_type改为wcd-parser，以便查询到日志
+	if req.EntryType == consts.EntryTypeWEB && req.NodeType == empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH {
+		req.NodeType = empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH
+	}
 	switch req.EntryType {
 	case empyrean_lens.EntryTypeEnum_FILE:
 		return FileNodeLogs(ctx, req)

@@ -245,6 +245,7 @@ func ExtractLogInfo(log string) (time.Time, string, string, float64) {
 
 	timestampStr := parts[0]
 	t, _ := time.Parse(time.RFC3339Nano, timestampStr)
+	t = t.Local()
 	userID := findKeyValue(log, "user_id:")
 	traceID := findKeyValue(log, "trace_id:")
 	cost, _ := strconv.ParseFloat(findKeyValue(log, "cost:"), 64)

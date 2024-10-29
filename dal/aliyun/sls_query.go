@@ -1937,7 +1937,7 @@ func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd tim
 	for i := range logs {
 		asctime, userId, traceId, cost := utils.ExtractLogInfo(logs[i]["message"])
 		res[i] = FileProcessLog{
-			Asctime: asctime.Add(time.Hour * 8),
+			Asctime: asctime,
 			UserId:  userId,
 			TraceId: traceId,
 			Cost:    cost,

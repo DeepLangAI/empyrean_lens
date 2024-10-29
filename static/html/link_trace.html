@@ -371,7 +371,8 @@
             left: 0;
             width: 100%;
             /*width: 800px;*/
-            /*height: 100%;*/
+            height: 90vh;
+            overflow: scroll;
             background-color: #fff;
             display: flex;
             flex-direction: column;
@@ -1007,6 +1008,20 @@
         return jsonStr
     }
 
+    function duration(start, end){
+        // start: 2024-10-28 20:29:18
+        // end: 2024-10-28 20:29:19
+        // 计算时间差，单位为秒
+        var start = new Date(start);
+        var end = new Date(end);
+        var duration = (end - start);
+        if (duration >= 1000) {
+            return (duration/1000).toFixed() + '秒'
+        }
+        return duration.toFixed() + '毫秒'
+    }
+
+
 
     $(document).ready(function() {
         let $loadingContainer = createLoadingContainer()
@@ -1480,6 +1495,11 @@
                     if (d.data.enter_time) {
                         htmlStr += `<br>进入节点时间: ${d.data.enter_time}`
                     }
+                    if (d.data.finish_time) {
+                        htmlStr += `<br>处理耗时: ${duration(
+                            d.data.enter_time, d.data.finish_time
+                        )}`
+                    }
                     if (d.data.status != ActionStatusEnum.UNK && d.data.status != undefined) {
                         htmlStr += `<br>节点状态: ${statusToString(d.data.status)}`
                     }
@@ -1533,7 +1553,7 @@
                 .attr("text-anchor", "end") // 右对齐
                 // .attr("x", d => -(nameWidth(d.data.name)) * 12) // 左侧偏移
                 .attr("y", -20)
-                .text(d => (d.data.enter_time || "").slice(10)); // 显示 create_time 字段
+                .text(d => (d.data.finish_time || "").slice(10)); // 显示 create_time 字段
 
             node.select("rect")
                 .attr("fill", (d, i) => {
@@ -1845,7 +1865,7 @@
             let currentPage = 0;
             let hasMoreData = true;
 
-            const pageSize = 10;
+            const pageSize = 100;
 
             let $page = $('<div>').addClass('page-body')
             let $table = $('<div>');

@@ -252,3 +252,7 @@ func ExtractLogInfo(log string) (time.Time, string, string, float64) {
 
 	return t, userID, traceID, cost
 }
+
+func IsProbe(host string) bool {
+	return host == "47.92.241.26" || host == "47.92.55.166"
+}

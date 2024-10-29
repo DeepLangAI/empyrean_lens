@@ -2499,7 +2499,7 @@ func SuqinOutResponseQuery(ctx context.Context, resourceId string, timeBegin, ti
 }
 
 func SuqinOutErrorQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `"pdf解析异常，file_id:%s" and levelname : ERROR`
+	query := `message: "%s" and levelname : ERROR and (message: "pdf解析异常，file_id" or message: "苏秦解析异常，file_id")`
 	query = fmt.Sprintf(query, traceID)
 	hlog.CtxDebugf(ctx, "SuqinOutErrorQuery query: %s", query)
 

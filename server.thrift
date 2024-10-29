@@ -77,6 +77,7 @@ struct ApiFailureInfoRespData{
     8: i32 num_code_4xx
     9: i32 num_code_5xx
     10: string api_path
+    11: i32 num_biz_error_req
 }
 
 # API错误详情
@@ -85,6 +86,7 @@ struct DailyApiFailureDetailReq{
     2: string date_end
     3: string host
     4: string path
+    5: i32 code_type // 按nginx日志(0)，还是按业务错误码(1)
 }
 
 struct ApiFailureDetailResp{
@@ -102,6 +104,8 @@ struct ApiFailureDetailRespData{
     6: string user_id
     7: string trace_id
     8: string client_ip
+    9: i32 biz_code
+    10: string biz_msg
 }
 
 # 慢查询相关信息

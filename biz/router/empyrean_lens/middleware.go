@@ -30,7 +30,6 @@ func CookieMiddleWare() app.HandlerFunc {
 			ctx.Next(c)
 			return
 		}
-
 		// 根据ip判断是否是内网访问
 		ip := ctx.ClientIP()
 		hlog.CtxInfof(c, "client ip`%v`", ip)

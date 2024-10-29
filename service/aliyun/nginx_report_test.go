@@ -30,6 +30,25 @@ func TestNginxTimeSpanReport(t *testing.T) {
 	}
 }
 
+func TestNginxApiFailureDetail_BusinessBizError(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	dal.Init()
+	req := empyrean_lens.DailyApiFailureDetailReq{}
+	req.DateBegin = "2024-09-26"
+	req.Host = "api.lingowhale.com"
+	req.Path = "/api/plugin/articles/summary"
+	req.CodeType = consts.ErrorCodeTypeBusiness
+	data, err := NginxApiFailureDetail(ctx, req)
+	if err != nil {
+		t.Error(err)
+	}
+	for _, r := range data {
+		fmt.Println(r)
+	}
+
+}
+
 func TestNginxApiFailureDetail_Business(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()

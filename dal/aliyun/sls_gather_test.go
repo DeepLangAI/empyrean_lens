@@ -161,18 +161,18 @@ func TestStatusCodeUpdate(t *testing.T) {
 func TestNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_PRE_REPEATER)
+	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_LINGO_BACKEND)
 	if err != nil {
 		t.Error(err)
 	} else {
 		cnt := 0
 		for _, log := range logs {
-			fmt.Println(cnt, log)
-			cnt += 1
-			//if log.CleanUrl == "/api/plugin/articles/summary" {
-			//	cnt += 1
-			//	fmt.Println(cnt, log)
-			//}
+			//fmt.Println(cnt, log)
+			//cnt += 1
+			if log.BizCode != 0 {
+				cnt += 1
+				fmt.Println(cnt, log)
+			}
 		}
 	}
 }

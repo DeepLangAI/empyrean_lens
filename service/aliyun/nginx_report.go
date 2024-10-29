@@ -16,17 +16,18 @@ import (
 )
 
 type NginxTimeSpanReportModel struct {
-	Date          string
-	HostName      string
-	CoreApiName   string
-	CoreApiPath   string
-	FailCount     int
-	TotalCount    int
-	FailRate      float64
-	FailStatus    string
-	FailStatus3xx int
-	FailStatus4xx int
-	FailStatus5xx int
+	Date             string
+	HostName         string
+	CoreApiName      string
+	CoreApiPath      string
+	FailCount        int
+	TotalCount       int
+	FailRate         float64
+	FailStatus       string
+	FailStatus3xx    int
+	FailStatus4xx    int
+	FailStatus5xx    int
+	BizCodeFailCount int
 }
 
 func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanReportModel, error) {
@@ -86,8 +87,11 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 				apiReport.FailStatus = strings.Join(codes, ",")
 				apiReport.FailStatus = strings.TrimLeft(apiReport.FailStatus, ",")
 			}
+		} else if log.BizCode != 0 {
+			apiReport.BizCodeFailCount += 1
 		}
-		apiReport.FailRate = float64(apiReport.FailCount) / float64(apiReport.TotalCount) * 100
+		// 计算失败率，失败数/总请求数，其中bizcode失败也算失败
+		apiReport.FailRate = float64(apiReport.FailCount+apiReport.BizCodeFailCount) / float64(apiReport.TotalCount) * 100
 		timespanReports[key] = apiReport
 	}
 	finalReports := []NginxTimeSpanReportModel{}
@@ -104,10 +108,11 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 		daySumReport.CoreApiName = "当日总览"
 		daySumReport.FailCount += report.FailCount
 		daySumReport.TotalCount += report.TotalCount
-		daySumReport.FailRate = float64(daySumReport.FailCount) / float64(daySumReport.TotalCount) * 100
 		daySumReport.FailStatus3xx += report.FailStatus3xx
 		daySumReport.FailStatus4xx += report.FailStatus4xx
 		daySumReport.FailStatus5xx += report.FailStatus5xx
+		daySumReport.BizCodeFailCount += report.BizCodeFailCount
+		daySumReport.FailRate = float64(daySumReport.FailCount+daySumReport.BizCodeFailCount) / float64(daySumReport.TotalCount) * 100
 		daySumReports[report.Date] = daySumReport
 	}
 	// finalReports按照Date字段降续排序
@@ -131,7 +136,13 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 }
 
 func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailureDetailReq) ([]*empyrean_lens.ApiFailureDetailRespData, error) {
-	api, err := aliyun.NginxErrorLogsOfAPI(ctx, req.Host, req.Path, req.DateBegin)
+	var err error
+	var api []aliyun.NginxErrorLog
+	if req.CodeType == consts.ErrorCodeTypeNginx {
+		api, err = aliyun.NginxErrorLogsOfAPI(ctx, req.Host, req.Path, req.DateBegin)
+	} else if req.CodeType == consts.ErrorCodeTypeBusiness {
+		api, err = aliyun.NginxBizErrorLogsOfAPI(ctx, req.Host, req.Path, req.DateBegin)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +157,8 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 			UserID:   log.UserId,
 			TraceID:  log.TraceId,
 			ClientIP: log.ClientIp,
+			BizCode:  int32(log.BizCode),
+			BizMsg:   log.BizMsg,
 		})
 	}
 	return data, nil
@@ -457,7 +470,9 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 					trendItems[i].ReqCount = 0
 				}
 			}
-			trendItems[0].ReqCount = 0
+			if len(trendItems) > 0 {
+				trendItems[0].ReqCount = 0
+			}
 
 			if daysLookback == 0 {
 				data.Data0 = trendItems

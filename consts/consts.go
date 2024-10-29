@@ -425,6 +425,9 @@ const (
 	StatusUnk             = 0
 	StatusSuccess         = 1
 	LOG_QUERY_RETRY_TIMES = 3
+
+	ErrorCodeTypeNginx    = 0
+	ErrorCodeTypeBusiness = 1
 )
 
 const (

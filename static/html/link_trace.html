@@ -2037,6 +2037,26 @@
                 ),
                 $submitBtn,
             )
+            function handleClickActionStatus(row){
+                if (row.resources.length >= 2) {
+                    CreateMultiDocTraceGraphPage(row.entry_id,{
+                        'userId': row.user_id,
+                        'time': row.create_time,
+                        'isMulti': row.resources.length >= 2,
+                        'title': row.title,
+                        'status': row.status,
+                        'entry_id': row.entry_id,
+                    })
+                } else {
+                    CreateSingleDocTraceGraphPage(row.entry_id, row.entry_type, {
+                        'userId': row.user_id,
+                        'time': row.create_time,
+                        'isMulti': row.resources.length >= 2,
+                        'title': row.title,
+                        'status': row.status,
+                    })
+                }
+            }
             function createPagination() {
                 const $prevButton = $('<div>')
                     .addClass('next-button')
@@ -2065,7 +2085,15 @@
 
             function updateTable(data) {
                 const columns = [
-                    { header: '序号', value: row => row.index },
+                    { header: '序号', value: row => row.index,
+                        clickable: row=>true, click: row=> {
+                            handleClickActionStatus(row)
+                        },
+                        style: row=>{
+                            return{
+                                "background-color": COLORS[row.status]
+                            }
+                        }},
                     { header: '用户id', value: row => row.user_id },
                     { header: '时间', value: row => row.create_time},
                     { header: '产品端', value: row => row.channel},
@@ -2090,24 +2118,7 @@
                     { header: '耗时（秒）', value: row => row.cost},
                     { header: '结果', value: row => statusToString(row.status),
                         clickable: row=>true, click: row=> {
-                            if (row.resources.length >= 2) {
-                                CreateMultiDocTraceGraphPage(row.entry_id,{
-                                    'userId': row.user_id,
-                                    'time': row.create_time,
-                                    'isMulti': row.resources.length >= 2,
-                                    'title': row.title,
-                                    'status': row.status,
-                                    'entry_id': row.entry_id,
-                                })
-                            } else {
-                                CreateSingleDocTraceGraphPage(row.entry_id, row.entry_type, {
-                                    'userId': row.user_id,
-                                    'time': row.create_time,
-                                    'isMulti': row.resources.length >= 2,
-                                    'title': row.title,
-                                    'status': row.status,
-                                })
-                            }
+                            handleClickActionStatus(row)
                         }, style: row => {
                             return {
                                 'background-color': COLORS[row.status] || '#fff',

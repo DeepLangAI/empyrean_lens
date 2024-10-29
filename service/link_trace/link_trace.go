@@ -222,9 +222,14 @@ func LinkTraceGraph(ctx context.Context, resourceId, resourceType string, start,
 		}
 	}
 	// 修改状态，子节点成功，父节点也要成功
-	for _, node := range nodes {
-		if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && isChildSuccess(node, nodes, edges) {
-			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+	for _, pracessType := range pracessList {
+		if node, ok := nodeMappingNew[pracessType]; ok && node != nil {
+			if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && isChildSuccess(node, nodes, edges) {
+				node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+			if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD && isFatherSuccess(node, nodes, edges) && isChildAllUnReachead(node, nodes, edges) {
+				node.Status = empyrean_lens.ActionStatusEnum_FAIL
+			}
 		}
 	}
 	return &empyrean_lens.TraceLinkGraph{
@@ -432,16 +437,35 @@ func makeEmptyNode(nodeType empyrean_lens.LinkNodeTypeEnum) *empyrean_lens.Graph
 	}
 }
 
-func isChildSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNode, nodeIDMapping map[empyrean_lens.NodeId][]empyrean_lens.NodeId) bool {
+func isFatherSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNode, nodeIDMapping map[empyrean_lens.NodeId][]empyrean_lens.NodeId) bool {
 	nodeMapping := map[empyrean_lens.NodeId]*empyrean_lens.GraphNode{}
 	for _, node := range nodes {
 		nodeMapping[node.ID] = node
 	}
-	nodeIds := []empyrean_lens.NodeId{node.ID}
+	for fID, ids := range nodeIDMapping {
+		for _, id := range ids {
+			if id == node.ID && nodeMapping[fID].Status == empyrean_lens.ActionStatusEnum_SUCCESS {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isChildSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNode, nodeIDMapping map[empyrean_lens.NodeId][]empyrean_lens.NodeId) bool {
+	if _, ok := nodeIDMapping[node.ID]; !ok {
+		return false
+	}
+	nodeMapping := map[empyrean_lens.NodeId]*empyrean_lens.GraphNode{}
+	for _, node := range nodes {
+		nodeMapping[node.ID] = node
+	}
+	// 广度优先遍历
+	nodeIds := nodeIDMapping[node.ID]
 	for len(nodeIds) > 0 {
 		newNodeIds := []empyrean_lens.NodeId{}
 		for _, id := range nodeIds {
-			if nodeMapping[id].Status == empyrean_lens.ActionStatusEnum_SUCCESS {
+			if nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_FAIL && nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_UNREACHEAD {
 				return true
 			}
 			newNodeIds = append(newNodeIds, nodeIDMapping[id]...)
@@ -449,6 +473,29 @@ func isChildSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphN
 		nodeIds = newNodeIds
 	}
 	return false
+}
+
+func isChildAllUnReachead(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNode, nodeIDMapping map[empyrean_lens.NodeId][]empyrean_lens.NodeId) bool {
+	if _, ok := nodeIDMapping[node.ID]; !ok {
+		return false
+	}
+	nodeMapping := map[empyrean_lens.NodeId]*empyrean_lens.GraphNode{}
+	for _, node := range nodes {
+		nodeMapping[node.ID] = node
+	}
+	// 广度优先遍历
+	nodeIds := nodeIDMapping[node.ID]
+	for len(nodeIds) > 0 {
+		newNodeIds := []empyrean_lens.NodeId{}
+		for _, id := range nodeIds {
+			if nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_UNREACHEAD {
+				return false
+			}
+			newNodeIds = append(newNodeIds, nodeIDMapping[id]...)
+		}
+		nodeIds = newNodeIds
+	}
+	return true
 }
 
 func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLog aliyun.FileProcessLog) empyrean_lens.ActionStatusEnum {

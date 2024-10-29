@@ -80,7 +80,7 @@ func (d *MultiDao) FindMultiByQueryAndStatusAndTimeRange(ctx context.Context, qu
 	queryFilter := []bson.M{}
 	if query != "" {
 		_id, _ := primitive.ObjectIDFromHex(query)
-		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}})
+		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"article_list.entry_id": query}, {"_id": _id}}})
 	}
 	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_multi_id": bson.M{"$exists": false}}, {"copy_from_multi_id": ""}}})
@@ -109,7 +109,7 @@ func (d *MultiDao) FindFailMultiByQueryAndStatusAndTimeRange(ctx context.Context
 	queryFilter := []bson.M{}
 	if query != "" {
 		_id, _ := primitive.ObjectIDFromHex(query)
-		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}})
+		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"article_list.entry_id": query}, {"_id": _id}}})
 	}
 	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_multi_id": bson.M{"$exists": false}}, {"copy_from_multi_id": ""}}})
@@ -143,7 +143,7 @@ func (d *MultiDao) FindSuccessMultiByQueryAndStatusAndTimeRange(ctx context.Cont
 	queryFilter := []bson.M{}
 	if query != "" {
 		_id, _ := primitive.ObjectIDFromHex(query)
-		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}})
+		queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"article_list.entry_id": query}, {"_id": _id}}})
 	}
 	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_multi_id": bson.M{"$exists": false}}, {"copy_from_multi_id": ""}}})

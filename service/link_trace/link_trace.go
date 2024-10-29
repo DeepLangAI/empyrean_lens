@@ -286,7 +286,7 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			return processLogsToNode(processType, processLogs), nil
 		}
 		return processLogsToNode(processType, []aliyun.FileProcessLog{}), nil
-	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:
+	case empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:
 		processLogs1, err := aliyun.SingleViewpointBeginQuery(ctx, resourceId, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[SingleViewpointBeginQuery] get process logs failed, err: %v", err)
@@ -301,7 +301,7 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			return processLogsToNode(processType, append(processLogs1, processLogs2...)), nil
 		}
 		return processLogsToNode(processType, []aliyun.FileProcessLog{}), nil
-	case empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:
+	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:
 		processLogs1, err := aliyun.SingleOverviewBeginQuery(ctx, resourceId, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[SingleOverviewBeginQuery] get process logs failed, err: %v", err)

@@ -1921,7 +1921,7 @@ func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd tim
 	}
 
 	query := `
-	serviceName:lingowhale_fc AND (functionName:web_url_parser_pre or functionName:web_url_parser_prod) and message: %s and not funcName
+	serviceName:lingowhale_fc AND (functionName:web_url_parser_pre or functionName:web_url_parser_prod) and message: %s and 爬取成功 and not funcName
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerQuery query: %s", query)

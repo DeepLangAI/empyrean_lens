@@ -2,7 +2,6 @@ package link_trace
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -211,7 +210,7 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 	// 转换
 	multiDatas := []*empyrean_lens.UserActionRespRow{}
 	for _, multi := range multis {
-		multiDatas = append(multiDatas, multiActionData("多文档", multi))
+		multiDatas = append(multiDatas, multiActionData(ctx, "多文档", multi))
 	}
 	return &empyrean_lens.UserActionRespData{
 		HasNext: len(multiDatas) >= int(req.Skip+req.Limit+1),
@@ -225,7 +224,14 @@ func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserA
 		Channel:    utils.ChannelIntToString(file.ChannelType),
 		Title:      file.Name,
 		ActionName: actionName,
-		FileTypes:  []string{consts.PDF},
+		Resources: []*empyrean_lens.ResourceInfo{
+			{
+				EntryID:   file.ID.Hex(),
+				EntryType: empyrean_lens.EntryTypeEnum_FILE,
+				Title:     file.Name,
+				URL:       file.FileURL,
+			},
+		},
 		CreateTime: file.CreateTime.Format(consts.DateHourMinSecTemplate),
 		Cost:       0, // todo
 		Status:     actionStatus(consts.PDF, file.Status, 0, 0, 0),
@@ -240,7 +246,14 @@ func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empy
 		Channel:    utils.ChannelIntToString(webReader.ChannelType),
 		Title:      webReader.Title,
 		ActionName: actionName,
-		FileTypes:  []string{consts.URL},
+		Resources: []*empyrean_lens.ResourceInfo{
+			{
+				EntryID:   webReader.ID.Hex(),
+				EntryType: empyrean_lens.EntryTypeEnum_WEB,
+				Title:     webReader.Title,
+				URL:       webReader.URL,
+			},
+		},
 		CreateTime: webReader.CreateTime.Format(consts.DateHourMinSecTemplate),
 		Cost:       0, // todo
 		Status:     actionStatus(consts.URL, webReader.Status, 0, 0, 0),
@@ -249,15 +262,38 @@ func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empy
 	}
 }
 
-func multiActionData(actionName string, multiModel *plugin.MultiModel) *empyrean_lens.UserActionRespRow {
-	fileTypes, pdfNum, urlNum := make([]string, 0), 1, 1
+func multiActionData(ctx context.Context, actionName string, multiModel *plugin.MultiModel) *empyrean_lens.UserActionRespRow {
+	// 获取文章信息
+	fileIDs, webReaderIDs := []string{}, []string{}
 	for _, article := range multiModel.ArticleList {
 		if article.EntryType == consts.EntryType(empyrean_lens.EntryTypeEnum_FILE) {
-			fileTypes = append(fileTypes, fmt.Sprintf("%s%d", "pdf", pdfNum))
-			pdfNum++
+			fileIDs = append(fileIDs, string(article.EntryId))
 		} else if article.EntryType == consts.EntryType(empyrean_lens.EntryTypeEnum_WEB) {
-			fileTypes = append(fileTypes, fmt.Sprintf("%s%d", "url", urlNum))
-			urlNum++
+			webReaderIDs = append(webReaderIDs, string(article.EntryId))
+		}
+	}
+	fileMapping, _ := plugin.NewFileDao().FindFileByIds(ctx, fileIDs)
+	webReaderMapping, _ := plugin.NewWebReaderDao().FindWebReaderByIds(ctx, webReaderIDs)
+	resources := make([]*empyrean_lens.ResourceInfo, 0)
+	for _, article := range multiModel.ArticleList {
+		if article.EntryType == consts.EntryType(empyrean_lens.EntryTypeEnum_FILE) {
+			if file, ok := fileMapping[string(article.EntryId)]; ok {
+				resources = append(resources, &empyrean_lens.ResourceInfo{
+					EntryID:   article.EntryId,
+					EntryType: empyrean_lens.EntryTypeEnum_FILE,
+					Title:     file.Name,
+					URL:       file.FileURL,
+				})
+			}
+		} else if article.EntryType == consts.EntryType(empyrean_lens.EntryTypeEnum_WEB) {
+			if webReader, ok := webReaderMapping[string(article.EntryId)]; ok {
+				resources = append(resources, &empyrean_lens.ResourceInfo{
+					EntryID:   article.EntryId,
+					EntryType: empyrean_lens.EntryTypeEnum_FILE,
+					Title:     webReader.Title,
+					URL:       webReader.URL,
+				})
+			}
 		}
 	}
 	return &empyrean_lens.UserActionRespRow{
@@ -265,7 +301,7 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel) *empyrean
 		Channel:    utils.ChannelIntToString(multiModel.ChannelType),
 		Title:      multiModel.Title,
 		ActionName: actionName,
-		FileTypes:  fileTypes,
+		Resources:  resources,
 		CreateTime: multiModel.CreateTime.Format(consts.DateHourMinSecTemplate),
 		Cost:       0, // todo
 		Status:     actionStatus(consts.MULTI, 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),

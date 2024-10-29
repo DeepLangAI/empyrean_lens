@@ -2090,20 +2090,20 @@
                     { header: '耗时（秒）', value: row => row.cost},
                     { header: '结果', value: row => statusToString(row.status),
                         clickable: row=>true, click: row=> {
-                            if (row.file_types.length >= 2) {
+                            if (row.resources.length >= 2) {
                                 CreateMultiDocTraceGraphPage(row.entry_id,{
                                     'userId': row.user_id,
                                     'time': row.create_time,
-                                    'isMulti': row.file_types.length >= 2,
+                                    'isMulti': row.resources.length >= 2,
                                     'title': row.title,
                                     'status': row.status,
                                     'entry_id': row.entry_id,
                                 })
                             } else {
-                                CreateSingleDocTraceGraphPage(row.entry_id, fileTypeToEntryType(row.file_types[0]), {
+                                CreateSingleDocTraceGraphPage(row.entry_id, row.entry_type, {
                                     'userId': row.user_id,
                                     'time': row.create_time,
-                                    'isMulti': row.file_types.length >= 2,
+                                    'isMulti': row.resources.length >= 2,
                                     'title': row.title,
                                     'status': row.status,
                                 })

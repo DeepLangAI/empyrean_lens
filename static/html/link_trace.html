@@ -1068,6 +1068,34 @@
         $app.append($loadingContainer, $navStatusBar)
 
         let pageStack = [];
+        function createTableRow(row, columns){
+            const $row = $('<tr>');
+            columns.forEach((column, index) => {
+                let value = column.value(row);
+                // 如果value是字符串或数字，则直接使用
+                let $td = $('<td>');
+                if (typeof value === 'string' || typeof value === 'number') {
+                    $td = $('<td>').text(column.value(row));
+                } else{
+                    $td = $('<td>').append(value);
+                }
+
+                if (index === 0) {
+                    $td.addClass('sticky-column');
+                }
+                if (cellIsClickable(row, column)){
+                    $td.click(() => {
+                        column.click(row)
+                    })
+                    $td.addClass('clickable')
+                }
+                if (column.style != undefined){
+                    $td.css(column.style(row))
+                }
+                $row.append($td);
+            });
+            return $row
+        }
         function createTable(config) {
             const {
                 data,
@@ -1139,31 +1167,7 @@
             // 创建表格主体
             const $tbody = $('<tbody>');
             data.forEach(row => {
-                const $row = $('<tr>');
-                columns.forEach((column, index) => {
-                    let value = column.value(row);
-                    // 如果value是字符串或数字，则直接使用
-                    let $td = $('<td>');
-                    if (typeof value === 'string' || typeof value === 'number') {
-                        $td = $('<td>').text(column.value(row));
-                    } else{
-                        $td = $('<td>').append(value);
-                    }
-
-                    if (index === 0) {
-                        $td.addClass('sticky-column');
-                    }
-                    if (cellIsClickable(row, column)){
-                        $td.click(() => {
-                            column.click(row)
-                        })
-                        $td.addClass('clickable')
-                    }
-                    if (column.style != undefined){
-                        $td.css(column.style(row))
-                    }
-                    $row.append($td);
-                });
+                let $row = createTableRow(row, columns);
                 $tbody.append($row);
             });
             $table.append($tbody);
@@ -2069,16 +2073,16 @@
                     { header: '标题', value: row => row.title},
                     { header: '数据类型', value: row => {
                         let ans = [];
-                        let numPdf = 0;
-                        let numUrl = 0;
+                        let entryCnt = {}
+                        let shouldAddPostfix = row.resources.length > 1;
                         row.resources.forEach(r => {
-                            if (r.entry_type == EntryTypeEnum.PDF){
-                                numPdf += 1
-                            } else if (r.entry_type == EntryTypeEnum.WEB){
-                                numUrl += 1
+                            entryCnt[r.entry_type] = (entryCnt[r.entry_type] || 0) + 1;
+                            let text = entryTypeToString(r.entry_type);
+                            if (shouldAddPostfix) {
+                                text += `(${entryCnt[r.entry_type]})`
                             }
                             ans.push(
-                                $('<a>').attr('target', '_blank').attr('href', r.url).text(entryTypeToString(r.entry_type))
+                                $('<a>').attr('target', '_blank').attr('href', r.url).text(text)
                             )
                         });
                         return ans
@@ -2123,23 +2127,7 @@
                     const $tbody = $table.find('tbody');
                     $tbody.empty();
                     data.rows.forEach(row => {
-                        const $row = $('<tr>');
-                        columns.forEach((column, index) => {
-                            const $td = $('<td>').text(column.value(row));
-                            if (index === 0) {
-                                $td.addClass('sticky-column');
-                            }
-                            if (column.click && parseFloat(column.value(row)) != 0){
-                                $td.click(() => {
-                                    column.click(row)
-                                })
-                                $td.addClass('clickable')
-                            }
-                            if (column.style) {
-                                $td.css(column.style(row))
-                            }
-                            $row.append($td);
-                        });
+                        let $row = createTableRow(row, columns)
                         $tbody.append($row);
                     });
 

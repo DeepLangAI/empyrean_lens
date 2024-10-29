@@ -2065,7 +2065,11 @@
 
             function updateTable(data) {
                 const columns = [
-                    { header: '序号', value: row => row.index },
+                    { header: '序号', value: row => row.index, style: row=>{
+                        return{
+                            "background-color": COLORS[row.status]
+                        }
+                    }},
                     { header: '用户id', value: row => row.user_id },
                     { header: '时间', value: row => row.create_time},
                     { header: '产品端', value: row => row.channel},

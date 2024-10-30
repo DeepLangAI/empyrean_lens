@@ -5,7 +5,9 @@ package main
 import (
 	"context"
 	"empyrean_lens/conf"
+	"empyrean_lens/consts"
 	"empyrean_lens/dal"
+	"empyrean_lens/service/passport"
 	"empyrean_lens/tools"
 	"empyrean_lens/utils"
 	"path/filepath"
@@ -39,15 +41,44 @@ func main() {
 
 func staticFs(h *server.Hertz) {
 	root := utils.GetProjectPath()
+	loginPage, found := strings.CutPrefix(consts.INDEX_PATH, "/public")
+	c := context.Background()
+	if !found {
+		hlog.CtxErrorf(c, "index path error: %v", consts.INDEX_PATH)
+		return
+	}
+
 	h.StaticFS("/public", &app.FS{
 		Root: filepath.Join(root, "./static/"),
 		PathRewrite: func(ctx *app.RequestContext) []byte {
 			path := string(ctx.Path())
 			after, found := strings.CutPrefix(path, "/public")
-			if found {
+			if !found {
+				return []byte("")
+			}
+			if after == loginPage {
+				return []byte(loginPage)
+			}
+
+			// 根据ip判断是否是内网访问
+			ip := ctx.ClientIP()
+			hlog.CtxInfof(c, "client ip`%v`", ip)
+			if utils.IsInnerIp(ip) {
 				return []byte(after)
 			}
-			return []byte("")
+
+			cookie := string(ctx.Request.Header.Cookie(consts.LARK_COOKIE))
+			claim, err := utils.ParseJWT(cookie, conf.GetLark().JwtSecret)
+			if err != nil {
+				hlog.CtxErrorf(c, "jwt parse error: %+v", err)
+				return []byte(loginPage)
+			}
+
+			if passport.CheckCookie(c, claim) {
+				return []byte(after)
+			}
+
+			return []byte(loginPage)
 		},
 	})
 }

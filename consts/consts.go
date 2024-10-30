@@ -428,6 +428,7 @@ const (
 
 	ErrorCodeTypeNginx    = 0
 	ErrorCodeTypeBusiness = 1
+	ErrorCodeTypeAll      = 2
 )
 
 const (
@@ -542,3 +543,8 @@ var LinkNodeTypeName = map[empyrean_lens.LinkNodeTypeEnum]string{
 	empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH:    "主题生成",
 	empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:  "大纲生成",
 }
+
+const (
+	FilterProbeUser = "not user_id: 823df25bde18445494b5691222979cd0 not user_id: 6575b44010fcc60ccaf92101 not user_id: e8cc0d425acd4660b36afcbb976a7d97"
+	ModelFilterProbeuser = "not content.user_id: 823df25bde18445494b5691222979cd0 not content.user_id: 6575b44010fcc60ccaf92101 not content.user_id: e8cc0d425acd4660b36afcbb976a7d97"
+)

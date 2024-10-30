@@ -428,6 +428,7 @@ const (
 
 	ErrorCodeTypeNginx    = 0
 	ErrorCodeTypeBusiness = 1
+	ErrorCodeTypeAll      = 2
 )
 
 const (

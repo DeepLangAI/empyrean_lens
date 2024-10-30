@@ -67,6 +67,41 @@ func (d *FileDao) FindFileById(ctx context.Context, id string) (*File, error) {
 	return res[0], nil
 }
 
+func (d *FileDao) FindFileByIds(ctx context.Context, ids []string) (map[string]*File, error) {
+	var res []*File
+
+	_ids := make([]primitive.ObjectID, 0, len(ids))
+	for _, id := range ids {
+		_id, _ := primitive.ObjectIDFromHex(id)
+		_ids = append(_ids, _id)
+	}
+	filter := bson.M{"$and": []bson.M{
+		//{"is_delete": false},
+		{"_id": bson.M{"$in": _ids}},
+	}}
+	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindFileById] mongo find error:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	if err = cur.All(ctx, &res); err != nil {
+		hlog.CtxErrorf(ctx, "[FindFileById] mongo all error:%+v", err)
+		return nil, err
+	}
+	if len(res) == 0 {
+		return map[string]*File{}, nil
+	}
+	fileMapping := make(map[string]*File)
+	for _, v := range res {
+		v.CreateTime = v.CreateTime.Local()
+		v.UpdateTime = v.UpdateTime.Local()
+		fileMapping[v.ID.Hex()] = v
+	}
+	return fileMapping, nil
+}
+
 func (d *FileDao) FindFileByTimeRange(ctx context.Context, status []int32, startTime, endTime time.Time, skip, limit int64) ([]*File, error) {
 	var res []*File
 

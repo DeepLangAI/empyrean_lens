@@ -7,6 +7,8 @@
     </title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+
     <script src="/public/js/jquery-3.6.0.min.js"></script>
     <script src="/public/js/axios.min.js"></script>
     <script src="/public/js/echarts.min.js"></script>
@@ -61,6 +63,10 @@
             padding: 10px; /* 增加内边距 */
             text-align: center; /* 单元格内容居中对齐 */
             font-size: 12px; /* 调整字体大小 */
+        }
+        td>a{
+            margin-left: 5px;
+            margin-right: 5px;
         }
 
         th {
@@ -352,10 +358,19 @@
             background: #edeff3;
             margin-right: 10px;
         }
+        .copy-tip {
+            position: absolute;
+            bottom: 0;
+            right: 30px;
+            background: white;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
         .expand-tip {
             position: absolute;
             bottom: 0;
-            right: 0;
+            right: -10px;
             background: white;
             padding: 0 5px;
             cursor: pointer;
@@ -808,6 +823,25 @@
             padding-left: 5px;
         }
 
+        .trace-link-title{
+            position: absolute;
+            text-align: center;
+            pointer-events: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px;
+            border-radius: 5px;
+            transform: translateX(-50%);
+        }
+
+
+
     </style>
 </head>
 <body>
@@ -927,14 +961,31 @@
         return loadingContainer
     }
 
+    function handleClickCopy(pid){
+        var p = $('#' + pid).find('pre')
+        navigator.clipboard.writeText(p.text())
+        Swal.fire({
+            position: "top-end",
+            icon: "success",
+            title: "复制成功",
+            showConfirmButton: false,
+            timer: 1000,
+            customClass: {
+                popup: 'custom-popup',
+                title: 'custom-popup-title',
+                icon: 'custom-popup-icon',
+            }
+        });
+    }
+
     function handleClickExpand(pid){
         var p = $('#' + pid).find('pre')
         if (p.hasClass('expanded')){
             p.removeClass('expanded')
-            p.find('.expand-tip').text('展开')
+            $('#' + pid).find('.expand-tip').text('展开')
         }else{
             p.addClass('expanded')
-            p.find('.expand-tip').text('收起')
+            $('#' + pid).find('.expand-tip').text('收起')
         }
     }
 
@@ -1025,6 +1076,22 @@
         return duration.toFixed() + '毫秒'
     }
 
+    function reformatLongTitle(title){
+        let half = 6
+        let chars = []
+        for (let i = 0; i < title.length; i++){
+            chars.push(title[i])
+            if (title[i].charCodeAt() > 128){
+                chars.push('🚫')
+            }
+        }
+        if (chars.length < half * 4){
+            return title
+        }
+        let newTitle = chars.slice(0, half * 2).join('').replace(/🚫/g, '') + '...' + chars.slice(-half * 2).join('').replace(/🚫/g, '')
+        return newTitle
+    }
+
 
 
     $(document).ready(function() {
@@ -1064,6 +1131,34 @@
         $app.append($loadingContainer, $navStatusBar)
 
         let pageStack = [];
+        function createTableRow(row, columns){
+            const $row = $('<tr>');
+            columns.forEach((column, index) => {
+                let value = column.value(row);
+                // 如果value是字符串或数字，则直接使用
+                let $td = $('<td>');
+                if (typeof value === 'string' || typeof value === 'number') {
+                    $td = $('<td>').text(column.value(row));
+                } else{
+                    $td = $('<td>').append(value);
+                }
+
+                if (index === 0) {
+                    $td.addClass('sticky-column');
+                }
+                if (cellIsClickable(row, column)){
+                    $td.click(() => {
+                        column.click(row)
+                    })
+                    $td.addClass('clickable')
+                }
+                if (column.style != undefined){
+                    $td.css(column.style(row))
+                }
+                $row.append($td);
+            });
+            return $row
+        }
         function createTable(config) {
             const {
                 data,
@@ -1135,23 +1230,7 @@
             // 创建表格主体
             const $tbody = $('<tbody>');
             data.forEach(row => {
-                const $row = $('<tr>');
-                columns.forEach((column, index) => {
-                    const $td = $('<td>').text(column.value(row));
-                    if (index === 0) {
-                        $td.addClass('sticky-column');
-                    }
-                    if (cellIsClickable(row, column)){
-                        $td.click(() => {
-                            column.click(row)
-                        })
-                        $td.addClass('clickable')
-                    }
-                    if (column.style != undefined){
-                        $td.css(column.style(row))
-                    }
-                    $row.append($td);
-                });
+                let $row = createTableRow(row, columns);
                 $tbody.append($row);
             });
             $table.append($tbody);
@@ -1371,25 +1450,19 @@
                 'pointer-events': 'none',
             });
             for (let i = 0; i < titles.length; i++){
-                const title = $('<div>').text(titles[i]).css({
-                    'position': 'absolute',
-                    'top': margin.top + 5,
-                    'left': (i + 1) * (width) / (titles.length + 1) + margin.left,
-                    'text-align': 'center',
-                    'pointer-events': 'none',
-                    'white-space': 'nowrap',
-                    'overflow': 'hidden',
-                    'text-overflow': 'ellipsis',
-                    'font-size': '14px',
-                    'font-weight': 'bold',
-                    'color': '#333',
-                    'text-shadow': '1px 1px 1px rgba(0, 0, 0, 0.1)',
-                    'background-color': 'rgba(255, 255, 255, 0.8)',
-                    'padding': '5px',
-                    'border-radius': '5px',
-                    'transform': 'translateX(-50%)',
-                })
-                titlesContainer.append(title);
+                const $title = $('<div>')
+                    .text(reformatLongTitle(titles[i]))
+                    .addClass('trace-link-title')
+                    .css({
+                        'top': margin.top + 5,
+                        'left': (
+                            (i + 1) * (svgContainer.width()) / (titles.length + 1)
+                            + margin.left
+                            - nodeWidth / 2 * (i == 0 ? 1 : 0)
+                        ),
+                    })
+
+                titlesContainer.append($title);
             }
             svgContainer.append(titlesContainer);
 
@@ -1611,6 +1684,15 @@
                             .append($('<pre class="expanded">').append($('<code class="json">').text(jsonStr)))
                         span.text('收起')
                         p.append(span)
+                        p.append(
+                            $('<span>')
+                                .addClass('copy-tip')
+                                .click(function(e) {
+                                    e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                    handleClickCopy(id)
+                                })
+                                .text('复制')
+                        )
                     } else{
                         var p = $('<p>')
                             .attr('id', id)
@@ -1802,7 +1884,11 @@
             });
         }
 
-        function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status}){
+        function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status, resources}){
+            let fileTitles = []
+            for (let i = 0; i < resources.length; i++){
+                fileTitles.push(resources[i].title)
+            }
 
             showLoadingStatus($loadingContainer)
             let $info = createDocHeaderWithTable(userId, time, isMulti, title, status, entry_id)
@@ -1820,9 +1906,7 @@
                     'nodes': [],
                     'edges': {},
                 }
-                let fileTypes = []
                 for (const article of data.articles) {
-                    fileTypes.push(entryTypeToString(article.entry_type))
                     let articleGraph = article.graph
                     for (const node of articleGraph.nodes) {
                         node.entry_id = article.entry_id
@@ -1843,7 +1927,7 @@
                 let $svgContainer = $('<div>').addClass('svg-container')
 
                 // let $svg1 = createTreeDiagram(graphData, '用户上传', new Array(data.articles.length).fill('title'))
-                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTypes, $info.clone())
+                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTitles, $info.clone())
                 let $svg2 = createTreeDiagram(data.graph, '预处理完成', [], $info.clone())
 
                 $svgContainer.append($svg1, $svg2)
@@ -1883,6 +1967,13 @@
                 .attr('type', 'datetime-local')
 
             let $query = $('<input type="text" placeholder="内容关键词,url,uid,multi-id,entry-id等">')
+            // 添加回车事件
+            $query.on('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    fetchData()
+                }
+            })
+
             let $submitBtn = $('<button>').text('查询').on('click', function () {
                 currentPage = 0
                 fetchData()
@@ -2021,6 +2112,27 @@
                 ),
                 $submitBtn,
             )
+            function handleClickActionStatus(row){
+                if (row.resources.length >= 2) {
+                    CreateMultiDocTraceGraphPage(row.entry_id,{
+                        'userId': row.user_id,
+                        'time': row.create_time,
+                        'isMulti': row.resources.length >= 2,
+                        'title': row.title,
+                        'status': row.status,
+                        'entry_id': row.entry_id,
+                        'resources': row.resources,
+                    })
+                } else {
+                    CreateSingleDocTraceGraphPage(row.entry_id, row.entry_type, {
+                        'userId': row.user_id,
+                        'time': row.create_time,
+                        'isMulti': row.resources.length >= 2,
+                        'title': row.title,
+                        'status': row.status,
+                    })
+                }
+            }
             function createPagination() {
                 const $prevButton = $('<div>')
                     .addClass('next-button')
@@ -2049,34 +2161,44 @@
 
             function updateTable(data) {
                 const columns = [
-                    { header: '序号', value: row => row.index },
+                    { header: '序号', value: row => row.index,
+                        clickable: row=>true, click: row=> {
+                            handleClickActionStatus(row)
+                        },
+                        style: row=>{
+                            return{
+                                "background-color": COLORS[row.status]
+                            }
+                        }},
                     { header: '用户id', value: row => row.user_id },
                     { header: '时间', value: row => row.create_time},
                     { header: '产品端', value: row => row.channel},
                     { header: '行为', value: row => row.action_name},
-                    { header: '标题', value: row => row.title},
-                    { header: '数据类型', value: row => row.file_types},
+                    { header: '标题', value: row => reformatLongTitle(row.title)},
+                    { header: '数据类型', value: row => {
+                        let ans = [];
+                        let entryCnt = {}
+                        let shouldAddPostfix = row.resources.length > 1;
+                        row.resources.forEach(r => {
+                            entryCnt[r.entry_type] = (entryCnt[r.entry_type] || 0) + 1;
+                            let text = entryTypeToString(r.entry_type);
+                            if (shouldAddPostfix) {
+                                text += `(${entryCnt[r.entry_type]})`
+                            }
+                            let url = r.url
+                            if (r.entry_type == EntryTypeEnum.PDF){
+                                url = '/public/html/pdf_view.html?file='+url
+                            }
+                            ans.push(
+                                $('<a>').attr('target', '_blank').attr('href', url).text(text)
+                            )
+                        });
+                        return ans
+                    }},
                     { header: '耗时（秒）', value: row => row.cost},
                     { header: '结果', value: row => statusToString(row.status),
                         clickable: row=>true, click: row=> {
-                            if (row.file_types.length >= 2) {
-                                CreateMultiDocTraceGraphPage(row.entry_id,{
-                                    'userId': row.user_id,
-                                    'time': row.create_time,
-                                    'isMulti': row.file_types.length >= 2,
-                                    'title': row.title,
-                                    'status': row.status,
-                                    'entry_id': row.entry_id,
-                                })
-                            } else {
-                                CreateSingleDocTraceGraphPage(row.entry_id, fileTypeToEntryType(row.file_types[0]), {
-                                    'userId': row.user_id,
-                                    'time': row.create_time,
-                                    'isMulti': row.file_types.length >= 2,
-                                    'title': row.title,
-                                    'status': row.status,
-                                })
-                            }
+                            handleClickActionStatus(row)
                         }, style: row => {
                             return {
                                 'background-color': COLORS[row.status] || '#fff',
@@ -2096,23 +2218,7 @@
                     const $tbody = $table.find('tbody');
                     $tbody.empty();
                     data.rows.forEach(row => {
-                        const $row = $('<tr>');
-                        columns.forEach((column, index) => {
-                            const $td = $('<td>').text(column.value(row));
-                            if (index === 0) {
-                                $td.addClass('sticky-column');
-                            }
-                            if (column.click && parseFloat(column.value(row)) != 0){
-                                $td.click(() => {
-                                    column.click(row)
-                                })
-                                $td.addClass('clickable')
-                            }
-                            if (column.style) {
-                                $td.css(column.style(row))
-                            }
-                            $row.append($td);
-                        });
+                        let $row = createTableRow(row, columns)
                         $tbody.append($row);
                     });
 
@@ -2189,7 +2295,7 @@
             }
 
             let now = new Date();
-            let startTime = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+            let startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             let endTime = new Date(now.getTime());
             setTimeRange(startTime, endTime)
 

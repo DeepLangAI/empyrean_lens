@@ -491,13 +491,20 @@ struct UserActionRespData {
     2: list<UserActionRespRow> rows // 表中每行数据
 }
 
+struct ResourceInfo{
+    1: string entry_id
+    2: EntryTypeEnum entry_type
+    3: string title
+    4: string url
+}
+
 struct UserActionRespRow {
     1: string user_id
     2: string create_time // DateHourMinSecTemplate
     3: string channel
     4: string action_name
     5: string title
-    6: list<string> file_types
+    6: list<ResourceInfo> resources
     7: double cost // seconds
     8: ActionStatusEnum status
     9: EntryTypeEnum entry_type

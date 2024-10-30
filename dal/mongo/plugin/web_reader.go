@@ -67,6 +67,41 @@ func (d *WebReaderDao) FindWebReaderById(ctx context.Context, id string) (*WebRe
 	return res[0], nil
 }
 
+func (d *WebReaderDao) FindWebReaderByIds(ctx context.Context, ids []string) (map[string]*WebReader, error) {
+	var res []*WebReader
+
+	_ids := make([]primitive.ObjectID, 0, len(ids))
+	for _, id := range ids {
+		_id, _ := primitive.ObjectIDFromHex(id)
+		_ids = append(_ids, _id)
+	}
+	filter := bson.M{"$and": []bson.M{
+		//{"is_deleted": false},
+		{"_id": bson.M{"$in": _ids}},
+	}}
+	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo find error:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	if err = cur.All(ctx, &res); err != nil {
+		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo all error:%+v", err)
+		return nil, err
+	}
+	if len(res) == 0 {
+		return map[string]*WebReader{}, nil
+	}
+	webReaderMapping := make(map[string]*WebReader, len(res))
+	for i := range res {
+		res[i].CreateTime = res[i].CreateTime.Local()
+		res[i].UpdateTime = res[i].UpdateTime.Local()
+		webReaderMapping[res[i].ID.Hex()] = res[i]
+	}
+	return webReaderMapping, nil
+}
+
 func (d *WebReaderDao) FindWebReaderByTimeRange(ctx context.Context, status []int32, startTime, endTime time.Time, skip, limit int64) ([]*WebReader, error) {
 	var res []*WebReader
 
@@ -103,7 +138,7 @@ func (d *WebReaderDao) FindWebReaderByQueryAndTimeRange(ctx context.Context, que
 	var res []*WebReader
 
 	_id, _ := primitive.ObjectIDFromHex(query)
-	queryFilter := bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"_id": _id}}}
+	queryFilter := bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"url": query}, {"_id": _id}}}
 	filter := bson.M{
 		"$and": []bson.M{
 			queryFilter,

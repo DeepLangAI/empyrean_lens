@@ -2088,7 +2088,7 @@ func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd tim
 	}
 
 	query := `
-	serviceName:lingowhale_fc AND (functionName:web_url_parser_pre or functionName:web_url_parser_prod) and message: %s and not funcName
+	serviceName:lingowhale_fc AND (functionName:web_url_parser_pre or functionName:web_url_parser_prod) and message: %s and 爬取成功 and not funcName
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerQuery query: %s", query)
@@ -2499,7 +2499,7 @@ func SuqinOutResponseQuery(ctx context.Context, resourceId string, timeBegin, ti
 }
 
 func SuqinOutErrorQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `"pdf解析异常，file_id:%s" and levelname : ERROR`
+	query := `message: "%s" and levelname : ERROR and (message: "pdf解析异常，file_id" or message: "苏秦解析异常，file_id")`
 	query = fmt.Sprintf(query, traceID)
 	hlog.CtxDebugf(ctx, "SuqinOutErrorQuery query: %s", query)
 

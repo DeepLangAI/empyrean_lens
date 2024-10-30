@@ -821,6 +821,25 @@
             padding-left: 5px;
         }
 
+        .trace-link-title{
+            position: absolute;
+            text-align: center;
+            pointer-events: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px;
+            border-radius: 5px;
+            transform: translateX(-50%);
+        }
+
+
+
     </style>
 </head>
 <body>
@@ -1056,11 +1075,19 @@
     }
 
     function reformatLongTitle(title){
-        let half = 15
-        if (title.length <= (half * 2)){
+        let half = 8
+        let chars = []
+        for (let i = 0; i < title.length; i++){
+            chars.push(title[i])
+            if (title[i].charCodeAt() > 128){
+                chars.push('🚫')
+            }
+        }
+        if (chars.length < half * 4){
             return title
         }
-        return title.slice(0, half) + ' ... ' + title.slice(-half)
+        let newTitle = chars.slice(0, half * 2).join('').replace(/🚫/g, '') + '...' + chars.slice(-half * 2).join('').replace(/🚫/g, '')
+        return newTitle
     }
 
 
@@ -1421,25 +1448,19 @@
                 'pointer-events': 'none',
             });
             for (let i = 0; i < titles.length; i++){
-                const title = $('<div>').text(titles[i]).css({
-                    'position': 'absolute',
-                    'top': margin.top + 5,
-                    'left': (i + 1) * (width) / (titles.length + 1) + margin.left,
-                    'text-align': 'center',
-                    'pointer-events': 'none',
-                    'white-space': 'nowrap',
-                    'overflow': 'hidden',
-                    'text-overflow': 'ellipsis',
-                    'font-size': '14px',
-                    'font-weight': 'bold',
-                    'color': '#333',
-                    'text-shadow': '1px 1px 1px rgba(0, 0, 0, 0.1)',
-                    'background-color': 'rgba(255, 255, 255, 0.8)',
-                    'padding': '5px',
-                    'border-radius': '5px',
-                    'transform': 'translateX(-50%)',
-                })
-                titlesContainer.append(title);
+                const $title = $('<div>')
+                    .text(reformatLongTitle(titles[i]))
+                    .addClass('trace-link-title')
+                    .css({
+                        'top': margin.top + 5,
+                        'left': (
+                            (i + 1) * (svgContainer.width()) / (titles.length + 1)
+                            + margin.left
+                            - nodeWidth / 2 * (i == 0 ? 1 : 0)
+                        ),
+                    })
+
+                titlesContainer.append($title);
             }
             svgContainer.append(titlesContainer);
 
@@ -1861,7 +1882,11 @@
             });
         }
 
-        function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status}){
+        function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status, resources}){
+            let fileTitles = []
+            for (let i = 0; i < resources.length; i++){
+                fileTitles.push(resources[i].title)
+            }
 
             showLoadingStatus($loadingContainer)
             let $info = createDocHeaderWithTable(userId, time, isMulti, title, status, entry_id)
@@ -1879,9 +1904,7 @@
                     'nodes': [],
                     'edges': {},
                 }
-                let fileTypes = []
                 for (const article of data.articles) {
-                    fileTypes.push(entryTypeToString(article.entry_type))
                     let articleGraph = article.graph
                     for (const node of articleGraph.nodes) {
                         node.entry_id = article.entry_id
@@ -1902,7 +1925,7 @@
                 let $svgContainer = $('<div>').addClass('svg-container')
 
                 // let $svg1 = createTreeDiagram(graphData, '用户上传', new Array(data.articles.length).fill('title'))
-                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTypes, $info.clone())
+                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTitles, $info.clone())
                 let $svg2 = createTreeDiagram(data.graph, '预处理完成', [], $info.clone())
 
                 $svgContainer.append($svg1, $svg2)
@@ -2096,6 +2119,7 @@
                         'title': row.title,
                         'status': row.status,
                         'entry_id': row.entry_id,
+                        'resources': row.resources,
                     })
                 } else {
                     CreateSingleDocTraceGraphPage(row.entry_id, row.entry_type, {

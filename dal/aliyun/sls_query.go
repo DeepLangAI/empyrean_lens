@@ -1291,7 +1291,7 @@ from log where
 
 "content.method"  in ('GET', 'POST') and
 "content.status"  != 200 and
-("content.channel" = '{{.BaseChannelName}}-prod' or "content.channel" = '{{.BaseChannelName}}-pre')
+("content.channel" = '{{.BaseChannelName}}-prod')
 order by "content.time" desc
 limit %v
 `

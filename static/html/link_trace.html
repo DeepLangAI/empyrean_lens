@@ -356,10 +356,19 @@
             background: #edeff3;
             margin-right: 10px;
         }
+        .copy-tip {
+            position: absolute;
+            bottom: 0;
+            right: 30px;
+            background: white;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
         .expand-tip {
             position: absolute;
             bottom: 0;
-            right: 0;
+            right: -10px;
             background: white;
             padding: 0 5px;
             cursor: pointer;
@@ -931,14 +940,31 @@
         return loadingContainer
     }
 
+    function handleClickCopy(pid){
+        var p = $('#' + pid).find('pre')
+        navigator.clipboard.writeText(p.text())
+        Swal.fire({
+            position: "top-end",
+            icon: "success",
+            title: "复制成功",
+            showConfirmButton: false,
+            timer: 1000,
+            customClass: {
+                popup: 'custom-popup',
+                title: 'custom-popup-title',
+                icon: 'custom-popup-icon',
+            }
+        });
+    }
+
     function handleClickExpand(pid){
         var p = $('#' + pid).find('pre')
         if (p.hasClass('expanded')){
             p.removeClass('expanded')
-            p.find('.expand-tip').text('展开')
+            $('#' + pid).find('.expand-tip').text('展开')
         }else{
             p.addClass('expanded')
-            p.find('.expand-tip').text('收起')
+            $('#' + pid).find('.expand-tip').text('收起')
         }
     }
 
@@ -1027,6 +1053,14 @@
             return (duration/1000).toFixed() + '秒'
         }
         return duration.toFixed() + '毫秒'
+    }
+
+    function reformatLongTitle(title){
+        let half = 15
+        if (title.length <= (half * 2)){
+            return title
+        }
+        return title.slice(0, half) + ' ... ' + title.slice(-half)
     }
 
 
@@ -1627,6 +1661,15 @@
                             .append($('<pre class="expanded">').append($('<code class="json">').text(jsonStr)))
                         span.text('收起')
                         p.append(span)
+                        p.append(
+                            $('<span>')
+                                .addClass('copy-tip')
+                                .click(function(e) {
+                                    e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                    handleClickCopy(id)
+                                })
+                                .text('复制')
+                        )
                     } else{
                         var p = $('<p>')
                             .attr('id', id)
@@ -1899,6 +1942,13 @@
                 .attr('type', 'datetime-local')
 
             let $query = $('<input type="text" placeholder="内容关键词,url,uid,multi-id,entry-id等">')
+            // 添加回车事件
+            $query.on('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    fetchData()
+                }
+            })
+
             let $submitBtn = $('<button>').text('查询').on('click', function () {
                 currentPage = 0
                 fetchData()
@@ -2098,7 +2148,7 @@
                     { header: '时间', value: row => row.create_time},
                     { header: '产品端', value: row => row.channel},
                     { header: '行为', value: row => row.action_name},
-                    { header: '标题', value: row => row.title},
+                    { header: '标题', value: row => reformatLongTitle(row.title)},
                     { header: '数据类型', value: row => {
                         let ans = [];
                         let entryCnt = {}
@@ -2219,7 +2269,7 @@
             }
 
             let now = new Date();
-            let startTime = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+            let startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             let endTime = new Date(now.getTime());
             setTimeRange(startTime, endTime)
 

@@ -53,10 +53,7 @@ func staticFs(h *server.Hertz) {
 		PathRewrite: func(ctx *app.RequestContext) []byte {
 			path := string(ctx.Path())
 			after, found := strings.CutPrefix(path, "/public")
-			if !found {
-				return []byte("")
-			}
-			if after == loginPage {
+			if !found || after == loginPage {
 				return []byte(loginPage)
 			}
 

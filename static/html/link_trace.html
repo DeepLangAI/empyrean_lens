@@ -7,6 +7,8 @@
     </title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+
     <script src="/public/js/jquery-3.6.0.min.js"></script>
     <script src="/public/js/axios.min.js"></script>
     <script src="/public/js/echarts.min.js"></script>
@@ -1075,7 +1077,7 @@
     }
 
     function reformatLongTitle(title){
-        let half = 8
+        let half = 6
         let chars = []
         for (let i = 0; i < title.length; i++){
             chars.push(title[i])

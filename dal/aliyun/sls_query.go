@@ -148,7 +148,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-("content.channel": "{{.BaseChannelName}}-prod" or "content.channel": "{{.BaseChannelName}}-pre") not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 |
+("content.channel": "{{.BaseChannelName}}-prod" or "content.channel": "{{.BaseChannelName}}-pre") %s |
 	SELECT 
 	"content.path" url,
 	"content.method" method, 
@@ -169,7 +169,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	for _, api := range apiDetails {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api.Api))
 	}
-	query = fmt.Sprintf(query, strings.Join(formatedApis, ",\n"), host, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, strings.Join(formatedApis, ",\n"), host, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	// 查询日志
 	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
@@ -230,7 +230,7 @@ func NginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) 
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-host: %v not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97|
+host: %v %s|
 SELECT  * FROM  (
   SELECT 
     REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host, http_referer, request_time cost,channel
@@ -247,7 +247,7 @@ LIMIT %d
 	for _, api := range apiDetails {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api.Api))
 	}
-	query = fmt.Sprintf(query, host, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, host, consts.FilterProbeUser, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	// 查询日志
 	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
@@ -324,12 +324,12 @@ func MultiTotalRequestQuery(ctx context.Context, daysLookback int) (int, error) 
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 	query := `
-	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and files merge multi. article_list not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 | select * from log
+	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and files merge multi. article_list %s | select * from log
 limit %v
 	`
 	query = FormatWithTemplate(query, nil)
 
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 
 	//logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	logs, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -414,7 +414,7 @@ func MultiCoreLogQuery(ctx context.Context, daysLookback int, coreName string) (
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-((__tag__:_container_name_: {{.BaseContainerName}}-python-prod or __tag__:_container_name_: {{.BaseContainerName}}-python-pre) and message: "%v core node node_name") not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 |
+((__tag__:_container_name_: {{.BaseContainerName}}-python-prod or __tag__:_container_name_: {{.BaseContainerName}}-python-pre) and message: "%v core node node_name") %s |
 select  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 1) as node_name,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 2) as multi_id,  
@@ -425,7 +425,7 @@ from log order by time desc
 limit %v
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, coreName, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	//logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	logs, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
 
@@ -525,7 +525,7 @@ func QaMiddlewareRespLogQuery(ctx context.Context, daysLookback int, apis []stri
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and "Response rout" not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 | 
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and "Response rout" %s | 
 select * from ( 
 select  
 regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 1) url,
@@ -544,7 +544,7 @@ limit %v
 	for _, api := range apis {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api))
 	}
-	query = fmt.Sprintf(query, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
 	//logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
 	logs, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -590,7 +590,7 @@ func QaCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]C
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and message: "%v," not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 |  select * from (
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and message: "%v," %s |  select * from (
 select 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 1) as node, 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 2) as cnt, 
@@ -600,7 +600,7 @@ limit %v
 ) where node != 'null'
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, coreName, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
 	//logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
 	logs, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -647,7 +647,7 @@ func CommonCoreLogQuery(ctx context.Context, daysLookback int, coreName string) 
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and "core link core_name:%v" not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 |
+(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and "core link core_name:%v" %s |
 SELECT 
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 1) as core_name,
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 2) as core_node,
@@ -658,7 +658,7 @@ LIMIT %v
 `
 
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, coreName, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -722,7 +722,7 @@ func LingoChatCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorL
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-chat core api response error and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 | select * from (
+chat core api response error and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) %s | select * from (
     select 
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name,
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code,
@@ -734,7 +734,7 @@ chat core api response error and (__tag__:_container_name_: {{.BaseContainerName
 )
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "chat core error sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -787,7 +787,7 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and extend core api response error core_name not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 | select * from (
+(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and extend core api response error core_name %s | select * from (
     select 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name, 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code, 
@@ -797,7 +797,7 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 )
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "core error sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -849,7 +849,7 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and summary start not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 | select * from (
+(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and summary start %s | select * from (
     select 
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 1) file_id, 
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 2) url_id, 
@@ -860,7 +860,7 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 `
 	query = FormatWithTemplate(query, nil)
 
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "summary sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -934,7 +934,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
-	query := `(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  message : "summary core core_name:%s" not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 |
+	query := `(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  message : "summary core core_name:%s" %s |
 	select
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 1) as core_name,
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 2) as node,
@@ -944,7 +944,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 `
 
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, coreName, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -996,12 +996,12 @@ func QaRecommendFailcntQuery(ctx context.Context, daysLookback int) int64 {
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-推荐模型返回异常 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 | select count(*) cnt from log
+推荐模型返回异常 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) %s | select count(*) cnt from log
 limit %v
 `
 
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "问题推荐失败数量查询 query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -1039,7 +1039,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-推荐模型 推荐结束 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 | select * from (
+推荐模型 推荐结束 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) %s | select * from (
     select 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 1) count, 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 2) cost, 
@@ -1049,7 +1049,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 `
 	query = FormatWithTemplate(query, nil)
 
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "问题推荐所有数量查询 query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -1865,7 +1865,7 @@ func TracebackQuery(ctx context.Context, daysLookback int) ([]TracebackDetail, e
 
 	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 	query := `
-(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  exc_info : "Traceback (most recent call last)" and not "pydantic" not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 |  
+(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  exc_info : "Traceback (most recent call last)" and not "pydantic" %s |  
 select 
 exc_info, message msg, trace_id, asctime time, user_id
 from log
@@ -1873,7 +1873,7 @@ order by asctime desc
 limit %v
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "business traceback sql query: %v", query)
 
 	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
@@ -1928,7 +1928,7 @@ func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs
 	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	query := `
-(__tag__:_container_name_: {{.BaseContainerName}}-python-pre or __tag__:_container_name_: {{.BaseContainerName}}-python-prod) not user_id: 823df25bde18445494b5691222979cd0 and not user_id: 6575b44010fcc60ccaf92101 and not user_id: e8cc0d425acd4660b36afcbb976a7d97 | select * from (
+(__tag__:_container_name_: {{.BaseContainerName}}-python-pre or __tag__:_container_name_: {{.BaseContainerName}}-python-prod) %s| select * from (
     select 
     regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 1) core_name,
     regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 2) node_name,
@@ -1938,7 +1938,7 @@ func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs
 ) where core_name='多文档' limit %v
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "multi node error sql query: %v", query)
 
 	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)

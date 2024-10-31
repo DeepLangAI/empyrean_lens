@@ -18,12 +18,12 @@ import (
 func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 确定时间范围
 	var err error
-	begin, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.StartTime, time.Local)
+	begin, err := time.ParseInLocation(consts.DateTimeTemplate, req.StartTime, time.Local)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "parse start time error, err:%v", err)
 		return nil, &consts.RetParamError
 	}
-	end, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.EndTime, time.Local)
+	end, err := time.ParseInLocation(consts.DateTimeTemplate, req.EndTime, time.Local)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "parse end time error, err:%v", err)
 		return nil, &consts.RetParamError
@@ -369,7 +369,7 @@ func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserA
 				URL:       file.FileURL,
 			},
 		},
-		CreateTime: file.CreateTime.Format(consts.DateHourMinSecTemplate),
+		CreateTime: file.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
 		Status:     actionStatus(consts.PDF, file.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_FILE,
@@ -391,7 +391,7 @@ func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empy
 				URL:       webReader.URL,
 			},
 		},
-		CreateTime: webReader.CreateTime.Format(consts.DateHourMinSecTemplate),
+		CreateTime: webReader.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
 		Status:     actionStatus(consts.URL, webReader.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_WEB,
@@ -428,7 +428,7 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel, fileMappi
 		Title:      multiModel.Title,
 		ActionName: actionName,
 		Resources:  resources,
-		CreateTime: multiModel.CreateTime.Format(consts.DateHourMinSecTemplate),
+		CreateTime: multiModel.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
 		Status:     actionStatus(consts.MULTI, 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
 		EntryType:  empyrean_lens.EntryTypeEnum_MULTI,

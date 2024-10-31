@@ -438,7 +438,7 @@ func getNodeCost(apiLogs []*empyrean_lens.ApiLog) float64 {
 	if startAt == "" || endAt == "" {
 		return 0
 	}
-	startAtT, _ := time.Parse(consts.DateHourMinSecTemplate, startAt)
-	endAtT, _ := time.Parse(consts.DateHourMinSecTemplate, endAt)
+	startAtT, _ := time.Parse(consts.DateTimeTemplate, startAt)
+	endAtT, _ := time.Parse(consts.DateTimeTemplate, endAt)
 	return endAtT.Sub(startAtT).Seconds()
 }

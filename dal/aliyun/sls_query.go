@@ -2300,6 +2300,24 @@ func SingleViewpointEndQuery(ctx context.Context, traceId string, timeBegin, tim
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
+func MultiItemAnalysisQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query = fmt.Sprintf(query, resourceId, "ANALYSIS")
+	hlog.CtxDebugf(ctx, "MultiThemeQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiAnalysisQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
 func MultiAnalysisQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
 	query = fmt.Sprintf(query, multiID, "ANALYSIS_ALL")

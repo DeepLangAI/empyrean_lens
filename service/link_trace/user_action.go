@@ -43,7 +43,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 	// file 数据
 	go func() {
 		defer wg.Done()
-		data, err := findFile(ctx, req, begin, end, true)
+		data, err := findFile(ctx, req, begin, end, req.OnlyExternal)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "find file error, err:%v", err)
 			return
@@ -55,7 +55,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 	// web reader 数据
 	go func() {
 		defer wg.Done()
-		data, err := findWebReader(ctx, req, begin, end, true)
+		data, err := findWebReader(ctx, req, begin, end, req.OnlyExternal)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "find web reader error, err:%v", err)
 			return
@@ -67,7 +67,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 	// multi 数据
 	go func() {
 		defer wg.Done()
-		data, err := findMulti(ctx, req, begin, end, true)
+		data, err := findMulti(ctx, req, begin, end, req.OnlyExternal)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "find multi error, err:%v", err)
 			return

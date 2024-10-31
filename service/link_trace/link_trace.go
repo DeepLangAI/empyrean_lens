@@ -337,7 +337,7 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 		}
 		return processLogsToNode(processType, []aliyun.FileProcessLog{}), nil
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH:
-		processLogs, err := aliyun.MultiAnalysisQuery(ctx, resourceId, start, end)
+		processLogs, err := aliyun.MultiItemAnalysisQuery(ctx, resourceId, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[MultiAnalysisQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
@@ -407,6 +407,15 @@ func mergeLinkTraceGraph(headers []*empyrean_lens.TraceLinkGraph, tail *empyrean
 	for key, value := range tail.Edges {
 		edges[key] = value
 	}
+	// 修改状态，子节点成功，父节点也要成功
+	for _, node := range nodes {
+		if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && isChildSuccess(node, nodes, edges) {
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD && isFatherAllSuccess(node, nodes, edges) && isChildAllUnReachead(node, nodes, edges) {
+			node.Status = empyrean_lens.ActionStatusEnum_FAIL
+		}
+	}
 	return &empyrean_lens.TraceLinkGraph{
 		Nodes: nodes,
 		Edges: edges,
@@ -452,6 +461,21 @@ func isFatherSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.Graph
 		}
 	}
 	return false
+}
+
+func isFatherAllSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNode, nodeIDMapping map[empyrean_lens.NodeId][]empyrean_lens.NodeId) bool {
+	nodeMapping := map[empyrean_lens.NodeId]*empyrean_lens.GraphNode{}
+	for _, node := range nodes {
+		nodeMapping[node.ID] = node
+	}
+	for fID, ids := range nodeIDMapping {
+		for _, id := range ids {
+			if id == node.ID && nodeMapping[fID].Status != empyrean_lens.ActionStatusEnum_SUCCESS {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func isChildSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNode, nodeIDMapping map[empyrean_lens.NodeId][]empyrean_lens.NodeId) bool {

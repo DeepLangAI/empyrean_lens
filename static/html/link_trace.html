@@ -7,6 +7,8 @@
     </title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+
     <script src="/public/js/jquery-3.6.0.min.js"></script>
     <script src="/public/js/axios.min.js"></script>
     <script src="/public/js/echarts.min.js"></script>
@@ -356,10 +358,19 @@
             background: #edeff3;
             margin-right: 10px;
         }
+        .copy-tip {
+            position: absolute;
+            bottom: 0;
+            right: 30px;
+            background: white;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
         .expand-tip {
             position: absolute;
             bottom: 0;
-            right: 0;
+            right: -10px;
             background: white;
             padding: 0 5px;
             cursor: pointer;
@@ -812,6 +823,25 @@
             padding-left: 5px;
         }
 
+        .trace-link-title{
+            position: absolute;
+            text-align: center;
+            pointer-events: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px;
+            border-radius: 5px;
+            transform: translateX(-50%);
+        }
+
+
+
     </style>
 </head>
 <body>
@@ -931,14 +961,31 @@
         return loadingContainer
     }
 
+    function handleClickCopy(pid){
+        var p = $('#' + pid).find('pre')
+        navigator.clipboard.writeText(p.text())
+        Swal.fire({
+            position: "top-end",
+            icon: "success",
+            title: "复制成功",
+            showConfirmButton: false,
+            timer: 1000,
+            customClass: {
+                popup: 'custom-popup',
+                title: 'custom-popup-title',
+                icon: 'custom-popup-icon',
+            }
+        });
+    }
+
     function handleClickExpand(pid){
         var p = $('#' + pid).find('pre')
         if (p.hasClass('expanded')){
             p.removeClass('expanded')
-            p.find('.expand-tip').text('展开')
+            $('#' + pid).find('.expand-tip').text('展开')
         }else{
             p.addClass('expanded')
-            p.find('.expand-tip').text('收起')
+            $('#' + pid).find('.expand-tip').text('收起')
         }
     }
 
@@ -1027,6 +1074,22 @@
             return (duration/1000).toFixed() + '秒'
         }
         return duration.toFixed() + '毫秒'
+    }
+
+    function reformatLongTitle(title){
+        let half = 6
+        let chars = []
+        for (let i = 0; i < title.length; i++){
+            chars.push(title[i])
+            if (title[i].charCodeAt() > 128){
+                chars.push('🚫')
+            }
+        }
+        if (chars.length < half * 4){
+            return title
+        }
+        let newTitle = chars.slice(0, half * 2).join('').replace(/🚫/g, '') + '...' + chars.slice(-half * 2).join('').replace(/🚫/g, '')
+        return newTitle
     }
 
 
@@ -1387,25 +1450,19 @@
                 'pointer-events': 'none',
             });
             for (let i = 0; i < titles.length; i++){
-                const title = $('<div>').text(titles[i]).css({
-                    'position': 'absolute',
-                    'top': margin.top + 5,
-                    'left': (i + 1) * (width) / (titles.length + 1) + margin.left,
-                    'text-align': 'center',
-                    'pointer-events': 'none',
-                    'white-space': 'nowrap',
-                    'overflow': 'hidden',
-                    'text-overflow': 'ellipsis',
-                    'font-size': '14px',
-                    'font-weight': 'bold',
-                    'color': '#333',
-                    'text-shadow': '1px 1px 1px rgba(0, 0, 0, 0.1)',
-                    'background-color': 'rgba(255, 255, 255, 0.8)',
-                    'padding': '5px',
-                    'border-radius': '5px',
-                    'transform': 'translateX(-50%)',
-                })
-                titlesContainer.append(title);
+                const $title = $('<div>')
+                    .text(reformatLongTitle(titles[i]))
+                    .addClass('trace-link-title')
+                    .css({
+                        'top': margin.top + 5,
+                        'left': (
+                            (i + 1) * (svgContainer.width()) / (titles.length + 1)
+                            + margin.left
+                            - nodeWidth / 2 * (i == 0 ? 1 : 0)
+                        ),
+                    })
+
+                titlesContainer.append($title);
             }
             svgContainer.append(titlesContainer);
 
@@ -1627,6 +1684,15 @@
                             .append($('<pre class="expanded">').append($('<code class="json">').text(jsonStr)))
                         span.text('收起')
                         p.append(span)
+                        p.append(
+                            $('<span>')
+                                .addClass('copy-tip')
+                                .click(function(e) {
+                                    e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                    handleClickCopy(id)
+                                })
+                                .text('复制')
+                        )
                     } else{
                         var p = $('<p>')
                             .attr('id', id)
@@ -1818,7 +1884,11 @@
             });
         }
 
-        function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status}){
+        function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status, resources}){
+            let fileTitles = []
+            for (let i = 0; i < resources.length; i++){
+                fileTitles.push(resources[i].title)
+            }
 
             showLoadingStatus($loadingContainer)
             let $info = createDocHeaderWithTable(userId, time, isMulti, title, status, entry_id)
@@ -1836,9 +1906,7 @@
                     'nodes': [],
                     'edges': {},
                 }
-                let fileTypes = []
                 for (const article of data.articles) {
-                    fileTypes.push(entryTypeToString(article.entry_type))
                     let articleGraph = article.graph
                     for (const node of articleGraph.nodes) {
                         node.entry_id = article.entry_id
@@ -1859,7 +1927,7 @@
                 let $svgContainer = $('<div>').addClass('svg-container')
 
                 // let $svg1 = createTreeDiagram(graphData, '用户上传', new Array(data.articles.length).fill('title'))
-                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTypes, $info.clone())
+                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTitles, $info.clone())
                 let $svg2 = createTreeDiagram(data.graph, '预处理完成', [], $info.clone())
 
                 $svgContainer.append($svg1, $svg2)
@@ -1899,6 +1967,13 @@
                 .attr('type', 'datetime-local')
 
             let $query = $('<input type="text" placeholder="内容关键词,url,uid,multi-id,entry-id等">')
+            // 添加回车事件
+            $query.on('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    fetchData()
+                }
+            })
+
             let $submitBtn = $('<button>').text('查询').on('click', function () {
                 currentPage = 0
                 fetchData()
@@ -2046,6 +2121,7 @@
                         'title': row.title,
                         'status': row.status,
                         'entry_id': row.entry_id,
+                        'resources': row.resources,
                     })
                 } else {
                     CreateSingleDocTraceGraphPage(row.entry_id, row.entry_type, {
@@ -2098,7 +2174,7 @@
                     { header: '时间', value: row => row.create_time},
                     { header: '产品端', value: row => row.channel},
                     { header: '行为', value: row => row.action_name},
-                    { header: '标题', value: row => row.title},
+                    { header: '标题', value: row => reformatLongTitle(row.title)},
                     { header: '数据类型', value: row => {
                         let ans = [];
                         let entryCnt = {}
@@ -2219,7 +2295,7 @@
             }
 
             let now = new Date();
-            let startTime = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+            let startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             let endTime = new Date(now.getTime());
             setTimeRange(startTime, endTime)
 

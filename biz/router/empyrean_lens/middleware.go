@@ -18,12 +18,6 @@ import (
 func CookieMiddleWare() app.HandlerFunc {
 	return func(c context.Context, ctx *app.RequestContext) {
 		loginPage := consts.INDEX_PATH
-		// 从飞书浏览器打开，需要在浏览器跳转至index.html鉴权
-		// if ctx.Query("open_in_browser") == "true" {
-		// 	ctx.Redirect(302, []byte(loginPage))
-		// 	ctx.Abort()
-		// 	return
-		// }
 
 		// 用于本地调试时免登录用
 		if channel := ctx.Request.Header.Get(consts.HttpHeaderChannel); channel == consts.NonLoginChannel {

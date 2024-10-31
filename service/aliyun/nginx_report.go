@@ -142,6 +142,19 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 		api, err = aliyun.NginxErrorLogsOfAPI(ctx, req.Host, req.Path, req.DateBegin)
 	} else if req.CodeType == consts.ErrorCodeTypeBusiness {
 		api, err = aliyun.NginxBizErrorLogsOfAPI(ctx, req.Host, req.Path, req.DateBegin)
+	} else if req.CodeType == consts.ErrorCodeTypeAll {
+		_api, err := aliyun.NginxErrorLogsOfAPI(ctx, req.Host, req.Path, req.DateBegin)
+		if err != nil {
+			return nil, err
+		}
+		api = append(api, _api...)
+
+		_api, err = aliyun.NginxBizErrorLogsOfAPI(ctx, req.Host, req.Path, req.DateBegin)
+		if err != nil {
+			return nil, err
+		}
+		api = append(api, _api...)
+
 	}
 	if err != nil {
 		return nil, err

@@ -2134,7 +2134,7 @@ func WcdParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd ti
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func TextParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+func EduParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
@@ -2149,27 +2149,6 @@ func TextParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "TextParserQuery query log error: %v", err)
-		return nil, err
-	}
-	return ConvertFileProcessLog(ctx, logs.Logs)
-}
-
-// ! 这里只能用traceId查
-func EduParseQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	if err != nil {
-		return nil, err
-	}
-
-	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "req path /edu_parse" and trace_id : "%s"
-	`
-	query = fmt.Sprintf(query, traceId)
-	hlog.CtxDebugf(ctx, "EduParseQuery query: %s", query)
-
-	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParseQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)

@@ -415,7 +415,7 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel, fileMappi
 			if webReader, ok := webReaderMapping[string(article.EntryId)]; ok {
 				resources = append(resources, &empyrean_lens.ResourceInfo{
 					EntryID:   article.EntryId,
-					EntryType: empyrean_lens.EntryTypeEnum_FILE,
+					EntryType: empyrean_lens.EntryTypeEnum_WEB,
 					Title:     webReader.Title,
 					URL:       webReader.URL,
 				})

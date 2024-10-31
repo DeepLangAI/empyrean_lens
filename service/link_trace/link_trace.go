@@ -270,27 +270,29 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 		}
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:
-		processLogs, err := aliyun.TextParseQuery(ctx, resourceId, start, end)
+		apiLogsInput, err := aliyun.TextParseOutRequestQuery(ctx, resourceId, start, end)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "[TextParseQuery] get process logs failed, err: %v", err)
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
+		}
+		apiLogsOuput, err := aliyun.TextParseOutResponseQuery(ctx, resourceId, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		processLogs := apiLogsOuput
+		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+			processLogs[0].Cost = float64(apiLogsOuput[0].Asctime.Sub(apiLogsInput[0].Asctime).Seconds())
+			return processLogsToNode(processType, processLogs), nil
 		}
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:
-		processLogs, err := aliyun.TextParseQuery(ctx, resourceId, start, end)
+		processLogs, err := aliyun.EduParseQuery(ctx, resourceId, start, end)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "[TextParseQuery] get process logs failed, err: %v", err)
+			hlog.CtxErrorf(ctx, "[EduParseQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		if len(processLogs) != 0 {
-			processLogs, err := aliyun.EduParseQuery(ctx, processLogs[0].TraceId, start, end)
-			if err != nil {
-				hlog.CtxErrorf(ctx, "[EduParseQuery] get process logs failed, err: %v", err)
-				return nil, &consts.QueryRecordError
-			}
-			return processLogsToNode(processType, processLogs), nil
-		}
-		return processLogsToNode(processType, []aliyun.FileProcessLog{}), nil
+		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:
 		processLogs1, err := aliyun.SingleViewpointBeginQuery(ctx, resourceId, start, end)
 		if err != nil {
@@ -365,16 +367,17 @@ func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []al
 	if len(processLogs) == 0 {
 		return makeEmptyNode(nodeType)
 	}
-	if utils.InSlice(consts.LinkNodeTypeName[nodeType], []string{"概述生成", "主题生成", "大纲生成"}) && len(processLogs) == 0 {
-		enterTime := processLogs[0].Asctime.Add(-time.Millisecond * time.Duration(processLogs[0].Cost*1000))
+	if utils.InSlice(consts.LinkNodeTypeName[nodeType], []string{"概述生成", "关键信息生成", "大纲生成"}) && len(processLogs) != 0 {
+		length := len(processLogs)
+		enterTime := processLogs[length-1].Asctime.Add(-time.Millisecond * time.Duration(processLogs[length-1].Cost*1000))
 		return &empyrean_lens.GraphNode{
 			ID:         empyrean_lens.NodeId(primitive.NewObjectID().Hex()),
 			Type:       nodeType,
-			Name:       nodeType.String(),
+			Name:       consts.LinkNodeTypeName[nodeType],
 			EnterTime:  enterTime.Format(consts.DateHourMinSecTemplate),
-			FinishTime: processLogs[1].Asctime.Format(consts.DateHourMinSecTemplate),
-			Status:     getActionStatus(nodeType, processLogs[0]),
-			TraceID:    processLogs[0].TraceId,
+			FinishTime: processLogs[length-1].Asctime.Format(consts.DateHourMinSecTemplate),
+			Status:     getActionStatus(nodeType, processLogs[length-1]),
+			TraceID:    processLogs[length-1].TraceId,
 		}
 	}
 	enterTime := processLogs[0].Asctime.Add(-time.Millisecond * time.Duration(processLogs[0].Cost*1000))

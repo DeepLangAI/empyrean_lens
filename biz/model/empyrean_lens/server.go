@@ -15961,6 +15961,8 @@ type UserActionReq struct {
 	Skip int64 `thrift:"skip,5" form:"skip" json:"skip" query:"skip"`
 	// 分页查询，每页多少条数据
 	Limit int64 `thrift:"limit,6" form:"limit" json:"limit" query:"limit"`
+	// 仅外部用户
+	OnlyExternal bool `thrift:"only_external,7" form:"only_external" json:"only_external" query:"only_external"`
 }
 
 func NewUserActionReq() *UserActionReq {
@@ -15991,6 +15993,10 @@ func (p *UserActionReq) GetLimit() (v int64) {
 	return p.Limit
 }
 
+func (p *UserActionReq) GetOnlyExternal() (v bool) {
+	return p.OnlyExternal
+}
+
 var fieldIDToName_UserActionReq = map[int16]string{
 	1: "query",
 	2: "start_time",
@@ -15998,6 +16004,7 @@ var fieldIDToName_UserActionReq = map[int16]string{
 	4: "status",
 	5: "skip",
 	6: "limit",
+	7: "only_external",
 }
 
 func (p *UserActionReq) Read(iprot thrift.TProtocol) (err error) {
@@ -16062,6 +16069,14 @@ func (p *UserActionReq) Read(iprot thrift.TProtocol) (err error) {
 		case 6:
 			if fieldTypeId == thrift.I64 {
 				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.BOOL {
+				if err = p.ReadField7(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -16174,6 +16189,17 @@ func (p *UserActionReq) ReadField6(iprot thrift.TProtocol) error {
 	p.Limit = _field
 	return nil
 }
+func (p *UserActionReq) ReadField7(iprot thrift.TProtocol) error {
+
+	var _field bool
+	if v, err := iprot.ReadBool(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.OnlyExternal = _field
+	return nil
+}
 
 func (p *UserActionReq) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -16203,6 +16229,10 @@ func (p *UserActionReq) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField6(oprot); err != nil {
 			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
 			goto WriteFieldError
 		}
 	}
@@ -16331,6 +16361,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *UserActionReq) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("only_external", thrift.BOOL, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteBool(p.OnlyExternal); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
 }
 
 func (p *UserActionReq) String() string {

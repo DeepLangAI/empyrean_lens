@@ -110,7 +110,6 @@ func (d *FileDao) FindFileByTimeRange(ctx context.Context, status []int32, start
 		"create_time":           bson.M{"$gte": startTime, "$lt": endTime},
 		"copy_from_resource_id": "",
 		"copy_from_file_id":     "",
-		"channel_type":          bson.M{"$nin": []int32{72, 82, 85}},
 	}
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
@@ -145,7 +144,6 @@ func (d *FileDao) FindFileByQueryAndTimeRange(ctx context.Context, query string,
 		{"create_time": bson.M{"$gte": startTime, "$lt": endTime}},
 		{"copy_from_resource_id": ""},
 		{"copy_from_file_id": ""},
-		{"channel_type": bson.M{"$nin": []int32{72, 82, 85}}},
 	}}
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}

@@ -394,10 +394,12 @@ func mergeLinkTraceGraph(headers []*empyrean_lens.TraceLinkGraph, tail *empyrean
 	edges := make(map[empyrean_lens.NodeId][]empyrean_lens.NodeId, 0)
 	for _, header := range headers {
 		nodes = append(nodes, header.Nodes...)
-		for key, value := range header.Edges {
-			edges[key] = value
-			if len(value) == 0 {
-				edges[key] = append(value, tail.Nodes[0].ID)
+		for _, node := range header.Nodes {
+			if _, ok := header.Edges[node.ID]; ok {
+				edges[node.ID] = header.Edges[node.ID]
+			} else {
+				edges[node.ID] = make([]empyrean_lens.NodeId, 0)
+				edges[node.ID] = append(edges[node.ID], tail.Nodes[0].ID)
 			}
 		}
 	}

@@ -478,6 +478,7 @@ struct UserActionReq {
     4: list<ActionStatusEnum> status // 如果为UNK则表示所有状态
     5: i64 skip // 分页查询，跳过多少条数据，0起
     6: i64 limit // 分页查询，每页多少条数据
+    7: bool only_external // 仅外部用户
 }
 
 struct UserActionResp {

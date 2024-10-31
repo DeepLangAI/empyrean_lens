@@ -148,7 +148,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-("content.channel": "{{.BaseChannelName}}-prod" or "content.channel": "{{.BaseChannelName}}-pre")|
+("content.channel": "{{.BaseChannelName}}-prod" ) %s |
 	SELECT 
 	"content.path" url,
 	"content.method" method, 
@@ -169,7 +169,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	for _, api := range apiDetails {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api.Api))
 	}
-	query = fmt.Sprintf(query, strings.Join(formatedApis, ",\n"), host, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, strings.Join(formatedApis, ",\n"), host, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	// 查询日志
 	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
@@ -230,7 +230,7 @@ func NginxIngressBasicQuery(ctx context.Context, daysLookback int, host string) 
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-host: %v |
+host: %v %s|
 SELECT  * FROM  (
   SELECT 
     REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host, http_referer, request_time cost,channel
@@ -247,7 +247,7 @@ LIMIT %d
 	for _, api := range apiDetails {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api.Api))
 	}
-	query = fmt.Sprintf(query, host, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, host, consts.FilterProbeUser, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	// 查询日志
 	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
@@ -324,12 +324,12 @@ func MultiTotalRequestQuery(ctx context.Context, daysLookback int) (int, error) 
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 	query := `
-	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and files merge multi. article_list | select * from log
+	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod ) and files merge multi. article_list %s | select * from log
 limit %v
 	`
 	query = FormatWithTemplate(query, nil)
 
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 
 	//logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	logs, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -355,7 +355,7 @@ func MultiNodeLogQuery(ctx context.Context, daysLookback int) ([]CoreLog, error)
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and multi_node | select * from (
+(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod ) and multi_node | select * from (
     select regexp_extract(message, 'multi_node (.*?)(\.|,|\s)', 1) node_name, asctime time, user_id, trace_id
     from log
 ) order by time desc limit %v
@@ -414,7 +414,7 @@ func MultiCoreLogQuery(ctx context.Context, daysLookback int, coreName string) (
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-((__tag__:_container_name_: {{.BaseContainerName}}-python-prod or __tag__:_container_name_: {{.BaseContainerName}}-python-pre) and message: "%v core node node_name") |
+((__tag__:_container_name_: {{.BaseContainerName}}-python-prod) and message: "%v core node node_name") %s |
 select  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 1) as node_name,  
 regexp_extract(message, 'multi core node node_name:(.*),\s+multi_id:(.*),\s+entry_id:(.*),\s+cost:(.*) seconds', 2) as multi_id,  
@@ -425,7 +425,7 @@ from log order by time desc
 limit %v
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, coreName, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	//logs, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 	logs, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
 
@@ -471,7 +471,7 @@ func QaMiddlewareReqLogQuery(ctx context.Context, daysLookback int, apis []strin
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and "Request rout" | 
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod ) and "Request rout" | 
 select * from ( 
 select  regexp_extract(message, 'Request rout:(.*), Method:POST, RequestBody:.*', 1) url,
 time, trace_id, user_id
@@ -525,7 +525,7 @@ func QaMiddlewareRespLogQuery(ctx context.Context, daysLookback int, apis []stri
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and "Response rout" | 
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod ) and "Response rout" %s | 
 select * from ( 
 select  
 regexp_extract(message, 'Response rout:(.*), code:(.*), cost:(.*) s', 1) url,
@@ -544,7 +544,7 @@ limit %v
 	for _, api := range apis {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api))
 	}
-	query = fmt.Sprintf(query, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
 	//logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
 	logs, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -590,7 +590,7 @@ func QaCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]C
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and message: "%v," |  select * from (
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod) and message: "%v," %s |  select * from (
 select 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 1) as node, 
 regexp_extract(message, '问答模型, (.*),\s+count:(.*),\s+cost:(.*)\s+s$', 2) as cnt, 
@@ -600,7 +600,7 @@ limit %v
 ) where node != 'null'
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, coreName, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "qa core sql query: %v", query)
 	//logs, err := logstore.GetLogs("", from, to, query, 100, 0, false)
 	logs, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -647,7 +647,7 @@ func CommonCoreLogQuery(ctx context.Context, daysLookback int, coreName string) 
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and "core link core_name:%v" |
+(__tag__:_container_name_:{{.BaseContainerName}}-python-prod) and "core link core_name:%v" %s |
 SELECT 
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 1) as core_name,
 regexp_extract(message, 'core link core_name:(.*?), core_node:(.*?), resource_id:(.*?), cost:(.*?) seconds', 2) as core_node,
@@ -658,7 +658,7 @@ LIMIT %v
 `
 
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, coreName, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -722,7 +722,7 @@ func LingoChatCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorL
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-chat core api response error and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) | select * from (
+chat core api response error and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod ) %s | select * from (
     select 
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name,
     regexp_extract(message, 'chat core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code,
@@ -734,7 +734,7 @@ chat core api response error and (__tag__:_container_name_: {{.BaseContainerName
 )
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "chat core error sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -787,7 +787,7 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and extend core api response error core_name| select * from (
+(__tag__:_container_name_:{{.BaseContainerName}}-python-prod) and extend core api response error core_name %s | select * from (
     select 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 1) core_name, 
     regexp_extract(message, 'extend core api response error, core_name:(.*?) code:(.*?), msg:(.*?)$', 2) code, 
@@ -797,7 +797,7 @@ func LingoCoreErrorLogs(ctx context.Context, daysLookback int) ([]CoreErrorLogs,
 )
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "core error sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -849,7 +849,7 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_:{{.BaseContainerName}}-python-prod or __tag__:_container_name_:{{.BaseContainerName}}-python-pre) and summary start | select * from (
+(__tag__:_container_name_:{{.BaseContainerName}}-python-prod) and summary start %s | select * from (
     select 
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 1) file_id, 
     regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 2) url_id, 
@@ -860,7 +860,7 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 `
 	query = FormatWithTemplate(query, nil)
 
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "summary sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -892,7 +892,7 @@ func QaErrorCntQuery(ctx context.Context, daysLookback int) int64 {
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) and "%v" |  
+(__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod ) and "%v" |  
 select count(*) cnt from log
 limit %v
 `
@@ -934,7 +934,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
-	query := `(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  message : "summary core core_name:%s" |
+	query := `(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod ) and  message : "summary core core_name:%s" %s |
 	select
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 1) as core_name,
 	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 2) as node,
@@ -944,7 +944,7 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 `
 
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, coreName, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, coreName, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -996,12 +996,12 @@ func QaRecommendFailcntQuery(ctx context.Context, daysLookback int) int64 {
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-推荐模型返回异常 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) | select count(*) cnt from log
+推荐模型返回异常 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod ) %s | select count(*) cnt from log
 limit %v
 `
 
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "问题推荐失败数量查询 query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -1039,17 +1039,17 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
 
 	query := `
-推荐模型 推荐结束 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod or __tag__:_container_name_: {{.BaseContainerName}}-chat-go-pre) | select * from (
+推荐模型 推荐结束 and (__tag__:_container_name_: {{.BaseContainerName}}-chat-go-prod ) %s | select * from (
     select 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 1) count, 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 2) cost, 
-    trace_id, time, user_id, "__tag__:_container_name_" env
+    trace_id, time, 'U-Id' user_id, "__tag__:_container_name_" env
     from log  order by time desc
 ) limit %v
 `
 	query = FormatWithTemplate(query, nil)
 
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	// 查询日志
 	hlog.CtxDebugf(ctx, "问题推荐所有数量查询 query: %v", query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
@@ -1104,7 +1104,7 @@ func NginxBizErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxE
 
 	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
-	query := `
+	query := ` %s
 | 
 select user_id, trace_id, time, status, host, url, request_time cost,client_ip,"lw-code", "lw-msg", channel
 from log where
@@ -1124,7 +1124,7 @@ limit %v
 	if host == "" {
 		hostMute = "--"
 	}
-	query = fmt.Sprintf(query, urlMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, urlMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "date: %v, nginx bizErrlogs query: %v", date, query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -1198,7 +1198,7 @@ func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErro
 
 	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
-	query := `
+	query := `%s
 | 
 select user_id, trace_id, time, status, host, url, request_time cost,client_ip, channel
 from log where
@@ -1218,7 +1218,7 @@ limit %v
 	if host == "" {
 		hostMute = "--"
 	}
-	query = fmt.Sprintf(query, urlMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, urlMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "date: %v, nginx errlogs query: %v", date, query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -1273,7 +1273,7 @@ func ModelNginxErrlogsQuery(ctx context.Context, host, url, date string) ([]Ngin
 
 	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
-	query := `
+	query := ` %s
 | 
 select
 "content.user_id" user_id,
@@ -1291,7 +1291,7 @@ from log where
 
 "content.method"  in ('GET', 'POST') and
 "content.status"  != 200 and
-("content.channel" = '{{.BaseChannelName}}-prod' or "content.channel" = '{{.BaseChannelName}}-pre')
+("content.channel" = '{{.BaseChannelName}}-prod')
 order by "content.time" desc
 limit %v
 `
@@ -1304,7 +1304,7 @@ limit %v
 	if host == "" {
 		hostMute = "--"
 	}
-	query = fmt.Sprintf(query, pathMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.ModelFilterProbeuser, pathMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "date: %v, model nginx errlogs query: %v", date, query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -1865,7 +1865,7 @@ func TracebackQuery(ctx context.Context, daysLookback int) ([]TracebackDetail, e
 
 	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 	query := `
-(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and  exc_info : "Traceback (most recent call last)" and not "pydantic"|  
+(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod ) and  exc_info : "Traceback (most recent call last)" and not "pydantic" %s |  
 select 
 exc_info, message msg, trace_id, asctime time, user_id
 from log
@@ -1873,7 +1873,7 @@ order by asctime desc
 limit %v
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "business traceback sql query: %v", query)
 
 	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
@@ -1928,7 +1928,7 @@ func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs
 	hlog.CtxInfof(ctx, "get logstore: %v success", consts.BUSINESS_LOG_STORE_NAME)
 
 	query := `
-(__tag__:_container_name_: {{.BaseContainerName}}-python-pre or __tag__:_container_name_: {{.BaseContainerName}}-python-prod) | select * from (
+(__tag__:_container_name_: {{.BaseContainerName}}-python-prod) %s| select * from (
     select 
     regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 1) core_name,
     regexp_extract(message, 'extend core error, core_name:(.*?), core_node:(.*?), code:(.*?), msg:(.*?)$', 2) node_name,
@@ -1938,7 +1938,7 @@ func MultiNodeErrorQuery(ctx context.Context, daysLookback int) ([]CoreErrorLogs
 ) where core_name='多文档' limit %v
 `
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "multi node error sql query: %v", query)
 
 	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
@@ -2038,7 +2038,7 @@ func ResourceUploadQuery(ctx context.Context, resourceId, resourceType string, t
 	}
 
 	query := `
-	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s %s %s" and funcName: core_link_print_cost | select * from log limit %v
+	(__tag__:_container_name_ : lingowhale-python-prod) and message: "%s %s %s" and funcName: core_link_print_cost | select * from log limit %v
 	`
 	query = FormatWithTemplate(query, nil)
 
@@ -2066,7 +2066,7 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod or __tag__:_container_name_ : {{.BaseContainerName}}-python-pre) and message: "core link core_name:PDFParser, resource_id:%s" and (message: "PDF解析完成" or message : "PDF解析完成")  | select * from log
+	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod) and message: "core link core_name:PDFParser, resource_id:%s" and (message: "PDF解析完成" or message : "PDF解析完成")  | select * from log
 limit %v
 	`
 	query = FormatWithTemplate(query, nil)
@@ -2121,7 +2121,7 @@ func WcdParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd ti
 	}
 
 	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "ParseEduNode wcd" and message:"%s"
+	(__tag__:_container_name_ : edu-arch-go-prod) and message: "ParseEduNode wcd" and message:"%s"
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "WcdParserQuery query: %s", query)
@@ -2141,7 +2141,7 @@ func EduParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd ti
 	}
 
 	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "ParseEduNode end" and message: "%s"
+	(__tag__:_container_name_ : edu-arch-go-prod) and message: "ParseEduNode end" and message: "%s"
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "TextParserQuery query: %s", query)
@@ -2161,7 +2161,7 @@ func ParseFinishQuery(ctx context.Context, resourceId string, timeBegin, timeEnd
 	}
 
 	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and (message: "ParseEduNode parse end entryId:%s" or message: "ParseEduNode wcd text nil entryId:%s" or message: "ParseEduNode wcd worthless end entryId:%s")
+	(__tag__:_container_name_ : edu-arch-go-prod) and (message: "ParseEduNode parse end entryId:%s" or message: "ParseEduNode wcd text nil entryId:%s" or message: "ParseEduNode wcd worthless end entryId:%s")
 	`
 	query = fmt.Sprintf(query, resourceId, resourceId, resourceId)
 	hlog.CtxDebugf(ctx, "ParseFinishQuery query: %s", query)
@@ -2175,7 +2175,7 @@ func ParseFinishQuery(ctx context.Context, resourceId string, timeBegin, timeEnd
 }
 
 func SingleOutlineBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:1." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod) and message: "summary start" and message: "generate_type:1." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
 	hlog.CtxDebugf(ctx, "SingleOutlineBeginQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2192,7 +2192,7 @@ func SingleOutlineBeginQuery(ctx context.Context, resourceId string, timeBegin, 
 }
 
 func SingleOutlineEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary core core_name:大纲, node:大纲生成完成" and trace_id:"%s"`
+	query := `(__tag__:_container_name_ : lingowhale-python-prod ) and message: "summary core core_name:大纲, node:大纲生成完成" and trace_id:"%s"`
 	query = fmt.Sprintf(query, traceId)
 	hlog.CtxDebugf(ctx, "SingleOutlineEndQuery query: %s", query)
 
@@ -2210,7 +2210,7 @@ func SingleOutlineEndQuery(ctx context.Context, traceId string, timeBegin, timeE
 }
 
 func SingleOverviewBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:0." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod) and message: "summary start" and message: "generate_type:0." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
 	hlog.CtxDebugf(ctx, "SingleOverviewBeginQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2227,7 +2227,7 @@ func SingleOverviewBeginQuery(ctx context.Context, resourceId string, timeBegin,
 }
 
 func SingleOverviewEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary core core_name:概述, node:生成概述结束" and trace_id:"%s"`
+	query := `(__tag__:_container_name_ : lingowhale-python-prod) and message: "summary core core_name:概述, node:生成概述结束" and trace_id:"%s"`
 	query = fmt.Sprintf(query, traceId)
 	hlog.CtxDebugf(ctx, "SingleOverviewEndQuery query: %s", query)
 
@@ -2245,7 +2245,7 @@ func SingleOverviewEndQuery(ctx context.Context, traceId string, timeBegin, time
 }
 
 func SingleViewpointBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:3." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod) and message: "summary start" and message: "generate_type:3." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
 	hlog.CtxDebugf(ctx, "SingleViewpointBeginQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2262,7 +2262,7 @@ func SingleViewpointBeginQuery(ctx context.Context, resourceId string, timeBegin
 }
 
 func SingleViewpointEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "core link core_name:viewpoint, core_node:观点模型输出完成" and trace_id:"%s"`
+	query := `(__tag__:_container_name_ : lingowhale-python-prod ) and message: "core link core_name:viewpoint, core_node:观点模型输出完成" and trace_id:"%s"`
 	query = fmt.Sprintf(query, traceId)
 	hlog.CtxDebugf(ctx, "SingleViewpointEndQuery query: %s", query)
 
@@ -2298,7 +2298,7 @@ func MultiItemAnalysisQuery(ctx context.Context, resourceId string, timeBegin, t
 }
 
 func MultiAnalysisQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query := `( __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
 	query = fmt.Sprintf(query, multiID, "ANALYSIS_ALL")
 	hlog.CtxDebugf(ctx, "MultiThemeQuery query: %s", query)
 
@@ -2316,7 +2316,7 @@ func MultiAnalysisQuery(ctx context.Context, multiID string, timeBegin, timeEnd 
 }
 
 func MultiThemeQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query := `(__tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
 	query = fmt.Sprintf(query, multiID, "MERGE")
 	hlog.CtxDebugf(ctx, "MultiThemeQuery query: %s", query)
 
@@ -2334,7 +2334,7 @@ func MultiThemeQuery(ctx context.Context, multiID string, timeBegin, timeEnd tim
 }
 
 func MultiOutlineQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query := `(__tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
 	query = fmt.Sprintf(query, multiID, "THEME_ALL_SUMMARY")
 	hlog.CtxDebugf(ctx, "MultiOutlineQuery query: %s", query)
 

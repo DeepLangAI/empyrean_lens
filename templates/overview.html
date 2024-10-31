@@ -1746,44 +1746,26 @@
             for (let i = 0; i < response.data.data.length; i++) {
                 const row = `
                     <tr>
-                        <td>{0}</td>
-                        <td>{1}</td>
-                        <td {9}>{2}</td>
-                        <td>{3}</td>
-                        <td class="color-cell" style="background: {8}">{4}%</td>
-                        <td>{5}</td>
-                        <td>{6}</td>
-                        <td>{7}</td>
-                        <td {10}>${response.data.data[i].num_biz_error_req}</td>
+                        <td>${response.data.data[i].api_name}</td>
+                        <td>${response.data.data[i].host}</td>
+                        <td ${
+                            response.data.data[i].num_error_req > 0 && response.data.data[i].api_name != '当日总览'? `
+                                class="clickable"
+                                onclick=handleErrorDetail('{0}','{1}','{2}','{3}')`.format(
+                                response.data.data[i].host,
+                                response.data.data[i].api_path,
+                                date,
+                                2,
+                            ) :  ''
+                        }>${response.data.data[i].num_error_req + response.data.data[i].num_biz_error_req}</td>
+                        <td>${response.data.data[i].num_total_req}</td>
+                        <td class="color-cell" style="background: ${getColor((response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2))}">${(response.data.data[i].err_percent).toFixed(2)}%</td>
+                        <td>${response.data.data[i].num_code_3xx}</td>
+                        <td>${response.data.data[i].num_code_4xx}</td>
+                        <td>${response.data.data[i].num_code_5xx}</td>
+                        <td>${response.data.data[i].num_biz_error_req}</td>
                     </tr>
-                `.format(
-                    // response.data.data[i].date,
-                    response.data.data[i].api_name,
-                    response.data.data[i].host,
-                    response.data.data[i].num_error_req,
-                    response.data.data[i].num_total_req,
-                    (response.data.data[i].err_percent).toFixed(2),
-                    response.data.data[i].num_code_3xx,
-                    response.data.data[i].num_code_4xx,
-                    response.data.data[i].num_code_5xx,
-                    getColor((response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2)),
-                    response.data.data[i].num_error_req > 0 && response.data.data[i].api_name != '当日总览'? `
-                        class="clickable"
-                        onclick=handleErrorDetail('{0}','{1}','{2}','{3}')`.format(
-                        response.data.data[i].host,
-                        response.data.data[i].api_path,
-                        date,
-                        0,
-                    ) :  '',
-                    response.data.data[i].num_biz_error_req > 0 && response.data.data[i].api_name != '当日总览'? `
-                        class="clickable"
-                        onclick=handleErrorDetail('{0}','{1}','{2}','{3}')`.format(
-                            response.data.data[i].host,
-                            response.data.data[i].api_path,
-                            date,
-                            1,
-                        ) :  '',
-                    );
+                `;
                 table.append(row);
                 hideLoadingStatus();
             }

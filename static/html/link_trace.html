@@ -1064,9 +1064,12 @@
     }
 
     function duration(start, end){
-        // start: 2024-10-28 20:29:18
-        // end: 2024-10-28 20:29:19
+        // start: 2024-10-28 20:29:18,999
+        // end: 2024-10-28 20:29:19,999
         // 计算时间差，单位为秒
+        start = start.replace(/,/g, '.');
+        end = end.replace(/,/g, '.');
+
         var start = new Date(start);
         var end = new Date(end);
         var duration = (end - start);

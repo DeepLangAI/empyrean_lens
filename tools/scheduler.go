@@ -21,10 +21,10 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_TODAY, false)
 		empyrean_lens.UpdateLatestScoreInfo(ctx) // 更新当天的分数同比、环比信息
 	})
-	// 由于采集日志不及时，需要晚上刷一下近一周的数据
-	s.Every(1).Day().At("23:50").Do(func() {
-		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_WEEK, false)
-	})
+	//// 由于采集日志不及时，需要晚上刷一下近一周的数据
+	//s.Every(1).Day().At("23:50").Do(func() {
+	//	aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_WEEK, false)
+	//})
 	//s.StartBlocking()
 	s.StartAsync()
 }

@@ -589,6 +589,7 @@ struct LinkNodeLogResp {
 struct LinkNodeLogRespData {
     1: list<ApiLog> logs
     2: double cost // end to end cost, seconds
+    3: string trace_id
 }
 
 struct ApiLog {

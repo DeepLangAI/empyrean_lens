@@ -39,25 +39,10 @@ func FileLinkTrace(ctx context.Context, fileID string) (*empyrean_lens.DocLinkTr
 	start := fileInfo.CreateTime.Add(-1 * time.Hour)
 	end := fileInfo.CreateTime.Add(24 * time.Hour)
 	// 并发获取节点列表
-	linkTraceGraph, bizCode := &empyrean_lens.TraceLinkGraph{}, &consts.BizCode{}
-	if fileInfo.MultiId != "" {
-		fileGraph, bizCode := LinkTraceGraph(ctx, fileID, consts.PDF, start, end, consts.MultiFileProcessList, consts.MultiFileProcessMapping)
-		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
-			return nil, bizCode
-		}
-		multi, bizCode := LinkTraceGraph(ctx, fileInfo.MultiId, consts.PDF, start, end, consts.MultiProcessList, consts.MultiProcessMapping)
-		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
-			return nil, bizCode
-		}
-		linkTraceGraph = mergeLinkTraceGraph([]*empyrean_lens.TraceLinkGraph{fileGraph}, multi)
-	} else {
-		linkTraceGraph, bizCode = LinkTraceGraph(ctx, fileID, consts.PDF, start, end, consts.SingleFileProcessList, consts.SingleFileProcessMapping)
-		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
-			return nil, bizCode
-		}
+	linkTraceGraph, bizCode := LinkTraceGraph(ctx, fileID, consts.PDF, start, end, consts.SingleFileProcessList, consts.SingleFileProcessMapping)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
+		return nil, bizCode
 	}
 	// 返回
 	return &empyrean_lens.DocLinkTraceRespData{
@@ -79,25 +64,10 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string) (*empyrean_lens
 	start := webReaderInfo.CreateTime.Add(-24 * time.Hour)
 	end := webReaderInfo.CreateTime.Add(24 * time.Hour)
 	// 并发获取节点列表
-	linkTraceGraph, bizCode := &empyrean_lens.TraceLinkGraph{}, &consts.BizCode{}
-	if webReaderInfo.MultiId != "" {
-		webReaderGraph, bizCode := LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.MultiWebReaderProcessList, consts.MultiWebReaderProcessMapping)
-		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
-			return nil, bizCode
-		}
-		multi, bizCode := LinkTraceGraph(ctx, webReaderInfo.MultiId, consts.URL, start, end, consts.MultiProcessList, consts.MultiProcessMapping)
-		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
-			return nil, bizCode
-		}
-		linkTraceGraph = mergeLinkTraceGraph([]*empyrean_lens.TraceLinkGraph{webReaderGraph}, multi)
-	} else {
-		linkTraceGraph, bizCode = LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.SingleWebReaderProcessList, consts.SingleWebReaderProcessMapping)
-		if bizCode != nil {
-			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
-			return nil, bizCode
-		}
+	linkTraceGraph, bizCode := LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.SingleWebReaderProcessList, consts.SingleWebReaderProcessMapping)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
+		return nil, bizCode
 	}
 	// 返回
 	return &empyrean_lens.DocLinkTraceRespData{
@@ -227,7 +197,8 @@ func LinkTraceGraph(ctx context.Context, resourceId, resourceType string, start,
 			if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && isChildSuccess(node, nodes, edges) {
 				node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 			}
-			if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD && isFatherSuccess(node, nodes, edges) && isChildAllUnReachead(node, nodes, edges) {
+			if node.Type != empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH && node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD &&
+				isFatherSuccess(node, nodes, edges) && isChildAllUnReachead(node, nodes, edges) {
 				node.Status = empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}
@@ -285,7 +256,11 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			processLogs[0].Cost = float64(apiLogsOuput[0].Asctime.Sub(apiLogsInput[0].Asctime).Seconds())
 			return processLogsToNode(processType, processLogs), nil
 		}
-		return processLogsToNode(processType, processLogs), nil
+		node := processLogsToNode(processType, processLogs)
+		if len(apiLogsInput) > 0 {
+			node.TraceID = apiLogsInput[0].TraceId
+		}
+		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:
 		processLogs, err := aliyun.EduParseQuery(ctx, resourceId, start, end)
 		if err != nil {
@@ -456,14 +431,18 @@ func isFatherSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.Graph
 	for _, node := range nodes {
 		nodeMapping[node.ID] = node
 	}
+	hasFather := false
 	for fID, ids := range nodeIDMapping {
 		for _, id := range ids {
-			if id == node.ID && nodeMapping[fID].Status == empyrean_lens.ActionStatusEnum_SUCCESS {
-				return true
+			if id == node.ID {
+				hasFather = true
+				if nodeMapping[fID].Status == empyrean_lens.ActionStatusEnum_SUCCESS {
+					return true
+				}
 			}
 		}
 	}
-	return false
+	return !hasFather
 }
 
 func isFatherAllSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNode, nodeIDMapping map[empyrean_lens.NodeId][]empyrean_lens.NodeId) bool {
@@ -532,6 +511,10 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLog aliyun.
 	case empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:
 		if strings.Contains(processLog.Message, "wcd text nil") || strings.Contains(processLog.Message, "wcd worthless") {
 			return empyrean_lens.ActionStatusEnum_WORTHLESS
+		}
+	case empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:
+		if strings.Contains(processLog.Message, "苏秦解析异常") || strings.Contains(processLog.Message, "pdf解析异常") {
+			return empyrean_lens.ActionStatusEnum_FAIL
 		}
 	}
 	return empyrean_lens.ActionStatusEnum_SUCCESS

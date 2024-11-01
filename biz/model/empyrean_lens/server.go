@@ -20517,7 +20517,8 @@ func (p *LinkNodeLogResp) String() string {
 type LinkNodeLogRespData struct {
 	Logs []*ApiLog `thrift:"logs,1" form:"logs" json:"logs" query:"logs"`
 	// end to end cost, seconds
-	Cost float64 `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
+	Cost    float64 `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
+	TraceID string  `thrift:"trace_id,3" form:"trace_id" json:"trace_id" query:"trace_id"`
 }
 
 func NewLinkNodeLogRespData() *LinkNodeLogRespData {
@@ -20532,9 +20533,14 @@ func (p *LinkNodeLogRespData) GetCost() (v float64) {
 	return p.Cost
 }
 
+func (p *LinkNodeLogRespData) GetTraceID() (v string) {
+	return p.TraceID
+}
+
 var fieldIDToName_LinkNodeLogRespData = map[int16]string{
 	1: "logs",
 	2: "cost",
+	3: "trace_id",
 }
 
 func (p *LinkNodeLogRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -20567,6 +20573,14 @@ func (p *LinkNodeLogRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 2:
 			if fieldTypeId == thrift.DOUBLE {
 				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -20634,6 +20648,17 @@ func (p *LinkNodeLogRespData) ReadField2(iprot thrift.TProtocol) error {
 	p.Cost = _field
 	return nil
 }
+func (p *LinkNodeLogRespData) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TraceID = _field
+	return nil
+}
 
 func (p *LinkNodeLogRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -20647,6 +20672,10 @@ func (p *LinkNodeLogRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField2(oprot); err != nil {
 			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
 			goto WriteFieldError
 		}
 	}
@@ -20707,6 +20736,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("trace_id", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TraceID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
 }
 
 func (p *LinkNodeLogRespData) String() string {

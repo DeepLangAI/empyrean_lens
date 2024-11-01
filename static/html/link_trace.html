@@ -1943,11 +1943,20 @@
 
         function CreateHomePage() {
 
+            function formatDateTime(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0'); // 月份从0开始
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+
+                return `${year}-${month}-${day} ${hours}:${minutes}`;
+            }
+
             function setTimeRange(startTime, endTime) {
-                let startTimeStr = startTime.toLocaleString().replace(/\//g, '-').slice(0, 16);
-                let endTimeStr = endTime.toLocaleString().replace(/\//g, '-').slice(0, 16);
-                $startDatetime.val(startTimeStr);
-                $endDatetime.val(endTimeStr);
+                $startDatetime.val(formatDateTime(startTime));
+                $endDatetime.val(formatDateTime(endTime));
             }
 
             let currentPage = 0;

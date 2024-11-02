@@ -1217,6 +1217,9 @@
                 if (index === 0){
                     $dragModal.hide()
                 }
+                if (index != 1){
+                    $('.tooltip').hide()
+                }
             })
         $navStatusBar.append($navBreadCrumb, $backContainer)
         $app.append($loadingContainer, $navStatusBar, $dragModal)
@@ -1366,6 +1369,7 @@
                 }, 500);
             }
             $dragModal.hide()
+            $('.tooltip').hide()
         }
 
         function goBack() {
@@ -1391,6 +1395,9 @@
             }
             if (pageStack.length == 1){
                 $dragModal.hide()
+            }
+            if (pageStack.length != 2){
+                $('.tooltip').hide()
             }
         }
 

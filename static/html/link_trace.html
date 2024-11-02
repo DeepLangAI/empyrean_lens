@@ -2064,11 +2064,10 @@
                         anchorIndex = i;
                         if (i == 0){
                             start = 0;
-                            end = 5;
                         } else{
-                            start = i - 6;
-                            end = i + 2;
+                            start = Math.max(i - 6, 0);
                         }
+                        end = start + 5;
                         loadMoreData('top', start, end)
                         break;
                     }

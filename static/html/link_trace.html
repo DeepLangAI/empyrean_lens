@@ -1958,7 +1958,7 @@
             // 模拟加载更多数据
             function loadMoreData(position, from, to) {
                 console.log('loadMoreData', position, from, to)
-                if (to < 0 || from >= userActions.length){
+                if (to <= 0 || from >= userActions.length){
                     return
                 }
                 if (to - from <= 0){

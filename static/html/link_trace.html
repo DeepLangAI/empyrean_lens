@@ -841,6 +841,90 @@
         }
 
 
+        /*可拖动弹窗*/
+        .draggable-window {
+            width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            position: absolute;
+            right: 100px;
+            top: 100px;
+            background-color: white;
+            z-index: 1000;
+            display: none; /* 初始隐藏 */
+        }
+        .modal-header {
+            background-color: #67ad5b;
+            padding: 10px;
+            color: white;
+            cursor: move; /* 指示可以拖动 */
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        .modal-body {
+            padding: 20px;
+            position: relative;
+        }
+        .timeline {
+            position: relative;
+            padding-left: 10px;
+            padding-right: 10px;
+            border-left: 3px solid #61c746;
+            max-height: 500px;
+            overflow-y: scroll; /* 仅在 y 方向滚动 */
+        }
+        .timeline-arraw{
+            content: '';
+            position: absolute;
+            left: 11px; /* 箭头相对于时间线的位置 */
+            top: 52px; /* 箭头位于时间线的顶部 */
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            /*border-right: 8px solid transparent;*/
+            border-bottom: 12px solid #61c746; /* 箭头颜色 */
+        }
+
+        .timeline-item {
+            background: white;
+            padding: 15px;
+            border: 1px solid #ccc;
+            margin: 10px 0;
+            margin-top: 0px;
+            border-radius: 5px;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .timeline-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 15px;
+            width: 12px;
+            height: 12px;
+            background: #61c746;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        .timeline-item h4 {
+            margin: 0 0 5px;
+            color: #343a40;
+        }
+        .timeline-item p {
+            margin: 0;
+            color: #6c757d;
+        }
+        .modal-header .close-button {
+            cursor: pointer;
+            float: right;
+            font-size: 20px;
+            color: white;
+        }
+
 
     </style>
 </head>
@@ -1099,6 +1183,7 @@
 
     $(document).ready(function() {
         let $loadingContainer = createLoadingContainer()
+        let $dragModal = $('<div>').addClass("draggable-window")
         const $app = $('#app');
         let $backButton = $('<img>')
             .addClass('home-button')
@@ -1129,9 +1214,12 @@
                 $currentPage.css({
                     'opacity': 1,
                 })
+                if (index === 0){
+                    $dragModal.hide()
+                }
             })
         $navStatusBar.append($navBreadCrumb, $backContainer)
-        $app.append($loadingContainer, $navStatusBar)
+        $app.append($loadingContainer, $navStatusBar, $dragModal)
 
         let pageStack = [];
         function createTableRow(row, columns){
@@ -1277,6 +1365,7 @@
                     $currentPage.remove();
                 }, 500);
             }
+            $dragModal.hide()
         }
 
         function goBack() {
@@ -1299,6 +1388,9 @@
                 setTimeout(() => {
                     $currentPage.remove();
                 }, 500);
+            }
+            if (pageStack.length == 1){
+                $dragModal.hide()
             }
         }
 
@@ -1398,7 +1490,6 @@
                         count++;
                     }
                 }
-                console.log(name, name.length, count)
                 return name.length - count / 2
             }
             function calculateDepth(data){
@@ -1424,7 +1515,6 @@
                 return ans
             }
             const data = buildHierarchy(graphData, rootName);
-            console.log(graphData, data)
 
             // 设置图表尺寸
             const margin = { top: 20, right: 20, bottom: 30, left: 20 };
@@ -1720,7 +1810,7 @@
             }
             let docInfo = null
             if (data.docInfo){
-                docInfo = data.docInfo.clone()
+                docInfo = data.docInfo.clone(true)
                 // 找到docInfo中的最后一个tr
                 const lastTr = docInfo.find('table tbody tr:last-child');
                 lastTr.append($('<td class="key">').text('节点：'))
@@ -1822,39 +1912,219 @@
             });
             return $info
         }
+        function createUserActionTimeline(userId, anchorTimeStr){
+            let forbidenUids = ["823df25bde18445494b5691222979cd0"]
+            if (forbidenUids.includes(userId)){
+                Swal.fire({
+                    position: "top-end",
+                    icon: "error",
+                    title: "此用户未支持行为轨迹",
+                    showConfirmButton: false,
+                    timer: 1000,
+                    customClass: {
+                        popup: 'custom-popup',
+                        title: 'custom-popup-title',
+                        icon: 'custom-popup-icon',
+                    }
+                });
+
+                return
+            }
+            var isDragging = false;
+            var offset = { x: 0, y: 0 };
+
+
+            $(document).mousemove(function(e) {
+                if (isDragging) {
+                    $dragModal.css({
+                        left: e.clientX - offset.x,
+                        top: e.clientY - offset.y
+                    });
+                }
+            });
+
+            $(document).mouseup(function() {
+                isDragging = false;
+            });
+
+
+            // 模拟加载更多数据
+            function loadMoreData(position, from, to) {
+                console.log('loadMoreData', position, from, to)
+                if (to < 0 || from >= userActions.length){
+                    return
+                }
+                if (to - from <= 0){
+                    return
+                }
+                from = Math.max(from, 0)
+                to = Math.min(to, userActions.length)
+                let newData = '';
+                for (let i = from; i < to; i++) {
+                    const time = new Date();
+                    const timestamp = time.toLocaleString();
+                    newData += `
+                        <div class="timeline-item">
+                            <h4>${userActions[i].time}</h4>
+                            <p>行为: ${userActions[i].action_name}</p>
+                            <p>渠道: ${userActions[i].action_channel}</p>
+                            <p>状态: ${userActions[i].result_status}</p>
+                        </div>
+                    `;
+                }
+                if (position === 'top') {
+                    $timeline.prepend(newData); // 在顶部添加数据
+                    // 直接设置滚动条位置到加载后的位置
+                    $timeline.scrollTop($('.timeline-item').outerHeight() * newData.split('</div>').length);
+                } else {
+                    $timeline.append(newData); // 在底部添加数据
+                }
+            }
+
+            function openModal() {
+                $dragModal.fadeIn()
+            }
+
+            function closeModal() {
+                $dragModal.fadeOut();
+            }
+
+            $dragModal.empty()
+            $dragModal.show()
+            // 创建模态框头部
+            let $modalHeader = $('<div>').addClass('modal-header').text('用户行为轨迹');
+            let $closeButton = $('<span>')
+                .addClass('close-button')
+                .html('&times;') // 使用 html() 来插入特殊字符
+                .on('click', closeModal); // 绑定关闭事件
+
+            $modalHeader.mousedown(function(e) {
+                console.log('mouse down!!')
+                isDragging = true;
+                offset.x = e.clientX - $dragModal.offset().left;
+                offset.y = e.clientY - $dragModal.offset().top;
+            });
+            $modalHeader.append($closeButton); // 将关闭按钮添加到头部
+
+            // 创建模态框主体
+            let $modalBody = $('<div>').addClass('modal-body');
+            let $timeline = $('<div>').addClass('timeline');
+
+            // 监听滚动事件
+            $timeline.scroll(function() {
+                if ($(this).scrollTop() === 0) {
+                    loadMoreData('top', start - 5, start);
+                    if (start > 0) {
+                        start -= 5
+                    }
+                } else if ($(this)[0].scrollHeight - $(this).scrollTop() - $(this).outerHeight() <= 0.4) {
+                    loadMoreData('bottom', end, end + 5);
+                    if (end < userActions.length) {
+                        end += 5
+                    }
+                }
+            });
+
+
+            let $loading = createLoadingContainer()
+            $loading.css({
+                position: 'absolute',
+            })
+            showLoadingStatus($loading)
+
+            // 将时间线添加到主体
+            $modalBody.append($timeline, $loading);
+            // 创建模态框并添加头部和主体
+            $dragModal.empty().append($modalHeader, $modalBody, $('<div class="timeline-arraw">'));
+
+            let userActions = [];
+            let start = 0;
+            let end = 0;
+            axios.post('/api/v1/report/user/user_action_info', {
+                    "uids": [userId],
+                },
+            ).then(response => {
+                hideLoadingStatus($loading)
+                let actions = response.data.data;
+                for (let i = 0; i < actions.length; i++) {
+                    let action = actions[i];
+                    userActions.push({
+                        "time": action.time,
+                        "action_name": action.detail.action,
+                        "action_channel": action.detail.action_channel,
+                        "result_status": action.detail.result_status,
+                    })
+                }
+                // 找到与anchorTime戳最接近的action位置
+                let anchorTime = new Date(anchorTimeStr);
+                let anchorIndex = -1;
+                for (let i = 0; i < userActions.length; i++) {
+                    console.log(i, userActions[i].time, userActions[i], new Date(userActions[i].time) - anchorTime)
+                    if (new Date(userActions[i].time) - anchorTime < 0) {
+                        anchorIndex = i;
+                        if (i == 0){
+                            start = 0;
+                            end = 5;
+                        } else{
+                            start = i - 6;
+                            end = i + 2;
+                        }
+                        loadMoreData('top', start, end)
+                        break;
+                    }
+                }
+
+            }).catch(error => {
+
+            }).finally(()=>{
+                hideLoadingStatus($loading)
+            })
+            return $dragModal
+        }
         function createDocHeaderWithTable(userId, time, isMulti, title, status, entry_id){
-            let $info = $('<h3>').html(`
-                <table class="table-container">
-                    <tr>
-                        <td class="key">用户id：</tdc>
-                        <td class="value">${userId}</td>
-
-                        <td class="key">时间：</td>
-                        <td class="value">${time}</td>
-
-                        <td class="key">文档类型：</td>
-                        <td class="value">${isMulti ? '多文档': '单文档'}</td>
-
-                        <td class="key">结果：</td>
-                        <td class="value" style="background: ${COLORS[status]}">${statusToString(status)}</td>
-                    </tr>
-                    <tr>
-                        <td class="key">标题：</td>
-                        <td class="value">${title}</td>
-
-                        <td class="key">entry_id：</td>
-                        <td class="value">${entry_id}</td>
-                    </tr>
-                </table>
-                `).css({
+            let $info = $('<h3>').css({
                 'width': '80%',
                 'margin': 'auto',
-            })
+            });
+
+            // 创建表格元素
+            let $table = $('<table>').addClass('table-container');
+
+            // 第一行
+            let $row1 = $('<tr>').append(
+                $('<td>').addClass('key').text('用户id：'),
+                $('<td>').addClass('value').text(userId),
+                $('<td>').addClass('key').text('时间：'),
+                $('<td>').addClass('value').text(time),
+                $('<td>').addClass('key').text('文档类型：'),
+                $('<td>').addClass('value').text(isMulti ? '多文档' : '单文档'),
+                $('<td>').addClass('key').text('结果：'),
+                $('<td>').addClass('value').css('background', COLORS[status]).text(statusToString(status))
+            );
+
+            // 第二行
+            let $row2 = $('<tr>').append(
+                $('<td>').addClass('key').text('标题：'),
+                $('<td>').addClass('value').text(title),
+                $('<td>').addClass('key').text('entry_id：'),
+                $('<td>').addClass('value').text(entry_id),
+                $('<td>').addClass('clickable').text('查看用户行为轨迹').on('click', function() {
+                    console.log('查看用户行为轨迹');
+                    createUserActionTimeline(userId, time.replace(/,/g, '.'));
+                })
+            );
+
+            // 将行添加到表格
+            $table.append($row1, $row2);
+
+            // 将表格添加到 $info
+            $info.append($table);
             return $info
         }
 
         function CreateSingleDocTraceGraphPage(entry_id, entry_type, {userId, time, isMulti, title, status}){
             showLoadingStatus($loadingContainer)
+            let $page = $('<div>').addClass('page-body')
             let $info = createDocHeaderWithTable(userId, time, isMulti, title, status, entry_id)
 
             axios.get('/api/v1/link_trace/single_doc', {
@@ -1873,10 +2143,9 @@
                     graphData.nodes[i].entry_type = data.entry_type
                 }
 
-                let $page = $('<div>').addClass('page-body')
                 let $svgContainer = $('<div>').addClass('svg-container')
 
-                let $svg = createTreeDiagram(graphData, '用户上传', [], $info.clone())
+                let $svg = createTreeDiagram(graphData, '用户上传', [], $info.clone(true))
                 $svgContainer.append($svg)
                 $page.append($info, $svgContainer)
                 createPage("单文档核心链路", $page)
@@ -1894,6 +2163,7 @@
             }
 
             showLoadingStatus($loadingContainer)
+            let $page = $('<div>').addClass('page-body')
             let $info = createDocHeaderWithTable(userId, time, isMulti, title, status, entry_id)
 
             axios.get('/api/v1/link_trace/multi_doc',{
@@ -1926,12 +2196,11 @@
                     node.entry_type = EntryTypeEnum.MULTI
                 }
 
-                let $page = $('<div>').addClass('page-body')
                 let $svgContainer = $('<div>').addClass('svg-container')
 
                 // let $svg1 = createTreeDiagram(graphData, '用户上传', new Array(data.articles.length).fill('title'))
-                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTitles, $info.clone())
-                let $svg2 = createTreeDiagram(data.graph, '预处理完成', [], $info.clone())
+                let $svg1 = createTreeDiagram(graphData, '用户上传', fileTitles, $info.clone(true))
+                let $svg2 = createTreeDiagram(data.graph, '预处理完成', [], $info.clone(true))
 
                 $svgContainer.append($svg1, $svg2)
                 $page.append($info, $svgContainer)
@@ -2018,7 +2287,6 @@
                     .attr('status', ActionStatusEnum.UNREACHED)
                     .css({'background': COLORS[ActionStatusEnum.UNREACHED]}),
             ]
-            console.log($statusSelectDropdownContents)
             // 批量添加点击事件
             for (let i = 0; i < $statusSelectDropdownContents.length; i++) {
                 $statusSelectDropdownContents[i].on('click', function () {
@@ -2038,7 +2306,6 @@
                     let text = $(this).text()
                     let status = text[0]
                     let tail = text.slice(1)
-                    console.log(text, status === '⭕️', tail)
                     if (status === '✅'){
                         $(this).text('⭕️' + tail)
                     } else{
@@ -2303,7 +2570,6 @@
                     }
                 }).then(response => {
                     const data = response.data.data;
-                    console.log(data)
 
                     // hasMoreData = data.has_next;
 
@@ -2337,6 +2603,7 @@
 
             createPage("用户行为", $page)
         }
+
 
         function main() {
             CreateHomePage()

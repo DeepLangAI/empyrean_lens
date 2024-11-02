@@ -312,6 +312,30 @@ struct UInfoRespData{
     2: string uid
     3: string nickname
 }
+// 用户活动信息
+struct UserActionInfoReq{
+    1: list<string> uids
+}
+struct UserActionInfoResp{
+    1: i32 code
+    2: string msg
+    3: list<UserActionInfoRespData> data
+}
+struct UserActionInfoRespData{
+    1: string uid
+    2: string action
+    3: string time
+    4: UserActionDetail detail
+}
+struct UserActionDetail{
+    1: string result_status
+    2: string failure_reason
+    3: string file_id
+    4: string action
+    5: string action_channel
+    6: double cost_seconds
+}
+
 
 // 查询请求量趋势
 struct RequestTrendReq{
@@ -672,6 +696,11 @@ service Rentention{
    UInfoResp GetUInfo(1: UInfoReq req) (
        api.get="/api/v1/report/user/info"
    )
+   /**** 用户活动信息 ****/
+   UserActionInfoResp UserActionInfo(1: UserActionInfoReq req) (
+       api.post="/api/v1/report/user/user_action_info"
+   )
+
    // 上线单查询
    OnlineOperationResp GetOnlineOperation(1: OnlineOperationReq req) (
        api.get="/api/v1/report/online_operation"

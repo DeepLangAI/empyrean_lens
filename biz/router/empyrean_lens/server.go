@@ -81,6 +81,7 @@ func Register(r *server.Hertz) {
 				{
 					_user := _report.Group("/user", _userMw()...)
 					_user.GET("/info", append(_getuinfoMw(), empyrean_lens.GetUInfo)...)
+					_user.POST("/user_action_info", append(_useractioninfoMw(), empyrean_lens.UserActionInfo)...)
 				}
 				{
 					_user_trace := _report.Group("/user_trace", _user_traceMw()...)

@@ -24,6 +24,13 @@ type Config struct {
 	Redis             *redis.ClusterOptions `yaml:"redis"`
 	Logger            conflib.Logger        `yaml:"logger"`
 	Lark              Lark                  `yaml:"lark"`
+	Oss               OSS                   `yaml:"oss"`
+}
+
+type OSS struct {
+	Endpoint     string `yaml:"endpoint"`
+	AccessKey    string `yaml:"accessKey"`
+	AccessSecret string `yaml:"accessSecret"`
 }
 
 type Redis struct {

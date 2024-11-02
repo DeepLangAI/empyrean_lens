@@ -5,6 +5,7 @@ import (
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -234,4 +235,16 @@ func TestNginxBizErrlogsQuery(t *testing.T) {
 			fmt.Println(i+1, log)
 		}
 	}
+}
+
+func TestWcdOsskeyQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+
+	timeBegin := time.Now().AddDate(0, 0, -1)
+	timeEnd := timeBegin.AddDate(0, 0, 1)
+	query, err := WcdOsskeyQuery(ctx, "6725d8163dfb8b681e88274a", timeBegin, timeEnd)
+	assert.Nil(t, err)
+	fmt.Println(query)
 }

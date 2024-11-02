@@ -630,6 +630,26 @@ struct ApiLog {
     11: string error_msg // 错误响应信息
 }
 
+// 查wcd在oss上传的详细日志
+struct WcdOssDetalReq{
+    1: string entry_id
+    2: string trace_id
+}
+
+struct WcdOssDetalResp{
+    1: i64 code
+    2: string msg
+    3: list<WcdOssDetalRespData> data
+}
+
+struct WcdOssDetalRespData{
+    1: string raw_html
+    2: string parsed_html
+    3: string text_parser_labels
+    4: string conclusion
+}
+
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -733,5 +753,9 @@ service LinkTrace{
     // 链路中某节点的日志查询
     LinkNodeLogResp LinkNodeLogs(1: LinkNodeLogReq req) (
         api.get="/api/v1/link_trace/node_logs"
+    )
+    // wcd节点处理的详情
+    WcdOssDetalResp WcdNodeDetail(1: WcdOssDetalReq req) (
+        api.get="/api/v1/link_trace/wcd_oss_detail"
     )
 }

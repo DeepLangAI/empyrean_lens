@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"empyrean_lens/conf"
-	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"io"
@@ -72,6 +71,7 @@ func (o *OssOperator) getWcdZipReader(bucketName, objectKey string) (io.ReadClos
 	bucket, err := o.ossClient.Bucket(bucketName)
 	if err != nil {
 		log.Fatalf("Failed to get bucket: %v", err)
+		return nil, err
 	}
 
 	// 依次填写Object的完整路径（例如exampledir/exampleobject.txt）和本地文件的完整路径（例如D:\\localpath\\examplefile.txt）。
@@ -109,7 +109,7 @@ func (o *OssOperator) DownloadWcdOssFile(bucketName, objectKey string) (*WcdMode
 	wcdModel := &WcdModel{}
 	// 遍历 ZIP 文件中的每个文件
 	for _, f := range r.File {
-		fmt.Printf("Extracting %s\n", f.Name)
+		//fmt.Printf("Extracting %s\n", f.Name)
 
 		rc, err := f.Open()
 		if err != nil {

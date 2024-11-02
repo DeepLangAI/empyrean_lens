@@ -2840,7 +2840,7 @@ func WcdOsskeyQuery(ctx context.Context, traceId string, timeBegin, timeEnd time
 		return nil, err
 	}
 	for _, log := range resp.Logs {
-		fmt.Println(log["extra"])
+		//fmt.Println(log["extra"])
 		model := WcdOssZipModel{}
 		err := sonic.UnmarshalString(log["extra"], &model)
 		if err != nil {

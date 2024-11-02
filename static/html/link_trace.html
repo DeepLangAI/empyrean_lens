@@ -926,6 +926,59 @@
         }
 
 
+        /*下拉expander*/
+        .expander {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            margin-right: 2%;
+            max-width: 700px;
+            margin-bottom: 10px;
+        }
+        .expander-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            cursor: pointer;
+        }
+        /* 添加 hover 效果 */
+        .expander-header:hover {
+            background-color: #f0f0f0; /* 更改背景色 */
+        }
+        /* 添加 hover 效果，仅作用于 h3 */
+        .expander-header:hover h3 {
+            color: #f6891c; /* 更改文字颜色 */
+        }
+        .expander-header h3 {
+            margin: 0;
+        }
+        .expander iframe {
+            width: 100%;
+            height: 1000px;
+        }
+        .expander-header:after {
+            content: '▼';
+            font-size: 16px;
+            transition: transform 0.3s ease;
+        }
+        .expander.active .expander-header:after {
+            transform: rotate(180deg);
+        }
+        .expander-content {
+            display: none;
+            padding: 10px;
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+        .expander.active .expander-content {
+            display: block;
+            max-height: 500px;
+            overflow: auto;
+        }
+
+
     </style>
 </head>
 <body>
@@ -961,6 +1014,9 @@
         NoChart: -1,
         LineChart: 0,
         PieChart: 1,
+    }
+    const NodeTypeEnum = {
+        WCD_PARSE_FINISH: 3, //wcd
     }
 
     const ActionStatusEnum = {
@@ -1180,7 +1236,6 @@
     }
 
 
-
     $(document).ready(function() {
         let $loadingContainer = createLoadingContainer()
         let $dragModal = $('<div>').addClass("draggable-window")
@@ -1225,6 +1280,7 @@
         $app.append($loadingContainer, $navStatusBar, $dragModal)
 
         let pageStack = [];
+
         function createTableRow(row, columns){
             const $row = $('<tr>');
             columns.forEach((column, index) => {
@@ -1701,7 +1757,8 @@
                         .style("stroke-width", 0);
                 })
                 .on('click', function (event, d){
-                    CreateNodeApiLogsPage(d.data.entry_id, d.data.entry_type, d.data.type, d.data.name, docInfo)
+                    console.log(d.data)
+                    CreateNodeApiLogsPage(d.data.entry_id, d.data.entry_type, d.data.type, d.data.name, docInfo, d.data.trace_id)
                 });
 
 
@@ -1739,7 +1796,66 @@
             return svgContainer
         }
 
-        function renderNodeApiLogs(data, nodeName){
+        function createWcdExpanders(entryId, traceId){
+            function createExpander(title, content){
+                let $expander = $('<div class="expander">');
+
+                let $header = $('<div class="expander-header">').append(`<h3>${title}</h3>`);
+                let $content = $('<div class="expander-content">');
+
+                if (typeof content === 'string' || content instanceof String) {
+                    // 如果 content 是纯文本，直接添加
+                    $content.append(`<div>${content}</div>`);
+                } else {
+                    // 如果 content 不是纯文本，直接 append 到 expander-content
+                    $content.append(content);
+                }
+
+                $expander.append($header, $content);
+
+                $expander.find('.expander-header').click(function (){
+                    $(this).parent().toggleClass('active');
+                })
+                return $expander
+            }
+            let expanders = $('<div>')
+            axios.get('/api/v1/link_trace/wcd_oss_detail', {
+                params: {
+                    'entry_id': entryId,
+                    'trace_id': traceId,
+                }
+            }).then((response) => {
+                let data = response.data.data
+                for (let i = 0; i < data.length; i++){
+                    if (i == 1){
+                        break
+                    }
+                    let detail = data[i]
+                    // let $expanderRawHtml = createExpander("网页抓取结果", $(`<iframe srcdoc="${detail['raw_html']}">`))
+                    let srcDoc = '<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <title>网页 B</title> <style> /* 网页 B 的样式 */ body { background-color: #f9f9f9; font-family: Arial, sans-serif; } h2 { color: #333; } </style> </head> <body> <h2>这是网页 B</h2> <p>内容来自网页 B 的源代码。</p> </body> </html>'
+                    let $expanderRawHtml = createExpander("网页抓取结果", $('<iframe>').attr('srcdoc', detail['raw_html']))
+                    let $expanderParsedHtml = createExpander("解析后网页", $('<iframe>').attr('srcdoc', detail['parsed_html']))
+                    let $textParserLabels = createExpander("text-parser标签", $('<pre class="expanded">').append(
+                        $('<code class="json">').text(reformatJsonStr(
+                            detail['text_parser_labels'])
+                        )
+                    ))
+                    expanders.append($expanderRawHtml, $expanderParsedHtml, $textParserLabels)
+                }
+                const codeElement = expanders.find('code');
+                for (let i = 0; i < codeElement.length; i++){
+                    let code = codeElement[i];
+                    hljs.highlightBlock(code);
+                }
+            }).catch((error) => {
+
+            }).finally(() => {
+
+            })
+            return expanders
+        }
+
+        function renderNodeApiLogs(data, nodeName, entryId, entryType, nodeType, traceId){
             let $page = $('<div>').addClass('page-body');
             let logs = data.logs
             let $logs = $('<div>').addClass('logs');
@@ -1806,6 +1922,12 @@
 
                     logDetailsBody.append(p)
                 }
+                if (log["output"].indexOf("model_result_str") != -1){
+                    if (nodeType == NodeTypeEnum.WCD_PARSE_FINISH){
+                        let wcdExpanders = createWcdExpanders(entryId, traceId)
+                        logDetailsBody.prepend(wcdExpanders)
+                    }
+                }
                 logDetails.append(logDetailsHeader, logDetailsBody)
                 logContainer.append(logId, logTime, logDetails)
                 $logs.append(logContainer)
@@ -1828,7 +1950,7 @@
             createPage("节点关键日志", $page)
         }
 
-        function CreateNodeApiLogsPage(entry_id, entry_type, node_type, node_name, docInfo=null){
+        function CreateNodeApiLogsPage(entry_id, entry_type, node_type, node_name, docInfo=null, traceId){
             // return
             // let loadingContainer = createLoadingContainer()
             showLoadingStatus($loadingContainer)
@@ -1854,9 +1976,9 @@
                             icon: 'custom-popup-icon',
                         }
                     });
-                } else{
+                } else {
                     data.docInfo = docInfo
-                    renderNodeApiLogs(data, node_name)
+                    renderNodeApiLogs(data, node_name, entry_id, entry_type, node_type, traceId)
                 }
 
             }).catch(error => {

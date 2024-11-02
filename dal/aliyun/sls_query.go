@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"html/template"
 	"strconv"
 	"strings"
@@ -2815,4 +2816,38 @@ func TraceIDErrorQuery(ctx context.Context, traceID string, timeBegin, timeEnd t
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+type WcdOssZipModel struct {
+	Bucket string `json:"bucket"`
+	Key    string `json:"key"`
+}
+
+func WcdOsskeyQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]WcdOssZipModel, error) {
+	query := `%v and (__tag__:_container_name_ : wcd-v2-python-prod or __tag__:_container_name_ : wcd-v2-python-pre) and oss_upload_tracing`
+	query = fmt.Sprintf(query, traceId)
+	hlog.CtxDebugf(ctx, "WcdOsskeyQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	result := []WcdOssZipModel{}
+	resp, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "WcdOsskeyQuery query log error: %v", err)
+		return nil, err
+	}
+	for _, log := range resp.Logs {
+		fmt.Println(log["extra"])
+		model := WcdOssZipModel{}
+		err := sonic.UnmarshalString(log["extra"], &model)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "WcdOsskeyQuery unmarshal log error: %v", err)
+			continue
+		}
+		result = append(result, model)
+	}
+	return result, nil
 }

@@ -35,6 +35,11 @@ redis:
   username: "svr_query"
   password: "REDACTED"
 
+oss:
+  endpoint: "oss-cn-zhangjiakou.aliyuncs.com"
+  accessKey: "REDACTED"
+  accessSecret: "REDACTED"
+
 # 飞书配置
 lark:
   appId: "cli_a668c41a0f64d013"

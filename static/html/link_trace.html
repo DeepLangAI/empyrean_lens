@@ -653,6 +653,9 @@
             background-color: #e2e6ea; /* 提供悬停效果的颜色变化 */
             transition: background-color 0.3s ease; /* 增加平滑的过渡效果 */
         }
+        .sticky-table tbody tr.selected {
+            background-color: #e2e6ea; /* 提供悬停效果的颜色变化 */
+        }
 
         /* 确保固定列的背景色与行的背景色一致，并且完全不透明 */
         .sticky-table tbody tr td.sticky-column {
@@ -730,6 +733,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow-x: scroll;
         }
 
         .status-bar{
@@ -930,10 +934,11 @@
         .expander {
             border: 1px solid #ccc;
             border-radius: 5px;
-            transition: all 0.3s ease;
+            /*transition: all 0.3s ease;*/
             margin-right: 2%;
             max-width: 700px;
             margin-bottom: 10px;
+            transition: transform 0.3s ease;
         }
         .expander-header {
             display: flex;
@@ -955,7 +960,7 @@
         }
         .expander iframe {
             width: 100%;
-            height: 1000px;
+            height: 50vh;
         }
         .expander-header:after {
             content: '▼';
@@ -1283,6 +1288,12 @@
 
         function createTableRow(row, columns){
             const $row = $('<tr>');
+            // 点击时修改背景色
+            // 删除所有<tr>的selected类
+            $row.click(() => {
+                $('tr').filter('.selected').removeClass('selected');
+                $row.toggleClass('selected');
+            })
             columns.forEach((column, index) => {
                 let value = column.value(row);
                 // 如果value是字符串或数字，则直接使用
@@ -1796,7 +1807,7 @@
             return svgContainer
         }
 
-        function createWcdExpanders(entryId, traceId){
+        function createWcdExpanders(entryId, traceId, ossInfo){
             function createExpander(title, content){
                 let $expander = $('<div class="expander">');
 
@@ -1823,6 +1834,8 @@
                 params: {
                     'entry_id': entryId,
                     'trace_id': traceId,
+                    'oss_bucket': ossInfo.bucket,
+                    'oss_key': ossInfo.key,
                 }
             }).then((response) => {
                 let data = response.data.data
@@ -1925,13 +1938,16 @@
                 if (nodeType == NodeTypeEnum.WCD_PARSE_FINISH){
                     let wcdOutput = log["output"]
                     let wcdRequestId = ''
+                    let ossInfo = {}
                     try{
-                        wcdRequestId = JSON.parse(wcdOutput)['wcd-request-id']
+                        let wcdOutputObj = JSON.parse(wcdOutput)
+                        wcdRequestId = wcdOutputObj['wcd-request-id']
+                        ossInfo = wcdOutputObj['oss_info'] || {}
                     }catch (e){
 
                     }
                     if (log["output"].indexOf("model_result_str") != -1){
-                        let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId)
+                        let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId, ossInfo)
                         logDetailsBody.prepend(wcdExpanders)
                     }
                 }

@@ -634,6 +634,9 @@ struct ApiLog {
 struct WcdOssDetalReq{
     1: string entry_id
     2: string trace_id
+
+    3: string oss_bucket
+    4: string oss_key
 }
 
 struct WcdOssDetalResp{

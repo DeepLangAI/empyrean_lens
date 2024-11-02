@@ -22427,8 +22427,10 @@ func (p *ApiLog) String() string {
 
 // 查wcd在oss上传的详细日志
 type WcdOssDetalReq struct {
-	EntryID string `thrift:"entry_id,1" form:"entry_id" json:"entry_id" query:"entry_id"`
-	TraceID string `thrift:"trace_id,2" form:"trace_id" json:"trace_id" query:"trace_id"`
+	EntryID   string `thrift:"entry_id,1" form:"entry_id" json:"entry_id" query:"entry_id"`
+	TraceID   string `thrift:"trace_id,2" form:"trace_id" json:"trace_id" query:"trace_id"`
+	OssBucket string `thrift:"oss_bucket,3" form:"oss_bucket" json:"oss_bucket" query:"oss_bucket"`
+	OssKey    string `thrift:"oss_key,4" form:"oss_key" json:"oss_key" query:"oss_key"`
 }
 
 func NewWcdOssDetalReq() *WcdOssDetalReq {
@@ -22443,9 +22445,19 @@ func (p *WcdOssDetalReq) GetTraceID() (v string) {
 	return p.TraceID
 }
 
+func (p *WcdOssDetalReq) GetOssBucket() (v string) {
+	return p.OssBucket
+}
+
+func (p *WcdOssDetalReq) GetOssKey() (v string) {
+	return p.OssKey
+}
+
 var fieldIDToName_WcdOssDetalReq = map[int16]string{
 	1: "entry_id",
 	2: "trace_id",
+	3: "oss_bucket",
+	4: "oss_key",
 }
 
 func (p *WcdOssDetalReq) Read(iprot thrift.TProtocol) (err error) {
@@ -22478,6 +22490,22 @@ func (p *WcdOssDetalReq) Read(iprot thrift.TProtocol) (err error) {
 		case 2:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 4:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField4(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -22534,6 +22562,28 @@ func (p *WcdOssDetalReq) ReadField2(iprot thrift.TProtocol) error {
 	p.TraceID = _field
 	return nil
 }
+func (p *WcdOssDetalReq) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.OssBucket = _field
+	return nil
+}
+func (p *WcdOssDetalReq) ReadField4(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.OssKey = _field
+	return nil
+}
 
 func (p *WcdOssDetalReq) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -22547,6 +22597,14 @@ func (p *WcdOssDetalReq) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField2(oprot); err != nil {
 			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+		if err = p.writeField4(oprot); err != nil {
+			fieldId = 4
 			goto WriteFieldError
 		}
 	}
@@ -22599,6 +22657,40 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *WcdOssDetalReq) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("oss_bucket", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.OssBucket); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *WcdOssDetalReq) writeField4(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("oss_key", thrift.STRING, 4); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.OssKey); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
 }
 
 func (p *WcdOssDetalReq) String() string {

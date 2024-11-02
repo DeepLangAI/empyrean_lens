@@ -1922,9 +1922,16 @@
 
                     logDetailsBody.append(p)
                 }
-                if (log["output"].indexOf("model_result_str") != -1){
-                    if (nodeType == NodeTypeEnum.WCD_PARSE_FINISH){
-                        let wcdExpanders = createWcdExpanders(entryId, traceId)
+                if (nodeType == NodeTypeEnum.WCD_PARSE_FINISH){
+                    let wcdOutput = log["output"]
+                    let wcdRequestId = ''
+                    try{
+                        wcdRequestId = JSON.parse(wcdOutput)['wcd-request-id']
+                    }catch (e){
+
+                    }
+                    if (log["output"].indexOf("model_result_str") != -1){
+                        let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId)
                         logDetailsBody.prepend(wcdExpanders)
                     }
                 }

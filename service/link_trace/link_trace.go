@@ -64,10 +64,19 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string) (*empyrean_lens
 	start := webReaderInfo.CreateTime.Add(-24 * time.Hour)
 	end := webReaderInfo.CreateTime.Add(24 * time.Hour)
 	// 并发获取节点列表
-	linkTraceGraph, bizCode := LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.SingleWebReaderProcessList, consts.SingleWebReaderProcessMapping)
-	if bizCode != nil {
-		hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
-		return nil, bizCode
+	linkTraceGraph, bizCode := &empyrean_lens.TraceLinkGraph{}, &consts.BizCode{}
+	if webReaderInfo.ChannelType == 21 || webReaderInfo.ChannelType == 22 {
+		linkTraceGraph, bizCode = LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.SinglePluginWebReaderProcessList, consts.SinglePluginWebReaderProcessMapping)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
+			return nil, bizCode
+		}
+	} else {
+		linkTraceGraph, bizCode = LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.SingleWebReaderProcessList, consts.SingleWebReaderProcessMapping)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
+			return nil, bizCode
+		}
 	}
 	// 返回
 	return &empyrean_lens.DocLinkTraceRespData{

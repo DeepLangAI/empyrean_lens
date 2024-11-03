@@ -259,6 +259,8 @@ func TestWcdWorthlessQuery(t *testing.T) {
 	logs, err := WcdWorthlessQuery(ctx, timeBegin, timeEnd)
 	assert.Nil(t, err)
 	for i, log := range logs {
-		fmt.Println(i+1, log.OssBucket, log.OssKey)
+		if log.OssKey != "null" {
+			fmt.Println(i+1, log.Title, log.Url, log.WcdRequestId, log.OssKey)
+		}
 	}
 }

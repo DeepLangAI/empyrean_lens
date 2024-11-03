@@ -2868,59 +2868,23 @@ type WcdWorthlessModel struct {
 
 func WcdWorthlessQuery(ctx context.Context, timeBegin, timeEnd time.Time) ([]WcdWorthlessModel, error) {
 	query := `
-|
+message: wcd处理结果： |select * from (
 select 
-trace_id,
-A.wcd_request_id,
-A.url,
-A.host,
-A.title,
-A.worthless,
-A.seq_label_success,
-time,
-concat('ossutil cp oss://', B.oss_key, ' .') oss_dl_cmd,
-C.raw_str
-from (
-    select
-        trace_id,
-        regexp_extract(extra, 'wcd-request-id":\s*"(.*?)"', 1) wcd_request_id,
-        regexp_extract(message, 'url":\s*"(.*?)"', 1) url,
-regexp_extract(message, 'url":\s*"https?://(.*?)/.*?"', 1) host,
-        regexp_extract(message, 'title":\s*"(.*?)"', 1) title,
-        regexp_extract(message, 'worthless":\s*(true|false)', 1) worthless,
-        regexp_extract(message, 'seq_label_success":\s*(true|false)', 1) seq_label_success,
-        asctime time,
-		"__tag__:_container_name_"
-    from log 
-	where "__tag__:_container_name_"='wcd-v2-python-prod' or "__tag__:_container_name_"='wcd-v2-python-pre'
-	order by time desc limit 100000
-) A join(
-    select * from (
-      select 
-      regexp_extract(extra, '"oss-key":\s*"(.*?)"', 1) oss_key,
-      regexp_extract(extra, '"wcd-request-id":\s*"(.*?)"', 1) wcd_request_id,
-      message
-      from log
-    ) 
-    where 
-    message='wcd-request'
-    limit 100000
-) B
-on A.wcd_request_id=B.wcd_request_id
-join (
-    select * from (
-      select 
-      regexp_extract(extra, '"raw_str":\s*"(.*?)"', 1) raw_str,
-      regexp_extract(extra, '"url":\s*"(.*?)"', 1) url,
-      regexp_extract(extra, '"wcd-request-id":\s*"(.*?)"', 1) wcd_request_id,
-      message
-      from log
-    ) 
-    where message='Before request'
-    limit 1000000
-) C
-on B.wcd_request_id=C.wcd_request_id
-where worthless = 'true' or seq_label_success = 'false'
+regexp_extract(message, 'wcd处理结果：.*"worthless": (true|false)', 1)  worthless,
+regexp_extract(message, 'wcd处理结果：.*"seq_label_success": (true|false)', 1)  seq_label_success,
+regexp_extract(message, 'wcd处理结果：.*"url": "(.*?)"', 1)  url,
+regexp_extract(message, 'wcd处理结果：.*"url": "https?://(.*?)/.*?"', 1)  host,
+regexp_extract(message, 'wcd处理结果：.*"title": "(.*?)"', 1)  title,
+regexp_extract(message, 'wcd处理结果：.*"author": "(.*?)"', 1)  author,
+regexp_extract(extra, '.*"trace_id":\s*"(.*?)"', 1)  trace_id,
+regexp_extract(extra, '.*"wcd-request-id":\s*"(.*?)"', 1)  wcd_request_id,
+regexp_extract(message, '.*"oss_info":\s*\{.*?"bucket":\s*"(.*?)".*?\}', 1)  oss_bucket,
+regexp_extract(message, '.*"oss_info":\s*\{.*?"key":\s*"(.*?)".*?\}', 1)  oss_key,
+asctime time
+from log limit 1000000
+) 
+where 
+worthless='true' and oss_bucket != 'null' and oss_key != 'null'
 order by time desc
 `
 	hlog.CtxDebugf(ctx, "WcdOsskeyQuery query: %s", query)
@@ -2952,7 +2916,14 @@ order by time desc
 			Worthless:       log["worthless"] == "true",
 			SeqLabelSuccess: log["seq_label_success"] == "true",
 			Time:            t,
-			OssDlCmd:        log["oss_dl_cmd"],
+			OssBucket:       log["oss_bucket"],
+			OssKey:          log["oss_key"],
+		}
+		if model.OssBucket == "null" {
+			model.OssBucket = ""
+		}
+		if model.OssKey == "null" {
+			model.OssKey = ""
 		}
 		// ossutil cp oss://wcd-html-bucket-prod/parsed/resource_server/20241103113704_6726efdb43e4601211e59153.zip
 		if model.OssDlCmd != "" {

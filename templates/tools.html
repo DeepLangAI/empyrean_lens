@@ -1947,7 +1947,16 @@
                     ), ()=>{
                         return reformatJsonStr(detail['text_parser_labels'])
                     })
-                    expanders.append($expanderRawHtml, $expanderParsedHtml, $textParserLabels)
+                    let $expanderWcdConclusion = createExpander("网页解析结论", $('<pre class="expanded">').css({
+                        'max-height': '250px'
+                    }).append(
+                        $('<code class="json">').text(reformatJsonStr(
+                            detail['conclusion'])
+                        )
+                    ), ()=>{
+                        return reformatJsonStr(detail['conclusion'])
+                    })
+                    expanders.append($expanderRawHtml, $expanderParsedHtml, $textParserLabels, $expanderWcdConclusion)
                 }
                 const codeElement = expanders.find('code');
                 for (let i = 0; i < codeElement.length; i++){

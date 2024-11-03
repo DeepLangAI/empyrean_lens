@@ -55,3 +55,36 @@ func GetWcdOssLogDetail(ctx context.Context, req empyrean_lens.WcdOssDetalReq) (
 	}
 	return result, nil
 }
+
+func GetWcdWorthlessLogs(ctx context.Context, req empyrean_lens.WcdWorthlessReq) ([]*empyrean_lens.WcdWorthlessRespData, error) {
+	timeBegin, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.TimeBegin, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse time begin failed, err: %v", err)
+		return nil, err
+	}
+	timeEnd, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.TimeEnd, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse time end failed, err: %v", err)
+		return nil, err
+	}
+	logs, err := aliyun.WcdWorthlessQuery(ctx, timeBegin, timeEnd)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get oss list failed, err: %v", err)
+		return nil, err
+	}
+	result := make([]*empyrean_lens.WcdWorthlessRespData, 0)
+	for _, log := range logs {
+		result = append(result, &empyrean_lens.WcdWorthlessRespData{
+			TraceID:      log.TraceId,
+			WcdRequestID: log.WcdRequestId,
+			URL:          log.Url,
+			Host:         log.Host,
+			Title:        log.Title,
+			Time:         log.Time.Format(consts.DateHourMinSecTemplate),
+			OssDlCmd:     log.OssDlCmd,
+			OssBucket:    log.OssBucket,
+			OssKey:       log.OssKey,
+		})
+	}
+	return result, nil
+}

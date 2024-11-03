@@ -296,3 +296,8 @@ func _wcdnodedetailMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _wcdossworthlesslogsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

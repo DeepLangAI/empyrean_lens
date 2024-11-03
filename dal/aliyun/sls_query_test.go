@@ -248,3 +248,17 @@ func TestWcdOsskeyQuery(t *testing.T) {
 	assert.Nil(t, err)
 	fmt.Println(query)
 }
+
+func TestWcdWorthlessQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+
+	timeBegin := time.Now().AddDate(0, 0, -1)
+	timeEnd := timeBegin.AddDate(0, 0, 1)
+	logs, err := WcdWorthlessQuery(ctx, timeBegin, timeEnd)
+	assert.Nil(t, err)
+	for i, log := range logs {
+		fmt.Println(i+1, log.OssBucket, log.OssKey)
+	}
+}

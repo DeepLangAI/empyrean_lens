@@ -557,3 +557,25 @@ func GetOnlineOperation(ctx context.Context, c *app.RequestContext) {
 	resp.Data = data
 	base.SuccessResponse(c, resp)
 }
+
+// UserActionInfo .
+// @router /user_action_info [POST]
+func UserActionInfo(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.UserActionInfoReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.UserActionInfoResp)
+	data, err := passport.GetUserActionTimeline(ctx, req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+	resp.Data = data
+	base.SuccessResponse(c, resp)
+}

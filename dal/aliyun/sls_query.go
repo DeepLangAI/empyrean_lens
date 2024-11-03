@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"html/template"
 	"strconv"
 	"strings"
@@ -2066,11 +2067,10 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod) and message: "core link core_name:PDFParser, resource_id:%s" and (message: "PDF解析完成" or message : "PDF解析完成")  | select * from log
-limit %v
+	(__tag__:_container_name_ : lingowhale-python-prod) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "苏秦解析异常，file_id:")
 	`
 	query = FormatWithTemplate(query, nil)
-	query = fmt.Sprintf(query, resourceId, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "PDFParserQuery query: %s", query)
 
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
@@ -2134,7 +2134,7 @@ func WcdParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd ti
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func TextParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+func EduParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 	if err != nil {
 		return nil, err
@@ -2149,27 +2149,6 @@ func TextParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "TextParserQuery query log error: %v", err)
-		return nil, err
-	}
-	return ConvertFileProcessLog(ctx, logs.Logs)
-}
-
-// ! 这里只能用traceId查
-func EduParseQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
-	if err != nil {
-		return nil, err
-	}
-
-	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod) and message: "req path /edu_parse" and trace_id : "%s"
-	`
-	query = fmt.Sprintf(query, traceId)
-	hlog.CtxDebugf(ctx, "EduParseQuery query: %s", query)
-
-	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "EduParseQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
@@ -2295,6 +2274,24 @@ func SingleViewpointEndQuery(ctx context.Context, traceId string, timeBegin, tim
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "SingleViewpointEndQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func MultiItemAnalysisQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(__tag__:_container_name_: lingowhale-python-pre or __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query = fmt.Sprintf(query, resourceId, "ANALYSIS")
+	hlog.CtxDebugf(ctx, "MultiThemeQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiAnalysisQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
@@ -2498,9 +2495,9 @@ func SuqinOutResponseQuery(ctx context.Context, resourceId string, timeBegin, ti
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func SuqinOutErrorQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+func SuqinOutErrorQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	query := `message: "%s" and levelname : ERROR and (message: "pdf解析异常，file_id" or message: "苏秦解析异常，file_id")`
-	query = fmt.Sprintf(query, traceID)
+	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "SuqinOutErrorQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2801,4 +2798,56 @@ func MultiOutlineModelOutResponseQuery(ctx context.Context, multiID string, time
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func TraceIDErrorQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `trace_id: %s and levelname : ERROR`
+	query = fmt.Sprintf(query, traceID)
+	hlog.CtxDebugf(ctx, "TraceIDErrorQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "TraceIDErrorQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+type WcdOssZipModel struct {
+	Bucket string `json:"bucket"`
+	Key    string `json:"key"`
+}
+
+func WcdOsskeyQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]WcdOssZipModel, error) {
+	query := `%v and (__tag__:_container_name_ : wcd-v2-python-prod or __tag__:_container_name_ : wcd-v2-python-pre) and oss_upload_tracing`
+	query = fmt.Sprintf(query, traceId)
+	hlog.CtxDebugf(ctx, "WcdOsskeyQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	result := []WcdOssZipModel{}
+	resp, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "WcdOsskeyQuery query log error: %v", err)
+		return nil, err
+	}
+	for _, log := range resp.Logs {
+		//fmt.Println(log["extra"])
+		model := WcdOssZipModel{}
+		err := sonic.UnmarshalString(log["extra"], &model)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "WcdOsskeyQuery unmarshal log error: %v", err)
+			continue
+		}
+		result = append(result, model)
+	}
+	return result, nil
 }

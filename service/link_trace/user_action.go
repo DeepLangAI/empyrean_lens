@@ -8,6 +8,7 @@ import (
 
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
+	bi "empyrean_lens/dal/mongo/lingowhale_bi"
 	"empyrean_lens/dal/mongo/plugin"
 	"empyrean_lens/utils"
 
@@ -17,12 +18,12 @@ import (
 func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 确定时间范围
 	var err error
-	begin, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.StartTime, time.Local)
+	begin, err := time.ParseInLocation(consts.DateTimeTemplate, req.StartTime, time.Local)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "parse start time error, err:%v", err)
 		return nil, &consts.RetParamError
 	}
-	end, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.EndTime, time.Local)
+	end, err := time.ParseInLocation(consts.DateTimeTemplate, req.EndTime, time.Local)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "parse end time error, err:%v", err)
 		return nil, &consts.RetParamError
@@ -42,7 +43,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 	// file 数据
 	go func() {
 		defer wg.Done()
-		data, err := findFile(ctx, req, begin, end)
+		data, err := findFile(ctx, req, begin, end, req.OnlyExternal)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "find file error, err:%v", err)
 			return
@@ -54,7 +55,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 	// web reader 数据
 	go func() {
 		defer wg.Done()
-		data, err := findWebReader(ctx, req, begin, end)
+		data, err := findWebReader(ctx, req, begin, end, req.OnlyExternal)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "find web reader error, err:%v", err)
 			return
@@ -66,7 +67,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 	// multi 数据
 	go func() {
 		defer wg.Done()
-		data, err := findMulti(ctx, req, begin, end)
+		data, err := findMulti(ctx, req, begin, end, req.OnlyExternal)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "find multi error, err:%v", err)
 			return
@@ -102,7 +103,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 	}, nil
 }
 
-func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
+func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time, onlyOuter bool) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 状态
 	status := []int32{}
 	for _, v := range req.Status {
@@ -120,19 +121,60 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 		}, nil
 	}
 	// 查询数据库
+	totalUidMapping := map[string]*bi.UserInfo{}
 	files, err := []*plugin.File(nil), error(nil)
-	if req.Query == "" {
-		files, err = plugin.NewFileDao().FindFileByTimeRange(ctx, status, begin, end, 0, req.Skip+req.Limit+1)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[FindFileByTimeRange] error: %+v", err)
-			return nil, &consts.QueryRecordError
+	offset, limit := int64(0), req.Limit+req.Skip
+	for len(files) < int(req.Limit+req.Skip) {
+		fileSplit := []*plugin.File(nil)
+		if req.Query == "" {
+			fileSplit, err = plugin.NewFileDao().FindFileByTimeRange(ctx, status, begin, end, offset, limit)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[FindFileByTimeRange] error: %+v", err)
+				return nil, &consts.QueryRecordError
+			}
+		} else {
+			fileSplit, err = plugin.NewFileDao().FindFileByQueryAndTimeRange(ctx, req.Query, status, begin, end, offset, limit)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[FindFileByQueryAndTimeRange] error: %+v", err)
+				return nil, &consts.QueryRecordError
+			}
 		}
-	} else {
-		files, err = plugin.NewFileDao().FindFileByQueryAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit+1)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[FindFileByQueryAndTimeRange] error: %+v", err)
-			return nil, &consts.QueryRecordError
+		if len(fileSplit) == 0 {
+			break
 		}
+		if onlyOuter {
+			// 获取用户类型
+			uids, uidMapping := []string{}, map[string]*bi.UserInfo{}
+			for _, file := range fileSplit {
+				if _, ok := totalUidMapping[file.UserID]; !ok {
+					uidMapping[file.UserID] = &bi.UserInfo{}
+				}
+			}
+			for uid := range uidMapping {
+				uids = append(uids, uid)
+			}
+			if len(uids) > 0 {
+				userInfos, err := bi.NewUserInfoDao().FindFileByUids(ctx, uids)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[FindFileByQueryAndTimeRange] error: %+v", err)
+					return nil, &consts.QueryRecordError
+				}
+				for _, userInfo := range userInfos {
+					totalUidMapping[userInfo.UserID] = userInfo
+				}
+			}
+			for _, file := range fileSplit {
+				if userInfo, ok := totalUidMapping[file.UserID]; ok {
+					if userInfo.UserType == bi.ExternalUser {
+						files = append(files, file)
+					}
+				}
+			}
+		} else {
+			files = append(files, fileSplit...)
+			break
+		}
+		offset += limit
 	}
 	// 转换
 	fileDatas := []*empyrean_lens.UserActionRespRow{}
@@ -145,7 +187,7 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 	}, nil
 }
 
-func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
+func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time, onlyOuter bool) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 状态
 	status := []int32{}
 	for _, v := range req.Status {
@@ -163,19 +205,60 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 		}, nil
 	}
 	// 查询数据库
+	totalUidMapping := map[string]*bi.UserInfo{}
 	webReaders, err := []*plugin.WebReader(nil), error(nil)
-	if req.Query == "" {
-		webReaders, err = plugin.NewWebReaderDao().FindWebReaderByTimeRange(ctx, status, begin, end, 0, req.Skip+req.Limit+1)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[FindWebReaderByTimeRange] error: %+v", err)
-			return nil, &consts.QueryRecordError
+	offset, limit := int64(0), req.Limit+req.Skip
+	for len(webReaders) < int(req.Limit+req.Skip) {
+		webReaderSplit := []*plugin.WebReader(nil)
+		if req.Query == "" {
+			webReaderSplit, err = plugin.NewWebReaderDao().FindWebReaderByTimeRange(ctx, status, begin, end, offset, limit)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[FindWebReaderByTimeRange] error: %+v", err)
+				return nil, &consts.QueryRecordError
+			}
+		} else {
+			webReaderSplit, err = plugin.NewWebReaderDao().FindWebReaderByQueryAndTimeRange(ctx, req.Query, status, begin, end, offset, limit)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[FindWebReaderByQueryAndTimeRange] error: %+v", err)
+				return nil, &consts.QueryRecordError
+			}
 		}
-	} else {
-		webReaders, err = plugin.NewWebReaderDao().FindWebReaderByQueryAndTimeRange(ctx, req.Query, status, begin, end, 0, req.Skip+req.Limit+1)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[FindWebReaderByQueryAndTimeRange] error: %+v", err)
-			return nil, &consts.QueryRecordError
+		if len(webReaderSplit) == 0 {
+			break
 		}
+		if onlyOuter {
+			// 获取用户类型
+			uids, uidMapping := []string{}, map[string]*bi.UserInfo{}
+			for _, webReader := range webReaderSplit {
+				if _, ok := totalUidMapping[webReader.UserID]; !ok {
+					uidMapping[webReader.UserID] = &bi.UserInfo{}
+				}
+			}
+			for uid := range uidMapping {
+				uids = append(uids, uid)
+			}
+			if len(uids) > 0 {
+				userInfos, err := bi.NewUserInfoDao().FindFileByUids(ctx, uids)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[FindWebReaderByQueryAndTimeRange] error: %+v", err)
+					return nil, &consts.QueryRecordError
+				}
+				for _, userInfo := range userInfos {
+					totalUidMapping[userInfo.UserID] = userInfo
+				}
+			}
+			for _, webReader := range webReaderSplit {
+				if userInfo, ok := totalUidMapping[webReader.UserID]; ok {
+					if userInfo.UserType == bi.ExternalUser {
+						webReaders = append(webReaders, webReader)
+					}
+				}
+			}
+		} else {
+			webReaders = append(webReaders, webReaderSplit...)
+			break
+		}
+		offset += limit
 	}
 	// 转换
 	webReaderDatas := []*empyrean_lens.UserActionRespRow{}
@@ -188,21 +271,62 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 	}, nil
 }
 
-func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
+func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time, onlyOuter bool) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 查询数据库
+	totalUidMapping := map[string]*bi.UserInfo{}
 	multis, err := []*plugin.MultiModel(nil), error(nil)
-	for _, v := range req.Status {
-		multisSplit := []*plugin.MultiModel{}
-		if v == empyrean_lens.ActionStatusEnum_SUCCESS {
-			multisSplit, err = plugin.NewMultiDao().FindSuccessMultiByQueryAndStatusAndTimeRange(ctx, req.Query, begin, end, 0, req.Skip+req.Limit+1)
-		} else if v == empyrean_lens.ActionStatusEnum_FAIL {
-			multisSplit, err = plugin.NewMultiDao().FindFailMultiByQueryAndStatusAndTimeRange(ctx, req.Query, begin, end, 0, req.Skip+req.Limit+1)
+	offset, limit := int64(0), req.Limit+req.Skip
+	for len(multis) < int(req.Limit+req.Skip) {
+		multisSplit := []*plugin.MultiModel(nil)
+		for _, v := range req.Status {
+			multisItem := []*plugin.MultiModel{}
+			if v == empyrean_lens.ActionStatusEnum_SUCCESS {
+				multisItem, err = plugin.NewMultiDao().FindSuccessMultiByQueryAndStatusAndTimeRange(ctx, req.Query, begin, end, offset, limit)
+			} else if v == empyrean_lens.ActionStatusEnum_FAIL {
+				multisItem, err = plugin.NewMultiDao().FindFailMultiByQueryAndStatusAndTimeRange(ctx, req.Query, begin, end, offset, limit)
+			}
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
+				return nil, &consts.QueryRecordError
+			}
+			multisSplit = append(multisSplit, multisItem...)
 		}
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
-			return nil, &consts.QueryRecordError
+		if len(multisSplit) == 0 {
+			break
 		}
-		multis = append(multis, multisSplit...)
+		if onlyOuter {
+			// 获取用户类型
+			uids, uidMapping := []string{}, map[string]*bi.UserInfo{}
+			for _, multi := range multisSplit {
+				if _, ok := totalUidMapping[multi.UserID]; !ok {
+					uidMapping[multi.UserID] = &bi.UserInfo{}
+				}
+			}
+			for uid := range uidMapping {
+				uids = append(uids, uid)
+			}
+			if len(uids) > 0 {
+				userInfos, err := bi.NewUserInfoDao().FindFileByUids(ctx, uids)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
+					return nil, &consts.QueryRecordError
+				}
+				for _, userInfo := range userInfos {
+					totalUidMapping[userInfo.UserID] = userInfo
+				}
+			}
+			for _, multi := range multisSplit {
+				if userInfo, ok := totalUidMapping[multi.UserID]; ok {
+					if userInfo.UserType == bi.ExternalUser {
+						multis = append(multis, multi)
+					}
+				}
+			}
+		} else {
+			multis = append(multis, multisSplit...)
+			break
+		}
+		offset += limit
 	}
 	sort.Slice(multis, func(i, j int) bool {
 		return multis[i].CreateTime.After(multis[j].CreateTime)
@@ -245,7 +369,7 @@ func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserA
 				URL:       file.FileURL,
 			},
 		},
-		CreateTime: file.CreateTime.Format(consts.DateHourMinSecTemplate),
+		CreateTime: file.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
 		Status:     actionStatus(consts.PDF, file.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_FILE,
@@ -267,7 +391,7 @@ func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empy
 				URL:       webReader.URL,
 			},
 		},
-		CreateTime: webReader.CreateTime.Format(consts.DateHourMinSecTemplate),
+		CreateTime: webReader.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
 		Status:     actionStatus(consts.URL, webReader.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_WEB,
@@ -291,7 +415,7 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel, fileMappi
 			if webReader, ok := webReaderMapping[string(article.EntryId)]; ok {
 				resources = append(resources, &empyrean_lens.ResourceInfo{
 					EntryID:   article.EntryId,
-					EntryType: empyrean_lens.EntryTypeEnum_FILE,
+					EntryType: empyrean_lens.EntryTypeEnum_WEB,
 					Title:     webReader.Title,
 					URL:       webReader.URL,
 				})
@@ -304,7 +428,7 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel, fileMappi
 		Title:      multiModel.Title,
 		ActionName: actionName,
 		Resources:  resources,
-		CreateTime: multiModel.CreateTime.Format(consts.DateHourMinSecTemplate),
+		CreateTime: multiModel.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
 		Status:     actionStatus(consts.MULTI, 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
 		EntryType:  empyrean_lens.EntryTypeEnum_MULTI,

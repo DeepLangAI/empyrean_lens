@@ -4,6 +4,7 @@ package empyrean_lens
 
 import (
 	"context"
+	"empyrean_lens/biz/handler"
 
 	"empyrean_lens/biz/model/empyrean_lens"
 	consts2 "empyrean_lens/consts"
@@ -140,4 +141,28 @@ func LinkNodeLogs(ctx context.Context, c *app.RequestContext) {
 		Msg:  "success",
 		Data: data,
 	})
+}
+
+// WcdNodeDetail .
+// @router /api/v1/link_trace/wcd_oss_detail [GET]
+func WcdNodeDetail(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.WcdOssDetalReq
+	base := handler.BaseHandler{}
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	data, bizErr := link_trace.GetWcdOssLogDetail(ctx, req)
+	if bizErr != nil {
+		hlog.CtxErrorf(ctx, "[WcdNodeDetail] error: %+v", bizErr)
+		base.ErrorResponse(ctx, c, bizErr, err)
+		return
+	}
+
+	resp := new(empyrean_lens.WcdOssDetalResp)
+	resp.Data = data
+	base.SuccessResponse(c, resp)
 }

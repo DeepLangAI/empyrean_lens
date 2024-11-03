@@ -286,3 +286,13 @@ func _useractionsMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _useractioninfoMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _wcdnodedetailMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

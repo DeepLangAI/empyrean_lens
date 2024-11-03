@@ -8,6 +8,7 @@ import (
 	"empyrean_lens/dal/mongo/plugin"
 	"empyrean_lens/tools"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"strings"
 	"time"
 )
 
@@ -56,6 +57,22 @@ func GetWcdOssLogDetail(ctx context.Context, req empyrean_lens.WcdOssDetalReq) (
 	return result, nil
 }
 
+func queryInResult(query string, log aliyun.WcdWorthlessModel) bool {
+	if strings.Contains(log.Url, query) {
+		return true
+	}
+	if strings.Contains(log.Title, query) {
+		return true
+	}
+	if strings.Contains(log.TraceId, query) {
+		return true
+	}
+	if strings.Contains(log.WcdRequestId, query) {
+		return true
+	}
+	return false
+}
+
 func GetWcdWorthlessLogs(ctx context.Context, req empyrean_lens.WcdWorthlessReq) ([]*empyrean_lens.WcdWorthlessRespData, error) {
 	timeBegin, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.TimeBegin, time.Local)
 	if err != nil {
@@ -74,6 +91,9 @@ func GetWcdWorthlessLogs(ctx context.Context, req empyrean_lens.WcdWorthlessReq)
 	}
 	result := make([]*empyrean_lens.WcdWorthlessRespData, 0)
 	for _, log := range logs {
+		if req.Query != "" && !queryInResult(req.Query, log) {
+			continue
+		}
 		result = append(result, &empyrean_lens.WcdWorthlessRespData{
 			TraceID:      log.TraceId,
 			WcdRequestID: log.WcdRequestId,

@@ -1287,6 +1287,12 @@
         <h2>网页解析无意义分析</h2>
         <div class="datetime-container">
             <input
+                    type="text"
+                    id="wcd-worthless-query"
+                    class="input-field"
+                    placeholder="输入关键字"
+            />
+            <input
                     type="datetime-local"
                     id="wcd-worthless-begin-time"
                     name="meeting-time"
@@ -1874,6 +1880,11 @@
         let $resultContainer = $('#wcd-worthless-result')
         $resultContainer.empty()
     })
+    $('#wcd-worthless-query').on('keydown', function (event){
+        if (event.key === 'Enter') {
+            $('#wcd-worthless_submit').trigger('click')
+        }
+    })
 
     $('#wcd-worthless_submit').click(function (){
         function createExpander(title, content, valueFunc){
@@ -1974,6 +1985,7 @@
         showLoadingStatus()
         let startTime = $('#wcd-worthless-begin-time').val().replace('T', ' ') + ':00'
         let endTime = $('#wcd-worthless-end-time').val().replace('T', ' ') + ':00'
+        let query = $('#wcd-worthless-query').val()
         let $resultContainer = $('#wcd-worthless-result')
         $resultContainer.css({
             'max-height': '60vh'
@@ -1982,6 +1994,7 @@
             params: {
                 time_begin: startTime,
                 time_end: endTime,
+                query: query,
             }
         }).then( response => {
             let data = response.data.data

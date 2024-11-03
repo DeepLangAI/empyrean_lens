@@ -23228,6 +23228,7 @@ func (p *WcdOssDetalRespData) String() string {
 type WcdWorthlessReq struct {
 	TimeBegin string `thrift:"time_begin,1" form:"time_begin" json:"time_begin" query:"time_begin"`
 	TimeEnd   string `thrift:"time_end,2" form:"time_end" json:"time_end" query:"time_end"`
+	Query     string `thrift:"query,3" form:"query" json:"query" query:"query"`
 }
 
 func NewWcdWorthlessReq() *WcdWorthlessReq {
@@ -23242,9 +23243,14 @@ func (p *WcdWorthlessReq) GetTimeEnd() (v string) {
 	return p.TimeEnd
 }
 
+func (p *WcdWorthlessReq) GetQuery() (v string) {
+	return p.Query
+}
+
 var fieldIDToName_WcdWorthlessReq = map[int16]string{
 	1: "time_begin",
 	2: "time_end",
+	3: "query",
 }
 
 func (p *WcdWorthlessReq) Read(iprot thrift.TProtocol) (err error) {
@@ -23277,6 +23283,14 @@ func (p *WcdWorthlessReq) Read(iprot thrift.TProtocol) (err error) {
 		case 2:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -23333,6 +23347,17 @@ func (p *WcdWorthlessReq) ReadField2(iprot thrift.TProtocol) error {
 	p.TimeEnd = _field
 	return nil
 }
+func (p *WcdWorthlessReq) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Query = _field
+	return nil
+}
 
 func (p *WcdWorthlessReq) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -23346,6 +23371,10 @@ func (p *WcdWorthlessReq) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField2(oprot); err != nil {
 			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
 			goto WriteFieldError
 		}
 	}
@@ -23398,6 +23427,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *WcdWorthlessReq) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("query", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Query); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
 }
 
 func (p *WcdWorthlessReq) String() string {

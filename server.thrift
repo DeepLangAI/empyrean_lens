@@ -656,6 +656,7 @@ struct WcdOssDetalRespData{
 struct WcdWorthlessReq{
     1: string time_begin
     2: string time_end
+    3: string query
 }
 
 struct WcdWorthlessResp{

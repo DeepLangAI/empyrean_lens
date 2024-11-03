@@ -652,6 +652,31 @@ struct WcdOssDetalRespData{
     4: string conclusion
 }
 
+// 查询wcd无意义处理结果日志
+struct WcdWorthlessReq{
+    1: string time_begin
+    2: string time_end
+}
+
+struct WcdWorthlessResp{
+    1: i64 code
+    2: string msg
+    3: list<WcdWorthlessRespData> data
+}
+
+struct WcdWorthlessRespData{
+    1: string trace_id
+    2: string wcd_request_id
+    3: string url
+    4: string host
+    5: string title
+    6: string time
+    7: string oss_dl_cmd
+    8: string oss_bucket
+    9: string oss_key
+}
+
+
 
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
@@ -760,5 +785,9 @@ service LinkTrace{
     // wcd节点处理的详情
     WcdOssDetalResp WcdNodeDetail(1: WcdOssDetalReq req) (
         api.get="/api/v1/link_trace/wcd_oss_detail"
+    )
+    // wcd处理结果无意义日志
+    WcdWorthlessResp WcdOssWorthlessLogs(1: WcdWorthlessReq req) (
+        api.get="/api/v1/link_trace/wcd_worthless"
     )
 }

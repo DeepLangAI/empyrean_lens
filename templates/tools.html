@@ -1252,7 +1252,7 @@
 <div id="wcd-worthless-modal" class="modal">
     <div class="modal-content">
         <span class="close-button">&times;</span>
-        <h2>wcd处理无意义查询</h2>
+        <h2>网页解析无意义分析</h2>
         <div class="datetime-container">
             <input
                     type="datetime-local"
@@ -1931,7 +1931,7 @@
                         $('<div>').html(`
                             <strong>时间</strong> ${logItem['time']}<br>
                             <strong>标题</strong> ${logItem['title']}<br>
-                            <strong>链接</strong> <a href="${logItem['url']}" about="_blank">${logItem['url']}</a>><br>
+                            <strong>链接</strong> <a href="${logItem['url']}" target="_blank">${logItem['url']}</a>><br>
                             <strong>wcd_request_id</strong> ${logItem['wcd_request_id']}<br>
                             <strong>TraceId</strong> ${logItem['trace_id']}<br>
                             `) ,
@@ -2035,7 +2035,7 @@
         $('#onlineoperation-begin-time').val(getCurrentDateMinusMinutes(60 * 12))
         $('#onlineoperation-end-time').val(getCurrentDateMinusMinutes(0))
 
-        $('#wcd-worthless-begin-time').val(getCurrentDateMinusMinutes(1 * 24 * 60))
+        $('#wcd-worthless-begin-time').val(getCurrentDateMinusMinutes(4 * 60))
         $('#wcd-worthless-end-time').val(getCurrentDateMinusMinutes(0))
     })
 

@@ -1065,6 +1065,20 @@
             align-items: center;
             padding: 10px;
             cursor: pointer;
+            position: relative;
+        }
+        .expander-header .copy-btn {
+            position: absolute;
+            right: 40px;
+            color: #007bff;
+            background: #edeff3;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+        .expander-header .copy-btn:hover {
+            background: #007bff; /* 悬停时的背景颜色 */
+            color: #ffffff;      /* 悬停时的字体颜色 */
+            text-decoration: underline;
         }
         /* 添加 hover 效果 */
         .expander-header:hover {
@@ -1101,6 +1115,24 @@
             max-height: 500px;
             overflow: auto;
         }
+        .custom-popup {
+            width: 150px; /* 调整宽度 */
+            border-radius: 8px; /* 圆角 */
+            padding: 10px; /* 内边距 */
+            font-size: 6px; /* 字体大小 */
+        }
+
+        .custom-popup-title {
+            font-size: 16px; /* 标题字体大小 */
+            margin: 0; /* 去掉默认的外边距 */
+        }
+
+        .custom-popup-icon {
+            /*width: 20px; !* 图标宽度 *!*/
+            /*height: 20px; !* 图标高度 *!*/
+            object-fit: contain; /* 使图标保持比例 */
+        }
+
 
 
     </style>
@@ -1844,11 +1876,32 @@
     })
 
     $('#wcd-worthless_submit').click(function (){
-        function createExpander(title, content){
+        function createExpander(title, content, valueFunc){
             console.log('create expander', title, content)
             let $expander = $('<div class="expander">');
 
-            let $header = $('<div class="expander-header">').append(`<h3>${title}</h3>`);
+            let $header = $('<div class="expander-header">').append(
+                $('<h3>').text(title),
+                $('<div class="copy-btn">').text('复制').click(function (e){
+                    e.stopPropagation();        // 阻止事件冒泡，避免触发 p 的点击事件
+                    navigator.clipboard.writeText(valueFunc()).then(function() {
+                        Swal.fire({
+                            position: "top-end",
+                            icon: "success",
+                            title: "复制成功",
+                            showConfirmButton: false,
+                            timer: 1000,
+                            customClass: {
+                                popup: 'custom-popup',
+                                title: 'custom-popup-title',
+                                icon: 'custom-popup-icon',
+                            }
+                        });
+                    }, function(err) {
+                        console.error('Async: Could not copy text: ', err);
+                    });
+                }),
+            );
             let $content = $('<div class="expander-content">');
 
             if (typeof content === 'string' || content instanceof String) {
@@ -1881,13 +1934,19 @@
                         break
                     }
                     let detail = data[i]
-                    let $expanderRawHtml = createExpander("网页抓取结果", $('<iframe>').attr('srcdoc', detail['raw_html']))
-                    let $expanderParsedHtml = createExpander("解析后网页", $('<iframe>').attr('srcdoc', detail['parsed_html']))
+                    let $expanderRawHtml = createExpander("网页抓取结果", $('<iframe>').attr('srcdoc', detail['raw_html']), ()=>{
+                        return detail['raw_html']
+                    })
+                    let $expanderParsedHtml = createExpander("解析后网页", $('<iframe>').attr('srcdoc', detail['parsed_html']), ()=>{
+                        return detail['parsed_html']
+                    })
                     let $textParserLabels = createExpander("text-parser标签", $('<pre class="expanded">').append(
                         $('<code class="json">').text(reformatJsonStr(
                             detail['text_parser_labels'])
                         )
-                    ))
+                    ), ()=>{
+                        return reformatJsonStr(detail['text_parser_labels'])
+                    })
                     expanders.append($expanderRawHtml, $expanderParsedHtml, $textParserLabels)
                 }
                 const codeElement = expanders.find('code');

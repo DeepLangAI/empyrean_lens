@@ -2851,3 +2851,89 @@ func WcdOsskeyQuery(ctx context.Context, traceId string, timeBegin, timeEnd time
 	}
 	return result, nil
 }
+
+type WcdWorthlessModel struct {
+	TraceId         string    `json:"trace_id"`
+	WcdRequestId    string    `json:"wcd_request_id"`
+	Url             string    `json:"url"`
+	Host            string    `json:"host"`
+	Title           string    `json:"title"`
+	Worthless       bool      `json:"worthless"`
+	SeqLabelSuccess bool      `json:"seq_label_success"`
+	Time            time.Time `json:"time"`
+	OssDlCmd        string    `json:"oss_dl_cmd"`
+	OssBucket       string    `json:"oss_bucket"`
+	OssKey          string    `json:"oss_key"`
+}
+
+func WcdWorthlessQuery(ctx context.Context, timeBegin, timeEnd time.Time) ([]WcdWorthlessModel, error) {
+	query := `
+message: wcd处理结果： |select * from (
+select 
+regexp_extract(message, 'wcd处理结果：.*"worthless": (true|false)', 1)  worthless,
+regexp_extract(message, 'wcd处理结果：.*"seq_label_success": (true|false)', 1)  seq_label_success,
+regexp_extract(message, 'wcd处理结果：.*"url": "(.*?)"', 1)  url,
+regexp_extract(message, 'wcd处理结果：.*"url": "https?://(.*?)/.*?"', 1)  host,
+regexp_extract(message, 'wcd处理结果：.*"title": "(.*?)"', 1)  title,
+regexp_extract(message, 'wcd处理结果：.*"author": "(.*?)"', 1)  author,
+regexp_extract(extra, '.*"trace_id":\s*"(.*?)"', 1)  trace_id,
+regexp_extract(extra, '.*"wcd-request-id":\s*"(.*?)"', 1)  wcd_request_id,
+regexp_extract(message, '.*"oss_info":\s*\{.*?"bucket":\s*"(.*?)".*?\}', 1)  oss_bucket,
+regexp_extract(message, '.*"oss_info":\s*\{.*?"key":\s*"(.*?)".*?\}', 1)  oss_key,
+asctime time
+from log limit 1000000
+) 
+where 
+worthless='true' and oss_bucket != 'null' and oss_key != 'null'
+order by time desc
+`
+	hlog.CtxDebugf(ctx, "WcdOsskeyQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "WcdOsskeyQuery query error: %v", err)
+		return nil, err
+	}
+	result := []WcdWorthlessModel{}
+	for _, log := range resp.Logs {
+		//2024-11-03T15:01:48.092+08:00
+		t, err := time.ParseInLocation(time.RFC3339, log["time"], time.Local)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "WcdOsskeyQuery parse time error: %v", err)
+			continue
+		}
+		model := WcdWorthlessModel{
+			TraceId:         log["trace_id"],
+			WcdRequestId:    log["wcd_request_id"],
+			Url:             log["url"],
+			Host:            log["host"],
+			Title:           log["title"],
+			Worthless:       log["worthless"] == "true",
+			SeqLabelSuccess: log["seq_label_success"] == "true",
+			Time:            t,
+			OssBucket:       log["oss_bucket"],
+			OssKey:          log["oss_key"],
+		}
+		if model.OssBucket == "null" {
+			model.OssBucket = ""
+		}
+		if model.OssKey == "null" {
+			model.OssKey = ""
+		}
+		// ossutil cp oss://wcd-html-bucket-prod/parsed/resource_server/20241103113704_6726efdb43e4601211e59153.zip
+		if model.OssDlCmd != "" {
+			path := strings.TrimPrefix(model.OssDlCmd, "ossutil cp oss://")
+			bucket := strings.Split(path, "/")[0]
+			ossKey := strings.TrimRight(strings.TrimPrefix(path, bucket+"/"), " .")
+			model.OssKey = ossKey
+			model.OssBucket = bucket
+		}
+		result = append(result, model)
+	}
+	return result, nil
+}

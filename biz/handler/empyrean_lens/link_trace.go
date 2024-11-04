@@ -166,3 +166,26 @@ func WcdNodeDetail(ctx context.Context, c *app.RequestContext) {
 	resp.Data = data
 	base.SuccessResponse(c, resp)
 }
+
+// WcdOssWorthlessLogs .
+// @router /api/v1/link_trace/wcd_worthless [GET]
+func WcdOssWorthlessLogs(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.WcdWorthlessReq
+	err = c.BindAndValidate(&req)
+	base := handler.BaseHandler{}
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	data, err := link_trace.GetWcdWorthlessLogs(ctx, req)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[WcdOssWorthlessLogs] error: %+v", err)
+		c.String(consts.StatusBadRequest, err.Error())
+	}
+
+	resp := new(empyrean_lens.WcdWorthlessResp)
+	resp.Data = data
+	base.SuccessResponse(c, resp)
+}

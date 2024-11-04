@@ -33,6 +33,7 @@ func Register(r *server.Hertz) {
 				_link_trace.GET("/single_doc", append(_doclinktraceMw(), empyrean_lens.DocLinkTrace)...)
 				_link_trace.GET("/user_actions", append(_useractionsMw(), empyrean_lens.UserActions)...)
 				_link_trace.GET("/wcd_oss_detail", append(_wcdnodedetailMw(), empyrean_lens.WcdNodeDetail)...)
+				_link_trace.GET("/wcd_worthless", append(_wcdossworthlesslogsMw(), empyrean_lens.WcdOssWorthlessLogs)...)
 			}
 			{
 				_report := _v1.Group("/report", _reportMw()...)

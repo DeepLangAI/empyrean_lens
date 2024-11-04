@@ -14,6 +14,7 @@
     <script src="/public/js/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
 
@@ -367,6 +368,11 @@
             cursor: pointer;
             color: #007bff;
         }
+        .copy-tip:hover{
+            background: #007bff; /* 悬停时的背景颜色 */
+            color: #ffffff;      /* 悬停时的字体颜色 */
+            text-decoration: underline;
+        }
         .expand-tip {
             position: absolute;
             bottom: 0;
@@ -377,6 +383,8 @@
             color: #007bff;
         }
         .expand-tip:hover {
+            background: #007bff; /* 悬停时的背景颜色 */
+            color: #ffffff;      /* 悬停时的字体颜色 */
             text-decoration: underline;
         }
 
@@ -946,6 +954,20 @@
             align-items: center;
             padding: 10px;
             cursor: pointer;
+            position: relative;
+        }
+        .expander-header .copy-btn {
+            position: absolute;
+            right: 40px;
+            color: #007bff;
+            background: #edeff3;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+        .expander-header .copy-btn:hover {
+            background: #007bff; /* 悬停时的背景颜色 */
+            color: #ffffff;      /* 悬停时的字体颜色 */
+            text-decoration: underline;
         }
         /* 添加 hover 效果 */
         .expander-header:hover {
@@ -1808,10 +1830,32 @@
         }
 
         function createWcdExpanders(entryId, traceId, ossInfo){
-            function createExpander(title, content){
+            function createExpander(title, content, valueFunc){
                 let $expander = $('<div class="expander">');
 
-                let $header = $('<div class="expander-header">').append(`<h3>${title}</h3>`);
+                let $header = $('<div class="expander-header">').append(
+                    $('<h3>').text(title),
+                    $('<div class="copy-btn">').text('复制').click(function (e){
+                        e.stopPropagation();        // 阻止事件冒泡，避免触发 p 的点击事件
+                        navigator.clipboard.writeText(valueFunc()).then(function() {
+                            Swal.fire({
+                                position: "top-end",
+                                icon: "success",
+                                title: "复制成功",
+                                showConfirmButton: false,
+                                timer: 1000,
+                                customClass: {
+                                    popup: 'custom-popup',
+                                    title: 'custom-popup-title',
+                                    icon: 'custom-popup-icon',
+                                }
+                            });
+                        }, function(err) {
+                            console.error('Async: Could not copy text: ', err);
+                        });
+                    }),
+                );
+
                 let $content = $('<div class="expander-content">');
 
                 if (typeof content === 'string' || content instanceof String) {
@@ -1844,16 +1888,30 @@
                         break
                     }
                     let detail = data[i]
-                    // let $expanderRawHtml = createExpander("网页抓取结果", $(`<iframe srcdoc="${detail['raw_html']}">`))
-                    let srcDoc = '<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <title>网页 B</title> <style> /* 网页 B 的样式 */ body { background-color: #f9f9f9; font-family: Arial, sans-serif; } h2 { color: #333; } </style> </head> <body> <h2>这是网页 B</h2> <p>内容来自网页 B 的源代码。</p> </body> </html>'
-                    let $expanderRawHtml = createExpander("网页抓取结果", $('<iframe>').attr('srcdoc', detail['raw_html']))
-                    let $expanderParsedHtml = createExpander("解析后网页", $('<iframe>').attr('srcdoc', detail['parsed_html']))
+                    let $expanderRawHtml = createExpander("网页抓取结果", $('<iframe>').attr('srcdoc', detail['raw_html']), ()=>{
+                        return detail['raw_html']
+                    })
+                    let $expanderParsedHtml = createExpander("解析后网页", $('<iframe>').attr('srcdoc', detail['parsed_html']),()=>{
+                        return detail['parsed_html']
+                    })
                     let $textParserLabels = createExpander("text-parser标签", $('<pre class="expanded">').append(
                         $('<code class="json">').text(reformatJsonStr(
                             detail['text_parser_labels'])
                         )
-                    ))
-                    expanders.append($expanderRawHtml, $expanderParsedHtml, $textParserLabels)
+                    ), ()=>{
+                        return reformatJsonStr(detail['text_parser_labels'])
+                    })
+                    let $expanderWcdConclusion = createExpander("网页解析结论", $('<pre class="expanded">').css({
+                        'max-height': '250px'
+                    }).append(
+                        $('<code class="json">').text(reformatJsonStr(
+                            detail['conclusion'])
+                        )
+                    ), ()=>{
+                        return reformatJsonStr(detail['conclusion'])
+                    })
+
+                    expanders.append($expanderRawHtml, $expanderParsedHtml, $textParserLabels, $expanderWcdConclusion)
                 }
                 const codeElement = expanders.find('code');
                 for (let i = 0; i < codeElement.length; i++){

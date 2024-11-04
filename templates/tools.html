@@ -12,10 +12,15 @@
     <script src="/public/js/sweetalert2.min.js"></script>
     <script src="/public/js/echarts.min.js"></script>
 
+    <script src="/public/js/utils.js"></script>
+
     <link rel="stylesheet" href="/public/css/jquery-ui.css">
     <script src="/public/js/jquery-ui.js"></script>
 
     <link rel="stylesheet" href="/public/css/sweetalert2.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
 
     <style>
         body {
@@ -1043,6 +1048,91 @@
             background-color: #ddd;
         }
 
+    /*    wcd expander*/
+        /*下拉expander*/
+        .expander {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            /*transition: all 0.3s ease;*/
+            /*margin-right: 2%;*/
+            /*max-width: 700px;*/
+            margin-bottom: 10px;
+            transition: transform 0.3s ease;
+        }
+        .expander-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+        .expander-header .copy-btn {
+            position: absolute;
+            right: 40px;
+            color: #007bff;
+            background: #edeff3;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+        .expander-header .copy-btn:hover {
+            background: #007bff; /* 悬停时的背景颜色 */
+            color: #ffffff;      /* 悬停时的字体颜色 */
+            text-decoration: underline;
+        }
+        /* 添加 hover 效果 */
+        .expander-header:hover {
+            background-color: #f0f0f0; /* 更改背景色 */
+        }
+        /* 添加 hover 效果，仅作用于 h3 */
+        .expander-header:hover h3 {
+            color: #f6891c; /* 更改文字颜色 */
+        }
+        .expander-header h3 {
+            margin: 0;
+        }
+        .expander iframe {
+            width: 100%;
+            height: 50vh;
+        }
+        .expander-header:after {
+            content: '▼';
+            font-size: 16px;
+            transition: transform 0.3s ease;
+        }
+        .expander.active .expander-header:after {
+            transform: rotate(180deg);
+        }
+        .expander-content {
+            display: none;
+            padding: 10px;
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+        .expander.active .expander-content {
+            display: block;
+            max-height: 500px;
+            overflow: auto;
+        }
+        .custom-popup {
+            width: 150px; /* 调整宽度 */
+            border-radius: 8px; /* 圆角 */
+            padding: 10px; /* 内边距 */
+            font-size: 6px; /* 字体大小 */
+        }
+
+        .custom-popup-title {
+            font-size: 16px; /* 标题字体大小 */
+            margin: 0; /* 去掉默认的外边距 */
+        }
+
+        .custom-popup-icon {
+            /*width: 20px; !* 图标宽度 *!*/
+            /*height: 20px; !* 图标高度 *!*/
+            object-fit: contain; /* 使图标保持比例 */
+        }
+
 
 
     </style>
@@ -1083,6 +1173,11 @@
         <div class="tool" id="entry-online-modal">
             <h2>上线单</h2>
             <p>查询上线记录</p>
+        </div>
+
+        <div class="tool" id="wcd-worthless-tool">
+            <h2>网页解析无意义分析</h2>
+            <p>查询wcd解析网页无意义详情</p>
         </div>
     </div>
 </div>
@@ -1186,6 +1281,42 @@
 </div>
 
 
+<div id="wcd-worthless-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>网页解析无意义分析</h2>
+        <div class="datetime-container">
+            <input
+                    type="text"
+                    id="wcd-worthless-query"
+                    class="input-field"
+                    placeholder="输入关键字"
+            />
+            <input
+                    type="datetime-local"
+                    id="wcd-worthless-begin-time"
+                    name="meeting-time"
+                    value="2024-09-14T00:00"
+                    min="2018-06-07T00:00"
+                    max="2095-06-14T00:00"
+            />
+            <input
+                    type="datetime-local"
+                    id="wcd-worthless-end-time"
+                    name="meeting-time"
+                    value="2024-09-14 00:00"
+                    min="2018-06-07 00:00"
+                    max="2095-06-14 00:00"
+            />
+        </div>
+        <div class="button-container">
+            <div id="wcd-worthless_clean" class="btn-ghost">清空</div>
+            <div id="wcd-worthless_submit" class="btn-submit">查询</div>
+        </div>
+        <div id="wcd-worthless-result" class="result-content"></div>
+    </div>
+</div>
+
 <script>
     const userDatabase = [
         { username: 'fanchao', uid: '645e0764a5b98dc9ebeeda49' },
@@ -1228,6 +1359,15 @@
         today = yyyy + '-' + mm + '-' + dd;
         return today
     }
+
+    $('#wcd-worthless-tool').click(function (){
+        openModal('wcd-worthless-modal')
+        let $resultContainer = $('#wcd-worthless-result')
+        // 如果是空的
+        if ($resultContainer.html().trim() === '') {
+            $('#wcd-worthless_submit').trigger('click')
+        }
+    })
 
     $("#endtoendtrace_submit").click(function() {
         var traceId = $("#traceId").val();
@@ -1736,6 +1876,179 @@
         }
     })
 
+    $('#wcd-worthless_clean').click(function (){
+        let $resultContainer = $('#wcd-worthless-result')
+        $resultContainer.empty()
+    })
+    $('#wcd-worthless-query').on('keydown', function (event){
+        if (event.key === 'Enter') {
+            $('#wcd-worthless_submit').trigger('click')
+        }
+    })
+
+    $('#wcd-worthless_submit').click(function (){
+        function createExpander(title, content, valueFunc){
+            console.log('create expander', title, content)
+            let $expander = $('<div class="expander">');
+
+            let $header = $('<div class="expander-header">').append(
+                $('<h3>').text(title),
+                $('<div class="copy-btn">').text('复制').click(function (e){
+                    e.stopPropagation();        // 阻止事件冒泡，避免触发 p 的点击事件
+                    navigator.clipboard.writeText(valueFunc()).then(function() {
+                        Swal.fire({
+                            position: "top-end",
+                            icon: "success",
+                            title: "复制成功",
+                            showConfirmButton: false,
+                            timer: 1000,
+                            customClass: {
+                                popup: 'custom-popup',
+                                title: 'custom-popup-title',
+                                icon: 'custom-popup-icon',
+                            }
+                        });
+                    }, function(err) {
+                        console.error('Async: Could not copy text: ', err);
+                    });
+                }),
+            );
+            let $content = $('<div class="expander-content">');
+
+            if (typeof content === 'string' || content instanceof String) {
+                // 如果 content 是纯文本，直接添加
+                $content.append(`<div>${content}</div>`);
+            } else {
+                // 如果 content 不是纯文本，直接 append 到 expander-content
+                $content.append(content);
+            }
+
+            $expander.append($header, $content);
+
+            $expander.find('.expander-header').click(function (){
+                $(this).parent().toggleClass('active');
+            })
+            return $expander
+        }
+
+        function getWcdOssDetail(bucket, key){
+            let expanders = $('<div>')
+            axios.get('/api/v1/link_trace/wcd_oss_detail', {
+                params: {
+                    'oss_bucket': bucket,
+                    'oss_key': key,
+                }
+            }).then((response) => {
+                let data = response.data.data
+                for (let i = 0; i < data.length; i++){
+                    if (i == 1){
+                        break
+                    }
+                    let detail = data[i]
+                    let $expanderRawHtml = createExpander("网页抓取结果", $('<iframe>').attr('srcdoc', detail['raw_html']), ()=>{
+                        return detail['raw_html']
+                    })
+                    let $expanderParsedHtml = createExpander("解析后网页", $('<iframe>').attr('srcdoc', detail['parsed_html']), ()=>{
+                        return detail['parsed_html']
+                    })
+                    let $textParserLabels = createExpander("text-parser标签", $('<pre class="expanded">').append(
+                        $('<code class="json">').text(reformatJsonStr(
+                            detail['text_parser_labels'])
+                        )
+                    ), ()=>{
+                        return reformatJsonStr(detail['text_parser_labels'])
+                    })
+                    let $expanderWcdConclusion = createExpander("网页解析结论", $('<pre class="expanded">').css({
+                        'max-height': '250px'
+                    }).append(
+                        $('<code class="json">').text(reformatJsonStr(
+                            detail['conclusion'])
+                        )
+                    ), ()=>{
+                        return reformatJsonStr(detail['conclusion'])
+                    })
+                    expanders.append($expanderRawHtml, $expanderParsedHtml, $textParserLabels, $expanderWcdConclusion)
+                }
+                const codeElement = expanders.find('code');
+                for (let i = 0; i < codeElement.length; i++){
+                    let code = codeElement[i];
+                    hljs.highlightBlock(code);
+                }
+            }).catch((error) => {
+                console.error(error);
+            }).finally(() => {
+            })
+            return expanders
+        }
+
+
+        showLoadingStatus()
+        let startTime = $('#wcd-worthless-begin-time').val().replace('T', ' ') + ':00'
+        let endTime = $('#wcd-worthless-end-time').val().replace('T', ' ') + ':00'
+        let query = $('#wcd-worthless-query').val()
+        let $resultContainer = $('#wcd-worthless-result')
+        $resultContainer.css({
+            'max-height': '60vh'
+        })
+        axios.get('/api/v1/link_trace/wcd_worthless', {
+            params: {
+                time_begin: startTime,
+                time_end: endTime,
+                query: query,
+            }
+        }).then( response => {
+            let data = response.data.data
+            let $expandContainer = $('<div>').addClass('expand-container')
+            $resultContainer.empty().append($expandContainer)
+            for (let i = 0; i < data.length; i++) {
+                let logItem = data[i]
+                let $expandItem = $('<div>').addClass('expand')
+                $expandContainer.append($expandItem)
+
+                let $expandContent = $('<div>').addClass('expand-content')
+
+                $expandItem.append(
+                    $('<div style="cursor: default;">').addClass('expand-info').append(
+                        $('<div>').html(`
+                            <strong>时间</strong> ${logItem['time']}<br>
+                            <strong>标题</strong> ${logItem['title']}<br>
+                            <strong>链接</strong> <a href="${logItem['url']}" target="_blank">${logItem['url']}</a><br>
+                            <strong>wcd_request_id</strong> ${logItem['wcd_request_id']}<br>
+                            <strong>TraceId</strong> ${logItem['trace_id']}<br>
+                            `) ,
+                        $('<div>').addClass('expand-button').click(function (event){
+                            console.log('click expand button')
+                            // 阻止事件冒泡
+                            event.stopPropagation();
+
+                            // 切换内容的展开状态
+                            let $content = $expandItem.find('.expand-content');
+                            $content.toggleClass('expanded');
+                            // 更新图标
+                            let icon = $(this).find('.toggle-icon');
+                            icon.text($content.hasClass('expanded') ? '▼' : '▲');
+                            // 如果$content是空的
+                            if ($content.is(':empty')) {
+                                let $wcdOssDetail = getWcdOssDetail(logItem['oss_bucket'], logItem['oss_key'])
+                                $content.append($wcdOssDetail)
+                                console.log(logItem['oss_bucket'], logItem['oss_key'], $wcdOssDetail)
+                            }
+                        }).html(`<span class="toggle-icon" id="toggle-icon">▲</span> `),
+                    ).click(function (){
+                        console.log('click expand item')
+                        // showEndToEndTraceLogs(dataItem['trace_id'], dataItem['time_begin'].slice(0, 10))
+                    }),
+                    $expandContent,
+                )
+
+            }
+        }).catch( error => {
+            console.error('Error fetching wcd worthless details:', error);
+        }).finally( () => {
+            hideLoadingStatus()
+        });
+    })
+
 
 
     function getCurrentDateMinusMinutes(minutes) {
@@ -1802,6 +2115,9 @@
 
         $('#onlineoperation-begin-time').val(getCurrentDateMinusMinutes(60 * 12))
         $('#onlineoperation-end-time').val(getCurrentDateMinusMinutes(0))
+
+        $('#wcd-worthless-begin-time').val(getCurrentDateMinusMinutes(4 * 60))
+        $('#wcd-worthless-end-time').val(getCurrentDateMinusMinutes(0))
     })
 
     function handleClickExpand(pid){

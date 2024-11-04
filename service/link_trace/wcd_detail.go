@@ -8,6 +8,7 @@ import (
 	"empyrean_lens/dal/mongo/plugin"
 	"empyrean_lens/tools"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"strings"
 	"time"
 )
 
@@ -51,6 +52,58 @@ func GetWcdOssLogDetail(ctx context.Context, req empyrean_lens.WcdOssDetalReq) (
 			ParsedHTML:       file.ParsedHtml,
 			TextParserLabels: file.TextParserLabels,
 			Conclusion:       file.Conclusion,
+		})
+	}
+	return result, nil
+}
+
+func queryInResult(query string, log aliyun.WcdWorthlessModel) bool {
+	if strings.Contains(log.Url, query) {
+		return true
+	}
+	if strings.Contains(log.Title, query) {
+		return true
+	}
+	if strings.Contains(log.TraceId, query) {
+		return true
+	}
+	if strings.Contains(log.WcdRequestId, query) {
+		return true
+	}
+	return false
+}
+
+func GetWcdWorthlessLogs(ctx context.Context, req empyrean_lens.WcdWorthlessReq) ([]*empyrean_lens.WcdWorthlessRespData, error) {
+	timeBegin, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.TimeBegin, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse time begin failed, err: %v", err)
+		return nil, err
+	}
+	timeEnd, err := time.ParseInLocation(consts.DateHourMinSecTemplate, req.TimeEnd, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse time end failed, err: %v", err)
+		return nil, err
+	}
+	logs, err := aliyun.WcdWorthlessQuery(ctx, timeBegin, timeEnd)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get oss list failed, err: %v", err)
+		return nil, err
+	}
+	result := make([]*empyrean_lens.WcdWorthlessRespData, 0)
+	for _, log := range logs {
+		if req.Query != "" && !queryInResult(req.Query, log) {
+			continue
+		}
+		result = append(result, &empyrean_lens.WcdWorthlessRespData{
+			TraceID:      log.TraceId,
+			WcdRequestID: log.WcdRequestId,
+			URL:          log.Url,
+			Host:         log.Host,
+			Title:        log.Title,
+			Time:         log.Time.Format(consts.DateHourMinSecTemplate),
+			OssDlCmd:     log.OssDlCmd,
+			OssBucket:    log.OssBucket,
+			OssKey:       log.OssKey,
 		})
 	}
 	return result, nil

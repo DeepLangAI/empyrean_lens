@@ -125,6 +125,7 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 	files, err := []*plugin.File(nil), error(nil)
 	offset, limit := int64(0), req.Limit+req.Skip
 	for len(files) < int(req.Limit+req.Skip) {
+		entryIDMapping := map[string]struct{}{}
 		fileSplit := []*plugin.File(nil)
 		if req.Query == "" {
 			fileSplit, err = plugin.NewFileDao().FindFileByTimeRange(ctx, status, begin, end, offset, limit)
@@ -164,11 +165,14 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 				}
 			}
 			for _, file := range fileSplit {
-				if userInfo, ok := totalUidMapping[file.UserID]; ok {
-					if userInfo.UserType == bi.ExternalUser {
-						files = append(files, file)
+				if _, ok := entryIDMapping[file.ID.Hex()]; !ok {
+					if userInfo, ok := totalUidMapping[file.UserID]; ok {
+						if userInfo.UserType == bi.ExternalUser {
+							files = append(files, file)
+						}
 					}
 				}
+				entryIDMapping[file.ID.Hex()] = struct{}{}
 			}
 		} else {
 			files = append(files, fileSplit...)
@@ -209,6 +213,7 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 	webReaders, err := []*plugin.WebReader(nil), error(nil)
 	offset, limit := int64(0), req.Limit+req.Skip
 	for len(webReaders) < int(req.Limit+req.Skip) {
+		entryIDMapping := map[string]struct{}{}
 		webReaderSplit := []*plugin.WebReader(nil)
 		if req.Query == "" {
 			webReaderSplit, err = plugin.NewWebReaderDao().FindWebReaderByTimeRange(ctx, status, begin, end, offset, limit)
@@ -248,10 +253,13 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 				}
 			}
 			for _, webReader := range webReaderSplit {
-				if userInfo, ok := totalUidMapping[webReader.UserID]; ok {
-					if userInfo.UserType == bi.ExternalUser {
-						webReaders = append(webReaders, webReader)
+				if _, ok := entryIDMapping[webReader.ID.Hex()]; !ok {
+					if userInfo, ok := totalUidMapping[webReader.UserID]; ok {
+						if userInfo.UserType == bi.ExternalUser {
+							webReaders = append(webReaders, webReader)
+						}
 					}
+					entryIDMapping[webReader.ID.Hex()] = struct{}{}
 				}
 			}
 		} else {
@@ -277,6 +285,7 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 	multis, err := []*plugin.MultiModel(nil), error(nil)
 	offset, limit := int64(0), req.Limit+req.Skip
 	for len(multis) < int(req.Limit+req.Skip) {
+		entryIDMapping := map[string]struct{}{}
 		multisSplit := []*plugin.MultiModel(nil)
 		for _, v := range req.Status {
 			multisItem := []*plugin.MultiModel{}
@@ -316,10 +325,13 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 				}
 			}
 			for _, multi := range multisSplit {
-				if userInfo, ok := totalUidMapping[multi.UserID]; ok {
-					if userInfo.UserType == bi.ExternalUser {
-						multis = append(multis, multi)
+				if _, ok := entryIDMapping[multi.ID.Hex()]; !ok {
+					if userInfo, ok := totalUidMapping[multi.UserID]; ok {
+						if userInfo.UserType == bi.ExternalUser {
+							multis = append(multis, multi)
+						}
 					}
+					entryIDMapping[multi.ID.Hex()] = struct{}{}
 				}
 			}
 		} else {

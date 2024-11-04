@@ -6,11 +6,12 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
 	"fmt"
-	"github.com/bytedance/sonic"
 	"html/template"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/bytedance/sonic"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
 
@@ -2657,9 +2658,9 @@ func ViewPointModelOutResponseQuery(ctx context.Context, resourceId string, time
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func OutlineModelOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest outline_model req" and "%s"`
-	query = fmt.Sprintf(query, resourceId)
+func OutlineModelOutRequestQuery(ctx context.Context, resourceId, userID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest outline_model req" and "%s" and "%s"`
+	query = fmt.Sprintf(query, resourceId, userID)
 	hlog.CtxDebugf(ctx, "OutlineModelOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2764,9 +2765,9 @@ func MultiThemeModelOutResponseQuery(ctx context.Context, multiID string, timeBe
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func MultiOutlineModelOutRequestQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest multi_outline req" and "%s"`
-	query = fmt.Sprintf(query, multiID)
+func MultiOutlineModelOutRequestQuery(ctx context.Context, multiID, userID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest multi_outline req" and "%s" and "%s"`
+	query = fmt.Sprintf(query, multiID, userID)
 	hlog.CtxDebugf(ctx, "MultiOutlineModelOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2782,9 +2783,9 @@ func MultiOutlineModelOutRequestQuery(ctx context.Context, multiID string, timeB
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func MultiOutlineModelOutResponseQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest multi_outline resp" and "%s"`
-	query = fmt.Sprintf(query, multiID)
+func MultiOutlineModelOutResponseQuery(ctx context.Context, multiID, userID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest multi_outline resp" and "%s" and "%s"`
+	query = fmt.Sprintf(query, multiID, userID)
 	hlog.CtxDebugf(ctx, "MultiOutlineModelOutResponseQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)

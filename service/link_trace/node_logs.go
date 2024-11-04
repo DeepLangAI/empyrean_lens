@@ -59,7 +59,7 @@ func FileNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyr
 		EntryId:   req.EntryID,
 		EntryType: consts.EntryTypePDF,
 	}
-	traceID, apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, article, node)
+	traceID, apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, fileInfo.UserID, article, node)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
@@ -95,7 +95,7 @@ func WebReaderNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*
 		EntryId:   req.EntryID,
 		EntryType: consts.EntryTypeWEB,
 	}
-	traceID, apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, article, node)
+	traceID, apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, webReaderInfo.UserID, article, node)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
@@ -127,7 +127,7 @@ func MultiNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empy
 		node.EnterTime = start.Format(consts.DateTimeTemplate)
 	}
 	// 获取日志列表
-	traceID, apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, plugin.ArticleEntry{}, node)
+	traceID, apiLogs, bizCode := NodeApiLogs(ctx, req.EntryID, multiInfo.UserID, plugin.ArticleEntry{}, node)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
@@ -139,7 +139,7 @@ func MultiNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empy
 	}, nil
 }
 
-func NodeApiLogs(ctx context.Context, resourceId string, article plugin.ArticleEntry, node *empyrean_lens.GraphNode) (string, []*empyrean_lens.ApiLog, *consts.BizCode) {
+func NodeApiLogs(ctx context.Context, resourceId, userID string, article plugin.ArticleEntry, node *empyrean_lens.GraphNode) (string, []*empyrean_lens.ApiLog, *consts.BizCode) {
 	timeAt, _ := time.Parse(consts.DateTimeTemplate, node.EnterTime)
 	start := timeAt.Add(-24 * time.Hour)
 	end := timeAt.Add(24 * time.Hour)
@@ -268,7 +268,7 @@ func NodeApiLogs(ctx context.Context, resourceId string, article plugin.ArticleE
 		}
 		return getReqAndResp(ctx, node, apiLogsInput, apiLogsOuput)
 	case empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:
-		apiLogsInput, err := aliyun.OutlineModelOutRequestQuery(ctx, resourceId, start, end)
+		apiLogsInput, err := aliyun.OutlineModelOutRequestQuery(ctx, resourceId, userID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return "", nil, &consts.QueryRecordError
@@ -304,12 +304,12 @@ func NodeApiLogs(ctx context.Context, resourceId string, article plugin.ArticleE
 		}
 		return getReqAndResp(ctx, node, apiLogsInput, apiLogsOuput)
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:
-		apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, resourceId, start, end)
+		apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, resourceId, userID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return "", nil, &consts.QueryRecordError
 		}
-		apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, resourceId, start, end)
+		apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, resourceId, userID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return "", nil, &consts.QueryRecordError
@@ -332,8 +332,11 @@ func getReqAndResp(ctx context.Context, node *empyrean_lens.GraphNode, apiLogsIn
 			input = apiLogsInput[idx]
 		}
 		output := aliyun.FileProcessLog{}
-		if idx < len(apiLogsOuput) {
-			output = apiLogsOuput[idx]
+		for _, apiLogOuput := range apiLogsOuput {
+			if apiLogOuput.TraceId == input.TraceId {
+				output = apiLogOuput
+				break
+			}
 		}
 		apiLog := &empyrean_lens.ApiLog{}
 		apiLog.HTTPCode = 200

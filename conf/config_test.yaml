@@ -44,6 +44,11 @@ redis:
   password: 'MK6MuYGay'
   maxretries: 1
 
+oss:
+  endpoint: "oss-cn-zhangjiakou.aliyuncs.com"
+  accessKey: "REDACTED"
+  accessSecret: "REDACTED"
+
 
 # 飞书配置
 lark:

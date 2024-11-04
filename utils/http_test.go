@@ -1,18 +1,13 @@
 package utils
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
-	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"log"
 	"net/url"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -73,59 +68,4 @@ func GetWcdZipReader() (io.ReadCloser, error) {
 	}
 
 	return reader, nil
-}
-
-type WcdModel struct {
-	RawHtml          string `json:"raw_html"`
-	ParsedHtml       string `json:"parsed_html"`
-	TextParserLabels string `json:"text_parser_labels"`
-	Conclusion       string `json:"conclusion"`
-}
-
-func TestDownloadOssFile(t *testing.T) {
-	reader, err := GetWcdZipReader()
-	assert.Nil(t, err)
-	defer reader.Close()
-	var buffer bytes.Buffer
-	if _, err := io.Copy(&buffer, reader); err != nil {
-		log.Fatalf("Failed to read object into buffer: %v", err)
-	}
-
-	// 解压缩 ZIP 文件
-	r, err := zip.NewReader(bytes.NewReader(buffer.Bytes()), int64(buffer.Len()))
-	if err != nil {
-		log.Fatalf("Failed to create zip reader: %v", err)
-	}
-
-	wcdModel := WcdModel{}
-	// 遍历 ZIP 文件中的每个文件
-	for _, f := range r.File {
-		fmt.Printf("Extracting %s\n", f.Name)
-
-		rc, err := f.Open()
-		if err != nil {
-			log.Fatalf("Failed to open file %s: %v", f.Name, err)
-		}
-
-		// 读取文件内容
-		var fileBuffer bytes.Buffer
-		if _, err := io.Copy(&fileBuffer, rc); err != nil {
-			log.Fatalf("Failed to read file %s: %v", f.Name, err)
-		}
-		rc.Close()
-
-		// 这里可以对 fileBuffer 做进一步处理
-		if strings.Contains(f.Name, "distill") {
-			wcdModel.Conclusion = strings.TrimSpace(fileBuffer.String())
-		} else if strings.Contains(f.Name, "readable") {
-			wcdModel.ParsedHtml = strings.TrimSpace(fileBuffer.String())
-		} else if strings.Contains(f.Name, "raw.html") {
-			wcdModel.RawHtml = strings.TrimSpace(fileBuffer.String())
-		} else if strings.Contains(f.Name, "model_result.json") {
-			wcdModel.TextParserLabels = strings.TrimSpace(fileBuffer.String())
-		}
-	}
-	marshalString, err := sonic.MarshalString(wcdModel)
-	assert.Nil(t, err)
-	fmt.Println(marshalString)
 }

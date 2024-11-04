@@ -312,6 +312,30 @@ struct UInfoRespData{
     2: string uid
     3: string nickname
 }
+// 用户活动信息
+struct UserActionInfoReq{
+    1: list<string> uids
+}
+struct UserActionInfoResp{
+    1: i32 code
+    2: string msg
+    3: list<UserActionInfoRespData> data
+}
+struct UserActionInfoRespData{
+    1: string uid
+    2: string action
+    3: string time
+    4: UserActionDetail detail
+}
+struct UserActionDetail{
+    1: string result_status
+    2: string failure_reason
+    3: string file_id
+    4: string action
+    5: string action_channel
+    6: double cost_seconds
+}
+
 
 // 查询请求量趋势
 struct RequestTrendReq{
@@ -606,6 +630,29 @@ struct ApiLog {
     11: string error_msg // 错误响应信息
 }
 
+// 查wcd在oss上传的详细日志
+struct WcdOssDetalReq{
+    1: string entry_id
+    2: string trace_id
+
+    3: string oss_bucket
+    4: string oss_key
+}
+
+struct WcdOssDetalResp{
+    1: i64 code
+    2: string msg
+    3: list<WcdOssDetalRespData> data
+}
+
+struct WcdOssDetalRespData{
+    1: string raw_html
+    2: string parsed_html
+    3: string text_parser_labels
+    4: string conclusion
+}
+
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -672,6 +719,11 @@ service Rentention{
    UInfoResp GetUInfo(1: UInfoReq req) (
        api.get="/api/v1/report/user/info"
    )
+   /**** 用户活动信息 ****/
+   UserActionInfoResp UserActionInfo(1: UserActionInfoReq req) (
+       api.post="/api/v1/report/user/user_action_info"
+   )
+
    // 上线单查询
    OnlineOperationResp GetOnlineOperation(1: OnlineOperationReq req) (
        api.get="/api/v1/report/online_operation"
@@ -704,5 +756,9 @@ service LinkTrace{
     // 链路中某节点的日志查询
     LinkNodeLogResp LinkNodeLogs(1: LinkNodeLogReq req) (
         api.get="/api/v1/link_trace/node_logs"
+    )
+    // wcd节点处理的详情
+    WcdOssDetalResp WcdNodeDetail(1: WcdOssDetalReq req) (
+        api.get="/api/v1/link_trace/wcd_oss_detail"
     )
 }

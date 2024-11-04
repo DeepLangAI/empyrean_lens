@@ -2068,7 +2068,7 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : lingowhale-python-prod) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "苏秦解析异常，file_id:")
+	(__tag__:_container_name_ : lingowhale-python-prod) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "苏秦解析异常，file_id:" or message: "苏秦解析异常")
 	`
 	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, resourceId)
@@ -2142,7 +2142,7 @@ func EduParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd ti
 	}
 
 	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod) and message: "ParseEduNode end" and message: "%s"
+	message: "%s" and (message: "ParseEduNode end" or message: "parse_edu error,")
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "TextParserQuery query: %s", query)

@@ -670,9 +670,12 @@
 
         .carousel {
             position: relative;
-            max-width: 600px;
+            /*max-width: 600px;*/
             overflow: hidden;
-            padding-left: 50px;
+            /*padding-left: 50px;*/
+            max-width: 100%;
+            justify-content: center;
+            display: flex;
         }
         .slides {
             display: flex !important;
@@ -697,6 +700,7 @@
             border: none;
             padding: 10px;
             cursor: pointer;
+            visibility: hidden;
         }
         .button.prev {
             left: 10px;
@@ -920,23 +924,28 @@
                                     <td id="date">{0}</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(0)" onmouseenter="startHover(0)" onmouseleave="cancelHover()" class="clickable-black">分数</th>
+<!--                                    <th onclick="moveToSlide(0)" onmouseenter="startHover(0)" onmouseleave="cancelHover()" class="clickable-black">分数</th>-->
+                                    <th >分数</th>
                                     <td>{1}</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(1)" onmouseenter="startHover(1)" onmouseleave="cancelHover()" class="clickable-black">总请求量</th>
+<!--                                    <th onclick="moveToSlide(1)" onmouseenter="startHover(1)" onmouseleave="cancelHover()" class="clickable-black">总请求量</th>-->
+                                    <th>总请求量</th>
                                     <td>${detail.total_req}</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(2)" onmouseenter="startHover(2)" onmouseleave="cancelHover()" class="clickable-black">接口错误率</th>
+<!--                                    <th onclick="moveToSlide(2)" onmouseenter="startHover(2)" onmouseleave="cancelHover()" class="clickable-black">接口错误率</th>-->
+                                    <th >接口错误率</th>
                                     <td class="clickable" onclick="handleErrorList()">{2}%</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(3)" onmouseenter="startHover(3)" onmouseleave="cancelHover()" class="clickable-black">慢查询率</th>
+<!--                                    <th onclick="moveToSlide(3)" onmouseenter="startHover(3)" onmouseleave="cancelHover()" class="clickable-black">慢查询率</th>-->
+                                    <th >慢查询率</th>
                                     <td class="clickable" onclick="handleSlowList()">{3}%</td>
                                 </tr>
                                 <tr>
-                                    <th onclick="moveToSlide(4)" onmouseenter="startHover(4)" onmouseleave="cancelHover()" class="clickable-black">探针错误率</th>
+<!--                                    <th onclick="moveToSlide(4)" onmouseenter="startHover(4)" onmouseleave="cancelHover()" class="clickable-black">探针错误率</th>-->
+                                    <th >探针错误率</th>
                                     <td class="clickable" onclick="handleProbeList()">{4}%</td>
                                 </tr>
                                 <tr>

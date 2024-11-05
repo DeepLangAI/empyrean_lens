@@ -109,7 +109,6 @@ func (d *WebReaderDao) FindWebReaderByTimeRange(ctx context.Context, status []in
 		//"is_deleted": false,
 		"create_time":           bson.M{"$gte": startTime, "$lt": endTime},
 		"copy_from_resource_id": "",
-		"copy_from_url_id":      "",
 		"channel_type":          bson.M{"$nin": []int32{72, 82, 85}},
 	}
 	if len(status) > 0 {
@@ -145,7 +144,6 @@ func (d *WebReaderDao) FindWebReaderByQueryAndTimeRange(ctx context.Context, que
 			//{"is_delete": false},
 			{"create_time": bson.M{"$gte": startTime, "$lt": endTime}},
 			{"copy_from_resource_id": ""},
-			{"copy_from_url_id": ""},
 		},
 	}
 	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)

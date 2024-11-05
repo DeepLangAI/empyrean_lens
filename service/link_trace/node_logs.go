@@ -304,12 +304,12 @@ func NodeApiLogs(ctx context.Context, resourceId, userID string, article plugin.
 		}
 		return getReqAndResp(ctx, node, apiLogsInput, apiLogsOuput)
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:
-		apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, resourceId, userID, start, end)
+		apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, resourceId, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return "", nil, &consts.QueryRecordError
 		}
-		apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, resourceId, userID, start, end)
+		apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, resourceId, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return "", nil, &consts.QueryRecordError

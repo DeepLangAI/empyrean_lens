@@ -2765,9 +2765,9 @@ func MultiThemeModelOutResponseQuery(ctx context.Context, multiID string, timeBe
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func MultiOutlineModelOutRequestQuery(ctx context.Context, multiID, userID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest multi_outline req" and "%s" and "%s"`
-	query = fmt.Sprintf(query, multiID, userID)
+func MultiOutlineModelOutRequestQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest multi_outline req" and "%s"`
+	query = fmt.Sprintf(query, multiID)
 	hlog.CtxDebugf(ctx, "MultiOutlineModelOutRequestQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2783,9 +2783,9 @@ func MultiOutlineModelOutRequestQuery(ctx context.Context, multiID, userID strin
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func MultiOutlineModelOutResponseQuery(ctx context.Context, multiID, userID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest multi_outline resp" and "%s" and "%s"`
-	query = fmt.Sprintf(query, multiID, userID)
+func MultiOutlineModelOutResponseQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "OutRequest multi_outline resp" and "%s"`
+	query = fmt.Sprintf(query, multiID)
 	hlog.CtxDebugf(ctx, "MultiOutlineModelOutResponseQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)

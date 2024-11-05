@@ -435,13 +435,17 @@ func getLinkTraceCost(nodes []*empyrean_lens.GraphNode) float64 {
 }
 
 func makeEmptyNode(nodeType empyrean_lens.LinkNodeTypeEnum) *empyrean_lens.GraphNode {
+	status := empyrean_lens.ActionStatusEnum_UNREACHEAD
+	if nodeType == empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH {
+		status = empyrean_lens.ActionStatusEnum_SUCCESS
+	}
 	return &empyrean_lens.GraphNode{
 		ID:         empyrean_lens.NodeId(primitive.NewObjectID().Hex()),
 		Name:       consts.LinkNodeTypeName[nodeType],
 		Type:       nodeType,
 		EnterTime:  "",
 		FinishTime: "",
-		Status:     empyrean_lens.ActionStatusEnum_UNREACHEAD,
+		Status:     status,
 	}
 }
 

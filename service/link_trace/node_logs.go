@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"empyrean_lens/biz/model/empyrean_lens"
@@ -324,70 +325,110 @@ func getReqAndResp(ctx context.Context, node *empyrean_lens.GraphNode, apiLogsIn
 	if len(apiLogsInput) == 0 && len(apiLogsOuput) == 0 && node.TraceID == "" {
 		return "", []*empyrean_lens.ApiLog{}, nil
 	}
-	maxLex := int(math.Max(float64(len(apiLogsInput)), float64(len(apiLogsOuput))))
-	// 输入输出
-	for idx := 0; idx < maxLex; idx++ {
-		input := aliyun.FileProcessLog{}
-		if idx < len(apiLogsInput) {
-			input = apiLogsInput[idx]
+	// 错误和安全日志
+	errLogs, safeLogs := getErrorAndSafeLogs(ctx, apiLogsInput)
+	// 遍历
+	for _, input := range apiLogsInput {
+		output := aliyun.FileProcessLog{
+			Asctime: time.Now(),
 		}
-		output := aliyun.FileProcessLog{}
 		for _, apiLogOuput := range apiLogsOuput {
 			if apiLogOuput.TraceId == input.TraceId {
 				output = apiLogOuput
 				break
 			}
 		}
-		apiLog := &empyrean_lens.ApiLog{}
-		apiLog.HTTPCode = 200
-		apiLog.EnterTime = input.Asctime.Format(consts.DateTimeTemplate)
-		apiLog.FinishTime = output.Asctime.Format(consts.DateTimeTemplate)
-		// 输入
-		if strings.Contains(input.Message, "req") {
-			// 获取req
-			req := strings.Split(input.Message, "req:")[1]
-			input, err := utillib.DeStrGzip(req)
-			if err != nil {
-				input = req
-			}
-			apiLog.Input = input
-		}
-		// 输出
-		if strings.Contains(output.Message, "resp") {
-			// 获取req
-			resp := strings.Split(output.Message, "resp:")[1]
-			output, err := utillib.DeStrGzip(resp)
-			if err != nil {
-				output = resp
-			}
-			apiLog.Output = output
+		// 输入输出
+		apiLog := &empyrean_lens.ApiLog{
+			HTTPCode:   200,
+			EnterTime:  input.Asctime.Format(consts.DateTimeTemplate),
+			FinishTime: output.Asctime.Format(consts.DateTimeTemplate),
+			Input:      getReqRespFromMsg(input.Message, "req:"),
+			Output:     getReqRespFromMsg(output.Message, "resp:"),
 		}
 		apiLogs = append(apiLogs, apiLog)
+		// 错误和安全日志
+		for _, errLog := range errLogs {
+			if errLog.EnterTime > apiLog.EnterTime && errLog.EnterTime < apiLog.FinishTime {
+				apiLogs = append(apiLogs, errLog)
+			}
+		}
+		for _, safeLog := range safeLogs {
+			if safeLog.EnterTime > apiLog.EnterTime && safeLog.EnterTime < apiLog.FinishTime {
+				apiLogs = append(apiLogs, safeLog)
+			}
+		}
 	}
-	// error 日志
+	// 日志排序
+	sort.Slice(apiLogs, func(i, j int) bool {
+		return apiLogs[i].EnterTime > apiLogs[j].EnterTime
+	})
+	// traceID
 	traceID := node.TraceID
-	if traceID != "" && len(apiLogsInput) > 0 {
+	if traceID == "" && len(apiLogsInput) > 0 {
 		traceID = apiLogsInput[0].TraceId
 	}
-	timeAt, _ := time.Parse(consts.DateTimeTemplate, node.EnterTime)
-	start, end := timeAt.Add(-24*time.Hour), timeAt.Add(24*time.Hour)
-	if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && traceID != "" {
-		apiLogsError, err := aliyun.TraceIDErrorQuery(ctx, traceID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[NodeApiLogs] get err logs failed, err: %v", err)
-			return "", nil, &consts.QueryRecordError
-		}
-		for _, logError := range apiLogsError {
+	return traceID, apiLogs, nil
+}
+
+func getErrorAndSafeLogs(ctx context.Context, apiLogsInput []aliyun.FileProcessLog) ([]*empyrean_lens.ApiLog, []*empyrean_lens.ApiLog) {
+	wg, errMapping, safeMapping := sync.WaitGroup{}, sync.Map{}, sync.Map{}
+	wg.Add(len(apiLogsInput) * 2)
+	for _, apiLog := range apiLogsInput {
+		traceID := apiLog.TraceId
+		start := apiLog.Asctime.Add(-24 * time.Hour)
+		end := apiLog.Asctime.Add(24 * time.Hour)
+		// 获取error日志
+		go func() {
+			defer wg.Done()
+			apiLogsError, err := aliyun.TraceIDErrorQuery(ctx, traceID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[getErrorAndSafeLogs] get err logs failed, err: %v", err)
+				return
+			}
+			errMapping.Store(traceID, apiLogsError)
+		}()
+		// 获取安全日志
+		go func() {
+			defer wg.Done()
+			safeLogs, err := aliyun.TraceIDSafeQuery(ctx, traceID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[getErrorAndSafeLogs] get err logs failed, err: %v", err)
+				return
+			}
+			safeMapping.Store(traceID, safeLogs)
+		}()
+	}
+	wg.Wait()
+	errLogs := []*empyrean_lens.ApiLog{}
+	errMapping.Range(func(key, value interface{}) bool {
+		apiLogsError := value.([]aliyun.FileProcessLog)
+		for _, apiLogError := range apiLogsError {
 			apiLog := &empyrean_lens.ApiLog{
 				HTTPCode:   500,
-				EnterTime:  logError.Asctime.Format(consts.DateTimeTemplate),
-				FinishTime: logError.Asctime.Format(consts.DateTimeTemplate),
-				ErrorMsg:   logError.Message,
+				EnterTime:  apiLogError.Asctime.Format(consts.DateTimeTemplate),
+				FinishTime: apiLogError.Asctime.Format(consts.DateTimeTemplate),
+				ErrorMsg:   apiLogError.Message,
 			}
-			apiLogs = append(apiLogs, apiLog)
+			errLogs = append(errLogs, apiLog)
 		}
-	}
-	return traceID, apiLogs, nil
+		return true
+	})
+	safeLogs := []*empyrean_lens.ApiLog{}
+	safeMapping.Range(func(key, value interface{}) bool {
+		apiLogsError := value.([]aliyun.FileProcessLog)
+		for _, apiLogError := range apiLogsError {
+			apiLog := &empyrean_lens.ApiLog{
+				HTTPCode:   500,
+				EnterTime:  apiLogError.Asctime.Format(consts.DateTimeTemplate),
+				FinishTime: apiLogError.Asctime.Format(consts.DateTimeTemplate),
+				ErrorMsg:   apiLogError.Message,
+			}
+			safeLogs = append(safeLogs, apiLog)
+		}
+		return true
+	})
+	return errLogs, safeLogs
 }
 
 func getNodeCost(apiLogs []*empyrean_lens.ApiLog) float64 {
@@ -406,4 +447,16 @@ func getNodeCost(apiLogs []*empyrean_lens.ApiLog) float64 {
 	startAtT, _ := time.Parse(consts.DateTimeTemplate, startAt)
 	endAtT, _ := time.Parse(consts.DateTimeTemplate, endAt)
 	return endAtT.Sub(startAtT).Seconds()
+}
+
+func getReqRespFromMsg(msg string, substr string) string {
+	if strings.Contains(msg, substr) {
+		resp := strings.Split(msg, substr)[1]
+		output, err := utillib.DeStrGzip(resp)
+		if err != nil {
+			output = resp
+		}
+		return output
+	}
+	return ""
 }

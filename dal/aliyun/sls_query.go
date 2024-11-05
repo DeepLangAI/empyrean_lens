@@ -2407,7 +2407,7 @@ func CrawlerOutRequestQuery(ctx context.Context, resourceId string, timeBegin, t
 }
 
 func CrawlerOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest crawler resp" and "%s" and not "asctime"`
+	query := `message: "OutRequest crawler resp" and "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerOutResponseQuery query: %s", query)
 
@@ -2802,7 +2802,7 @@ func MultiOutlineModelOutResponseQuery(ctx context.Context, multiID string, time
 }
 
 func TraceIDErrorQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `trace_id: %s and levelname : ERROR`
+	query := `trace_id: %s and (levelname : ERROR or level: error) and not message: "lingowhale_lock_key"`
 	query = fmt.Sprintf(query, traceID)
 	hlog.CtxDebugf(ctx, "TraceIDErrorQuery query: %s", query)
 
@@ -2814,6 +2814,42 @@ func TraceIDErrorQuery(ctx context.Context, traceID string, timeBegin, timeEnd t
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "TraceIDErrorQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func MultiIDSafeQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "多文档总结内容不安全，multi_id" and message: "%s"`
+	query = fmt.Sprintf(query, multiID)
+	hlog.CtxDebugf(ctx, "MultiIDSafeQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiIDSafeQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func TraceIDSafeQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(message: "多文档总结内容不安全，multi_id" or message: "text check unpass.") and "%s"`
+	query = fmt.Sprintf(query, traceID)
+	hlog.CtxDebugf(ctx, "MultiIDSafeQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "MultiIDSafeQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)

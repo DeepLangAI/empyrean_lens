@@ -46,7 +46,7 @@ func FileNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyr
 	start := fileInfo.CreateTime.Add(-1 * time.Hour)
 	end := fileInfo.CreateTime.Add(24 * time.Hour)
 	// 获取节点日志
-	node, bizCode := GetProcessNode(ctx, req.NodeType, req.EntryID, consts.PDF, start, end)
+	node, bizCode := GetProcessNode(ctx, req.NodeType, fileInfo.UserID, req.EntryID, consts.PDF, start, end)
 	if bizCode != nil || node == nil {
 		hlog.CtxErrorf(ctx, "[GetProcessNode] get node failed, err: %v", err)
 		return nil, bizCode
@@ -81,7 +81,7 @@ func FileNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyr
 		}
 		if lastNodeType != req.NodeType {
 			// 获取上一个节点
-			node, bizCode := GetProcessNode(ctx, lastNodeType, req.EntryID, consts.PDF, start, end)
+			node, bizCode := GetProcessNode(ctx, lastNodeType, fileInfo.UserID, req.EntryID, consts.PDF, start, end)
 			if bizCode != nil || node == nil {
 				hlog.CtxErrorf(ctx, "[GetProcessNode] get node failed, err: %v", err)
 				return nil, bizCode
@@ -111,7 +111,7 @@ func WebReaderNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*
 	start := webReaderInfo.CreateTime.Add(-1 * time.Hour)
 	end := webReaderInfo.CreateTime.Add(24 * time.Hour)
 	// 获取节点日志
-	node, bizCode := GetProcessNode(ctx, req.NodeType, req.EntryID, consts.URL, start, end)
+	node, bizCode := GetProcessNode(ctx, req.NodeType, webReaderInfo.UserID, req.EntryID, consts.URL, start, end)
 	if bizCode != nil || node == nil {
 		hlog.CtxErrorf(ctx, "[GetProcessNode] get node failed, err: %v", err)
 		return nil, bizCode
@@ -148,7 +148,7 @@ func WebReaderNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*
 		}
 		if lastNodeType != req.NodeType {
 			// 获取上一个节点
-			node, bizCode := GetProcessNode(ctx, lastNodeType, req.EntryID, consts.PDF, start, end)
+			node, bizCode := GetProcessNode(ctx, lastNodeType, webReaderInfo.UserID, req.EntryID, consts.PDF, start, end)
 			if bizCode != nil || node == nil {
 				hlog.CtxErrorf(ctx, "[GetProcessNode] get node failed, err: %v", err)
 				return nil, bizCode
@@ -178,7 +178,7 @@ func MultiNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empy
 	start := multiInfo.CreateTime.Add(-1 * time.Hour)
 	end := multiInfo.CreateTime.Add(24 * time.Hour)
 	// 获取节点日志
-	node, bizCode := GetProcessNode(ctx, req.NodeType, req.EntryID, consts.MULTI, start, end)
+	node, bizCode := GetProcessNode(ctx, req.NodeType, multiInfo.UserID, req.EntryID, consts.MULTI, start, end)
 	if bizCode != nil || node == nil {
 		hlog.CtxErrorf(ctx, "[GetProcessNode] get node failed, err: %v", err)
 		return nil, bizCode

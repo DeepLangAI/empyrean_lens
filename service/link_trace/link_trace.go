@@ -39,7 +39,7 @@ func FileLinkTrace(ctx context.Context, fileID string) (*empyrean_lens.DocLinkTr
 	start := fileInfo.CreateTime.Add(-1 * time.Hour)
 	end := fileInfo.CreateTime.Add(24 * time.Hour)
 	// 并发获取节点列表
-	linkTraceGraph, bizCode := LinkTraceGraph(ctx, fileID, consts.PDF, start, end, consts.SingleFileProcessList, consts.SingleFileProcessMapping)
+	linkTraceGraph, bizCode := LinkTraceGraph(ctx, fileInfo.UserID, fileID, consts.PDF, start, end, consts.SingleFileProcessList, consts.SingleFileProcessMapping)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 		return nil, bizCode
@@ -66,13 +66,13 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string) (*empyrean_lens
 	// 并发获取节点列表
 	linkTraceGraph, bizCode := &empyrean_lens.TraceLinkGraph{}, &consts.BizCode{}
 	if webReaderInfo.ChannelType == 21 || webReaderInfo.ChannelType == 22 {
-		linkTraceGraph, bizCode = LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.SinglePluginWebReaderProcessList, consts.SinglePluginWebReaderProcessMapping)
+		linkTraceGraph, bizCode = LinkTraceGraph(ctx, webReaderInfo.UserID, webReaderID, consts.URL, start, end, consts.SinglePluginWebReaderProcessList, consts.SinglePluginWebReaderProcessMapping)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 			return nil, bizCode
 		}
 	} else {
-		linkTraceGraph, bizCode = LinkTraceGraph(ctx, webReaderID, consts.URL, start, end, consts.SingleWebReaderProcessList, consts.SingleWebReaderProcessMapping)
+		linkTraceGraph, bizCode = LinkTraceGraph(ctx, webReaderInfo.UserID, webReaderID, consts.URL, start, end, consts.SingleWebReaderProcessList, consts.SingleWebReaderProcessMapping)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 			return nil, bizCode
@@ -109,7 +109,7 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*empyrean_lens.MultiDo
 			if entryType == consts.EntryTypeWEB {
 				resourceType, processList, processMapping = consts.URL, consts.MultiWebReaderProcessList, consts.MultiWebReaderProcessMapping
 			}
-			articleGraph, bizCode := LinkTraceGraph(ctx, entrtId, resourceType, start, end, processList, processMapping)
+			articleGraph, bizCode := LinkTraceGraph(ctx, multiInfo.UserID, entrtId, resourceType, start, end, processList, processMapping)
 			if bizCode != nil {
 				hlog.CtxErrorf(ctx, "[LinkTraceGraph] get article graph failed, err: %v", bizCode)
 				return
@@ -119,7 +119,7 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*empyrean_lens.MultiDo
 	}
 	go func() {
 		defer wg.Done()
-		articleGraph, bizCode := LinkTraceGraph(ctx, multiID, consts.MULTI, start, end, consts.MultiProcessList, consts.MultiProcessMapping)
+		articleGraph, bizCode := LinkTraceGraph(ctx, multiInfo.UserID, multiID, consts.MULTI, start, end, consts.MultiProcessList, consts.MultiProcessMapping)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get article graph failed, err: %v", bizCode)
 			return
@@ -153,7 +153,7 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*empyrean_lens.MultiDo
 }
 
 // 获取链路追踪图
-func LinkTraceGraph(ctx context.Context, resourceId, resourceType string, start, end time.Time,
+func LinkTraceGraph(ctx context.Context, userID, resourceId, resourceType string, start, end time.Time,
 	pracessList []empyrean_lens.LinkNodeTypeEnum, pracessMapping map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) (*empyrean_lens.TraceLinkGraph, *consts.BizCode) {
 	// 并发获取节点日志
 	wg, nodeMapping := sync.WaitGroup{}, sync.Map{}
@@ -162,7 +162,7 @@ func LinkTraceGraph(ctx context.Context, resourceId, resourceType string, start,
 		pracessType := pracessList[idx]
 		go func(pracessType empyrean_lens.LinkNodeTypeEnum) {
 			defer wg.Done()
-			node, err := GetProcessNode(ctx, pracessType, resourceId, resourceType, start, end)
+			node, err := GetProcessNode(ctx, pracessType, userID, resourceId, resourceType, start, end)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[GetProcessNode] get process logs failed, err: %v", err)
 				return
@@ -229,7 +229,7 @@ func LinkTraceGraph(ctx context.Context, resourceId, resourceType string, start,
 }
 
 // 获取节点日志
-func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeEnum, resourceId, resourceType string, start, end time.Time) (*empyrean_lens.GraphNode, *consts.BizCode) {
+func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeEnum, userID, resourceId, resourceType string, start, end time.Time) (*empyrean_lens.GraphNode, *consts.BizCode) {
 	switch processType {
 	case empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:
 		processLogs, err := aliyun.ResourceUploadQuery(ctx, resourceId, resourceType, start, end)
@@ -301,7 +301,28 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			}
 			return processLogsToNode(processType, append(processLogs1, processLogs2...)), nil
 		}
-		return processLogsToNode(processType, []aliyun.FileProcessLog{}), nil
+		// 插件没有传文章ID，导致匹配不上，使用输入输出兜底
+		apiLogsInput, err := aliyun.ViewPointModelOutRequestQuery(ctx, resourceId, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		apiLogsOuput, err := aliyun.ViewPointModelOutResponseQuery(ctx, resourceId, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		processLogs := []aliyun.FileProcessLog{}
+		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+			processLogs = append(processLogs, apiLogsInput[0])
+			for _, apiLogOuput := range apiLogsOuput {
+				if apiLogOuput.TraceId == apiLogsInput[0].TraceId {
+					processLogs = append(processLogs, apiLogsOuput[0])
+					break
+				}
+			}
+		}
+		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:
 		processLogs1, err := aliyun.SingleOverviewBeginQuery(ctx, resourceId, start, end)
 		if err != nil {
@@ -316,7 +337,28 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			}
 			return processLogsToNode(processType, append(processLogs1, processLogs2...)), nil
 		}
-		return processLogsToNode(processType, []aliyun.FileProcessLog{}), nil
+		// 插件没有传文章ID，导致匹配不上，使用输入输出兜底
+		apiLogsInput, err := aliyun.AbstractModelOutRequestQuery(ctx, resourceId, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[AbstractModelOutRequestQuery] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		apiLogsOuput, err := aliyun.AbstractModelOutResponseQuery(ctx, resourceId, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQuery] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		processLogs := []aliyun.FileProcessLog{}
+		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+			processLogs = append(processLogs, apiLogsInput[0])
+			for _, apiLogOuput := range apiLogsOuput {
+				if apiLogOuput.TraceId == apiLogsInput[0].TraceId {
+					processLogs = append(processLogs, apiLogsOuput[0])
+					break
+				}
+			}
+		}
+		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:
 		processLogs1, err := aliyun.SingleOutlineBeginQuery(ctx, resourceId, start, end)
 		if err != nil {
@@ -331,7 +373,28 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			}
 			return processLogsToNode(processType, append(processLogs1, processLogs2...)), nil
 		}
-		return processLogsToNode(processType, []aliyun.FileProcessLog{}), nil
+		// 插件没有传文章ID，导致匹配不上，使用输入输出兜底
+		apiLogsInput, err := aliyun.OutlineModelOutRequestQuery(ctx, resourceId, userID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[OutlineModelOutRequestQuery] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		apiLogsOuput, err := aliyun.OutlineModelOutResponseQuery(ctx, resourceId, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[OutlineModelOutResponseQuery] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		processLogs := []aliyun.FileProcessLog{}
+		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+			processLogs = append(processLogs, apiLogsInput[0])
+			for _, apiLogOuput := range apiLogsOuput {
+				if apiLogOuput.TraceId == apiLogsInput[0].TraceId {
+					processLogs = append(processLogs, apiLogsOuput[0])
+					break
+				}
+			}
+		}
+		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH:
 		processLogs, err := aliyun.MultiItemAnalysisQuery(ctx, resourceId, start, end)
 		if err != nil {

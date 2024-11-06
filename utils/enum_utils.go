@@ -9,14 +9,15 @@ func ChannelIntToString(channel int) string {
 	switch empyrean_lens.ChannelType(channel) {
 	case empyrean_lens.ChannelType_All:
 		return "全部渠道"
+	case empyrean_lens.ChannelType_PdfPlugin,
+		empyrean_lens.ChannelType_UrlPlugin,
+		empyrean_lens.ChannelType_UrlPluginMenu:
+		return "语鲸插件"
 	case empyrean_lens.ChannelType_PdfPc,
-		empyrean_lens.ChannelType_PdfPlugin,
 		empyrean_lens.ChannelType_PdfReader,
 		empyrean_lens.ChannelType_PdfPcDb,
 		empyrean_lens.ChannelType_PdfWebReader,
 		empyrean_lens.ChannelType_UrlPc,
-		empyrean_lens.ChannelType_UrlPlugin,
-		empyrean_lens.ChannelType_UrlPluginMenu,
 		empyrean_lens.ChannelType_UrlPcDb,
 		empyrean_lens.ChannelType_UrlReader:
 		return "语鲸web"

@@ -139,12 +139,12 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Alias: "【订阅】【后端】添加订阅源",
 		},
 	},
-	HOST_LINGO_PRE_PUBLIC_BACKEND: {
-		{
-			Api:   "/api/feed/v1/subscription/upsert",
-			Alias: "【订阅】【后端】添加订阅源",
-		},
-	},
+	//HOST_LINGO_PRE_PUBLIC_BACKEND: {
+	//	{
+	//		Api:   "/api/feed/v1/subscription/upsert",
+	//		Alias: "【订阅】【后端】添加订阅源",
+	//	},
+	//},
 	HOST_LINGO_BACKEND: {
 		{
 			Api:   "/api/plugin/file/add",
@@ -167,64 +167,64 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Alias: "【单文档】【后端】刷新模型生成内容(list_v2)",
 		},
 	},
-	HOST_LINGO_PRE_BACKEND: {
-		{
-			Api:   "/api/plugin/file/add",
-			Alias: "【数据处理】【后端】上传PDF",
-		},
-		{
-			Api:   "/api/readers/url/upload",
-			Alias: "【数据处理】【后端】上传URL[web,小程序,插件]",
-		},
-		{
-			Api:   "/api/readers/url/content/upload",
-			Alias: "【数据处理】【后端】上传URL[小助手等]",
-		},
-		{
-			Api:   "/api/plugin/articles/summary",
-			Alias: "【单文档】【后端】全文速览/智能大纲/关键信息",
-		},
-		{
-			Api:   "/api/plugin/articles/summary/list_v2",
-			Alias: "【单文档】【后端】刷新模型生成内容(list_v2)",
-		},
-	},
+	//HOST_LINGO_PRE_BACKEND: {
+	//	{
+	//		Api:   "/api/plugin/file/add",
+	//		Alias: "【数据处理】【后端】上传PDF",
+	//	},
+	//	{
+	//		Api:   "/api/readers/url/upload",
+	//		Alias: "【数据处理】【后端】上传URL[web,小程序,插件]",
+	//	},
+	//	{
+	//		Api:   "/api/readers/url/content/upload",
+	//		Alias: "【数据处理】【后端】上传URL[小助手等]",
+	//	},
+	//	{
+	//		Api:   "/api/plugin/articles/summary",
+	//		Alias: "【单文档】【后端】全文速览/智能大纲/关键信息",
+	//	},
+	//	{
+	//		Api:   "/api/plugin/articles/summary/list_v2",
+	//		Alias: "【单文档】【后端】刷新模型生成内容(list_v2)",
+	//	},
+	//},
 	HOST_CRAWLER: {
 		{
 			Api:   "/crawl",
 			Alias: "【数据处理】抓取网页",
 		},
 	},
-	HOST_PRE_CRAWLER: {
-		{
-			Api:   "/crawl",
-			Alias: "【数据处理】抓取网页",
-		},
-	},
+	//HOST_PRE_CRAWLER: {
+	//	{
+	//		Api:   "/crawl",
+	//		Alias: "【数据处理】抓取网页",
+	//	},
+	//},
 	HOST_WCD: {
 		{
 			Api:   "/wcd-raw",
 			Alias: "【数据处理】解析URL",
 		},
 	},
-	HOST_PRE_WCD: {
-		{
-			Api:   "/wcd-raw",
-			Alias: "【数据处理】解析URL",
-		},
-	},
+	//HOST_PRE_WCD: {
+	//	{
+	//		Api:   "/wcd-raw",
+	//		Alias: "【数据处理】解析URL",
+	//	},
+	//},
 	HOST_EDU: {
 		{
 			Api:   "/edu_parse",
 			Alias: "【数据处理】最小信息单元",
 		},
 	},
-	HOST_PRE_EDU: {
-		{
-			Api:   "/edu_parse",
-			Alias: "【数据处理】最小信息单元",
-		},
-	},
+	//HOST_PRE_EDU: {
+	//	{
+	//		Api:   "/edu_parse",
+	//		Alias: "【数据处理】最小信息单元",
+	//	},
+	//},
 	HOST_QA_BACKEND: {
 		{
 			Api:   "/api/chat/qa",
@@ -235,16 +235,16 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Alias: "【问答】【后端】问题推荐",
 		},
 	},
-	HOST_QA_PRE_BACKEND: {
-		{
-			Api:   "/api/chat/qa",
-			Alias: "【问答】【后端】问答",
-		},
-		{
-			Api:   "/api/chat/recommend",
-			Alias: "【问答】【后端】问题推荐",
-		},
-	},
+	//HOST_QA_PRE_BACKEND: {
+	//	{
+	//		Api:   "/api/chat/qa",
+	//		Alias: "【问答】【后端】问答",
+	//	},
+	//	{
+	//		Api:   "/api/chat/recommend",
+	//		Alias: "【问答】【后端】问题推荐",
+	//	},
+	//},
 	HOST_REPEATER: {
 		{
 			Api:   "/doc/single/analyze",
@@ -271,32 +271,32 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Alias: "【单文档】3[中继服务]关键信息",
 		},
 	},
-	HOST_PRE_REPEATER: {
-		{
-			Api:   "/doc/single/analyze",
-			Alias: "【多文档】1[中继服务]单文档分析",
-		},
-		{
-			Api:   "/doc/multi/analyze",
-			Alias: "【多文档】2[中继服务]多文档整合",
-		},
-		{
-			Api:   "/doc/multi/outline",
-			Alias: "【多文档】3[中继服务]多文档总结",
-		},
-		{
-			Api:   "/api/repeater/abstract",
-			Alias: "【单文档】1[中继服务]全文速览",
-		},
-		{
-			Api:   "/api/repeater/outline",
-			Alias: "【单文档】1[中继服务]智能大纲",
-		},
-		{
-			Api:   "/api/repeater/viewpoint",
-			Alias: "【单文档】1[中继服务]关键信息",
-		},
-	},
+	//HOST_PRE_REPEATER: {
+	//	{
+	//		Api:   "/doc/single/analyze",
+	//		Alias: "【多文档】1[中继服务]单文档分析",
+	//	},
+	//	{
+	//		Api:   "/doc/multi/analyze",
+	//		Alias: "【多文档】2[中继服务]多文档整合",
+	//	},
+	//	{
+	//		Api:   "/doc/multi/outline",
+	//		Alias: "【多文档】3[中继服务]多文档总结",
+	//	},
+	//	{
+	//		Api:   "/api/repeater/abstract",
+	//		Alias: "【单文档】1[中继服务]全文速览",
+	//	},
+	//	{
+	//		Api:   "/api/repeater/outline",
+	//		Alias: "【单文档】1[中继服务]智能大纲",
+	//	},
+	//	{
+	//		Api:   "/api/repeater/viewpoint",
+	//		Alias: "【单文档】1[中继服务]关键信息",
+	//	},
+	//},
 }
 
 var MODEL_NGINX_INGRESS_APIS = map[string][]API{

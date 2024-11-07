@@ -628,6 +628,7 @@ struct ApiLog {
     9: string enter_time // DateHourMinSecTemplate
     10: string finish_time // DateHourMinSecTemplate
     11: string error_msg // 错误响应信息
+    12: string trace_id  // trace id
 }
 
 // 查wcd在oss上传的详细日志

@@ -109,9 +109,9 @@ func checkChannelLegal(host, channel, ua string) bool {
 	) {
 		return false
 	}
-	if !strings.Contains(ua, "lingowhale") {
-		return false
-	}
+	// if !strings.Contains(ua, "lingowhale") {
+	// 	return false
+	// }
 	return true
 }
 

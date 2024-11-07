@@ -299,7 +299,12 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 				hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
 				return nil, &consts.QueryRecordError
 			}
-			multisSplit = append(multisSplit, multisItem...)
+			for _, multi := range multisItem {
+				if _, ok := entryIDMapping[multi.ID.Hex()]; !ok {
+					multisSplit = append(multisSplit, multi)
+					entryIDMapping[multi.ID.Hex()] = struct{}{}
+				}
+			}
 		}
 		if len(multisSplit) == 0 {
 			break
@@ -326,13 +331,10 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 				}
 			}
 			for _, multi := range multisSplit {
-				if _, ok := entryIDMapping[multi.ID.Hex()]; !ok {
-					if userInfo, ok := totalUidMapping[multi.UserID]; ok {
-						if userInfo.UserType == bi.ExternalUser {
-							multis = append(multis, multi)
-						}
+				if userInfo, ok := totalUidMapping[multi.UserID]; ok {
+					if userInfo.UserType == bi.ExternalUser {
+						multis = append(multis, multi)
 					}
-					entryIDMapping[multi.ID.Hex()] = struct{}{}
 				}
 			}
 		} else {

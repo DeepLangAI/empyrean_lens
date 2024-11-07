@@ -94,7 +94,7 @@ func renameBizMessage(bizCode int, host string, msg string) string {
 	return msg
 }
 
-func checkChannelLegal(host, channel string) bool {
+func checkChannelLegal(host, channel, ua string) bool {
 	shouldHaveChannel := utils.Contains([]string{
 		consts.HOST_CRAWLER, consts.HOST_WCD, consts.HOST_EDU,
 		consts.HOST_PRE_CRAWLER, consts.HOST_PRE_WCD, consts.HOST_PRE_EDU,
@@ -109,6 +109,9 @@ func checkChannelLegal(host, channel string) bool {
 	) {
 		return false
 	}
+	// if !strings.Contains(ua, "lingowhale") {
+	// 	return false
+	// }
 	return true
 }
 
@@ -236,7 +239,7 @@ host: %v %s|
 SELECT  * FROM  (
   SELECT 
     REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, method, status, host, http_referer, request_time cost,channel
-	,"lw-code", "lw-msg", trace_id
+	,"lw-code", "lw-msg", trace_id, "http_user_agent" ua
   FROM log WHERE method IN ('GET', 'POST')
 ) t
 WHERE clean_url IN (
@@ -268,7 +271,8 @@ LIMIT %d
 			continue
 		}
 		channel := log["channel"]
-		if !checkChannelLegal(host, channel) {
+		ua := log["ua"]
+		if !checkChannelLegal(host, channel, ua) {
 			continue
 		}
 		//if host == "api-repeater.lingoreader.cn" && log["clean_url"] == "/doc/multi/outline" {
@@ -1108,7 +1112,7 @@ func NginxBizErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxE
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
 	query := ` %s
 | 
-select user_id, trace_id, time, status, host, url, request_time cost,client_ip,"lw-code", "lw-msg", channel
+select user_id, trace_id, time, status, host, url, request_time cost,client_ip,"lw-code", "lw-msg", channel, "http_user_agent" ua
 from log where
 %v url = '%v' and 
 %v host = '%v' and 
@@ -1149,7 +1153,9 @@ limit %v
 			continue
 		}
 		channel := log["channel"]
-		if !checkChannelLegal(host, channel) {
+		ua := log["ua"]
+
+		if !checkChannelLegal(host, channel, ua) {
 			continue
 		}
 		var bizCode int64
@@ -1202,7 +1208,7 @@ func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErro
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
 	query := `%s
 | 
-select user_id, trace_id, time, status, host, url, request_time cost,client_ip, channel
+select user_id, trace_id, time, status, host, url, request_time cost,client_ip, channel, "http_user_agent" ua
 from log where
 %v url = '%v' and 
 %v host = '%v' and 
@@ -1243,7 +1249,8 @@ limit %v
 			continue
 		}
 		channel := log["channel"]
-		if !checkChannelLegal(host, channel) {
+		ua := log["ua"]
+		if !checkChannelLegal(host, channel, ua) {
 			continue
 		}
 		result := NginxErrorLog{

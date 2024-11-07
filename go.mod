@@ -7,6 +7,7 @@ replace github.com/apache/thrift => github.com/apache/thrift v0.13.0
 require (
 	codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib v1.0.28
 	github.com/aliyun/aliyun-log-go-sdk v0.1.80
+	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/apache/thrift v0.13.0
 	github.com/bytedance/gopkg v0.0.0-20220413063733-65bf48ffb3a7
 	github.com/bytedance/sonic v1.8.1
@@ -23,7 +24,6 @@ require (
 
 require (
 	github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 // indirect
-	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
 	github.com/biessek/golang-ico v0.0.0-20180326222316-d348d9ea4670 // indirect
 	github.com/bytedance/go-tagexpr/v2 v2.9.2 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect

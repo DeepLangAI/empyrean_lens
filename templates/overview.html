@@ -2509,6 +2509,17 @@
             updateFontSize();
         });
 
+        $('#realtime-overview-table td').each(function() {
+            // 获取当前<td>的文本内容
+            var cellText = $(this).text().trim();
+
+            // 判断文本是否为 +Inf%
+            if (cellText === '+Inf%' || cellText === '-Inf%')  {
+                // 修改文本为 -
+                $(this).text('-');
+            }
+        });
+
 
     });
 

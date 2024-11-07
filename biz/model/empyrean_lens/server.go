@@ -21840,6 +21840,7 @@ type ApiLog struct {
 	FinishTime string `thrift:"finish_time,10" form:"finish_time" json:"finish_time" query:"finish_time"`
 	// 错误响应信息
 	ErrorMsg string `thrift:"error_msg,11" form:"error_msg" json:"error_msg" query:"error_msg"`
+	TraceID  string `thrift:"trace_id,12" form:"trace_id" json:"trace_id" query:"trace_id"`
 }
 
 func NewApiLog() *ApiLog {
@@ -21890,6 +21891,10 @@ func (p *ApiLog) GetErrorMsg() (v string) {
 	return p.ErrorMsg
 }
 
+func (p *ApiLog) GetTraceID() (v string) {
+	return p.TraceID
+}
+
 var fieldIDToName_ApiLog = map[int16]string{
 	1:  "path",
 	2:  "host",
@@ -21902,6 +21907,7 @@ var fieldIDToName_ApiLog = map[int16]string{
 	9:  "enter_time",
 	10: "finish_time",
 	11: "error_msg",
+	12: "trace_id",
 }
 
 func (p *ApiLog) Read(iprot thrift.TProtocol) (err error) {
@@ -22006,6 +22012,14 @@ func (p *ApiLog) Read(iprot thrift.TProtocol) (err error) {
 		case 11:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField11(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 12:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField12(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -22161,6 +22175,17 @@ func (p *ApiLog) ReadField11(iprot thrift.TProtocol) error {
 	p.ErrorMsg = _field
 	return nil
 }
+func (p *ApiLog) ReadField12(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TraceID = _field
+	return nil
+}
 
 func (p *ApiLog) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -22210,6 +22235,10 @@ func (p *ApiLog) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField11(oprot); err != nil {
 			fieldId = 11
+			goto WriteFieldError
+		}
+		if err = p.writeField12(oprot); err != nil {
+			fieldId = 12
 			goto WriteFieldError
 		}
 	}
@@ -22415,6 +22444,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 11 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 11 end error: ", p), err)
+}
+
+func (p *ApiLog) writeField12(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("trace_id", thrift.STRING, 12); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TraceID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 12 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 12 end error: ", p), err)
 }
 
 func (p *ApiLog) String() string {

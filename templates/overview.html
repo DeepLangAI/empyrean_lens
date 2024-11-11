@@ -1774,7 +1774,7 @@
                         <td>${response.data.data[i].api_name}</td>
                         <td>${response.data.data[i].host}</td>
                         <td ${
-                            response.data.data[i].num_error_req > 0 && response.data.data[i].api_name != '当日总览'? `
+                            (response.data.data[i].num_error_req > 0 || response.data.data[i].num_biz_error_req > 0) && response.data.data[i].api_name != '当日总览'? `
                                 class="clickable"
                                 onclick=handleErrorDetail('{0}','{1}','{2}','{3}')`.format(
                                 response.data.data[i].host,

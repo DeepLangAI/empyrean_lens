@@ -148,7 +148,7 @@ func (d *MultiDao) FindSuccessMultiByQueryAndStatusAndTimeRange(ctx context.Cont
 	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_multi_id": bson.M{"$exists": false}}, {"copy_from_multi_id": ""}}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_resource_id": bson.M{"$exists": false}}, {"copy_from_resource_id": ""}}})
-	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{
+	queryFilter = append(queryFilter, bson.M{"$and": []bson.M{
 		{"analysis_status": bson.M{"$in": []int{2}}},
 		{"merge_status": bson.M{"$in": []int{2}}},
 		{"summary_status": bson.M{"$in": []int{2}}},

@@ -184,7 +184,11 @@ func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end t
 	// 转换
 	fileDatas := []*empyrean_lens.UserActionRespRow{}
 	for _, file := range files {
-		fileDatas = append(fileDatas, fileToActionData("单文档", file))
+		actionName := "单文档pdf"
+		if file.MultiId != "" {
+			actionName = "多文档-单文档pdf"
+		}
+		fileDatas = append(fileDatas, fileToActionData(actionName, file))
 	}
 	return &empyrean_lens.UserActionRespData{
 		HasNext: len(fileDatas) >= int(req.Skip+req.Limit+1),
@@ -272,7 +276,11 @@ func findWebReader(ctx context.Context, req empyrean_lens.UserActionReq, begin, 
 	// 转换
 	webReaderDatas := []*empyrean_lens.UserActionRespRow{}
 	for _, webReader := range webReaders {
-		webReaderDatas = append(webReaderDatas, webReaderToActionData("单文档", webReader))
+		actionName := "单文档web"
+		if webReader.MultiId != "" {
+			actionName = "多文档-单文档web"
+		}
+		webReaderDatas = append(webReaderDatas, webReaderToActionData(actionName, webReader))
 	}
 	return &empyrean_lens.UserActionRespData{
 		HasNext: len(webReaderDatas) >= int(req.Skip+req.Limit+1),
@@ -299,7 +307,12 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 				hlog.CtxErrorf(ctx, "[FindMultiByQueryAndTimeRange] error: %+v", err)
 				return nil, &consts.QueryRecordError
 			}
-			multisSplit = append(multisSplit, multisItem...)
+			for _, multi := range multisItem {
+				if _, ok := entryIDMapping[multi.ID.Hex()]; !ok {
+					multisSplit = append(multisSplit, multi)
+					entryIDMapping[multi.ID.Hex()] = struct{}{}
+				}
+			}
 		}
 		if len(multisSplit) == 0 {
 			break
@@ -326,13 +339,10 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 				}
 			}
 			for _, multi := range multisSplit {
-				if _, ok := entryIDMapping[multi.ID.Hex()]; !ok {
-					if userInfo, ok := totalUidMapping[multi.UserID]; ok {
-						if userInfo.UserType == bi.ExternalUser {
-							multis = append(multis, multi)
-						}
+				if userInfo, ok := totalUidMapping[multi.UserID]; ok {
+					if userInfo.UserType == bi.ExternalUser {
+						multis = append(multis, multi)
 					}
-					entryIDMapping[multi.ID.Hex()] = struct{}{}
 				}
 			}
 		} else {

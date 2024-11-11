@@ -424,6 +424,7 @@ func getReqAndResp(ctx context.Context, entryID string, node *empyrean_lens.Grap
 			FinishTime: output.Asctime.Format(consts.DateTimeTemplate),
 			Input:      getReqRespFromMsg(input.Message, "req:"),
 			Output:     getReqRespFromMsg(output.Message, "resp:"),
+			TraceID:    input.TraceId,
 		}
 		apiLogs = append(apiLogs, apiLog)
 		// 错误和安全日志
@@ -509,6 +510,7 @@ func getErrorAndSafeLogs(ctx context.Context, entryID string, apiLogsInput []ali
 				EnterTime:  apiLogError.Asctime.Format(consts.DateTimeTemplate),
 				FinishTime: apiLogError.Asctime.Format(consts.DateTimeTemplate),
 				ErrorMsg:   apiLogError.Message,
+				TraceID:    apiLogError.TraceId,
 			}
 			errLogs = append(errLogs, apiLog)
 		}
@@ -523,6 +525,7 @@ func getErrorAndSafeLogs(ctx context.Context, entryID string, apiLogsInput []ali
 				EnterTime:  apiLogError.Asctime.Format(consts.DateTimeTemplate),
 				FinishTime: apiLogError.Asctime.Format(consts.DateTimeTemplate),
 				ErrorMsg:   apiLogError.Message,
+				TraceID:    apiLogError.TraceId,
 			}
 			safeLogs = append(safeLogs, apiLog)
 		}

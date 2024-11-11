@@ -795,7 +795,14 @@
 <div class="pagination" id="daily-overview-pagination"></div>
 
 <script>
-    function formatDate(date) {
+    const DateTimeTemplates = {
+        DateTime: '2006-01-02 15:04:05',
+    }
+
+    function formatDate(date, format='') {
+        if (format === DateTimeTemplates.DateTime)  {
+            return date.toISOString().slice(0, 19).replace('T', ' ');
+        }
         return date.toISOString().slice(0, 10);
     }
     function showScoreDetails(scoreCell){
@@ -1019,6 +1026,14 @@
         }).then(response => {
             let container = $('#trends')
             let data = response.data.data
+            let day0Date = data.data0[0].time.slice(0, 10)
+            // 将data1、data7的所有日期都换成day0Date
+            data.data1.forEach(item => {
+                item.time = day0Date + ' ' + item.time.slice(11)
+            })
+            data.data7.forEach(item => {
+                item.time = day0Date + ' ' + item.time.slice(11)
+            })
             let chart = drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'req_count', '请求量趋势')
             let slowTrendChart = drawMultiDayTrendChart(data.data0, data.data1, data.data7, 'slow_rate', '慢查询率趋势', true)
             container.append(
@@ -2519,8 +2534,6 @@
                 $(this).text('-');
             }
         });
-
-
     });
 
     function filterBtnDrag(event, ui) {
@@ -2739,9 +2752,9 @@
         let result = []
         data.forEach(function(item) {
             var date = new Date(item.time.replace(/-/g, '/'));
-            var today = new Date();
-            date.setDate(today.getDate());
-            date.setMonth(today.getMonth());
+            // var today = new Date();
+            // date.setDate(today.getDate());
+            // date.setMonth(today.getMonth());
             result.push([date.getTime(), item[key]]);
         });
         return result;
@@ -2800,11 +2813,12 @@
                                 date.setDate(date.getDate() - 7);
                                 break;
                         }
-                        dateStr = date.toLocaleString();
+                        // dateStr = date.toLocaleString();
+                        let dateStr = formatDate(date, DateTimeTemplates.DateTime);
                         if (percent == true){
-                            result += dateStr.slice(5, 15) + ': ' + item.value[1].toFixed(2) + '%' + '<br>';
+                            result += dateStr.slice(5, 16) + ', ' + item.value[1].toFixed(2) + '%' + '<br>';
                         } else{
-                            result += dateStr.slice(5, 15) + ': ' + item.value[1] + '<br>';
+                            result += dateStr.slice(5, 16) + ', ' + item.value[1] + '<br>';
                         }
                     });
                     return result;

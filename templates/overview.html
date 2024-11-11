@@ -2814,6 +2814,8 @@
                                 break;
                         }
                         // dateStr = date.toLocaleString();
+
+                        date = new Date(date.getTime() + 8 * 60 * 60 * 1000); // 加上8小时
                         let dateStr = formatDate(date, DateTimeTemplates.DateTime);
                         if (percent == true){
                             result += dateStr.slice(5, 16) + ', ' + item.value[1].toFixed(2) + '%' + '<br>';

@@ -12,16 +12,17 @@ import (
 )
 
 type File struct {
-	ID          primitive.ObjectID `bson:"_id" json:"_id"`
-	UserID      string             `bson:"user_id" json:"user_id"`
-	Name        string             `bson:"name" json:"name"`
-	FileURL     string             `bson:"file_url" json:"file_url"`
-	Status      int                `bson:"status" json:"status"`
-	ChannelType int                `bson:"channel_type" json:"channel_type"`
-	MultiId     string             `bson:"multi_id" json:"multi_id"`
-	IsDelete    bool               `bson:"is_delete" json:"is_delete" default:"false"`
-	CreateTime  time.Time          `bson:"create_time" json:"create_time"`
-	UpdateTime  time.Time          `bson:"update_time" json:"update_time"`
+	ID             primitive.ObjectID `bson:"_id" json:"_id"`
+	UserID         string             `bson:"user_id" json:"user_id"`
+	Name           string             `bson:"name" json:"name"`
+	FileURL        string             `bson:"file_url" json:"file_url"`
+	Status         int                `bson:"status" json:"status"`
+	ChannelType    int                `bson:"channel_type" json:"channel_type"`
+	MultiId        string             `bson:"multi_id" json:"multi_id"`
+	CopyFromFildID string             `bson:"copy_from_file_id" json:"copy_from_file_id"`
+	IsDelete       bool               `bson:"is_delete" json:"is_delete" default:"false"`
+	CreateTime     time.Time          `bson:"create_time" json:"create_time"`
+	UpdateTime     time.Time          `bson:"update_time" json:"update_time"`
 }
 
 const TableNameFile = "file"

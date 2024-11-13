@@ -146,6 +146,9 @@ func (d *WebReaderDao) FindWebReaderByQueryAndTimeRange(ctx context.Context, que
 			{"copy_from_resource_id": ""},
 		},
 	}
+	if len(status) > 0 {
+		filter["status"] = bson.M{"$in": status}
+	}
 	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {

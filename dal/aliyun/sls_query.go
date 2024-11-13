@@ -2047,7 +2047,7 @@ func ResourceUploadQuery(ctx context.Context, resourceId, resourceType string, t
 	}
 
 	query := `
-	(__tag__:_container_name_ : lingowhale-python-prod) and message: "%s %s %s" and funcName: core_link_print_cost | select * from log limit %v
+	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s %s %s" and funcName: core_link_print_cost | select * from log limit %v
 	`
 	query = FormatWithTemplate(query, nil)
 
@@ -2075,7 +2075,7 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : lingowhale-python-prod) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "苏秦解析异常，file_id:" or message: "苏秦解析异常")
+	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "苏秦解析异常，file_id:" or message: "苏秦解析异常")
 	`
 	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, resourceId)
@@ -2129,7 +2129,7 @@ func WcdParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd ti
 	}
 
 	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod) and message: "ParseEduNode wcd" and message:"%s"
+	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and message: "ParseEduNode wcd" and message:"%s"
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "WcdParserQuery query: %s", query)
@@ -2149,7 +2149,7 @@ func EduParseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd ti
 	}
 
 	query := `
-	message: "%s" and (message: "ParseEduNode end" or message: "parse_edu error,")
+	message: "%s" and (message: "ParseEduNode end" or message: "parse_edu error," or message: "edu parse error" or message: "ParseEdu error")
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "TextParserQuery query: %s", query)
@@ -2169,7 +2169,7 @@ func ParseFinishQuery(ctx context.Context, resourceId string, timeBegin, timeEnd
 	}
 
 	query := `
-	(__tag__:_container_name_ : edu-arch-go-prod) and (message: "ParseEduNode parse end entryId:%s" or message: "ParseEduNode wcd text nil entryId:%s" or message: "ParseEduNode wcd worthless end entryId:%s")
+	(__tag__:_container_name_ : edu-arch-go-prod or __tag__:_container_name_ : edu-arch-go-pre) and (message: "ParseEduNode parse end entryId:%s" or message: "ParseEduNode wcd text nil entryId:%s" or message: "ParseEduNode wcd worthless end entryId:%s")
 	`
 	query = fmt.Sprintf(query, resourceId, resourceId, resourceId)
 	hlog.CtxDebugf(ctx, "ParseFinishQuery query: %s", query)
@@ -2182,8 +2182,25 @@ func ParseFinishQuery(ctx context.Context, resourceId string, timeBegin, timeEnd
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
+func SummaryLockQuery(ctx context.Context, generateType int, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary lock start, resource_id:%s" and message: "generate_type:%d"`, resourceId, generateType)
+	hlog.CtxDebugf(ctx, "SummaryLockQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SummaryLockQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
 func SingleOutlineBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod) and message: "summary start" and message: "generate_type:1." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:1." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
 	hlog.CtxDebugf(ctx, "SingleOutlineBeginQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2200,7 +2217,7 @@ func SingleOutlineBeginQuery(ctx context.Context, resourceId string, timeBegin, 
 }
 
 func SingleOutlineEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_ : lingowhale-python-prod ) and message: "summary core core_name:大纲, node:大纲生成完成" and trace_id:"%s"`
+	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and (message: "summary core core_name:大纲, node:大纲生成完成" or (levelname: ERROR and not "unlock fail")) and trace_id:"%s"`
 	query = fmt.Sprintf(query, traceId)
 	hlog.CtxDebugf(ctx, "SingleOutlineEndQuery query: %s", query)
 
@@ -2218,7 +2235,7 @@ func SingleOutlineEndQuery(ctx context.Context, traceId string, timeBegin, timeE
 }
 
 func SingleOverviewBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod) and message: "summary start" and message: "generate_type:0." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:0." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
 	hlog.CtxDebugf(ctx, "SingleOverviewBeginQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2235,7 +2252,7 @@ func SingleOverviewBeginQuery(ctx context.Context, resourceId string, timeBegin,
 }
 
 func SingleOverviewEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_ : lingowhale-python-prod) and message: "summary core core_name:概述, node:生成概述结束" and trace_id:"%s"`
+	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and (message: "summary core core_name:概述, node:生成概述结束" or (levelname: ERROR and not "unlock fail")) and trace_id:"%s"`
 	query = fmt.Sprintf(query, traceId)
 	hlog.CtxDebugf(ctx, "SingleOverviewEndQuery query: %s", query)
 
@@ -2253,7 +2270,7 @@ func SingleOverviewEndQuery(ctx context.Context, traceId string, timeBegin, time
 }
 
 func SingleViewpointBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod) and message: "summary start" and message: "generate_type:3." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:3." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
 	hlog.CtxDebugf(ctx, "SingleViewpointBeginQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2270,7 +2287,7 @@ func SingleViewpointBeginQuery(ctx context.Context, resourceId string, timeBegin
 }
 
 func SingleViewpointEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_ : lingowhale-python-prod ) and message: "core link core_name:viewpoint, core_node:观点模型输出完成" and trace_id:"%s"`
+	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and (message: "core link core_name:viewpoint, core_node:观点模型输出完成" or (levelname: ERROR and not "unlock fail")) and trace_id:"%s"`
 	query = fmt.Sprintf(query, traceId)
 	hlog.CtxDebugf(ctx, "SingleViewpointEndQuery query: %s", query)
 
@@ -2306,7 +2323,7 @@ func MultiItemAnalysisQuery(ctx context.Context, resourceId string, timeBegin, t
 }
 
 func MultiAnalysisQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `( __tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query := `( __tag__:_container_name_: lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "multi core node node_name" and "%s" and "%s"`
 	query = fmt.Sprintf(query, multiID, "ANALYSIS_ALL")
 	hlog.CtxDebugf(ctx, "MultiThemeQuery query: %s", query)
 
@@ -2324,7 +2341,7 @@ func MultiAnalysisQuery(ctx context.Context, multiID string, timeBegin, timeEnd 
 }
 
 func MultiThemeQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query := `(__tag__:_container_name_: lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "multi core node node_name" and "%s" and "%s"`
 	query = fmt.Sprintf(query, multiID, "MERGE")
 	hlog.CtxDebugf(ctx, "MultiThemeQuery query: %s", query)
 
@@ -2342,7 +2359,7 @@ func MultiThemeQuery(ctx context.Context, multiID string, timeBegin, timeEnd tim
 }
 
 func MultiOutlineQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_: lingowhale-python-prod) and message: "multi core node node_name" and "%s" and "%s"`
+	query := `(__tag__:_container_name_: lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "multi core node node_name" and "%s" and "%s"`
 	query = fmt.Sprintf(query, multiID, "THEME_ALL_SUMMARY")
 	hlog.CtxDebugf(ctx, "MultiOutlineQuery query: %s", query)
 
@@ -2594,7 +2611,7 @@ func EduParserOutResponseQuery(ctx context.Context, resourceId string, timeBegin
 }
 
 func AbstractModelOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest abstract_model req" and "%s"`
+	query := `message: "OutRequest abstract_model req" and message: "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "AbstractModelOutRequestQuery query: %s", query)
 
@@ -2612,7 +2629,7 @@ func AbstractModelOutRequestQuery(ctx context.Context, resourceId string, timeBe
 }
 
 func AbstractModelOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest abstract_model resp" and "%s"`
+	query := `message: "OutRequest abstract_model resp" and message: "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "AbstractModelOutResponseQuery query: %s", query)
 
@@ -2630,7 +2647,7 @@ func AbstractModelOutResponseQuery(ctx context.Context, resourceId string, timeB
 }
 
 func ViewPointModelOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest viewpoint_model req" and "%s"`
+	query := `message: "OutRequest viewpoint_model req" and message: "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "ViewPointModelOutRequestQuery query: %s", query)
 
@@ -2648,7 +2665,7 @@ func ViewPointModelOutRequestQuery(ctx context.Context, resourceId string, timeB
 }
 
 func ViewPointModelOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest viewpoint_model resp" and "%s"`
+	query := `message: "OutRequest viewpoint_model resp" and message: "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "ViewPointModelOutResponseQuery query: %s", query)
 
@@ -2666,7 +2683,7 @@ func ViewPointModelOutResponseQuery(ctx context.Context, resourceId string, time
 }
 
 func OutlineModelOutRequestQuery(ctx context.Context, resourceId, userID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest outline_model req" and "%s" and "%s"`
+	query := `message: "OutRequest outline_model req" and (message: "%s" and message: "%s")`
 	query = fmt.Sprintf(query, resourceId, userID)
 	hlog.CtxDebugf(ctx, "OutlineModelOutRequestQuery query: %s", query)
 
@@ -2684,7 +2701,7 @@ func OutlineModelOutRequestQuery(ctx context.Context, resourceId, userID string,
 }
 
 func OutlineModelOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest outline_model resp" and "%s"`
+	query := `message: "OutRequest outline_model resp" and message: "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "OutlineModelOutResponseQuery query: %s", query)
 
@@ -2809,7 +2826,7 @@ func MultiOutlineModelOutResponseQuery(ctx context.Context, multiID string, time
 }
 
 func TraceIDErrorQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `trace_id: %s and (levelname : ERROR or level: error) and not message: "lingowhale_lock_key"`
+	query := `trace_id: "%s" and (levelname : ERROR or level: error) and not message: "lingowhale_lock_key"`
 	query = fmt.Sprintf(query, traceID)
 	hlog.CtxDebugf(ctx, "TraceIDErrorQuery query: %s", query)
 
@@ -2845,7 +2862,7 @@ func MultiIDSafeQuery(ctx context.Context, multiID string, timeBegin, timeEnd ti
 }
 
 func TraceIDSafeQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(message: "多文档总结内容不安全，multi_id" or message: "text check unpass.") and "%s"`
+	query := `(message: "多文档总结内容不安全，multi_id" or message: "text check unpass.") and trace_id: "%s"`
 	query = fmt.Sprintf(query, traceID)
 	hlog.CtxDebugf(ctx, "MultiIDSafeQuery query: %s", query)
 
@@ -2868,7 +2885,7 @@ type WcdOssZipModel struct {
 }
 
 func WcdOsskeyQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]WcdOssZipModel, error) {
-	query := `%v and (__tag__:_container_name_ : wcd-v2-python-prod or __tag__:_container_name_ : wcd-v2-python-pre) and oss_upload_tracing`
+	query := `trace_id: "%v" and (__tag__:_container_name_ : wcd-v2-python-prod or __tag__:_container_name_ : wcd-v2-python-pre) and oss_upload_tracing`
 	query = fmt.Sprintf(query, traceId)
 	hlog.CtxDebugf(ctx, "WcdOsskeyQuery query: %s", query)
 

@@ -1888,10 +1888,10 @@
                         break
                     }
                     let detail = data[i]
-                    let $expanderRawHtml = createExpander("网页抓取结果", $('<iframe>').attr('srcdoc', detail['raw_html']), ()=>{
+                    let $expanderRawHtml = createExpander("网页抓取结果", $('<iframe sandbox>').attr('srcdoc', detail['raw_html']), ()=>{
                         return detail['raw_html']
                     })
-                    let $expanderParsedHtml = createExpander("解析后网页", $('<iframe>').attr('srcdoc', detail['parsed_html']),()=>{
+                    let $expanderParsedHtml = createExpander("解析后网页", $('<iframe sandbox>').attr('srcdoc', detail['parsed_html']),()=>{
                         return detail['parsed_html']
                     })
                     let $textParserLabels = createExpander("text-parser标签", $('<pre class="expanded">').append(

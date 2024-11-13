@@ -1888,7 +1888,11 @@
                         break
                     }
                     let detail = data[i]
-                    let $expanderRawHtml = createExpander("网页抓取结果", $('<iframe>').attr('srcdoc', detail['raw_html']), ()=>{
+                    let $expanderRawHtml = createExpander("网页抓取结果", $(`<iframe ${
+                            detail['raw_html'].indexOf('mp.weixin.qq.com') == -1 ? 'sandbox="true"' : ''
+                        }>`)
+                        .attr('srcdoc', detail['raw_html']),
+                        ()=>{
                         return detail['raw_html']
                     })
                     let $expanderParsedHtml = createExpander("解析后网页", $('<iframe>').attr('srcdoc', detail['parsed_html']),()=>{
@@ -2022,7 +2026,7 @@
             if (data.docInfo){
                 docInfo = data.docInfo.clone(true)
                 // 找到docInfo中的最后一个tr
-                const lastTr = docInfo.find('table tbody tr:last-child');
+                const lastTr = docInfo.find('table tr:last-child');
                 lastTr.append($('<td class="key">').text('节点：'))
                 lastTr.append($('<td class="value">').text(nodeName))
                 $page.append(docInfo)
@@ -2059,6 +2063,7 @@
                     });
                 } else {
                     data.docInfo = docInfo
+                    console.log('docinfo', data.docInfo)
                     renderNodeApiLogs(data, node_name, entry_id, entry_type, node_type, traceId)
                 }
 
@@ -2455,6 +2460,13 @@
                     .attr('type', 'datetime-local')
             let $endDatetime = $('<input>')
                 .attr('type', 'datetime-local')
+            // 时间变化，自动刷新
+            $startDatetime.on('change', function (){
+                fetchData(false)
+            })
+            $endDatetime.on('change', function (){
+                fetchData(false)
+            })
 
             let $query = $('<input type="text" placeholder="内容关键词,url,uid,multi-id,entry-id等">')
             // 添加回车事件

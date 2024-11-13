@@ -104,7 +104,7 @@ func checkChannelLegal(host, channel, ua string) bool {
 	}
 	// 如果channel存在，且不是目标channel，则跳过
 	if (shouldHaveChannel || !utils.Contains([]string{"-", "", "null"}, channel)) && !utils.Contains(
-		[]string{consts.BaseChannelName + "-pre", consts.BaseChannelName + "-prod"},
+		[]string{consts.BaseChannelName + "-pre-fc", consts.BaseChannelName + "-prod-fc"},
 		channel,
 	) {
 		return false

@@ -2455,6 +2455,13 @@
                     .attr('type', 'datetime-local')
             let $endDatetime = $('<input>')
                 .attr('type', 'datetime-local')
+            // 时间变化，自动刷新
+            $startDatetime.on('change', function (){
+                fetchData(false)
+            })
+            $endDatetime.on('change', function (){
+                fetchData(false)
+            })
 
             let $query = $('<input type="text" placeholder="内容关键词,url,uid,multi-id,entry-id等">')
             // 添加回车事件

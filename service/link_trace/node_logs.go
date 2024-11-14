@@ -65,35 +65,6 @@ func FileNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyr
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
 	}
-	// 节点日志为空
-	lastNodeType := req.NodeType
-	if traceID == "" && len(apiLogs) == 0 {
-		// 获取上一个节点类型
-		processList := consts.SingleFileProcessList
-		if fileInfo.MultiId != "" {
-			processList = consts.MultiFileProcessList
-		}
-		for idx := 1; idx < len(processList); idx++ {
-			if processList[idx] == req.NodeType {
-				lastNodeType = processList[idx-1]
-				break
-			}
-		}
-		if lastNodeType != req.NodeType {
-			// 获取上一个节点
-			node, bizCode := GetProcessNode(ctx, lastNodeType, fileInfo.UserID, req.EntryID, consts.PDF, start, end)
-			if bizCode != nil || node == nil {
-				hlog.CtxErrorf(ctx, "[GetProcessNode] get node failed, err: %v", err)
-				return nil, bizCode
-			}
-			// 获取错误日志和安全日志
-			traceID, apiLogs, bizCode = NodeErrorAndSafeLogs(ctx, req.EntryID, fileInfo.UserID, article, node)
-			if bizCode != nil {
-				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
-				return nil, bizCode
-			}
-		}
-	}
 	return &empyrean_lens.LinkNodeLogRespData{
 		Logs:    apiLogs,
 		Cost:    getNodeCost(apiLogs),
@@ -129,37 +100,6 @@ func WebReaderNodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
-	}
-	// 节点日志为空
-	lastNodeType := req.NodeType
-	if traceID == "" && len(apiLogs) == 0 {
-		// 获取上一个节点类型
-		processList := consts.SingleWebReaderProcessList
-		if webReaderInfo.MultiId != "" {
-			processList = consts.MultiWebReaderProcessList
-		} else if webReaderInfo.ChannelType == 21 || webReaderInfo.ChannelType == 22 {
-			processList = consts.SinglePluginWebReaderProcessList
-		}
-		for idx := 1; idx < len(processList); idx++ {
-			if processList[idx] == req.NodeType {
-				lastNodeType = processList[idx-1]
-				break
-			}
-		}
-		if lastNodeType != req.NodeType {
-			// 获取上一个节点
-			node, bizCode := GetProcessNode(ctx, lastNodeType, webReaderInfo.UserID, req.EntryID, consts.PDF, start, end)
-			if bizCode != nil || node == nil {
-				hlog.CtxErrorf(ctx, "[GetProcessNode] get node failed, err: %v", err)
-				return nil, bizCode
-			}
-			// 获取错误日志和安全日志
-			traceID, apiLogs, bizCode = NodeErrorAndSafeLogs(ctx, req.EntryID, webReaderInfo.UserID, article, node)
-			if bizCode != nil {
-				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
-				return nil, bizCode
-			}
-		}
 	}
 	return &empyrean_lens.LinkNodeLogRespData{
 		Logs:    apiLogs,
@@ -212,7 +152,7 @@ func NodeErrorAndSafeLogs(ctx context.Context, resourceId string, userID string,
 		return "", nil, bizCode
 	}
 	// 获取错误日志和安全日志
-	errLogs, safeLogs := getErrorAndSafeLogs(ctx, resourceId, []aliyun.FileProcessLog{{
+	errLogs, safeLogs := getErrorAndSafeLogs(ctx, resourceId, node, []aliyun.FileProcessLog{{
 		Asctime: timeAt,
 		TraceId: traceID,
 	}})
@@ -405,7 +345,7 @@ func getReqAndResp(ctx context.Context, entryID string, node *empyrean_lens.Grap
 		return "", []*empyrean_lens.ApiLog{}, nil
 	}
 	// 错误和安全日志
-	errLogs, safeLogs := getErrorAndSafeLogs(ctx, entryID, apiLogsInput)
+	errLogs, safeLogs := getErrorAndSafeLogs(ctx, entryID, node, apiLogsInput)
 	// 遍历
 	for _, input := range apiLogsInput {
 		output := aliyun.FileProcessLog{
@@ -443,6 +383,18 @@ func getReqAndResp(ctx context.Context, entryID string, node *empyrean_lens.Grap
 			}
 		}
 	}
+	if len(apiLogs) == 0 && (len(errLogs) > 0 || len(safeLogs) > 0) {
+		for _, errLog := range errLogs {
+			if errLog.EnterTime >= node.EnterTime && errLog.EnterTime <= node.FinishTime {
+				apiLogs = append(apiLogs, errLog)
+			}
+		}
+		for _, safeLog := range safeLogs {
+			if safeLog.EnterTime >= node.EnterTime && safeLog.EnterTime <= node.FinishTime {
+				apiLogs = append(apiLogs, safeLog)
+			}
+		}
+	}
 	// 日志排序
 	sort.Slice(apiLogs, func(i, j int) bool {
 		return apiLogs[i].EnterTime > apiLogs[j].EnterTime
@@ -455,13 +407,28 @@ func getReqAndResp(ctx context.Context, entryID string, node *empyrean_lens.Grap
 	return traceID, apiLogs, nil
 }
 
-func getErrorAndSafeLogs(ctx context.Context, entryID string, apiLogsInput []aliyun.FileProcessLog) ([]*empyrean_lens.ApiLog, []*empyrean_lens.ApiLog) {
+func getErrorAndSafeLogs(ctx context.Context, entryID string, node *empyrean_lens.GraphNode, apiLogsInput []aliyun.FileProcessLog) ([]*empyrean_lens.ApiLog, []*empyrean_lens.ApiLog) {
 	wg, errMapping, safeMapping := sync.WaitGroup{}, sync.Map{}, sync.Map{}
-	wg.Add(len(apiLogsInput) * 3)
+	traceIDs := []string{}
 	for _, apiLog := range apiLogsInput {
-		traceID := apiLog.TraceId
-		start := apiLog.Asctime.Add(-24 * time.Hour)
-		end := apiLog.Asctime.Add(24 * time.Hour)
+		if apiLog.Message != "" {
+			traceIDs = append(traceIDs, apiLog.TraceId)
+		}
+	}
+	if len(traceIDs) == 0 && node.TraceID != "" {
+		traceIDs = append(traceIDs, node.TraceID)
+	}
+	// 没有traceID，直接返回
+	if len(traceIDs) == 0 {
+		return []*empyrean_lens.ApiLog{}, []*empyrean_lens.ApiLog{}
+	}
+	// 并发获取错误日志、安全日志
+	timeAt, _ := time.Parse(consts.DateTimeTemplate, node.EnterTime)
+	start := timeAt.Add(-24 * time.Hour)
+	end := timeAt.Add(24 * time.Hour)
+	wg.Add(len(traceIDs) * 3)
+	for idx := range traceIDs {
+		traceID := traceIDs[idx]
 		// 获取error日志
 		go func() {
 			defer wg.Done()

@@ -39,7 +39,12 @@ func FileLinkTrace(ctx context.Context, fileID string) (*empyrean_lens.DocLinkTr
 	start := fileInfo.CreateTime.Add(-1 * time.Hour)
 	end := fileInfo.CreateTime.Add(24 * time.Hour)
 	// 并发获取节点列表
-	linkTraceGraph, bizCode := LinkTraceGraph(ctx, fileInfo.UserID, fileID, consts.PDF, start, end, consts.SingleFileProcessList, consts.SingleFileProcessMapping)
+	linkTraceGraph, bizCode := &empyrean_lens.TraceLinkGraph{}, &consts.BizCode{}
+	if fileInfo.CopyFromFildID != "" {
+		linkTraceGraph, bizCode = LinkTraceGraph(ctx, fileInfo.UserID, fileID, consts.PDF, start, end, consts.SingleCopiedFileProcessList, consts.SingleCopiedFileProcessMapping)
+	} else {
+		linkTraceGraph, bizCode = LinkTraceGraph(ctx, fileInfo.UserID, fileID, consts.PDF, start, end, consts.SingleFileProcessList, consts.SingleFileProcessMapping)
+	}
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
 		return nil, bizCode
@@ -206,11 +211,19 @@ func LinkTraceGraph(ctx context.Context, userID, resourceId, resourceType string
 		if node, ok := nodeMappingNew[pracessType]; ok && node != nil {
 			if isFatherFail(node, nodes, edges) {
 				node.Status = empyrean_lens.ActionStatusEnum_UNREACHEAD
+				node.EnterTime = ""
+				node.FinishTime = ""
 				hasFailedNode = true
 				continue
 			}
 			if hasFailedNode {
 				node.Status = empyrean_lens.ActionStatusEnum_UNREACHEAD
+				node.EnterTime = ""
+				node.FinishTime = ""
+				continue
+			}
+			if node.Status == empyrean_lens.ActionStatusEnum_WORTHLESS {
+				hasFailedNode = true
 				continue
 			}
 			if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && node.Status != empyrean_lens.ActionStatusEnum_FAIL && isChildSuccess(node, nodes, edges) {
@@ -218,6 +231,7 @@ func LinkTraceGraph(ctx context.Context, userID, resourceId, resourceType string
 			}
 			if node.Type != empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH && node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD &&
 				isFatherSuccess(node, nodes, edges) && isChildAllUnReachead(node, nodes, edges) {
+				hasFailedNode = true
 				node.Status = empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}
@@ -244,12 +258,37 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			hlog.CtxErrorf(ctx, "[CrawlerQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
+		// 没有抓取日志，使用输入输出兜底
+		if len(processLogs) == 0 {
+			apiLogsOuput, err := aliyun.CrawlerOutResponseQuery(ctx, resourceId, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			return processLogsToNode(processType, apiLogsOuput), nil
+		}
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:
 		processLogs, err := aliyun.WcdParseQuery(ctx, resourceId, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[WcdParseQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
+		}
+		// 没有使用输入输出兜底
+		if len(processLogs) == 0 {
+			apiLogsInput, err := aliyun.WcdOutRequestQuery(ctx, resourceId, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[WcdOutRequestQuery] get api logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			if len(apiLogsInput) > 0 {
+				errorLogs, err := aliyun.TraceIDErrorQuery(ctx, apiLogsInput[0].TraceId, start, end)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[TraceIDErrorQuery] get api logs failed, err: %v", err)
+					return nil, &consts.QueryRecordError
+				}
+				return processLogsToNode(processType, append(apiLogsInput, errorLogs...)), nil
+			}
 		}
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:
@@ -539,7 +578,7 @@ func isFatherFail(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNod
 		for _, id := range ids {
 			if id == node.ID {
 				hasFather = true
-				return nodeMapping[fID].Status == empyrean_lens.ActionStatusEnum_FAIL
+				return nodeMapping[fID].Status == empyrean_lens.ActionStatusEnum_FAIL || nodeMapping[fID].Status == empyrean_lens.ActionStatusEnum_WORTHLESS
 			}
 		}
 	}
@@ -574,7 +613,7 @@ func isChildSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphN
 	for len(nodeIds) > 0 {
 		newNodeIds := []empyrean_lens.NodeId{}
 		for _, id := range nodeIds {
-			if nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_FAIL && nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_UNREACHEAD {
+			if nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_FAIL && nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_WORTHLESS && nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_UNREACHEAD {
 				return true
 			}
 			newNodeIds = append(newNodeIds, nodeIDMapping[id]...)
@@ -612,9 +651,19 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		return empyrean_lens.ActionStatusEnum_UNREACHEAD
 	}
 	switch nodeType {
+	case empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:
+		if strings.Contains(processLogs[0].Message, "成功") {
+			return empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return empyrean_lens.ActionStatusEnum_FAIL
 	case empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:
 		if strings.Contains(processLogs[0].Message, "wcd text nil") || strings.Contains(processLogs[0].Message, "wcd worthless") {
 			return empyrean_lens.ActionStatusEnum_WORTHLESS
+		}
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "WcdRaw do req error") {
+				return empyrean_lens.ActionStatusEnum_FAIL
+			}
 		}
 	case empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:
 		for _, processLog := range processLogs {
@@ -624,7 +673,13 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		}
 	case empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:
 		for _, processLog := range processLogs {
-			if strings.Contains(processLog.Message, "parse_edu error,") {
+			if (strings.Contains(processLog.Message, "parse_edu") && strings.Contains(processLog.Message, "error")) || strings.Contains(processLog.Message, "ParseEdu error") || strings.Contains(processLog.Message, "edu parse error") {
+				return empyrean_lens.ActionStatusEnum_FAIL
+			}
+		}
+	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "error") || strings.Contains(processLog.Message, "fail") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}

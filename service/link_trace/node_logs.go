@@ -419,8 +419,8 @@ func getReqAndResp(ctx context.Context, multiID, entryID string, node *empyrean_
 			HTTPCode:   200,
 			EnterTime:  input.Asctime.Format(consts.DateTimeTemplate),
 			FinishTime: output.Asctime.Format(consts.DateTimeTemplate),
-			Input:      getReqRespFromMsg(input.Message, "req:"),
-			Output:     getReqRespFromMsg(output.Message, "resp:"),
+			Input:      GetReqRespFromMsg(input.Message, "req:"),
+			Output:     GetReqRespFromMsg(output.Message, "resp:"),
 			TraceID:    input.TraceId,
 		}
 		apiLogs = append(apiLogs, apiLog)
@@ -593,7 +593,7 @@ func getNodeCost(apiLogs []*empyrean_lens.ApiLog) float64 {
 	return endAtT.Sub(startAtT).Seconds()
 }
 
-func getReqRespFromMsg(msg string, substr string) string {
+func GetReqRespFromMsg(msg string, substr string) string {
 	if strings.Contains(msg, substr) {
 		resp := strings.Split(msg, substr)[1]
 		output, err := utillib.DeStrGzip(resp)

@@ -845,6 +845,13 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 			if !strings.Contains(processLog.Message, "OutRequest") && (strings.Contains(processLog.Message, "error") || strings.Contains(processLog.Message, "fail")) {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
+			if strings.Contains(processLog.Message, "OutRequest") && strings.Contains(processLog.Message, "resp:") {
+				// 解码
+				msg := GetReqRespFromMsg(processLog.Message, "resp:")
+				if !strings.Contains(msg, "\\\"code\\\": 0") {
+					return empyrean_lens.ActionStatusEnum_FAIL
+				}
+			}
 		}
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:
 		for _, processLog := range processLogs {

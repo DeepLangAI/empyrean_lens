@@ -1876,6 +1876,7 @@
             }
 
             const data = buildHierarchy(graphData, rootName);
+            let nonClickableStatus = [ActionStatusEnum.UNREACHED, ActionStatusEnum.LENGTH_ERROR, undefined, null]
 
             // 设置图表尺寸
             const margin = { top: 20, right: 20, bottom: 30, left: 20 };
@@ -2029,7 +2030,7 @@
                     d3.select(this).select("rect").style("stroke-width", 0);
                 })
                 .on('click', function (event, d) {
-                    if (![ActionStatusEnum.UNREACHED, ActionStatusEnum.LENGTH_ERROR].includes(d.data.status)) {
+                    if (!nonClickableStatus.includes(d.data.status)) {
                         CreateNodeApiLogsPage(d.data.entry_id, d.data.entry_type, d.data.type, d.data.name, docInfo, d.data.trace_id);
                     }
                 });
@@ -2043,6 +2044,7 @@
                 .attr("rx", 5)
                 .attr("ry", 5)
                 .style('stroke-width', 0)
+                .style('cursor', d => nonClickableStatus.includes(d.data.status) ? 'default' : 'pointer')
                 .attr("fill", d => COLORS[d.data.status] || "#fff");
             // 创建节点名称
             node.append("text")
@@ -2994,7 +2996,7 @@
                 if (!mute){
                     showLoadingStatus($loadingContainer)
                 }
-                let mocking = false;
+                let mocking = true;
                 if (mocking){
                     let mockData = {
                         "code": 0,

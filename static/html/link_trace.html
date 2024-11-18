@@ -1881,7 +1881,10 @@
             const margin = { top: 20, right: 20, bottom: 30, left: 20 };
             const nodeWidth = 210;
             const maxWidth = calculateWidth(data) + 1;
-            const maxDepth = calculateDepth(data) + 1;
+            let maxDepth = calculateDepth(data);
+            if (rootName == '用户上传') {
+                maxDepth += 1;
+            }
 
             // 创建 scrollContainer，启用水平滚动条
             let svgContainerWidth = Math.max((maxWidth) * (nodeWidth + 20) + margin.left + margin.right, 400);
@@ -2991,6 +2994,116 @@
                 if (!mute){
                     showLoadingStatus($loadingContainer)
                 }
+                let mocking = false;
+                if (mocking){
+                    let mockData = {
+                        "code": 0,
+                        "msg": "success",
+                        "data": {
+                            "has_next": false,
+                            "rows": [
+                                {
+                                    "user_id": "b5a91d1574db4466953b09a88da24f47",
+                                    "create_time": "2024-11-16 17:46:03,654",
+                                    "channel": "语鲸web",
+                                    "action_name": "多文档",
+                                    "title": "j.issn等2篇多文档总结",
+                                    "resources": [
+                                        {
+                                            "entry_id": "673869db43731425e307dbe9",
+                                            "entry_type": 10,
+                                            "title": "j.issn.1001-411X.202108039(2).pdf",
+                                            "url": "https://wcd-file-bucket-prod.oss-cn-zhangjiakou.aliyuncs.com/raw/b5a91d1574db4466953b09a88da24f47/20241116174603_1857721786088759296_2010905.pdf"
+                                        },
+                                        {
+                                            "entry_id": "673869db43731425e307dbec",
+                                            "entry_type": 7,
+                                            "title": "",
+                                            "url": "https://kns.cnki.net/reader/flowpdf?invoice=xPeLdSvzt0iQHj3LBZFygNmljV7F0oFCKQ2n/yMvbXBOjdP/BGaPWMxlw+VbVHR1qtcJksxyxAIM27+OfhlJdhMFzKBRo67CwPQjdfMe3bgngX7BR7f+XzfJvL4K9wcM3U3+ECI5QpasqMr7JwlWxft1iq19eK9DuLf25/8Lq+4=\u0026platform=NZKPT\u0026product=CJFQ\u0026filename=JXSJ202410022\u0026tablename=cjfdauto\u0026type=JOURNAL\u0026scope=trial\u0026dflag=pdf\u0026pages=\u0026language=CHS\u0026trial=\u0026nonce=ED15AF757F0D49F581EDE8ABBC1C1150\u0026cflag=pdf"
+                                        }
+                                    ],
+                                    "cost": 0,
+                                    "status": 3,
+                                    "entry_type": 12,
+                                    "entry_id": "673869db9d6f04b3d973beee"
+                                },
+                                {
+                                    "user_id": "b5a91d1574db4466953b09a88da24f47",
+                                    "create_time": "2024-11-16 17:46:03,578",
+                                    "channel": "语鲸web",
+                                    "action_name": "多文档-单文档web",
+                                    "title": "",
+                                    "resources": [
+                                        {
+                                            "entry_id": "673869db43731425e307dbec",
+                                            "entry_type": 7,
+                                            "title": "",
+                                            "url": "https://kns.cnki.net/reader/flowpdf?invoice=xPeLdSvzt0iQHj3LBZFygNmljV7F0oFCKQ2n/yMvbXBOjdP/BGaPWMxlw+VbVHR1qtcJksxyxAIM27+OfhlJdhMFzKBRo67CwPQjdfMe3bgngX7BR7f+XzfJvL4K9wcM3U3+ECI5QpasqMr7JwlWxft1iq19eK9DuLf25/8Lq+4=\u0026platform=NZKPT\u0026product=CJFQ\u0026filename=JXSJ202410022\u0026tablename=cjfdauto\u0026type=JOURNAL\u0026scope=trial\u0026dflag=pdf\u0026pages=\u0026language=CHS\u0026trial=\u0026nonce=ED15AF757F0D49F581EDE8ABBC1C1150\u0026cflag=pdf"
+                                        }
+                                    ],
+                                    "cost": 0,
+                                    "status": 3,
+                                    "entry_type": 7,
+                                    "entry_id": "673869db43731425e307dbec"
+                                },
+                                {
+                                    "user_id": "b5a91d1574db4466953b09a88da24f47",
+                                    "create_time": "2024-11-16 17:43:42,041",
+                                    "channel": "语鲸web",
+                                    "action_name": "多文档",
+                                    "title": "j.issn等2篇多文档总结",
+                                    "resources": [
+                                        {
+                                            "entry_id": "6738694d1ab139c41a5d0e68",
+                                            "entry_type": 10,
+                                            "title": "j.issn.1001-411X.202108039(1).pdf",
+                                            "url": "https://wcd-file-bucket-prod.oss-cn-zhangjiakou.aliyuncs.com/raw/b5a91d1574db4466953b09a88da24f47/20241116174341_1857721191835574272_2010905.pdf"
+                                        },
+                                        {
+                                            "entry_id": "6738694d1ab139c41a5d0e6b",
+                                            "entry_type": 7,
+                                            "title": "",
+                                            "url": "https://www.camda.cn/message/2022/61719.html"
+                                        }
+                                    ],
+                                    "cost": 0,
+                                    "status": 3,
+                                    "entry_type": 12,
+                                    "entry_id": "6738694e5c30ed9aff3bd851"
+                                },
+                                {
+                                    "user_id": "b5a91d1574db4466953b09a88da24f47",
+                                    "create_time": "2024-11-16 17:43:41,919",
+                                    "channel": "语鲸web",
+                                    "action_name": "多文档-单文档web",
+                                    "title": "",
+                                    "resources": [
+                                        {
+                                            "entry_id": "6738694d1ab139c41a5d0e6b",
+                                            "entry_type": 7,
+                                            "title": "",
+                                            "url": "https://www.camda.cn/message/2022/61719.html"
+                                        }
+                                    ],
+                                    "cost": 0,
+                                    "status": 3,
+                                    "entry_type": 7,
+                                    "entry_id": "6738694d1ab139c41a5d0e6b"
+                                }
+                            ]
+                        }
+                    }.data;
+                    // 给data添加序号
+                    mockData.rows.forEach((item, index) => {
+                        item.index = index + 1 + currentPage * pageSize;
+                    })
+                    hasMoreData = false;
+                    hideLoadingStatus($loadingContainer)
+                    updateTable(mockData);
+                    updatePagination();
+                    return
+                }
+
                 let currentPageBkp = currentPage;
                 let query = $query.val()
                 let tmpQuery = localStorage.getItem('query')

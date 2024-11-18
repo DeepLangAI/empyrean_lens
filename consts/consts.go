@@ -147,6 +147,26 @@ var NGINX_INGRESS_APIS = map[string][]API{
 	//},
 	HOST_LINGO_BACKEND: {
 		{
+			Api:   "/api/plugin/file/status",
+			Alias: "【异步状态】【后端】获取文件上传状态",
+		},
+		{
+			Api:   "/api/plugin/file/batch/status",
+			Alias: "【异步状态】【后端】批量获取文件上传状态",
+		},
+		{
+			Api:   "/api/readers/url/status",
+			Alias: "【异步状态】【后端】URL解析状态",
+		},
+		{
+			Api:   "/api/multi/detail",
+			Alias: "【异步状态】【后端】多文档状态",
+		},
+		{
+			Api:   "/api/readers/parse/status",
+			Alias: "【异步状态】【后端】URL/PDF/MULTI解析状态",
+		},
+		{
 			Api:   "/api/plugin/file/add",
 			Alias: "【数据处理】【后端】上传PDF",
 		},

@@ -38,3 +38,24 @@ func ChannelIntToString(channel int) string {
 	}
 	return fmt.Sprintf("%v", channel)
 }
+
+func GetActionName(entryType int, multiID string) string {
+	if entryType == int(empyrean_lens.EntryTypeEnum_MULTI) {
+		return "多文档"
+	}
+	if entryType == int(empyrean_lens.EntryTypeEnum_WEB) {
+		if multiID != "" {
+			return "多文档-子文档web"
+		} else {
+			return "单文档web"
+		}
+	}
+	if entryType == int(empyrean_lens.EntryTypeEnum_FILE) {
+		if multiID != "" {
+			return "多文档-子文档pdf"
+		} else {
+			return "单文档pdf"
+		}
+	}
+	return ""
+}

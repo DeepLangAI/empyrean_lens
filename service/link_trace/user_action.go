@@ -2,7 +2,7 @@ package link_trace
 
 import (
 	"context"
-	"reflect"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -97,6 +97,15 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 	if len(rows) > int(req.Limit) {
 		rows = rows[:int(req.Limit)]
 	}
+	// 查数据库替换
+	rows, bizCode := findFromMongo(ctx, rows)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "find from mongo error, err:%v", err)
+		return nil, bizCode
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].CreateTime > rows[j].CreateTime
+	})
 	// 返回
 	return &empyrean_lens.UserActionRespData{
 		HasNext: hasNext,
@@ -378,6 +387,40 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 	}, nil
 }
 
+func findFromMongo(ctx context.Context, rows []*empyrean_lens.UserActionRespRow) ([]*empyrean_lens.UserActionRespRow, *consts.BizCode) {
+	// 查数据库
+	entryIDs := []string{}
+	for _, row := range rows {
+		entryIDs = append(entryIDs, row.EntryID)
+	}
+	entryInfos, err := bi.NewEntryInfoDao().FindByEntryIDs(ctx, entryIDs)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindByEntryIDs] error: %+v", err)
+		return nil, &consts.QueryRecordError
+	}
+	// 替换数据
+	entryMapping := map[string]*bi.EntryInfo{}
+	for _, entryInfo := range entryInfos {
+		key := fmt.Sprintf("%d_%s", entryInfo.EntryType, entryInfo.EntryID)
+		entryMapping[key] = entryInfo
+	}
+	newRows := []*empyrean_lens.UserActionRespRow{}
+	for _, row := range rows {
+		key := fmt.Sprintf("%d_%s", row.EntryType, row.EntryID)
+		resources := row.Resources
+		if entryInfo, ok := entryMapping[key]; ok {
+			if entryInfo.ParentEntryID == "" {
+				newRow := entryInfo.TranslateUserActionRow()
+				newRow.Resources = resources
+				newRows = append(newRows, newRow)
+			}
+		} else {
+			newRows = append(newRows, row)
+		}
+	}
+	return newRows, nil
+}
+
 func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserActionRespRow {
 	return &empyrean_lens.UserActionRespRow{
 		UserID:     file.UserID,
@@ -481,53 +524,5 @@ func actionStatus(actionType string, status, analysisStatus, mergeStatus, summar
 		}
 	default:
 		return -1
-	}
-}
-
-// 冒泡排序，排序任何类型的数组
-func bubbleSort(arr interface{}, less func(i, j int) bool) {
-	switch reflect.TypeOf(arr).Kind() {
-	case reflect.Slice:
-		mySlice := reflect.ValueOf(arr)
-		for i := 0; i < mySlice.Len()-1; i++ {
-			for j := 0; j < mySlice.Len()-i-1; j++ {
-				if less(j, j+1) {
-					temp := mySlice.Index(j + 1)
-					mySlice.Index(j + 1).Set(mySlice.Index(j))
-					mySlice.Index(j).Set(temp)
-				}
-			}
-		}
-		// 数组倒叙
-		for i := 0; i < mySlice.Len()/2; i++ {
-			temp := mySlice.Index(mySlice.Len() - i - 1)
-			mySlice.Index(mySlice.Len() - i - 1).Set(mySlice.Index(i))
-			mySlice.Index(i).Set(temp)
-		}
-	}
-}
-
-// 快速排序，排序任何类型的数组
-func quickSort(arr interface{}, less func(i, j int) bool) {
-	switch reflect.TypeOf(arr).Kind() {
-	case reflect.Slice:
-		mySlice := reflect.ValueOf(arr)
-		if mySlice.Len() <= 1 {
-			return
-		}
-		pivot := mySlice.Index(0)
-		left := reflect.MakeSlice(reflect.TypeOf(arr), 0, 0)
-		right := reflect.MakeSlice(reflect.TypeOf(arr), 0, 0)
-		for i := 1; i < mySlice.Len(); i++ {
-			if less(i, 0) {
-				left = reflect.Append(left, mySlice.Index(i))
-			} else {
-				right = reflect.Append(right, mySlice.Index(i))
-			}
-		}
-		quickSort(left.Interface(), less)
-		quickSort(right.Interface(), less)
-		mySlice.Set(reflect.Append(left, pivot))
-		mySlice.Set(reflect.Append(mySlice, right))
 	}
 }

@@ -2,13 +2,15 @@ package redis
 
 import (
 	"context"
-	"empyrean_lens/conf"
 	"fmt"
+	"sync"
+	"time"
+
+	"empyrean_lens/conf"
+
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/redis/go-redis/v9"
-	"sync"
-	"time"
 )
 
 const (
@@ -44,9 +46,14 @@ func KeySet(ctx context.Context, key string, value interface{}, expiration time.
 	return rdb.Set(ctx, key, value, expiration).Err()
 }
 
+func KeySetNx(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+	return rdb.SetNX(ctx, key, value, expiration).Err()
+}
+
 func GetVal(ctx context.Context, key string) *redis.StringCmd {
 	return rdb.Get(ctx, key)
 }
+
 func DelKey(ctx context.Context, key string) error {
 	err := rdb.Del(ctx, key).Err()
 	if err != nil {

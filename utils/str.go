@@ -1,10 +1,13 @@
 package utils
 
 import (
+	"empyrean_lens/consts"
 	"encoding/base64"
-	"github.com/bytedance/sonic"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"log"
 	"strings"
+
+	"github.com/bytedance/sonic"
 )
 
 func JSONMarshal(v interface{}) string {
@@ -53,4 +56,47 @@ func DecodeMIME(encodedStr string) string {
 	}
 
 	return string(data)
+}
+
+func TranslateJsonIO(data string) string {
+	var jsonData any
+	if err := sonic.Unmarshal([]byte(data), &jsonData); err != nil {
+		hlog.Errorf("Error parsing JSON: %v", err)
+		if len(data) > consts.DataTooLongUpper {
+			return consts.DataTooLongUpperErrMsg
+		}
+		return data
+	}
+	// 处理 JSON
+	processedData := processJSON(jsonData)
+
+	// 转换回 JSON 字符串
+	result, err := sonic.Marshal(processedData)
+	if err != nil {
+		hlog.Errorf("Error converting JSON back to string: %v", err)
+		if len(data) > consts.DataTooLongUpper {
+			return consts.DataTooLongUpperErrMsg
+		}
+		return data
+	}
+	return string(result)
+}
+
+// 递归处理 JSON 数据
+func processJSON(data interface{}) interface{} {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		for key, value := range v {
+			v[key] = processJSON(value)
+		}
+	case []interface{}:
+		for i, value := range v {
+			v[i] = processJSON(value)
+		}
+	case string:
+		if len(v) > consts.DataTooLongUpper {
+			return consts.DataTooLongUpperErrMsg
+		}
+	}
+	return data
 }

@@ -5,7 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
+	bi "empyrean_lens/dal/mongo/lingowhale_bi"
+	"empyrean_lens/utils"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
@@ -21,17 +24,19 @@ type ArticleEntry struct {
 }
 
 type MultiModel struct {
-	ID             primitive.ObjectID `bson:"_id" json:"id"`
-	UserID         string             `json:"user_id" bson:"user_id" validate:"required"`
-	ArticleList    []ArticleEntry     `json:"article_list" bson:"article_list"`
-	Title          string             `json:"title" bson:"title"`
-	AnalysisStatus int                `json:"analysis_status" bson:"analysis_status"`
-	MergeStatus    int                `json:"merge_status" bson:"merge_status"`
-	SummaryStatus  int                `json:"summary_status" bson:"summary_status"`
-	ChannelType    int                `bson:"channel_type" json:"channel_type"`
-	CreateTime     time.Time          `json:"create_time" bson:"create_time"`
-	UpdateTime     time.Time          `json:"update_time" bson:"update_time"`
-	IsDeleted      bool               `json:"is_deleted" bson:"is_deleted"`
+	ID                 primitive.ObjectID `bson:"_id" json:"id"`
+	UserID             string             `json:"user_id" bson:"user_id" validate:"required"`
+	ArticleList        []ArticleEntry     `json:"article_list" bson:"article_list"`
+	Title              string             `json:"title" bson:"title"`
+	CopyFromMultiID    string             `bson:"copy_from_multi_id" json:"copy_from_multi_id"`
+	CopyFromResourceID string             `bson:"copy_from_resource_id" json:"copy_from_resource_id"`
+	AnalysisStatus     int                `json:"analysis_status" bson:"analysis_status"`
+	MergeStatus        int                `json:"merge_status" bson:"merge_status"`
+	SummaryStatus      int                `json:"summary_status" bson:"summary_status"`
+	ChannelType        int                `bson:"channel_type" json:"channel_type"`
+	CreateTime         time.Time          `json:"create_time" bson:"create_time"`
+	UpdateTime         time.Time          `json:"update_time" bson:"update_time"`
+	IsDeleted          bool               `json:"is_deleted" bson:"is_deleted"`
 }
 
 var multiDao *MultiDao
@@ -170,4 +175,57 @@ func (d *MultiDao) FindSuccessMultiByQueryAndStatusAndTimeRange(ctx context.Cont
 		res[i].UpdateTime = res[i].UpdateTime.Local()
 	}
 	return res, nil
+}
+
+func (d *MultiDao) FindMultiByTimeRangeForSave(ctx context.Context, startTime, endTime time.Time) ([]*MultiModel, error) {
+	var res []*MultiModel
+	queryFilter := []bson.M{}
+	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
+	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_multi_id": bson.M{"$exists": false}}, {"copy_from_multi_id": ""}}})
+	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_resource_id": bson.M{"$exists": false}}, {"copy_from_resource_id": ""}}})
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}})
+	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, bson.M{"$and": queryFilter}, options)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByTimeRangeForSave] mongo find error:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	if err = cur.All(ctx, &res); err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiByTimeRangeForSave] mongo all error:%+v", err)
+		return nil, err
+	}
+	for i := 0; i < len(res); i++ {
+		res[i].CreateTime = res[i].CreateTime.Local()
+		res[i].UpdateTime = res[i].UpdateTime.Local()
+	}
+	return res, nil
+}
+
+func (d *MultiModel) TranslateEntryInfo() *bi.EntryInfo {
+	multiArticles := []bi.MultiArticles{}
+	for _, article := range d.ArticleList {
+		multiArticles = append(multiArticles, bi.MultiArticles{
+			EntryId:   article.EntryId,
+			EntryType: int(article.EntryType),
+		})
+	}
+	return &bi.EntryInfo{
+		ID:              primitive.NewObjectID(),
+		EntryID:         d.ID.Hex(),
+		EntryType:       int(empyrean_lens.EntryTypeEnum_MULTI),
+		EntrySource:     utils.GetEntrySource(d.UserID, d.CopyFromResourceID, d.CopyFromMultiID),
+		SourceTable:     TableNameFile,
+		DataType:        utils.GetDataType("", d.CopyFromResourceID, empyrean_lens.EntryTypeEnum_FILE),
+		MultiArticles:   multiArticles,
+		UserID:          d.UserID,
+		Title:           d.Title,
+		ChannelType:     d.ChannelType,
+		ParentEntryID:   d.CopyFromMultiID,
+		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum_MULTI, d.AnalysisStatus, d.SummaryStatus, d.MergeStatus)),
+		Cost:            0, // TODO
+		EntryCreateTime: d.CreateTime,
+		EntryUpdateTime: d.UpdateTime,
+		CreateTime:      time.Now(),
+	}
 }

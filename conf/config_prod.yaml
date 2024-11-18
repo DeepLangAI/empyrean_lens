@@ -40,6 +40,12 @@ oss:
   accessKey: "REDACTED"
   accessSecret: "REDACTED"
 
+mns_config:
+  access_key_id: "REDACTED"
+  access_key_secret: "REDACTED"
+  endpoint: "http://1092547886793620.mns.cn-zhangjiakou.aliyuncs.com"
+  queue_name: "save-link-trace-prod"
+
 # 飞书配置
 lark:
   appId: "cli_a668c41a0f64d013"

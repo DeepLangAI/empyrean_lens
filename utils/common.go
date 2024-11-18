@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"fmt"
 	"os"
@@ -59,6 +60,7 @@ func GetApiAlias(hostName, apiName string) string {
 func TimeSub(t time.Time) string {
 	return fmt.Sprintf("%.4f s", time.Now().Sub(t).Seconds())
 }
+
 func GetProjectPath() string {
 	if projPath != "" {
 		return projPath
@@ -255,4 +257,58 @@ func ExtractLogInfo(log string) (time.Time, string, string, float64) {
 
 func IsProbe(host string) bool {
 	return host == "47.92.241.26" || host == "47.92.55.166"
+}
+
+func GetEntrySource(userID, copyFromResourceId, copyFromEntryId string) int {
+	if userID == consts.EntryInfoPreUserID {
+		return consts.EntryInfoEntrySourceOperationsPre
+	}
+	if copyFromResourceId != "" {
+		return consts.EntryInfoEntrySourceSubscribe
+	}
+	if copyFromEntryId != "" {
+		return consts.EntryInfoEntrySourceShare
+	}
+	return consts.EntryInfoEntrySourceUserUpload
+}
+
+func GetActionStatus(entryType empyrean_lens.EntryTypeEnum, status1, status2, status3 int) empyrean_lens.ActionStatusEnum {
+	switch entryType {
+	case empyrean_lens.EntryTypeEnum_WEB:
+		if status1 == consts.URLSuccessStatus {
+			return empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return empyrean_lens.ActionStatusEnum_FAIL
+	case empyrean_lens.EntryTypeEnum_FILE:
+		if status1 == consts.PDFSuccessStatus {
+			return empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return empyrean_lens.ActionStatusEnum_FAIL
+	case empyrean_lens.EntryTypeEnum_MULTI:
+		if status1 == consts.MultiSuccessAnalysisStatus && status2 == consts.MultiSuccessSummaryStatus && status3 == consts.MultiSuccessMergeStatus {
+			return empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return empyrean_lens.ActionStatusEnum_FAIL
+	}
+	return empyrean_lens.ActionStatusEnum_FAIL
+}
+
+func GetDataType(multiID, copyFromResourceId string, entryType empyrean_lens.EntryTypeEnum) int {
+	switch entryType {
+	case empyrean_lens.EntryTypeEnum_WEB, empyrean_lens.EntryTypeEnum_FILE:
+		if copyFromResourceId != "" {
+			return consts.EntryInfoDataTypeResource
+		}
+		if multiID != "" {
+			return consts.EntryInfoDataTypeMultiSingle
+		}
+		return consts.EntryInfoDataTypeSingle
+	case empyrean_lens.EntryTypeEnum_MULTI:
+		return consts.EntryInfoDataTypeMulti
+	}
+	return consts.EntryInfoDataTypeSingle
+}
+
+func IsWebChannel(channel int) bool {
+	return Contains([]int{10, 11, 12, 13, 14, 20, 23, 24}, channel)
 }

@@ -2,9 +2,10 @@ package bi
 
 import (
 	"context"
-	"empyrean_lens/conf"
 	"fmt"
 	"os"
+
+	"empyrean_lens/conf"
 
 	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"go.mongodb.org/mongo-driver/mongo"

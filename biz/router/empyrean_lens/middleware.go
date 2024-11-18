@@ -301,3 +301,13 @@ func _wcdossworthlesslogsMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _savelinktraceMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _batchsavelinktraceMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

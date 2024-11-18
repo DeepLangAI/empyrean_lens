@@ -25,6 +25,7 @@ type Config struct {
 	Logger            conflib.Logger        `yaml:"logger"`
 	Lark              Lark                  `yaml:"lark"`
 	Oss               OSS                   `yaml:"oss"`
+	MnsConfig         MnsConfig             `yaml:"mns_config"`
 }
 
 type OSS struct {
@@ -66,6 +67,13 @@ type LarkAuth struct {
 	Emails      []string `yaml:"emails"`
 	Mobiles     []string `yaml:"mobiles"`
 	EmployeeNos []string `yaml:"employee_nos"`
+}
+
+type MnsConfig struct {
+	AccessKeyID     string `yaml:"access_key_id"`
+	AccessKeySecret string `yaml:"access_key_secret"`
+	Endpoint        string `yaml:"endpoint"`
+	QueueName       string `yaml:"queue_name"`
 }
 
 // 配置文件路径

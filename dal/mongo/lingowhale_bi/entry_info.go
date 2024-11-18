@@ -132,7 +132,7 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 		Channel:    utils.ChannelIntToString(d.ChannelType),
 		Title:      d.Title,
 		Resources:  resources,
-		Cost:       float64(d.Cost / 1000),
+		Cost:       float64(d.Cost) / 1000,
 		Status:     empyrean_lens.ActionStatusEnum(d.Status),
 		ActionName: utils.GetActionName(d.EntryType, d.MultiID),
 		CreateTime: d.EntryCreateTime.Local().Format(consts.DateTimeTemplate),

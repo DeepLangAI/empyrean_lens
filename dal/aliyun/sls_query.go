@@ -90,6 +90,12 @@ func renameBizMessage(bizCode int, host string, msg string) string {
 		if utils.Contains([]int{20006}, bizCode) {
 			return "传入参数不符合要求"
 		}
+		if utils.Contains([]int{23001}, bizCode) {
+			return "异步状态失败"
+		}
+		if utils.Contains([]int{23002}, bizCode) {
+			return "异步状态部分失败"
+		}
 	}
 	return msg
 }

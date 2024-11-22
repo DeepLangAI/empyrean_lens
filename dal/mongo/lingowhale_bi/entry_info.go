@@ -168,6 +168,28 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 	return entryInfos, nil
 }
 
+func (d *EntryInfoDao) FindByEntryIDsWithoutCopy(ctx context.Context, entryIDs []string) ([]*EntryInfo, error) {
+	var entryInfos []*EntryInfo
+	filter := bson.M{"$and": []bson.M{
+		{"parent_entry_id": ""},
+		{"entry_id": bson.M{"$in": entryIDs}},
+	}}
+	cur, err := biCollection.Collection(TableNameEntryInfo).Find(ctx, filter)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		hlog.CtxErrorf(ctx, "db error, method:FindByEntryIDsWithoutCopy, err:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if err = cur.All(ctx, &entryInfos); err != nil {
+		hlog.CtxErrorf(ctx, "[FindByEntryIDsWithoutCopy] mongo all error:%+v", err)
+		return nil, err
+	}
+	return entryInfos, nil
+}
+
 func (d *EntryInfoDao) FindByEntryIDAndEntryType(ctx context.Context, entryID string, entryType int) (*EntryInfo, error) {
 	entryInfo := &EntryInfo{}
 	err := biCollection.Collection(TableNameEntryInfo).FindOne(ctx, bson.M{"entry_id": entryID, "entry_type": entryType}).Decode(entryInfo)

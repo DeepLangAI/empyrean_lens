@@ -27,17 +27,17 @@ func NodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyrean_
 	}
 	switch req.EntryType {
 	case empyrean_lens.EntryTypeEnum_FILE:
-		return FileNodeLogs(ctx, req.NodeType, req.EntryID, nil)
+		return FileNodeLogs(ctx, req.NodeType, req.EntryID, nil, false)
 	case empyrean_lens.EntryTypeEnum_WEB:
-		return WebReaderNodeLogs(ctx, req.NodeType, req.EntryID, nil)
+		return WebReaderNodeLogs(ctx, req.NodeType, req.EntryID, nil, false)
 	case empyrean_lens.EntryTypeEnum_MULTI:
-		return MultiNodeLogs(ctx, req.NodeType, req.EntryID, nil)
+		return MultiNodeLogs(ctx, req.NodeType, req.EntryID, nil, false)
 	default:
 		return nil, &consts.RetParamError
 	}
 }
 
-func FileNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, entryID string, node *empyrean_lens.GraphNode) (*empyrean_lens.LinkNodeLogRespData, *consts.BizCode) {
+func FileNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, entryID string, node *empyrean_lens.GraphNode, refresh bool) (*empyrean_lens.LinkNodeLogRespData, *consts.BizCode) {
 	// 获取文章详情
 	fileInfo, err := plugin.NewFileDao().FindFileById(ctx, entryID)
 	if err != nil || fileInfo == nil {
@@ -50,7 +50,7 @@ func FileNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, 
 		hlog.CtxErrorf(ctx, "[findNodeLogsFromMongo] get api logs failed, err: %v", err)
 		return nil, bizCOde
 	}
-	if len(apiLogs) != 0 || hasLog {
+	if (len(apiLogs) != 0 || hasLog) && !refresh {
 		return &empyrean_lens.LinkNodeLogRespData{
 			Logs: apiLogs,
 			Cost: getNodeCost(apiLogs),
@@ -84,7 +84,7 @@ func FileNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, 
 	}, nil
 }
 
-func WebReaderNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, entryID string, node *empyrean_lens.GraphNode) (*empyrean_lens.LinkNodeLogRespData, *consts.BizCode) {
+func WebReaderNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, entryID string, node *empyrean_lens.GraphNode, refresh bool) (*empyrean_lens.LinkNodeLogRespData, *consts.BizCode) {
 	// 获取文章详情
 	webReaderInfo, err := plugin.NewWebReaderDao().FindWebReaderById(ctx, entryID)
 	if err != nil || webReaderInfo == nil {
@@ -97,7 +97,7 @@ func WebReaderNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeE
 		hlog.CtxErrorf(ctx, "[findNodeLogsFromMongo] get api logs failed, err: %v", err)
 		return nil, bizCOde
 	}
-	if len(apiLogs) != 0 || hasLog {
+	if (len(apiLogs) != 0 || hasLog) && !refresh {
 		return &empyrean_lens.LinkNodeLogRespData{
 			Logs: apiLogs,
 			Cost: getNodeCost(apiLogs),
@@ -131,7 +131,7 @@ func WebReaderNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeE
 	}, nil
 }
 
-func MultiNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, entryID string, node *empyrean_lens.GraphNode) (*empyrean_lens.LinkNodeLogRespData, *consts.BizCode) {
+func MultiNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, entryID string, node *empyrean_lens.GraphNode, refresh bool) (*empyrean_lens.LinkNodeLogRespData, *consts.BizCode) {
 	// 获取多文档详情
 	multiInfo, err := plugin.NewMultiDao().FindMultiById(ctx, entryID)
 	if err != nil || multiInfo == nil {
@@ -144,7 +144,7 @@ func MultiNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum,
 		hlog.CtxErrorf(ctx, "[findNodeLogsFromMongo] get api logs failed, err: %v", err)
 		return nil, bizCOde
 	}
-	if len(apiLogs) != 0 || hasLog {
+	if (len(apiLogs) != 0 || hasLog) && !refresh {
 		return &empyrean_lens.LinkNodeLogRespData{
 			Logs: apiLogs,
 			Cost: getNodeCost(apiLogs),
@@ -452,9 +452,10 @@ func getReqAndResp(ctx context.Context, multiID, entryID string, node *empyrean_
 			}
 		}
 	}
-	if node.Type == empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH {
+	if node.Type == empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH ||
+		node.Type == empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH {
 		for _, errLog := range errLogs {
-			if errLog.EnterTime <= node.FinishTime {
+			if node.FinishTime == "" || errLog.EnterTime <= node.FinishTime {
 				apiLogs = append(apiLogs, errLog)
 			}
 		}

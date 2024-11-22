@@ -1787,6 +1787,7 @@ limit %v
 	}
 	return logs, nil
 }
+
 func BusinessLogQueryByUserId(ctx context.Context, userId string, timeBegin, timeEnd time.Time) ([]EndToEndLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
 
@@ -1817,6 +1818,77 @@ limit %v
 		return nil, err
 	}
 	hlog.CtxInfof(ctx, "日期(%v, %v)，查business-pod, userId: %v, 共%v条日志", timeBegin, timeEnd, userId, len(resp.Logs))
+	logs := []EndToEndLog{}
+	for _, log := range resp.Logs {
+		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
+		if e != nil {
+			// 解析如2024-09-12T08:40:51.288+08:00的时间格式
+			t, e = time.Parse(time.RFC3339, log["time"])
+			if e != nil {
+				hlog.CtxErrorf(ctx, "parse time error: %v", e)
+				continue
+			}
+			//hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			//continue
+		}
+		originLog := map[string]string{}
+		for key, val := range log {
+			if val == "null" || val == "-" || val == "" {
+				continue
+			}
+
+			if strings.HasSuffix(key, "_0") {
+				continue
+			}
+			key = strings.Trim(key, " ")
+			originLog[key] = val
+		}
+		logs = append(logs, EndToEndLog{
+			LogStoreName: consts.BUSINESS_LOG_STORE_NAME,
+			TraceId:      log["trace_id"],
+			UserId:       log["user_id"],
+			Time:         t.Format("2006-01-02 15:04:05.999"),
+			Message:      log["msg"],
+			Host:         "",
+			ApiPath:      "",
+			Cost:         0,
+			ClientIp:     log["client_ip"],
+			OriginLog:    originLog,
+		})
+	}
+	return logs, nil
+}
+
+func BusinessLogQueryByTraceIdUserId(ctx context.Context, userId, traceId string, timeBegin, timeEnd time.Time) ([]EndToEndLog, error) {
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+
+	if err != nil {
+		return nil, err
+	}
+
+	from := timeBegin.Unix()
+	to := timeEnd.Unix()
+
+	query := `
+%v %v|select
+user_id, trace_id,
+COALESCE(asctime, time) AS time,
+-- asctime time,
+ip client_ip, message msg,
+*
+from log
+order by asctime desc
+limit %v
+`
+	query = fmt.Sprintf(query, userId, traceId, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "business trace sql query: %v", query)
+	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
+
+	if err != nil {
+		hlog.CtxErrorf(ctx, "BusinessLogQueryByTraceId query log error: %v", err)
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "日期(%v, %v)，查business-pod, userId: %v, traceId:%v, 共%v条日志", timeBegin, timeEnd, userId, traceId, len(resp.Logs))
 	logs := []EndToEndLog{}
 	for _, log := range resp.Logs {
 		t, e := time.Parse("2006-01-02 15:04:05.999", log["time"])
@@ -2081,7 +2153,7 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "苏秦解析异常，file_id:" or message: "苏秦解析异常")
+	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "苏秦解析异常，file_id:" or message: "苏秦解析异常" or message: "parsing file failed")
 	`
 	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, resourceId)

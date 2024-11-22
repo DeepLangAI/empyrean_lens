@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"sync"
 	"time"
 
 	"empyrean_lens/biz/model/empyrean_lens"
@@ -37,80 +36,90 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 		hlog.CtxErrorf(ctx, "strat time must before end time, start:%v, end:%v", begin, end)
 		return nil, &consts.RetParamError
 	}
-	// 并发查询
-	res := []*empyrean_lens.UserActionRespData{}
-	wg, mu := sync.WaitGroup{}, sync.Mutex{}
-	wg.Add(3)
-	// file 数据
-	go func() {
-		defer wg.Done()
-		data, err := findFile(ctx, req, begin, end, req.OnlyExternal)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "find file error, err:%v", err)
-			return
-		}
-		mu.Lock()
-		res = append(res, data)
-		mu.Unlock()
-	}()
-	// web reader 数据
-	go func() {
-		defer wg.Done()
-		data, err := findWebReader(ctx, req, begin, end, req.OnlyExternal)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "find web reader error, err:%v", err)
-			return
-		}
-		mu.Lock()
-		res = append(res, data)
-		mu.Unlock()
-	}()
-	// multi 数据
-	go func() {
-		defer wg.Done()
-		data, err := findMulti(ctx, req, begin, end, req.OnlyExternal)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "find multi error, err:%v", err)
-			return
-		}
-		mu.Lock()
-		res = append(res, data)
-		mu.Unlock()
-	}()
-	wg.Wait()
-	// 排序组合
-	rows := []*empyrean_lens.UserActionRespRow{}
-	for _, v := range res {
-		rows = append(rows, v.Rows...)
-	}
-	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].CreateTime > rows[j].CreateTime
-	})
-	hasNext := false
-	for _, v := range res {
-		hasNext = hasNext || v.HasNext
-	}
-	hasNext = hasNext || len(rows) >= int(req.Limit+req.Skip)
-	if len(rows) > int(req.Skip) {
-		rows = rows[int(req.Skip):]
-	}
-	if len(rows) > int(req.Limit) {
-		rows = rows[:int(req.Limit)]
-	}
-	// 查数据库替换
-	rows, bizCode := findFromMongo(ctx, rows)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "find from mongo error, err:%v", err)
+	// 直接从bi获取记录
+	rows, bizCode := getUserActionFromBi(ctx, req, begin, end)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "get user action from bi error, err:%v", err)
 		return nil, bizCode
 	}
-	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].CreateTime > rows[j].CreateTime
-	})
 	// 返回
 	return &empyrean_lens.UserActionRespData{
-		HasNext: hasNext,
+		HasNext: len(rows) == int(req.Limit),
 		Rows:    rows,
 	}, nil
+}
+
+// 从宽表中获取
+func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) ([]*empyrean_lens.UserActionRespRow, *consts.BizCode) {
+	status := []int32{}
+	for _, v := range req.Status {
+		status = append(status, int32(v))
+	}
+	if len(status) == 5 {
+		status = append(status, int32(empyrean_lens.ActionStatusEnum_WORTHLESS))
+		status = append(status, int32(empyrean_lens.ActionStatusEnum_LENGTH_ERROR))
+	}
+	var entryInfos []*bi.EntryInfo
+	// 查询数据库
+	if req.Query == "" {
+		// 没有query，直接查询
+		res, err := bi.NewEntryInfoDao().FindByTimeRange(ctx, status, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		entryInfos = res
+	} else {
+		// 有query，先查宽表，再查最近上传未入宽表的
+		res, err := bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		entryInfos = res
+	}
+	// 转换
+	resources := []*empyrean_lens.ResourceInfo{}
+	rows := []*empyrean_lens.UserActionRespRow{}
+	for _, entryInfo := range entryInfos {
+		actionRow := entryInfo.TranslateUserActionRow()
+		rows = append(rows, actionRow)
+		resources = append(resources, actionRow.Resources...)
+	}
+	// 补充resources信息
+	resourceMapping, err := getResourceInfo(ctx, resources)
+	if err != nil {
+		return nil, &consts.QueryRecordError
+	}
+	for _, resource := range resources {
+		key := fmt.Sprintf("%d_%s", resource.EntryType, resource.EntryID)
+		if _, ok := resourceMapping[key]; ok {
+			resource.Title = resourceMapping[key].Title
+			resource.URL = resourceMapping[key].URL
+		}
+	}
+	return rows, nil
+}
+
+func getResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInfo) (map[string]*empyrean_lens.ResourceInfo, *consts.BizCode) {
+	entryIDs := []string{}
+	for _, resource := range resources {
+		entryIDs = append(entryIDs, resource.EntryID)
+	}
+	// 查找记录
+	webReaderEntryInfos, err := bi.NewEntryInfoDao().FindByEntryIDs(ctx, entryIDs)
+	if err != nil {
+		return nil, &consts.QueryRecordError
+	}
+	resourceMapping := map[string]*empyrean_lens.ResourceInfo{}
+	for _, entryInfo := range webReaderEntryInfos {
+		key := fmt.Sprintf("%d_%s", entryInfo.EntryType, entryInfo.EntryID)
+		resourceMapping[key] = &empyrean_lens.ResourceInfo{
+			EntryType: empyrean_lens.EntryTypeEnum(entryInfo.EntryType),
+			EntryID:   entryInfo.EntryID,
+			Title:     entryInfo.Title,
+			URL:       entryInfo.EntryURL,
+		}
+	}
+	return resourceMapping, nil
 }
 
 func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time, onlyOuter bool) (*empyrean_lens.UserActionRespData, *consts.BizCode) {

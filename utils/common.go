@@ -310,5 +310,5 @@ func GetDataType(multiID, copyFromResourceId string, entryType empyrean_lens.Ent
 }
 
 func IsWebChannel(channel int) bool {
-	return Contains([]int{10, 11, 12, 13, 14, 20, 23, 24}, channel)
+	return Contains([]int{10, 11, 12, 13, 14, 20, 23, 24, 30, 31}, channel)
 }

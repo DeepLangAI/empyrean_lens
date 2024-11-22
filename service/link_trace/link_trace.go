@@ -20,17 +20,17 @@ import (
 func LinkTrace(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID string) (interface{}, interface{}, *consts.BizCode) {
 	switch entryType {
 	case empyrean_lens.EntryTypeEnum_FILE:
-		return FileLinkTrace(ctx, entryID)
+		return FileLinkTrace(ctx, entryID, false)
 	case empyrean_lens.EntryTypeEnum_WEB:
-		return WebReaderLinkTrace(ctx, entryID)
+		return WebReaderLinkTrace(ctx, entryID, false)
 	case empyrean_lens.EntryTypeEnum_MULTI:
-		return MultiLinkTrace(ctx, entryID)
+		return MultiLinkTrace(ctx, entryID, false)
 	default:
 		return nil, nil, &consts.RetParamError
 	}
 }
 
-func FileLinkTrace(ctx context.Context, fileID string) (*plugin.File, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
+func FileLinkTrace(ctx context.Context, fileID string, refresh bool) (*plugin.File, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
 	// 获取文章详情
 	fileInfo, err := plugin.NewFileDao().FindFileById(ctx, fileID)
 	if err != nil || fileInfo == nil {
@@ -67,7 +67,7 @@ func FileLinkTrace(ctx context.Context, fileID string) (*plugin.File, *empyrean_
 		return nil, nil, bizCode
 	}
 	// 数据库没有，查阿里云日志
-	if linkTraceGraph == nil {
+	if refresh || linkTraceGraph == nil {
 		start := fileInfo.CreateTime.Add(-1 * time.Hour)
 		end := fileInfo.CreateTime.Add(24 * time.Hour)
 		fileInfo.TranslateEntryInfo()
@@ -87,7 +87,7 @@ func FileLinkTrace(ctx context.Context, fileID string) (*plugin.File, *empyrean_
 	}, nil
 }
 
-func WebReaderLinkTrace(ctx context.Context, webReaderID string) (*plugin.WebReader, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
+func WebReaderLinkTrace(ctx context.Context, webReaderID string, refresh bool) (*plugin.WebReader, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
 	// 获取文章详情
 	webReaderInfo, err := plugin.NewWebReaderDao().FindWebReaderById(ctx, webReaderID)
 	if err != nil || webReaderInfo == nil {
@@ -117,7 +117,7 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string) (*plugin.WebRea
 		return nil, nil, bizCode
 	}
 	// 数据库没有，查阿里云日志
-	if linkTraceGraph == nil {
+	if refresh || linkTraceGraph == nil {
 		start := webReaderInfo.CreateTime.Add(-24 * time.Hour)
 		end := webReaderInfo.CreateTime.Add(24 * time.Hour)
 		linkTraceGraph, bizCode = LinkTraceGraph(ctx, webReaderInfo.TranslateEntryInfo(), start, end, pracessList, pracessMapping)
@@ -136,7 +136,7 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string) (*plugin.WebRea
 	}, nil
 }
 
-func MultiLinkTrace(ctx context.Context, multiID string) (*plugin.MultiModel, *empyrean_lens.MultiDocLinkTraceRespData, *consts.BizCode) {
+func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.MultiModel, *empyrean_lens.MultiDocLinkTraceRespData, *consts.BizCode) {
 	// 获取文章详情
 	multiInfo, err := plugin.NewMultiDao().FindMultiById(ctx, multiID)
 	if err != nil || multiInfo == nil {
@@ -151,14 +151,14 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*plugin.MultiModel, *e
 		go func() {
 			defer wg.Done()
 			if articleEntry.EntryType == consts.EntryTypePDF {
-				_, articleGraph, bizCode := FileLinkTrace(ctx, articleEntry.EntryId)
+				_, articleGraph, bizCode := FileLinkTrace(ctx, articleEntry.EntryId, refresh)
 				if bizCode != nil {
 					hlog.CtxErrorf(ctx, "[FileLinkTrace] get article graph failed, err: %v", bizCode)
 					return
 				}
 				graphMapping.Store(articleEntry.EntryId, articleGraph.LinkGraph)
 			} else {
-				_, articleGraph, bizCode := WebReaderLinkTrace(ctx, articleEntry.EntryId)
+				_, articleGraph, bizCode := WebReaderLinkTrace(ctx, articleEntry.EntryId, refresh)
 				if bizCode != nil {
 					hlog.CtxErrorf(ctx, "[WebReaderLinkTrace] get article graph failed, err: %v", bizCode)
 					return
@@ -176,9 +176,9 @@ func MultiLinkTrace(ctx context.Context, multiID string) (*plugin.MultiModel, *e
 			return
 		}
 		// 数据库没有，查阿里云日志
-		if linkTraceGraph == nil {
+		if refresh || linkTraceGraph == nil {
 			start := multiInfo.CreateTime.Add(-24 * time.Hour)
-			end := multiInfo.CreateTime.Add(24 * time.Hour)
+			end := multiInfo.UpdateTime.Add(24 * time.Hour)
 			linkTraceGraph, bizCode = LinkTraceGraph(ctx, multiInfo.TranslateEntryInfo(), start, end, pracessList, pracessMapping)
 			if bizCode != nil {
 				hlog.CtxErrorf(ctx, "[LinkTraceGraph] get article graph failed, err: %v", bizCode)
@@ -824,7 +824,7 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		}
 	case empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:
 		for _, processLog := range processLogs {
-			if strings.Contains(processLog.Message, "苏秦解析异常") || strings.Contains(processLog.Message, "pdf解析异常") {
+			if strings.Contains(processLog.Message, "苏秦解析异常") || strings.Contains(processLog.Message, "pdf解析异常") || strings.Contains(processLog.Message, "parsing file failed") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}

@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type MultiArticles struct {
@@ -45,7 +46,7 @@ type EntryInfo struct {
 	CreateTime      time.Time          `json:"create_time" bson:"create_time"`
 }
 
-const TableNameEntryInfo = "entry_info"
+const TableNameEntryInfo = "entry_info_timi"
 
 var entryInfoDao *EntryInfoDao
 
@@ -62,7 +63,25 @@ func NewEntryInfoDao() *EntryInfoDao {
 }
 
 func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) error {
-	_, err := biCollection.Collection(TableNameEntryInfo).InsertOne(ctx, entryInfo)
+	// 是否存在
+	info, err := d.FindByEntryIDAndEntryType(ctx, entryInfo.EntryID, entryInfo.EntryType)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)
+		return err
+	}
+	// 存在，upload
+	if info != nil {
+		filter := bson.M{"entry_id": entryInfo.EntryID, "entry_type": entryInfo.EntryType}
+		update := bson.M{"title": entryInfo.Title, "status": entryInfo.Status, "link_status": entryInfo.LinkStatus, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost}
+		_, err := biCollection.Collection(TableNameEntryInfo).UpdateOne(ctx, filter, bson.M{"$set": update})
+		if err != nil {
+			hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)
+			return err
+		}
+		return nil
+	}
+	// 不存在，插入
+	_, err = biCollection.Collection(TableNameEntryInfo).InsertOne(ctx, entryInfo)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)
 		return err
@@ -88,6 +107,67 @@ func (d *EntryInfoDao) FindByEntryIDs(ctx context.Context, entryIDs []string) ([
 	return entryInfos, nil
 }
 
+func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
+	var entryInfos []*EntryInfo
+	filter := bson.M{
+		"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime},
+		"parent_entry_id":   "",
+		"multi_id":          "",
+	}
+	if len(status) > 0 {
+		filter["link_status"] = bson.M{"$in": status}
+	}
+	if onlyOuter {
+		filter["user_type"] = 1
+	}
+	options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := biCollection.Collection(TableNameEntryInfo).Find(ctx, filter, options)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		hlog.CtxErrorf(ctx, "db error, method:FindByTimeRange, err:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if err = cur.All(ctx, &entryInfos); err != nil {
+		hlog.CtxErrorf(ctx, "[FindByTimeRange] mongo all error:%+v", err)
+		return nil, err
+	}
+	return entryInfos, nil
+}
+
+func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
+	var entryInfos []*EntryInfo
+	queryFilter := bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"entry_url": query}, {"multi_articles.entry_id": query}, {"entry_id": query}}}
+	filter := bson.M{"$and": []bson.M{
+		queryFilter,
+		{"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime}},
+		{"parent_entry_id": ""},
+	}}
+	if len(status) > 0 {
+		filter["link_status"] = bson.M{"$in": status}
+	}
+	if onlyOuter {
+		filter["user_type"] = 1
+	}
+	options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := biCollection.Collection(TableNameEntryInfo).Find(ctx, filter, options)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if err = cur.All(ctx, &entryInfos); err != nil {
+		hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
+		return nil, err
+	}
+	return entryInfos, nil
+}
+
 func (d *EntryInfoDao) FindByEntryIDAndEntryType(ctx context.Context, entryID string, entryType int) (*EntryInfo, error) {
 	entryInfo := &EntryInfo{}
 	err := biCollection.Collection(TableNameEntryInfo).FindOne(ctx, bson.M{"entry_id": entryID, "entry_type": entryType}).Decode(entryInfo)
@@ -100,15 +180,6 @@ func (d *EntryInfoDao) FindByEntryIDAndEntryType(ctx context.Context, entryID st
 	}
 	hlog.CtxInfof(ctx, "FindByEntryIDAndSourceTable, entryInfo exist entryId:%s", entryID)
 	return entryInfo, nil
-}
-
-func (d *EntryInfoDao) EntryInfoExist(ctx context.Context, entryID string, entryType int) bool {
-	info, err := d.FindByEntryIDAndEntryType(ctx, entryID, entryType)
-	if err != nil {
-		return true
-	}
-	// 查询不到返回true
-	return info != nil
 }
 
 func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
@@ -133,7 +204,7 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 		Title:      d.Title,
 		Resources:  resources,
 		Cost:       float64(d.Cost) / 1000,
-		Status:     empyrean_lens.ActionStatusEnum(d.Status),
+		Status:     empyrean_lens.ActionStatusEnum(d.LinkStatus),
 		ActionName: utils.GetActionName(d.EntryType, d.MultiID),
 		CreateTime: d.EntryCreateTime.Local().Format(consts.DateTimeTemplate),
 	}

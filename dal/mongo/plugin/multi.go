@@ -180,10 +180,10 @@ func (d *MultiDao) FindSuccessMultiByQueryAndStatusAndTimeRange(ctx context.Cont
 func (d *MultiDao) FindMultiByTimeRangeForSave(ctx context.Context, startTime, endTime time.Time) ([]*MultiModel, error) {
 	var res []*MultiModel
 	queryFilter := []bson.M{}
-	queryFilter = append(queryFilter, bson.M{"create_time": bson.M{"$gte": startTime, "$lt": endTime}})
+	queryFilter = append(queryFilter, bson.M{"update_time": bson.M{"$gte": startTime, "$lt": endTime}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_multi_id": bson.M{"$exists": false}}, {"copy_from_multi_id": ""}}})
 	queryFilter = append(queryFilter, bson.M{"$or": []bson.M{{"copy_from_resource_id": bson.M{"$exists": false}}, {"copy_from_resource_id": ""}}})
-	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}})
+	options := options.Find().SetSort(bson.D{{Key: "update_time", Value: -1}})
 	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, bson.M{"$and": queryFilter}, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindMultiByTimeRangeForSave] mongo find error:%+v", err)

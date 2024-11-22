@@ -38,7 +38,7 @@ type EntryAction struct {
 	CreateTime      time.Time          `json:"create_time" bson:"create_time"`
 }
 
-const TableNameEntryAction = "entry_action"
+const TableNameEntryAction = "entry_action_timi"
 
 type EntryActionDao struct{}
 
@@ -55,7 +55,26 @@ func NewEntryActionDao() *EntryActionDao {
 }
 
 func (d *EntryActionDao) SaveEntryAction(ctx context.Context, entryAction *EntryAction) error {
-	_, err := biCollection.Collection(TableNameEntryAction).InsertOne(ctx, entryAction)
+	// 是否存在
+	info, err := d.FindByEntryTypeEntryIDAndActionType(ctx, entryAction.ActionChannel, entryAction.EntryID, entryAction.ActionType)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:Save EntryAction, err:%+v", err)
+		return err
+	}
+	// 存在，upload
+	if info != nil {
+		filter := bson.M{"entry_id": entryAction.EntryID, "action_channel": entryAction.ActionChannel, "action_type": entryAction.ActionType}
+		update := bson.M{"action_ios": entryAction.ActionIOs, "action_status": entryAction.ActionStatus, "cost": entryAction.Cost}
+		res, err := biCollection.Collection(TableNameEntryAction).UpdateOne(ctx, filter, bson.M{"$set": update})
+		if err != nil {
+			hlog.CtxErrorf(ctx, "db error, method:Save EntryAction, err:%+v", err)
+			return err
+		}
+		hlog.CtxInfof(ctx, "db info, method:Save EntryAction, res:%+v", res)
+		return nil
+	}
+	// 不存在，插入
+	_, err = biCollection.Collection(TableNameEntryAction).InsertOne(ctx, entryAction)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "db error, method:Save EntryAction, err:%+v", err)
 		return err
@@ -91,9 +110,27 @@ func (d *EntryActionDao) FindByEntryTypeEntryID(ctx context.Context, entryType i
 	return entryActions, nil
 }
 
+func (d *EntryActionDao) FindByTraceID(ctx context.Context, traceID string) ([]*EntryAction, error) {
+	var entryActions []*EntryAction
+	cur, err := biCollection.Collection(TableNameEntryAction).Find(ctx, bson.M{"action_ios.trace_id": traceID})
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		hlog.CtxErrorf(ctx, "db error, method:FindByTraceID, err:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if err = cur.All(ctx, &entryActions); err != nil {
+		hlog.CtxErrorf(ctx, "[FindByTraceID] mongo all error:%+v", err)
+		return nil, err
+	}
+	return entryActions, nil
+}
+
 func (d *EntryActionDao) FindByEntryTypeEntryIDAndActionType(ctx context.Context, entryType int, entryID string, actionType int) (*EntryAction, error) {
 	entryAction := &EntryAction{}
-	err := biCollection.Collection(TableNameEntryAction).FindOne(ctx, bson.M{"entry_id": entryID, "action_type": actionType}).Decode(entryAction)
+	err := biCollection.Collection(TableNameEntryAction).FindOne(ctx, bson.M{"entry_id": entryID, "action_channel": entryType, "action_type": actionType}).Decode(entryAction)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil

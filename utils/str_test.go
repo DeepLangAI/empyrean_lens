@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestJSONMarshal(t *testing.T) {
@@ -126,11 +127,16 @@ func TestActionIO_TranslateJsonIO1(t *testing.T) {
 	t.Run("成功", func(t *testing.T) {
 		// 示例 JSON
 		// 读取文件内容
-		fpath := "/Users/wh/Documents/DeepLang/empyrean_lens/longJson"
+		fpath := "/Users/wh/Documents/DeepLang/empyrean_lens/longJson.json"
 		longStr, err := os.ReadFile(fpath)
-		assert.Nil(t, err)
 
+		assert.Nil(t, err)
+		fmt.Println(len(longStr))
+
+		t0 := time.Now()
 		result := TranslateJsonIO(string(longStr))
-		fmt.Println(result)
+		t1 := time.Since(t0)
+		fmt.Println(t1)
+		fmt.Println(result[:10])
 	})
 }

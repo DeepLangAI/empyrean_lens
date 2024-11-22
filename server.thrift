@@ -705,6 +705,22 @@ struct WcdWorthlessRespData{
     9: string oss_key
 }
 
+// 通过trace_id查询对应的entry_id
+struct TraceIdToEntryIdReq{
+    1: string trace_id
+    2: string user_id
+    3: string time
+}
+
+struct TraceIdToEntryIdResp{
+    1: i64 code
+    2: string msg
+    3: TraceIdToEntryIdRespData data
+}
+struct TraceIdToEntryIdRespData{
+    1: string entry_id
+}
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -824,5 +840,9 @@ service LinkTrace{
     // wcd处理结果无意义日志
     WcdWorthlessResp WcdOssWorthlessLogs(1: WcdWorthlessReq req) (
         api.get="/api/v1/link_trace/wcd_worthless"
+    )
+    // 通过trace_id查询对应的entry_id
+    TraceIdToEntryIdResp TraceIdToEntryId(1: TraceIdToEntryIdReq req) (
+        api.get="/api/v1/link_trace/trace_id_to_entry_id"
     )
 }

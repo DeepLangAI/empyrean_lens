@@ -29,8 +29,13 @@ func Save(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID st
 	}
 	defer redis.DelKey(ctx, lockKey)
 	// 查询数据库
-	exist := bi.NewEntryInfoDao().EntryInfoExist(ctx, entryID, int(entryType))
-	if exist {
+	entryInfo, err := bi.NewEntryInfoDao().FindByEntryIDAndEntryType(ctx, entryID, int(entryType))
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get entry info failed, entry_id:%s, err: %v", entryID, err)
+		return &consts.QueryRecordError
+	}
+	// 已经保存过，并且状态为成功，直接返回
+	if entryInfo != nil && (entryInfo.LinkStatus == int(empyrean_lens.ActionStatusEnum_SUCCESS)) {
 		return &consts.ResSuccess
 	}
 	// 根据类型保存数据库
@@ -48,7 +53,7 @@ func Save(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID st
 
 func SaveWebReader(ctx context.Context, entryID string) *consts.BizCode {
 	// 获取node列表
-	webReaderInfo, linkTrace, bizCode := WebReaderLinkTrace(ctx, entryID)
+	webReaderInfo, linkTrace, bizCode := WebReaderLinkTrace(ctx, entryID, true)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
 		return bizCode
@@ -56,7 +61,7 @@ func SaveWebReader(ctx context.Context, entryID string) *consts.BizCode {
 	// 获取node日志
 	nodeLogMapping := map[string]*empyrean_lens.LinkNodeLogRespData{}
 	for _, node := range linkTrace.LinkGraph.Nodes {
-		logData, bizCode := WebReaderNodeLogs(ctx, node.Type, entryID, nil)
+		logData, bizCode := WebReaderNodeLogs(ctx, node.Type, entryID, nil, true)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
 			return bizCode
@@ -74,7 +79,7 @@ func SaveWebReader(ctx context.Context, entryID string) *consts.BizCode {
 
 func SaveFile(ctx context.Context, entryID string) *consts.BizCode {
 	// 获取node列表
-	fileInfo, linkTrace, bizCode := FileLinkTrace(ctx, entryID)
+	fileInfo, linkTrace, bizCode := FileLinkTrace(ctx, entryID, true)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
 		return bizCode
@@ -82,7 +87,7 @@ func SaveFile(ctx context.Context, entryID string) *consts.BizCode {
 	// 获取node日志
 	nodeLogMapping := map[string]*empyrean_lens.LinkNodeLogRespData{}
 	for _, node := range linkTrace.LinkGraph.Nodes {
-		logData, bizCode := FileNodeLogs(ctx, node.Type, entryID, nil)
+		logData, bizCode := FileNodeLogs(ctx, node.Type, entryID, nil, true)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
 			return bizCode
@@ -100,7 +105,7 @@ func SaveFile(ctx context.Context, entryID string) *consts.BizCode {
 
 func SaveMulti(ctx context.Context, entryID string) *consts.BizCode {
 	// 获取node列表
-	multiInfo, linkTrace, bizCode := MultiLinkTrace(ctx, entryID)
+	multiInfo, linkTrace, bizCode := MultiLinkTrace(ctx, entryID, true)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
 		return bizCode
@@ -108,7 +113,7 @@ func SaveMulti(ctx context.Context, entryID string) *consts.BizCode {
 	// 获取multi node日志
 	nodeLogMapping := map[string]*empyrean_lens.LinkNodeLogRespData{}
 	for _, node := range linkTrace.Graph.Nodes {
-		logData, bizCode := MultiNodeLogs(ctx, node.Type, entryID, nil)
+		logData, bizCode := MultiNodeLogs(ctx, node.Type, entryID, nil, true)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
 			return bizCode
@@ -134,7 +139,7 @@ func SaveMulti(ctx context.Context, entryID string) *consts.BizCode {
 
 func SingleSaveToMongo(ctx context.Context, articleInfo interface{}, linkTrace *empyrean_lens.DocLinkTraceRespData, nodeLogMapping map[string]*empyrean_lens.LinkNodeLogRespData) *consts.BizCode {
 	// 获取entryInfo
-	entryInfo := makeEntryInfo(linkTrace.EntryType, articleInfo, linkTrace)
+	entryInfo := makeEntryInfo(ctx, linkTrace.EntryType, articleInfo, linkTrace)
 	// 获取entryAction
 	entryActions := makeEntryActions(entryInfo, linkTrace.LinkGraph.Nodes, nodeLogMapping)
 	// 记录错误原因
@@ -161,7 +166,7 @@ func SingleSaveToMongo(ctx context.Context, articleInfo interface{}, linkTrace *
 
 func MultiSaveToMongo(ctx context.Context, multiInfo *plugin.MultiModel, linkTrace *empyrean_lens.MultiDocLinkTraceRespData, nodeLogMapping map[string]*empyrean_lens.LinkNodeLogRespData) *consts.BizCode {
 	// 获取entryInfo
-	entryInfo := makeEntryInfo(empyrean_lens.EntryTypeEnum_MULTI, multiInfo, linkTrace)
+	entryInfo := makeEntryInfo(ctx, empyrean_lens.EntryTypeEnum_MULTI, multiInfo, linkTrace)
 	// 获取entryAction
 	nodes := []*empyrean_lens.GraphNode{}
 	for _, article := range linkTrace.Articles {
@@ -191,7 +196,7 @@ func MultiSaveToMongo(ctx context.Context, multiInfo *plugin.MultiModel, linkTra
 	return nil
 }
 
-func makeEntryInfo(entryType empyrean_lens.EntryTypeEnum, articleInfo interface{}, linkTrace interface{}) *bi.EntryInfo {
+func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, articleInfo interface{}, linkTrace interface{}) *bi.EntryInfo {
 	entryInfo, nodes := &bi.EntryInfo{}, []*empyrean_lens.GraphNode{}
 	switch entryType {
 	case empyrean_lens.EntryTypeEnum_WEB:
@@ -213,12 +218,22 @@ func makeEntryInfo(entryType empyrean_lens.EntryTypeEnum, articleInfo interface{
 		}
 		entryInfo = multiInfo.TranslateEntryInfo()
 	}
+	// 用户类型
+	userInfos, err := bi.NewUserInfoDao().FindFileByUids(ctx, []string{entryInfo.UserID})
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[makeEntryInfo] faind user type error: %+v", err)
+	}
+	for _, userInfo := range userInfos {
+		if userInfo.UserID == entryInfo.UserID {
+			entryInfo.UserType = int(userInfo.UserType)
+		}
+	}
 	// web端上传的，需要考虑模型生成
 	if !utils.IsWebChannel(entryInfo.ChannelType) {
 		newNodes := []*empyrean_lens.GraphNode{}
 		for _, node := range nodes {
 			if !utils.Contains([]empyrean_lens.LinkNodeTypeEnum{
-				empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+				empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
 				empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
 				empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
 			}, node.Type) {
@@ -250,6 +265,16 @@ func makeEntryInfo(entryType empyrean_lens.EntryTypeEnum, articleInfo interface{
 			entryInfo.LinkStatus = int(empyrean_lens.ActionStatusEnum_FAIL)
 			break
 		}
+		if node.Status == empyrean_lens.ActionStatusEnum_WORTHLESS {
+			entryInfo.FailedAction = node.Name
+			entryInfo.LinkStatus = int(empyrean_lens.ActionStatusEnum_WORTHLESS)
+			break
+		}
+		if node.Status == empyrean_lens.ActionStatusEnum_LENGTH_ERROR {
+			entryInfo.FailedAction = node.Name
+			entryInfo.LinkStatus = int(empyrean_lens.ActionStatusEnum_LENGTH_ERROR)
+			break
+		}
 	}
 	// 是否是拷贝来的
 	if entryType == empyrean_lens.EntryTypeEnum_WEB || entryType == empyrean_lens.EntryTypeEnum_FILE {
@@ -279,6 +304,7 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 			endTime, _ := time.Parse(consts.DateTimeTemplate, node.FinishTime)
 			// 节点日志
 			actionIOs := []*bi.ActionIO{}
+			traceIDMapping := map[string]struct{}{}
 			for _, nodeLog := range nodeLogMapping[node.ID].Logs {
 				if nodeLog.ErrorMsg != "" {
 					continue
@@ -294,9 +320,27 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 				for _, errNodeLog := range nodeLogMapping[node.ID].Logs {
 					if errNodeLog.ErrorMsg != "" && errNodeLog.TraceID == nodeLog.TraceID {
 						actionIO.ActionError = append(actionIO.ActionError, errNodeLog.ErrorMsg)
+						traceIDMapping[errNodeLog.TraceID] = struct{}{}
 					}
 				}
 				actionIOs = append(actionIOs, actionIO)
+			}
+			for _, errNodeLog := range nodeLogMapping[node.ID].Logs {
+				if _, ok := traceIDMapping[errNodeLog.TraceID]; !ok && errNodeLog.ErrorMsg != "" {
+					errorMsgList := []any{errNodeLog.ErrorMsg}
+					for _, errNodeLog2 := range nodeLogMapping[node.ID].Logs {
+						if errNodeLog2.TraceID == errNodeLog.TraceID {
+							errorMsgList = append(errorMsgList, errNodeLog2.ErrorMsg)
+						}
+					}
+					actionIOs = append(actionIOs, &bi.ActionIO{
+						TraceID:      errNodeLog.TraceID,
+						ActionInput:  "",
+						ActionOutput: "",
+						ActionError:  errorMsgList,
+					})
+					traceIDMapping[errNodeLog.TraceID] = struct{}{}
+				}
 			}
 			entryActions = append(entryActions, &bi.EntryAction{
 				ID:              nodeID,

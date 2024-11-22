@@ -2993,6 +2993,15 @@
                 }
                 let currentPageBkp = currentPage;
                 let query = $query.val()
+                let tmpQuery = localStorage.getItem('query')
+                if (tmpQuery && tmpQuery !== query){
+                    query = tmpQuery
+                    $query.val(query)
+                    localStorage.setItem('query', '')
+                    if ($externalSelect.text()[0] === '✅'){
+                        $externalSelect.click()
+                    }
+                }
                 let startTime = $startDatetime.val().replace('T', ' ') + ':00';
                 let endTime = $endDatetime.val().replace('T', ' ') + ':00';
                 // 遍历$statusSelectDropdownContents
@@ -3055,8 +3064,16 @@
             createPage("用户行为", $page)
         }
 
+        function searchByUrlParms(){
+            const urlParams = new URLSearchParams(window.location.search);
+            let query = urlParams.get('query')
+            if (query){
+                localStorage.setItem('query', query)
+            }
+        }
 
         function main() {
+            searchByUrlParms()
             CreateHomePage()
         }
 

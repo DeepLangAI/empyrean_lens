@@ -245,3 +245,31 @@ func WcdOssWorthlessLogs(ctx context.Context, c *app.RequestContext) {
 	resp.Data = data
 	base.SuccessResponse(c, resp)
 }
+
+// TraceIdToEntryId .
+// @router /api/v1/link_trace/trace_id_to_entry_id [GET]
+func TraceIdToEntryId(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.TraceIdToEntryIdReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.JSON(consts.StatusOK, &empyrean_lens.TraceIdToEntryIdResp{
+			Code: int64(consts2.ParamBindJsonError.Code),
+			Msg:  consts2.ParamBindJsonError.Msg,
+		})
+	}
+	data, bizCode := link_trace.TraceIDToEntryID(ctx, req)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[TraceIDToEntryID] error: %+v", bizCode)
+		c.JSON(consts.StatusOK, &empyrean_lens.TraceIdToEntryIdResp{
+			Code: int64(bizCode.Code),
+			Msg:  bizCode.Msg,
+		})
+		return
+	}
+	c.JSON(consts.StatusOK, &empyrean_lens.TraceIdToEntryIdResp{
+		Code: 0,
+		Msg:  "success",
+		Data: data,
+	})
+}

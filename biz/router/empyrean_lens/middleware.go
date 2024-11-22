@@ -311,3 +311,8 @@ func _batchsavelinktraceMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _traceidtoentryidMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

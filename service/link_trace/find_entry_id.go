@@ -29,20 +29,20 @@ func TraceIDToEntryID(ctx context.Context, req empyrean_lens.TraceIdToEntryIdReq
 	}
 	// 从服务日志中获取entry_id
 	timeAt, _ := time.Parse("2006-01-02 15:04:05", req.Time)
-	entryID, err = getEntryIdFromAliyun(ctx, req.UserID, req.TraceID, timeAt)
+	entryIDs, err := getEntryIdFromAliyun(ctx, req.UserID, req.TraceID, timeAt)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[EntryAction] get entry action failed, err: %v", err)
 		return nil, &consts.QueryRecordError
 	}
 	// 判断是否存在
-	if entryID != "" {
-		entryInfoList, err := searchEntryID(ctx, entryID, timeAt)
+	if len(entryIDs) != 0 {
+		entryInfoList, err := searchEntryID(ctx, entryIDs)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[EntryAction] get entry action failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
 		if len(entryInfoList) > 0 {
-			data.EntryID = entryID
+			data.EntryID = entryInfoList[0].EntryID
 		}
 	}
 	return data, nil
@@ -61,42 +61,42 @@ func getEntryIdFromMongo(ctx context.Context, traceID string) (string, *consts.B
 	return "", nil
 }
 
-func getEntryIdFromAliyun(ctx context.Context, userID, traceID string, timeAt time.Time) (string, *consts.BizCode) {
+func getEntryIdFromAliyun(ctx context.Context, userID, traceID string, timeAt time.Time) ([]string, *consts.BizCode) {
 	beginAt, endAt := timeAt.Add(-24*time.Hour), timeAt.Add(24*time.Hour)
 	apiLogs, err := aliyun.BusinessLogQueryByTraceIdUserId(ctx, userID, traceID, beginAt, endAt)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[getEntryIdFromAliyun] get api logs failed, err: %v", err)
-		return "", &consts.QueryRecordError
+		return []string{}, &consts.QueryRecordError
 	}
+	entryIDs := []string{}
 	for _, log := range apiLogs {
-		entryID := getEntryIdFromLog(log)
-		if entryID != "" {
-			return entryID, nil
-		}
+		entryIDs = append(entryIDs, getEntryIdFromLog(log)...)
 	}
-	return "", nil
+	return entryIDs, nil
 }
 
-func getEntryIdFromLog(log aliyun.EndToEndLog) string {
-	var entryId string
-	if entryId = extractEntryId(log.Message, "summary lock pair_locker, resource_id:"); entryId != "" {
-		return entryId
+func getEntryIdFromLog(log aliyun.EndToEndLog) []string {
+	var entryIds []string
+	if entryIds = extractEntryIds(log.Message, "summary lock pair_locker, resource_id:"); len(entryIds) != 0 {
+		return entryIds
 	}
-	if entryId = extractEntryId(log.Message, "file_id:"); entryId != "" {
-		return entryId
+	if entryIds = extractEntryIds(log.Message, "file_id:"); len(entryIds) != 0 {
+		return entryIds
 	}
-	if entryId = extractEntryId(log.Message, "url_id:"); entryId != "" {
-		return entryId
+	if entryIds = extractEntryIds(log.Message, "url_id:"); len(entryIds) != 0 {
+		return entryIds
 	}
-	if entryId = extractEntryId(log.Message, "\"resource_ids\":"); entryId != "" {
-		return entryId
+	if entryIds = extractEntryIds(log.Message, "\"resource_ids\":"); len(entryIds) != 0 {
+		return entryIds
 	}
-	return ""
+	if entryIds = extractEntryIds(log.Message, "\"resource_ids\":"); len(entryIds) != 0 {
+		return entryIds
+	}
+	return []string{}
 }
 
-func searchEntryID(ctx context.Context, entryID string, timeAt time.Time) ([]*bi.EntryInfo, *consts.BizCode) {
-	beginAt, endAt := timeAt.Add(-24*time.Hour), timeAt.Add(24*time.Hour)
-	entryList, err := bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, entryID, []int32{}, false, beginAt, endAt, 0, 10)
+func searchEntryID(ctx context.Context, entryIDs []string) ([]*bi.EntryInfo, *consts.BizCode) {
+	entryList, err := bi.NewEntryInfoDao().FindByEntryIDsWithoutCopy(ctx, entryIDs)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[searchEntryID] get entry info failed, err: %v", err)
 		return nil, &consts.QueryRecordError
@@ -104,14 +104,15 @@ func searchEntryID(ctx context.Context, entryID string, timeAt time.Time) ([]*bi
 	return entryList, nil
 }
 
-func extractEntryId(message, contains string) string {
+func extractEntryIds(message, contains string) []string {
 	idx := strings.Index(message, contains)
 	reg := regexp.MustCompile(`[a-z0-9]+`)
-	entryIDs := reg.FindAllString(message[idx+1:], -1)
-	for _, entryID := range entryIDs {
-		if _, err := primitive.ObjectIDFromHex(entryID); err == nil {
-			return entryID
+	matchs := reg.FindAllString(message[idx+1:], -1)
+	entryIDs := []string{}
+	for _, match := range matchs {
+		if _, err := primitive.ObjectIDFromHex(match); err == nil {
+			entryIDs = append(entryIDs, match)
 		}
 	}
-	return ""
+	return entryIDs
 }

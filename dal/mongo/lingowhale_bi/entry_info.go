@@ -46,7 +46,7 @@ type EntryInfo struct {
 	CreateTime      time.Time          `json:"create_time" bson:"create_time"`
 }
 
-const TableNameEntryInfo = "entry_info_timi"
+const TableNameEntryInfo = "entry_info"
 
 var entryInfoDao *EntryInfoDao
 

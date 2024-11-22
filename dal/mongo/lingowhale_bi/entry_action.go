@@ -38,7 +38,7 @@ type EntryAction struct {
 	CreateTime      time.Time          `json:"create_time" bson:"create_time"`
 }
 
-const TableNameEntryAction = "entry_action_timi"
+const TableNameEntryAction = "entry_action"
 
 type EntryActionDao struct{}
 

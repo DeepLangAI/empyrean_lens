@@ -2742,6 +2742,10 @@
                     .text('✅ ' + statusToString(ActionStatusEnum.UNREACHED))
                     .attr('status', ActionStatusEnum.UNREACHED)
                     .css({'background': COLORS[ActionStatusEnum.UNREACHED]}),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + statusToString(ActionStatusEnum.LENGTH_ERROR))
+                    .attr('status', ActionStatusEnum.LENGTH_ERROR)
+                    .css({'background': COLORS[ActionStatusEnum.LENGTH_ERROR]}),
             ]
             // 批量添加点击事件
             for (let i = 0; i < $statusSelectDropdownContents.length; i++) {

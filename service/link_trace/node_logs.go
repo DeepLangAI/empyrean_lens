@@ -406,7 +406,7 @@ func getReqAndResp(ctx context.Context, multiID, entryID string, node *empyrean_
 	// 遍历
 	for _, input := range apiLogsInput {
 		output := aliyun.FileProcessLog{
-			Asctime: time.Now(),
+			Asctime: input.Asctime,
 		}
 		for _, apiLogOuput := range apiLogsOuput {
 			if apiLogOuput.TraceId == input.TraceId && apiLogOuput.Asctime.After(input.Asctime) {
@@ -433,7 +433,7 @@ func getReqAndResp(ctx context.Context, multiID, entryID string, node *empyrean_
 		apiLogs = append(apiLogs, apiLog)
 		// 错误和安全日志
 		for _, errLog := range errLogs {
-			if errLog.EnterTime >= apiLog.EnterTime && errLog.EnterTime <= apiLog.FinishTime {
+			if errLog.EnterTime >= apiLog.EnterTime {
 				apiLogs = append(apiLogs, errLog)
 			}
 		}
@@ -449,12 +449,12 @@ func getReqAndResp(ctx context.Context, multiID, entryID string, node *empyrean_
 	}
 	if len(apiLogs) == 0 && (len(errLogs) > 0 || len(safeLogs) > 0) {
 		for _, errLog := range errLogs {
-			if errLog.EnterTime >= node.EnterTime && errLog.EnterTime <= node.FinishTime {
+			if errLog.EnterTime >= node.EnterTime {
 				apiLogs = append(apiLogs, errLog)
 			}
 		}
 		for _, safeLog := range safeLogs {
-			if safeLog.EnterTime >= node.EnterTime && safeLog.EnterTime <= node.FinishTime {
+			if safeLog.EnterTime >= node.EnterTime {
 				apiLogs = append(apiLogs, safeLog)
 			}
 		}

@@ -29,7 +29,8 @@ func TraceIDToEntryID(ctx context.Context, req empyrean_lens.TraceIdToEntryIdReq
 	}
 	// 从服务日志中获取entry_id
 	timeAt, _ := time.Parse("2006-01-02 15:04:05", req.Time)
-	entryIDs, err := getEntryIdFromAliyun(ctx, req.UserID, req.TraceID, timeAt)
+	beginAt, endAt := timeAt.Add(-24*time.Hour), timeAt.Add(24*time.Hour)
+	entryIDs, err := getEntryIdFromAliyun(ctx, req.UserID, req.TraceID, beginAt, endAt)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[EntryAction] get entry action failed, err: %v", err)
 		return nil, &consts.QueryRecordError
@@ -61,8 +62,7 @@ func getEntryIdFromMongo(ctx context.Context, traceID string) (string, *consts.B
 	return "", nil
 }
 
-func getEntryIdFromAliyun(ctx context.Context, userID, traceID string, timeAt time.Time) ([]string, *consts.BizCode) {
-	beginAt, endAt := timeAt.Add(-24*time.Hour), timeAt.Add(24*time.Hour)
+func getEntryIdFromAliyun(ctx context.Context, userID, traceID string, beginAt, endAt time.Time) ([]string, *consts.BizCode) {
 	apiLogs, err := aliyun.BusinessLogQueryByTraceIdUserId(ctx, userID, traceID, beginAt, endAt)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[getEntryIdFromAliyun] get api logs failed, err: %v", err)
@@ -72,7 +72,17 @@ func getEntryIdFromAliyun(ctx context.Context, userID, traceID string, timeAt ti
 	for _, log := range apiLogs {
 		entryIDs = append(entryIDs, getEntryIdFromLog(log)...)
 	}
-	return entryIDs, nil
+	// entryids去重
+	newEntryIDs := []string{}
+	entryIDMap := make(map[string]bool)
+	for _, entryID := range entryIDs {
+		if _, ok := entryIDMap[entryID]; ok {
+			continue
+		}
+		entryIDMap[entryID] = true
+		newEntryIDs = append(newEntryIDs, entryID)
+	}
+	return newEntryIDs, nil
 }
 
 func getEntryIdFromLog(log aliyun.EndToEndLog) []string {

@@ -409,7 +409,7 @@ func getReqAndResp(ctx context.Context, multiID, entryID string, node *empyrean_
 			Asctime: time.Now(),
 		}
 		for _, apiLogOuput := range apiLogsOuput {
-			if apiLogOuput.TraceId == input.TraceId {
+			if apiLogOuput.TraceId == input.TraceId && apiLogOuput.Asctime.After(input.Asctime) {
 				output = apiLogOuput
 				break
 			}
@@ -422,6 +422,13 @@ func getReqAndResp(ctx context.Context, multiID, entryID string, node *empyrean_
 			Input:      GetReqRespFromMsg(input.Message, "req:"),
 			Output:     GetReqRespFromMsg(output.Message, "resp:"),
 			TraceID:    input.TraceId,
+		}
+		// edu 解析输出特殊处理，asicII 转 字符串
+		if node.Type == empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH {
+			apiLogOutput := eduOutputTranslate(apiLog.Output)
+			if apiLogOutput != "" {
+				apiLog.Output = apiLogOutput
+			}
 		}
 		apiLogs = append(apiLogs, apiLog)
 		// 错误和安全日志
@@ -483,9 +490,9 @@ func getErrorAndSafeLogs(ctx context.Context, multiID, entryID string, node *emp
 			traceIDs = append(traceIDs, apiLog.TraceId)
 		}
 	}
-	// if len(traceIDs) == 0 && node.TraceID != "" {
-	// 	traceIDs = append(traceIDs, node.TraceID)
-	// }
+	if len(traceIDs) == 0 && node.TraceID != "" {
+		traceIDs = append(traceIDs, node.TraceID)
+	}
 	// 多文档大纲，需要获取所有traceID
 	if node.Type == empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH {
 		traceLogs, err := aliyun.MultiOutlineErrorTraceQuery(ctx, multiID, start, end)
@@ -604,4 +611,27 @@ func GetReqRespFromMsg(msg string, substr string) string {
 		return output
 	}
 	return ""
+}
+
+func eduOutputTranslate(output string) string {
+	// json解析
+	outputList := []interface{}{}
+	err := json.Unmarshal([]byte(output), &outputList)
+	if err != nil {
+		return output
+	}
+	// 转换格式
+	translateList := []string{}
+	for _, outputStr := range outputList {
+		outputJson := map[string]interface{}{}
+		err = json.Unmarshal([]byte(outputStr.(string)), &outputJson)
+		if err != nil {
+			return output
+		}
+		data, _ := json.Marshal(outputJson)
+		translateList = append(translateList, string(data))
+	}
+	// json编码
+	data, _ := json.Marshal(translateList)
+	return string(data)
 }

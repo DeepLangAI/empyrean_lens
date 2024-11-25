@@ -80,6 +80,39 @@ func (d *MultiDao) FindMultiById(ctx context.Context, id string) (*MultiModel, e
 	return res[0], nil
 }
 
+func (d *MultiDao) FindMultiByIds(ctx context.Context, ids []string) ([]*MultiModel, error) {
+	var res []*MultiModel
+
+	objIDs := []primitive.ObjectID{}
+	for _, id := range ids {
+		_id, _ := primitive.ObjectIDFromHex(id)
+		objIDs = append(objIDs, _id)
+	}
+	filter := bson.M{"$and": []bson.M{
+		// {"is_deleted": false},
+		{"_id": bson.M{"$in": objIDs}}},
+	}
+	cur, err := pluginCollection.Collection(TableNameMulti).Find(ctx, filter)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiById] mongo find error:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	if err = cur.All(ctx, &res); err != nil {
+		hlog.CtxErrorf(ctx, "[FindMultiById] mongo all error:%+v", err)
+		return nil, err
+	}
+	if len(res) == 0 {
+		return nil, nil
+	}
+	for _, r := range res {
+		r.CreateTime = r.CreateTime.Local()
+		r.UpdateTime = r.UpdateTime.Local()
+	}
+	return res, nil
+}
+
 func (d *MultiDao) FindMultiByQueryAndStatusAndTimeRange(ctx context.Context, query string, startTime, endTime time.Time, skip, limit int64) ([]*MultiModel, error) {
 	var res []*MultiModel
 	queryFilter := []bson.M{}

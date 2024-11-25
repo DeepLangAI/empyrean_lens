@@ -2816,7 +2816,7 @@ func OutlineModelOutResponseQuery(ctx context.Context, resourceId string, timeBe
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 func MultiSingleAnalysisModelOutRequestQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest single_analysis req" and "%s"`
+	query := `(message: "OutRequest single_analysis req" or message: "multi_analysis_node-repeater_analysis start.") and "%s"`
 	query = fmt.Sprintf(query, multiID)
 	hlog.CtxDebugf(ctx, "MultiSingleAnalysisModelOutRequestQuery query: %s", query)
 

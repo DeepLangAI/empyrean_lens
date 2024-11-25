@@ -42,6 +42,14 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 		hlog.CtxErrorf(ctx, "get user action from bi error, err:%v", err)
 		return nil, bizCode
 	}
+	// 如果为空，并且query不为空，查询traceID
+	if len(rows) == 0 && req.Query != "" {
+		rows, bizCode = getUserActionFromTraceID(ctx, req, begin, end)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "get user action from bi error, err:%v", err)
+			return nil, bizCode
+		}
+	}
 	// 返回
 	return &empyrean_lens.UserActionRespData{
 		HasNext: len(rows) == int(req.Limit),
@@ -79,10 +87,56 @@ func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, b
 	// 转换
 	resources := []*empyrean_lens.ResourceInfo{}
 	rows := []*empyrean_lens.UserActionRespRow{}
+	multiEntryInfo := []*empyrean_lens.UserActionRespRow{}
 	for _, entryInfo := range entryInfos {
 		actionRow := entryInfo.TranslateUserActionRow()
 		rows = append(rows, actionRow)
 		resources = append(resources, actionRow.Resources...)
+		if actionRow.EntryType == empyrean_lens.EntryTypeEnum_MULTI {
+			multiEntryInfo = append(multiEntryInfo, actionRow)
+		}
+	}
+	// 补充resources信息
+	resourceMapping, err := getResourceInfo(ctx, resources)
+	if err != nil {
+		return nil, &consts.QueryRecordError
+	}
+	for _, resource := range resources {
+		key := fmt.Sprintf("%d_%s", resource.EntryType, resource.EntryID)
+		if _, ok := resourceMapping[key]; ok {
+			resource.Title = resourceMapping[key].Title
+			resource.URL = resourceMapping[key].URL
+		}
+	}
+	// 过滤多文档生成失败后跳过的子文档
+	err = filterMultiResourceInfo(ctx, multiEntryInfo)
+	if err != nil {
+		return nil, &consts.QueryRecordError
+	}
+	return rows, nil
+}
+
+func getUserActionFromTraceID(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) ([]*empyrean_lens.UserActionRespRow, *consts.BizCode) {
+	// 查找traceID
+	entryIDs, err := getEntryIdFromAliyun(ctx, "", req.Query, begin, end)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[getUserActionFromTraceID] get entry from aliyun failed, err: %v", err)
+		return nil, &consts.QueryRecordError
+	}
+	// 判断是否存在
+	resources := []*empyrean_lens.ResourceInfo{}
+	rows := []*empyrean_lens.UserActionRespRow{}
+	if len(entryIDs) != 0 {
+		entryInfoList, err := searchEntryID(ctx, entryIDs)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[getUserActionFromTraceID] get entry action failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		for _, entryInfo := range entryInfoList {
+			row := entryInfo.TranslateUserActionRow()
+			rows = append(rows, row)
+			resources = append(resources, row.Resources...)
+		}
 	}
 	// 补充resources信息
 	resourceMapping, err := getResourceInfo(ctx, resources)
@@ -120,6 +174,38 @@ func getResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInf
 		}
 	}
 	return resourceMapping, nil
+}
+
+func filterMultiResourceInfo(ctx context.Context, multiEntryInfo []*empyrean_lens.UserActionRespRow) *consts.BizCode {
+	entryIDs := []string{}
+	for _, entryInfo := range multiEntryInfo {
+		entryIDs = append(entryIDs, entryInfo.EntryID)
+	}
+	// 查找记录
+	multiEntryInfos, err := plugin.NewMultiDao().FindMultiByIds(ctx, entryIDs)
+	if err != nil {
+		return &consts.QueryRecordError
+	}
+	multiEntryInfoMapping := map[string]*plugin.MultiModel{}
+	for _, entryInfo := range multiEntryInfos {
+		multiEntryInfoMapping[entryInfo.ID.Hex()] = entryInfo
+	}
+	// 过滤
+	for _, multi := range multiEntryInfo {
+		if multiInfo, ok := multiEntryInfoMapping[multi.EntryID]; ok {
+			newResources := []*empyrean_lens.ResourceInfo{}
+			for _, resource := range multi.Resources {
+				for _, article := range multiInfo.ArticleList {
+					if article.EntryId == resource.EntryID {
+						newResources = append(newResources, resource)
+						break
+					}
+				}
+			}
+			multi.Resources = newResources
+		}
+	}
+	return nil
 }
 
 func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time, onlyOuter bool) (*empyrean_lens.UserActionRespData, *consts.BizCode) {

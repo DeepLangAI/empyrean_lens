@@ -2,12 +2,13 @@ package bi
 
 import (
 	"context"
-	"empyrean_lens/biz/model/empyrean_lens"
-	"empyrean_lens/consts"
-	"empyrean_lens/utils"
 	"errors"
 	"sync"
 	"time"
+
+	"empyrean_lens/biz/model/empyrean_lens"
+	"empyrean_lens/consts"
+	"empyrean_lens/utils"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
@@ -72,7 +73,7 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 	// 存在，upload
 	if info != nil {
 		filter := bson.M{"entry_id": entryInfo.EntryID, "entry_type": entryInfo.EntryType}
-		update := bson.M{"title": entryInfo.Title, "status": entryInfo.Status, "link_status": entryInfo.LinkStatus, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost}
+		update := bson.M{"title": entryInfo.Title, "status": entryInfo.Status, "link_status": entryInfo.LinkStatus, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles}
 		_, err := biCollection.Collection(TableNameEntryInfo).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)

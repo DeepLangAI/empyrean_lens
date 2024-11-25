@@ -3,6 +3,7 @@ package bi
 import (
 	"context"
 	"errors"
+	"os"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
 
+	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
@@ -21,6 +23,8 @@ type ActionIO struct {
 	TraceID      string `json:"trace_id" bson:"trace_id"`
 	ActionInput  any    `json:"action_input" bson:"action_input"`
 	ActionOutput any    `json:"action_output" bson:"action_output"`
+	InputAt      string `json:"input_at" bson:"input_at"`
+	OutputAt     string `json:"output_at" bson:"output_at"`
 	ActionError  []any  `json:"action_error" bson:"action_error"`
 }
 
@@ -38,8 +42,6 @@ type EntryAction struct {
 	CreateTime      time.Time          `json:"create_time" bson:"create_time"`
 }
 
-const TableNameEntryAction = "entry_action"
-
 type EntryActionDao struct{}
 
 var (
@@ -54,6 +56,17 @@ func NewEntryActionDao() *EntryActionDao {
 	return entryActionDao
 }
 
+func TableNameEntryAction() string {
+	env := os.Getenv(constslib.ModeEnvName)
+	if env == "" {
+		env = "test"
+	}
+	if env == "test" {
+		return "entry_action_timi"
+	}
+	return "entry_action"
+}
+
 func (d *EntryActionDao) SaveEntryAction(ctx context.Context, entryAction *EntryAction) error {
 	// 是否存在
 	info, err := d.FindByEntryTypeEntryIDAndActionType(ctx, entryAction.ActionChannel, entryAction.EntryID, entryAction.ActionType)
@@ -65,7 +78,7 @@ func (d *EntryActionDao) SaveEntryAction(ctx context.Context, entryAction *Entry
 	if info != nil {
 		filter := bson.M{"entry_id": entryAction.EntryID, "action_channel": entryAction.ActionChannel, "action_type": entryAction.ActionType}
 		update := bson.M{"action_ios": entryAction.ActionIOs, "action_status": entryAction.ActionStatus, "cost": entryAction.Cost}
-		res, err := biCollection.Collection(TableNameEntryAction).UpdateOne(ctx, filter, bson.M{"$set": update})
+		res, err := biCollection.Collection(TableNameEntryAction()).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryAction, err:%+v", err)
 			return err
@@ -74,7 +87,7 @@ func (d *EntryActionDao) SaveEntryAction(ctx context.Context, entryAction *Entry
 		return nil
 	}
 	// 不存在，插入
-	_, err = biCollection.Collection(TableNameEntryAction).InsertOne(ctx, entryAction)
+	_, err = biCollection.Collection(TableNameEntryAction()).InsertOne(ctx, entryAction)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "db error, method:Save EntryAction, err:%+v", err)
 		return err
@@ -94,7 +107,7 @@ func (d *EntryActionDao) SaveBatchEntryAction(ctx context.Context, entryActions 
 
 func (d *EntryActionDao) FindByEntryTypeEntryID(ctx context.Context, entryType int, entryID string) ([]*EntryAction, error) {
 	var entryActions []*EntryAction
-	cur, err := biCollection.Collection(TableNameEntryAction).Find(ctx, bson.M{"entry_id": entryID, "action_channel": entryType})
+	cur, err := biCollection.Collection(TableNameEntryAction()).Find(ctx, bson.M{"entry_id": entryID, "action_channel": entryType})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -112,7 +125,7 @@ func (d *EntryActionDao) FindByEntryTypeEntryID(ctx context.Context, entryType i
 
 func (d *EntryActionDao) FindByTraceID(ctx context.Context, traceID string) ([]*EntryAction, error) {
 	var entryActions []*EntryAction
-	cur, err := biCollection.Collection(TableNameEntryAction).Find(ctx, bson.M{"action_ios.trace_id": traceID})
+	cur, err := biCollection.Collection(TableNameEntryAction()).Find(ctx, bson.M{"action_ios.trace_id": traceID})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -130,7 +143,7 @@ func (d *EntryActionDao) FindByTraceID(ctx context.Context, traceID string) ([]*
 
 func (d *EntryActionDao) FindByEntryTypeEntryIDAndActionType(ctx context.Context, entryType int, entryID string, actionType int) (*EntryAction, error) {
 	entryAction := &EntryAction{}
-	err := biCollection.Collection(TableNameEntryAction).FindOne(ctx, bson.M{"entry_id": entryID, "action_channel": entryType, "action_type": actionType}).Decode(entryAction)
+	err := biCollection.Collection(TableNameEntryAction()).FindOne(ctx, bson.M{"entry_id": entryID, "action_channel": entryType, "action_type": actionType}).Decode(entryAction)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -143,7 +156,7 @@ func (d *EntryActionDao) FindByEntryTypeEntryIDAndActionType(ctx context.Context
 
 func (d *EntryActionDao) FindByEntryIDAndActionTypeAndTraceId(ctx context.Context, entryID string, actionType int, traceId string) (*EntryAction, error) {
 	entryAction := &EntryAction{}
-	err := biCollection.Collection(TableNameEntryAction).FindOne(ctx, bson.M{"entry_id": entryID, "action_type": actionType, "trace_id": traceId}).Decode(entryAction)
+	err := biCollection.Collection(TableNameEntryAction()).FindOne(ctx, bson.M{"entry_id": entryID, "action_type": actionType, "trace_id": traceId}).Decode(entryAction)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -185,9 +198,11 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 	logs := []*empyrean_lens.ApiLog{}
 	for _, log := range d.ActionError {
 		logs = append(logs, &empyrean_lens.ApiLog{
-			TraceID:  d.TraceID,
-			ErrorMsg: log.(string),
-			HTTPCode: 500,
+			TraceID:    d.TraceID,
+			ErrorMsg:   log.(string),
+			HTTPCode:   500,
+			EnterTime:  d.InputAt,
+			FinishTime: d.OutputAt,
 		})
 	}
 	input := d.ActionInput.(string)
@@ -202,12 +217,14 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 	}
 	output = utils.TranslateJsonIO(output)
 
-	if d.ActionOutput != nil && d.ActionInput != nil {
+	if input != "" && output != "" {
 		logs = append(logs, &empyrean_lens.ApiLog{
-			TraceID:  d.TraceID,
-			Input:    input,
-			Output:   output,
-			HTTPCode: 200,
+			TraceID:    d.TraceID,
+			Input:      input,
+			Output:     output,
+			EnterTime:  d.InputAt,
+			FinishTime: d.OutputAt,
+			HTTPCode:   200,
 		})
 	}
 	return logs

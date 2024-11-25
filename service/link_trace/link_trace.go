@@ -848,8 +848,11 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 			if strings.Contains(processLog.Message, "OutRequest") && strings.Contains(processLog.Message, "resp:") {
 				// 解码
 				msg := GetReqRespFromMsg(processLog.Message, "resp:")
-				if !strings.Contains(msg, "\\\"code\\\": 0") {
+				if !strings.Contains(msg, "\\\"code\\\": 0") && !strings.Contains(msg, "data too long") {
 					return empyrean_lens.ActionStatusEnum_FAIL
+				}
+				if strings.Contains(msg, "data too long") {
+					return empyrean_lens.ActionStatusEnum_SUCCESS
 				}
 			}
 		}

@@ -3,6 +3,7 @@ package bi
 import (
 	"context"
 	"errors"
+	"os"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
 
+	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -47,8 +49,6 @@ type EntryInfo struct {
 	CreateTime      time.Time          `json:"create_time" bson:"create_time"`
 }
 
-const TableNameEntryInfo = "entry_info"
-
 var entryInfoDao *EntryInfoDao
 
 type EntryInfoDao struct {
@@ -63,6 +63,17 @@ func NewEntryInfoDao() *EntryInfoDao {
 	return entryInfoDao
 }
 
+func TableNameEntryInfo() string {
+	env := os.Getenv(constslib.ModeEnvName)
+	if env == "" {
+		env = "test"
+	}
+	if env == "test" {
+		return "entry_info_timi"
+	}
+	return "entry_info"
+}
+
 func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) error {
 	// 是否存在
 	info, err := d.FindByEntryIDAndEntryType(ctx, entryInfo.EntryID, entryInfo.EntryType)
@@ -74,7 +85,7 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 	if info != nil {
 		filter := bson.M{"entry_id": entryInfo.EntryID, "entry_type": entryInfo.EntryType}
 		update := bson.M{"title": entryInfo.Title, "status": entryInfo.Status, "link_status": entryInfo.LinkStatus, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles}
-		_, err := biCollection.Collection(TableNameEntryInfo).UpdateOne(ctx, filter, bson.M{"$set": update})
+		_, err := biCollection.Collection(TableNameEntryInfo()).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)
 			return err
@@ -82,7 +93,7 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 		return nil
 	}
 	// 不存在，插入
-	_, err = biCollection.Collection(TableNameEntryInfo).InsertOne(ctx, entryInfo)
+	_, err = biCollection.Collection(TableNameEntryInfo()).InsertOne(ctx, entryInfo)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)
 		return err
@@ -92,7 +103,7 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 
 func (d *EntryInfoDao) FindByEntryIDs(ctx context.Context, entryIDs []string) ([]*EntryInfo, error) {
 	var entryInfos []*EntryInfo
-	cur, err := biCollection.Collection(TableNameEntryInfo).Find(ctx, bson.M{"entry_id": bson.M{"$in": entryIDs}})
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"entry_id": bson.M{"$in": entryIDs}})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -122,7 +133,7 @@ func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, only
 		filter["user_type"] = 1
 	}
 	options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
-	cur, err := biCollection.Collection(TableNameEntryInfo).Find(ctx, filter, options)
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter, options)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -153,7 +164,7 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 		filter["user_type"] = 1
 	}
 	options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
-	cur, err := biCollection.Collection(TableNameEntryInfo).Find(ctx, filter, options)
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter, options)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -175,7 +186,7 @@ func (d *EntryInfoDao) FindByEntryIDsWithoutCopy(ctx context.Context, entryIDs [
 		{"parent_entry_id": ""},
 		{"entry_id": bson.M{"$in": entryIDs}},
 	}}
-	cur, err := biCollection.Collection(TableNameEntryInfo).Find(ctx, filter)
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -193,7 +204,7 @@ func (d *EntryInfoDao) FindByEntryIDsWithoutCopy(ctx context.Context, entryIDs [
 
 func (d *EntryInfoDao) FindByEntryIDAndEntryType(ctx context.Context, entryID string, entryType int) (*EntryInfo, error) {
 	entryInfo := &EntryInfo{}
-	err := biCollection.Collection(TableNameEntryInfo).FindOne(ctx, bson.M{"entry_id": entryID, "entry_type": entryType}).Decode(entryInfo)
+	err := biCollection.Collection(TableNameEntryInfo()).FindOne(ctx, bson.M{"entry_id": entryID, "entry_type": entryType}).Decode(entryInfo)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil

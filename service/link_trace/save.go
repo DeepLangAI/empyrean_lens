@@ -314,6 +314,8 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 				actionIO := &bi.ActionIO{
 					TraceID:      nodeLog.TraceID,
 					ActionInput:  input,
+					InputAt:      nodeLog.EnterTime,
+					OutputAt:     nodeLog.FinishTime,
 					ActionOutput: output,
 					ActionError:  []any{},
 				}
@@ -338,6 +340,8 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 						ActionInput:  "",
 						ActionOutput: "",
 						ActionError:  errorMsgList,
+						InputAt:      errNodeLog.EnterTime,
+						OutputAt:     errNodeLog.FinishTime,
 					})
 					traceIDMapping[errNodeLog.TraceID] = struct{}{}
 				}

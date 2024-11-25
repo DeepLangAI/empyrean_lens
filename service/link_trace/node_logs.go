@@ -409,7 +409,7 @@ func getReqAndResp(ctx context.Context, multiID, entryID string, node *empyrean_
 			Asctime: input.Asctime,
 		}
 		for _, apiLogOuput := range apiLogsOuput {
-			if apiLogOuput.TraceId == input.TraceId && apiLogOuput.Asctime.After(input.Asctime) {
+			if apiLogOuput.TraceId == input.TraceId && (apiLogOuput.Asctime.After(input.Asctime) || apiLogOuput.Asctime.Equal(input.Asctime)) {
 				output = apiLogOuput
 				break
 			}

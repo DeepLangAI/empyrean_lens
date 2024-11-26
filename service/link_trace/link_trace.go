@@ -242,8 +242,10 @@ func findLinkTraceFromMongo(ctx context.Context, entryType int, entryID string,
 	for _, action := range entryActions {
 		actionType := empyrean_lens.LinkNodeTypeEnum(action.ActionType)
 		if _, ok := nodeMappingNew[actionType]; !ok {
-			nodeMappingNew[actionType] = action.TranslateGraphNode()
-			nodes = append(nodes, nodeMappingNew[actionType])
+			if utils.Contains(pracessList, empyrean_lens.LinkNodeTypeEnum(action.ActionType)) {
+				nodeMappingNew[actionType] = action.TranslateGraphNode()
+				nodes = append(nodes, nodeMappingNew[actionType])
+			}
 		}
 	}
 	edges := map[empyrean_lens.NodeId][]empyrean_lens.NodeId{}

@@ -573,6 +573,8 @@ struct DocLinkTraceRespData {
     4: EntryTypeEnum entry_type
     5: string title
     6: string user_id
+    7: string action_name
+    8: ActionStatusEnum status
 }
 
 // 多文档链路查询
@@ -598,6 +600,9 @@ struct MultiDocLinkTraceRespData {
     2: double cost // end to end cost, seconds
     3: list<Article> articles // 多文档中包含的文档列表
     4: string title
+    5: string user_id
+    6: string action_name
+    7: ActionStatusEnum status
 }
 
 // 链路中某节点的日志查询
@@ -617,6 +622,11 @@ struct LinkNodeLogRespData {
     1: list<ApiLog> logs
     2: double cost // end to end cost, seconds
     3: string trace_id
+    4: string title
+    5: string user_id
+    6: string action_name
+    7: string node_name 
+    8: ActionStatusEnum status
 }
 
 struct ApiLog {

@@ -17,6 +17,9 @@ import (
 
 func TraceIDToEntryID(ctx context.Context, req empyrean_lens.TraceIdToEntryIdReq) (*empyrean_lens.TraceIdToEntryIdRespData, *consts.BizCode) {
 	// 查询 trace_id 对应的服务日志
+	if req.TraceID == "" || req.TraceID == "-" {
+		return nil, &consts.RetParamError
+	}
 	entryID, err := getEntryIdFromMongo(ctx, req.TraceID)
 	data := &empyrean_lens.TraceIdToEntryIdRespData{}
 	if err != nil {

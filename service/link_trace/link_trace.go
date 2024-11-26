@@ -78,12 +78,16 @@ func FileLinkTrace(ctx context.Context, fileID string, refresh bool) (*plugin.Fi
 		}
 	}
 	// 返回
+	_, status := utils.GetStatusFromNode(linkTraceGraph.Nodes)
 	return fileInfo, &empyrean_lens.DocLinkTraceRespData{
-		LinkGraph: linkTraceGraph,
-		Cost:      getLinkTraceCost(linkTraceGraph.Nodes),
-		EntryID:   fileID,
-		EntryType: empyrean_lens.EntryTypeEnum_FILE,
-		Title:     "",
+		LinkGraph:  linkTraceGraph,
+		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
+		EntryID:    fileID,
+		EntryType:  empyrean_lens.EntryTypeEnum_FILE,
+		Title:      "",
+		UserID:     fileInfo.UserID,
+		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_FILE), fileInfo.MultiId),
+		Status:     status,
 	}, nil
 }
 
@@ -127,12 +131,16 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string, refresh bool) (
 		}
 	}
 	// 返回
+	_, status := utils.GetStatusFromNode(linkTraceGraph.Nodes)
 	return webReaderInfo, &empyrean_lens.DocLinkTraceRespData{
-		LinkGraph: linkTraceGraph,
-		Cost:      getLinkTraceCost(linkTraceGraph.Nodes),
-		EntryID:   webReaderID,
-		EntryType: empyrean_lens.EntryTypeEnum_WEB,
-		Title:     "",
+		LinkGraph:  linkTraceGraph,
+		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
+		EntryID:    webReaderID,
+		EntryType:  empyrean_lens.EntryTypeEnum_WEB,
+		Title:      "",
+		UserID:     webReaderInfo.UserID,
+		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), webReaderInfo.MultiId),
+		Status:     status,
 	}, nil
 }
 
@@ -205,11 +213,15 @@ func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.
 	}
 	linkTraceGraph := mergeLinkTraceGraph(graphs, multiGrap)
 	// 返回
+	_, status := utils.GetStatusFromNode(linkTraceGraph.Nodes)
 	return multiInfo, &empyrean_lens.MultiDocLinkTraceRespData{
-		Graph:    multiGrap,
-		Cost:     getLinkTraceCost(linkTraceGraph.Nodes),
-		Articles: articles,
-		Title:    "",
+		Graph:      multiGrap,
+		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
+		Articles:   articles,
+		Title:      "",
+		UserID:     multiInfo.UserID,
+		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_MULTI), ""),
+		Status:     status,
 	}, nil
 }
 

@@ -47,6 +47,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 		rows, bizCode = getUserActionFromTraceID(ctx, req, begin, end)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "get user action from bi error, err:%v", err)
+			rows = []*empyrean_lens.UserActionRespRow{}
 		}
 	}
 	// 返回

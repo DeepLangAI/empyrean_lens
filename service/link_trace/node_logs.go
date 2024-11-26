@@ -14,6 +14,7 @@ import (
 	"empyrean_lens/dal/aliyun"
 	bi "empyrean_lens/dal/mongo/lingowhale_bi"
 	"empyrean_lens/dal/mongo/plugin"
+	"empyrean_lens/utils"
 
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -77,10 +78,15 @@ func FileNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, 
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
 	}
+	_, status := utils.GetStatusFromNode([]*empyrean_lens.GraphNode{node})
 	return &empyrean_lens.LinkNodeLogRespData{
-		Logs:    apiLogs,
-		Cost:    getNodeCost(apiLogs),
-		TraceID: traceID,
+		Logs:       apiLogs,
+		Cost:       getNodeCost(apiLogs),
+		TraceID:    traceID,
+		Title:      fileInfo.Name,
+		UserID:     fileInfo.UserID,
+		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_FILE), fileInfo.MultiId),
+		Status:     status,
 	}, nil
 }
 
@@ -124,10 +130,15 @@ func WebReaderNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeE
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
 	}
+	_, status := utils.GetStatusFromNode([]*empyrean_lens.GraphNode{node})
 	return &empyrean_lens.LinkNodeLogRespData{
-		Logs:    apiLogs,
-		Cost:    getNodeCost(apiLogs),
-		TraceID: traceID,
+		Logs:       apiLogs,
+		Cost:       getNodeCost(apiLogs),
+		TraceID:    traceID,
+		Title:      webReaderInfo.Title,
+		UserID:     webReaderInfo.UserID,
+		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), webReaderInfo.MultiId),
+		Status:     status,
 	}, nil
 }
 
@@ -171,10 +182,15 @@ func MultiNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum,
 		hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 		return nil, bizCode
 	}
+	_, status := utils.GetStatusFromNode([]*empyrean_lens.GraphNode{node})
 	return &empyrean_lens.LinkNodeLogRespData{
-		Logs:    apiLogs,
-		Cost:    getNodeCost(apiLogs),
-		TraceID: traceID,
+		Logs:       apiLogs,
+		Cost:       getNodeCost(apiLogs),
+		TraceID:    traceID,
+		Title:      multiInfo.Title,
+		UserID:     multiInfo.UserID,
+		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), ""),
+		Status:     status,
 	}, nil
 }
 

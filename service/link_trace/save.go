@@ -3,7 +3,6 @@ package link_trace
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"empyrean_lens/biz/model/empyrean_lens"
@@ -243,39 +242,10 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 		nodes = newNodes
 	}
 	// 计数耗时
-	start, end := "", ""
-	for _, node := range nodes {
-		if start == "" || (node.EnterTime != "" && strings.Compare(start, node.EnterTime) > 0) {
-			start = node.EnterTime
-		}
-		if node.FinishTime != "" && strings.Compare(end, node.FinishTime) < 0 {
-			end = node.FinishTime
-		}
-	}
-	if start != "" && end != "" {
-		startTime, _ := time.Parse(consts.DateTimeTemplate, start)
-		endTime, _ := time.Parse(consts.DateTimeTemplate, end)
-		entryInfo.Cost = int(endTime.Sub(startTime).Milliseconds())
-	}
+	entryInfo.Cost = utils.GetCostFromNodes(nodes)
 	// 获取状态，失败原因
-	entryInfo.LinkStatus = int(empyrean_lens.ActionStatusEnum_SUCCESS)
-	for _, node := range nodes {
-		if node.Status == empyrean_lens.ActionStatusEnum_FAIL {
-			entryInfo.FailedAction = node.Name
-			entryInfo.LinkStatus = int(empyrean_lens.ActionStatusEnum_FAIL)
-			break
-		}
-		if node.Status == empyrean_lens.ActionStatusEnum_WORTHLESS {
-			entryInfo.FailedAction = node.Name
-			entryInfo.LinkStatus = int(empyrean_lens.ActionStatusEnum_WORTHLESS)
-			break
-		}
-		if node.Status == empyrean_lens.ActionStatusEnum_LENGTH_ERROR {
-			entryInfo.FailedAction = node.Name
-			entryInfo.LinkStatus = int(empyrean_lens.ActionStatusEnum_LENGTH_ERROR)
-			break
-		}
-	}
+	fileAction, status := utils.GetStatusFromNode(nodes)
+	entryInfo.FailedAction, entryInfo.LinkStatus = fileAction, int(status)
 	// 是否是拷贝来的
 	if entryType == empyrean_lens.EntryTypeEnum_WEB || entryType == empyrean_lens.EntryTypeEnum_FILE {
 		if entryInfo.LinkStatus == int(empyrean_lens.ActionStatusEnum_FAIL) {

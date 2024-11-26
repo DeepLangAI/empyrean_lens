@@ -19827,11 +19827,13 @@ func (p *DocLinkTraceResp) String() string {
 type DocLinkTraceRespData struct {
 	LinkGraph *TraceLinkGraph `thrift:"link_graph,1" form:"link_graph" json:"link_graph" query:"link_graph"`
 	// end to end cost, seconds
-	Cost      float64       `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
-	EntryID   string        `thrift:"entry_id,3" form:"entry_id" json:"entry_id" query:"entry_id"`
-	EntryType EntryTypeEnum `thrift:"entry_type,4" form:"entry_type" json:"entry_type" query:"entry_type"`
-	Title     string        `thrift:"title,5" form:"title" json:"title" query:"title"`
-	UserID    string        `thrift:"user_id,6" form:"user_id" json:"user_id" query:"user_id"`
+	Cost       float64          `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
+	EntryID    string           `thrift:"entry_id,3" form:"entry_id" json:"entry_id" query:"entry_id"`
+	EntryType  EntryTypeEnum    `thrift:"entry_type,4" form:"entry_type" json:"entry_type" query:"entry_type"`
+	Title      string           `thrift:"title,5" form:"title" json:"title" query:"title"`
+	UserID     string           `thrift:"user_id,6" form:"user_id" json:"user_id" query:"user_id"`
+	ActionName string           `thrift:"action_name,7" form:"action_name" json:"action_name" query:"action_name"`
+	Status     ActionStatusEnum `thrift:"status,8" form:"status" json:"status" query:"status"`
 }
 
 func NewDocLinkTraceRespData() *DocLinkTraceRespData {
@@ -19867,6 +19869,14 @@ func (p *DocLinkTraceRespData) GetUserID() (v string) {
 	return p.UserID
 }
 
+func (p *DocLinkTraceRespData) GetActionName() (v string) {
+	return p.ActionName
+}
+
+func (p *DocLinkTraceRespData) GetStatus() (v ActionStatusEnum) {
+	return p.Status
+}
+
 var fieldIDToName_DocLinkTraceRespData = map[int16]string{
 	1: "link_graph",
 	2: "cost",
@@ -19874,6 +19884,8 @@ var fieldIDToName_DocLinkTraceRespData = map[int16]string{
 	4: "entry_type",
 	5: "title",
 	6: "user_id",
+	7: "action_name",
+	8: "status",
 }
 
 func (p *DocLinkTraceRespData) IsSetLinkGraph() bool {
@@ -19942,6 +19954,22 @@ func (p *DocLinkTraceRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 6:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField8(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -20039,6 +20067,28 @@ func (p *DocLinkTraceRespData) ReadField6(iprot thrift.TProtocol) error {
 	p.UserID = _field
 	return nil
 }
+func (p *DocLinkTraceRespData) ReadField7(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ActionName = _field
+	return nil
+}
+func (p *DocLinkTraceRespData) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field ActionStatusEnum
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = ActionStatusEnum(v)
+	}
+	p.Status = _field
+	return nil
+}
 
 func (p *DocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -20068,6 +20118,14 @@ func (p *DocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField6(oprot); err != nil {
 			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
 			goto WriteFieldError
 		}
 	}
@@ -20188,6 +20246,40 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *DocLinkTraceRespData) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("action_name", thrift.STRING, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ActionName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *DocLinkTraceRespData) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("status", thrift.I32, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
 }
 
 func (p *DocLinkTraceRespData) String() string {
@@ -20858,8 +20950,11 @@ type MultiDocLinkTraceRespData struct {
 	// end to end cost, seconds
 	Cost float64 `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
 	// 多文档中包含的文档列表
-	Articles []*Article `thrift:"articles,3" form:"articles" json:"articles" query:"articles"`
-	Title    string     `thrift:"title,4" form:"title" json:"title" query:"title"`
+	Articles   []*Article       `thrift:"articles,3" form:"articles" json:"articles" query:"articles"`
+	Title      string           `thrift:"title,4" form:"title" json:"title" query:"title"`
+	UserID     string           `thrift:"user_id,5" form:"user_id" json:"user_id" query:"user_id"`
+	ActionName string           `thrift:"action_name,6" form:"action_name" json:"action_name" query:"action_name"`
+	Status     ActionStatusEnum `thrift:"status,7" form:"status" json:"status" query:"status"`
 }
 
 func NewMultiDocLinkTraceRespData() *MultiDocLinkTraceRespData {
@@ -20887,11 +20982,26 @@ func (p *MultiDocLinkTraceRespData) GetTitle() (v string) {
 	return p.Title
 }
 
+func (p *MultiDocLinkTraceRespData) GetUserID() (v string) {
+	return p.UserID
+}
+
+func (p *MultiDocLinkTraceRespData) GetActionName() (v string) {
+	return p.ActionName
+}
+
+func (p *MultiDocLinkTraceRespData) GetStatus() (v ActionStatusEnum) {
+	return p.Status
+}
+
 var fieldIDToName_MultiDocLinkTraceRespData = map[int16]string{
 	1: "graph",
 	2: "cost",
 	3: "articles",
 	4: "title",
+	5: "user_id",
+	6: "action_name",
+	7: "status",
 }
 
 func (p *MultiDocLinkTraceRespData) IsSetGraph() bool {
@@ -20944,6 +21054,30 @@ func (p *MultiDocLinkTraceRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 4:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField4(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 5:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField5(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 6:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField7(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -21030,6 +21164,39 @@ func (p *MultiDocLinkTraceRespData) ReadField4(iprot thrift.TProtocol) error {
 	p.Title = _field
 	return nil
 }
+func (p *MultiDocLinkTraceRespData) ReadField5(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.UserID = _field
+	return nil
+}
+func (p *MultiDocLinkTraceRespData) ReadField6(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ActionName = _field
+	return nil
+}
+func (p *MultiDocLinkTraceRespData) ReadField7(iprot thrift.TProtocol) error {
+
+	var _field ActionStatusEnum
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = ActionStatusEnum(v)
+	}
+	p.Status = _field
+	return nil
+}
 
 func (p *MultiDocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -21051,6 +21218,18 @@ func (p *MultiDocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField4(oprot); err != nil {
 			fieldId = 4
+			goto WriteFieldError
+		}
+		if err = p.writeField5(oprot); err != nil {
+			fieldId = 5
+			goto WriteFieldError
+		}
+		if err = p.writeField6(oprot); err != nil {
+			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
 			goto WriteFieldError
 		}
 	}
@@ -21145,6 +21324,57 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
+}
+
+func (p *MultiDocLinkTraceRespData) writeField5(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("user_id", thrift.STRING, 5); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.UserID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
+}
+
+func (p *MultiDocLinkTraceRespData) writeField6(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("action_name", thrift.STRING, 6); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ActionName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *MultiDocLinkTraceRespData) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("status", thrift.I32, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
 }
 
 func (p *MultiDocLinkTraceRespData) String() string {
@@ -21623,8 +21853,13 @@ func (p *LinkNodeLogResp) String() string {
 type LinkNodeLogRespData struct {
 	Logs []*ApiLog `thrift:"logs,1" form:"logs" json:"logs" query:"logs"`
 	// end to end cost, seconds
-	Cost    float64 `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
-	TraceID string  `thrift:"trace_id,3" form:"trace_id" json:"trace_id" query:"trace_id"`
+	Cost       float64          `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
+	TraceID    string           `thrift:"trace_id,3" form:"trace_id" json:"trace_id" query:"trace_id"`
+	Title      string           `thrift:"title,4" form:"title" json:"title" query:"title"`
+	UserID     string           `thrift:"user_id,5" form:"user_id" json:"user_id" query:"user_id"`
+	ActionName string           `thrift:"action_name,6" form:"action_name" json:"action_name" query:"action_name"`
+	NodeName   string           `thrift:"node_name,7" form:"node_name" json:"node_name" query:"node_name"`
+	Status     ActionStatusEnum `thrift:"status,8" form:"status" json:"status" query:"status"`
 }
 
 func NewLinkNodeLogRespData() *LinkNodeLogRespData {
@@ -21643,10 +21878,35 @@ func (p *LinkNodeLogRespData) GetTraceID() (v string) {
 	return p.TraceID
 }
 
+func (p *LinkNodeLogRespData) GetTitle() (v string) {
+	return p.Title
+}
+
+func (p *LinkNodeLogRespData) GetUserID() (v string) {
+	return p.UserID
+}
+
+func (p *LinkNodeLogRespData) GetActionName() (v string) {
+	return p.ActionName
+}
+
+func (p *LinkNodeLogRespData) GetNodeName() (v string) {
+	return p.NodeName
+}
+
+func (p *LinkNodeLogRespData) GetStatus() (v ActionStatusEnum) {
+	return p.Status
+}
+
 var fieldIDToName_LinkNodeLogRespData = map[int16]string{
 	1: "logs",
 	2: "cost",
 	3: "trace_id",
+	4: "title",
+	5: "user_id",
+	6: "action_name",
+	7: "node_name",
+	8: "status",
 }
 
 func (p *LinkNodeLogRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -21687,6 +21947,46 @@ func (p *LinkNodeLogRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 3:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 4:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField4(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 5:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField5(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 6:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField8(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -21765,6 +22065,61 @@ func (p *LinkNodeLogRespData) ReadField3(iprot thrift.TProtocol) error {
 	p.TraceID = _field
 	return nil
 }
+func (p *LinkNodeLogRespData) ReadField4(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Title = _field
+	return nil
+}
+func (p *LinkNodeLogRespData) ReadField5(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.UserID = _field
+	return nil
+}
+func (p *LinkNodeLogRespData) ReadField6(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ActionName = _field
+	return nil
+}
+func (p *LinkNodeLogRespData) ReadField7(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.NodeName = _field
+	return nil
+}
+func (p *LinkNodeLogRespData) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field ActionStatusEnum
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = ActionStatusEnum(v)
+	}
+	p.Status = _field
+	return nil
+}
 
 func (p *LinkNodeLogRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -21782,6 +22137,26 @@ func (p *LinkNodeLogRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField3(oprot); err != nil {
 			fieldId = 3
+			goto WriteFieldError
+		}
+		if err = p.writeField4(oprot); err != nil {
+			fieldId = 4
+			goto WriteFieldError
+		}
+		if err = p.writeField5(oprot); err != nil {
+			fieldId = 5
+			goto WriteFieldError
+		}
+		if err = p.writeField6(oprot); err != nil {
+			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
 			goto WriteFieldError
 		}
 	}
@@ -21859,6 +22234,91 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField4(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("title", thrift.STRING, 4); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Title); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField5(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("user_id", thrift.STRING, 5); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.UserID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField6(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("action_name", thrift.STRING, 6); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ActionName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("node_name", thrift.STRING, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.NodeName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("status", thrift.I32, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
 }
 
 func (p *LinkNodeLogRespData) String() string {

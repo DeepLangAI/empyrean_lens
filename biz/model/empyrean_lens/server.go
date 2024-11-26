@@ -19834,6 +19834,7 @@ type DocLinkTraceRespData struct {
 	UserID     string           `thrift:"user_id,6" form:"user_id" json:"user_id" query:"user_id"`
 	ActionName string           `thrift:"action_name,7" form:"action_name" json:"action_name" query:"action_name"`
 	Status     ActionStatusEnum `thrift:"status,8" form:"status" json:"status" query:"status"`
+	TimeAt     string           `thrift:"time_at,9" form:"time_at" json:"time_at" query:"time_at"`
 }
 
 func NewDocLinkTraceRespData() *DocLinkTraceRespData {
@@ -19877,6 +19878,10 @@ func (p *DocLinkTraceRespData) GetStatus() (v ActionStatusEnum) {
 	return p.Status
 }
 
+func (p *DocLinkTraceRespData) GetTimeAt() (v string) {
+	return p.TimeAt
+}
+
 var fieldIDToName_DocLinkTraceRespData = map[int16]string{
 	1: "link_graph",
 	2: "cost",
@@ -19886,6 +19891,7 @@ var fieldIDToName_DocLinkTraceRespData = map[int16]string{
 	6: "user_id",
 	7: "action_name",
 	8: "status",
+	9: "time_at",
 }
 
 func (p *DocLinkTraceRespData) IsSetLinkGraph() bool {
@@ -19970,6 +19976,14 @@ func (p *DocLinkTraceRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 8:
 			if fieldTypeId == thrift.I32 {
 				if err = p.ReadField8(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 9:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField9(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -20089,6 +20103,17 @@ func (p *DocLinkTraceRespData) ReadField8(iprot thrift.TProtocol) error {
 	p.Status = _field
 	return nil
 }
+func (p *DocLinkTraceRespData) ReadField9(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TimeAt = _field
+	return nil
+}
 
 func (p *DocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -20126,6 +20151,10 @@ func (p *DocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField8(oprot); err != nil {
 			fieldId = 8
+			goto WriteFieldError
+		}
+		if err = p.writeField9(oprot); err != nil {
+			fieldId = 9
 			goto WriteFieldError
 		}
 	}
@@ -20280,6 +20309,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
+func (p *DocLinkTraceRespData) writeField9(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time_at", thrift.STRING, 9); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TimeAt); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
 }
 
 func (p *DocLinkTraceRespData) String() string {
@@ -20955,6 +21001,7 @@ type MultiDocLinkTraceRespData struct {
 	UserID     string           `thrift:"user_id,5" form:"user_id" json:"user_id" query:"user_id"`
 	ActionName string           `thrift:"action_name,6" form:"action_name" json:"action_name" query:"action_name"`
 	Status     ActionStatusEnum `thrift:"status,7" form:"status" json:"status" query:"status"`
+	TimeAt     string           `thrift:"time_at,8" form:"time_at" json:"time_at" query:"time_at"`
 }
 
 func NewMultiDocLinkTraceRespData() *MultiDocLinkTraceRespData {
@@ -20994,6 +21041,10 @@ func (p *MultiDocLinkTraceRespData) GetStatus() (v ActionStatusEnum) {
 	return p.Status
 }
 
+func (p *MultiDocLinkTraceRespData) GetTimeAt() (v string) {
+	return p.TimeAt
+}
+
 var fieldIDToName_MultiDocLinkTraceRespData = map[int16]string{
 	1: "graph",
 	2: "cost",
@@ -21002,6 +21053,7 @@ var fieldIDToName_MultiDocLinkTraceRespData = map[int16]string{
 	5: "user_id",
 	6: "action_name",
 	7: "status",
+	8: "time_at",
 }
 
 func (p *MultiDocLinkTraceRespData) IsSetGraph() bool {
@@ -21078,6 +21130,14 @@ func (p *MultiDocLinkTraceRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 7:
 			if fieldTypeId == thrift.I32 {
 				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField8(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -21197,6 +21257,17 @@ func (p *MultiDocLinkTraceRespData) ReadField7(iprot thrift.TProtocol) error {
 	p.Status = _field
 	return nil
 }
+func (p *MultiDocLinkTraceRespData) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TimeAt = _field
+	return nil
+}
 
 func (p *MultiDocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -21230,6 +21301,10 @@ func (p *MultiDocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField7(oprot); err != nil {
 			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
 			goto WriteFieldError
 		}
 	}
@@ -21375,6 +21450,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *MultiDocLinkTraceRespData) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time_at", thrift.STRING, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TimeAt); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
 }
 
 func (p *MultiDocLinkTraceRespData) String() string {

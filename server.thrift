@@ -575,6 +575,7 @@ struct DocLinkTraceRespData {
     6: string user_id
     7: string action_name
     8: ActionStatusEnum status
+    9: string time_at
 }
 
 // 多文档链路查询
@@ -603,6 +604,7 @@ struct MultiDocLinkTraceRespData {
     5: string user_id
     6: string action_name
     7: ActionStatusEnum status
+    8: string time_at
 }
 
 // 链路中某节点的日志查询

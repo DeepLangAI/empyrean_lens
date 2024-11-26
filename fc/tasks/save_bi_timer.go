@@ -19,8 +19,8 @@ type BatchSaveLinkTraceEventEvent struct {
 func HandleBatchSaveLinkTraceEvent(ctx context.Context) error {
 	hlog.CtxInfof(ctx, "batch save link trace begin")
 
-	beginAt := time.Now().Add(-20 * time.Minute).Unix()
-	endAt := beginAt + 19*time.Minute.Milliseconds()/1000
+	beginAt := time.Now().Add(-10 * time.Minute).Unix()
+	endAt := beginAt + 9*time.Minute.Milliseconds()/1000
 	event := &BatchSaveLinkTraceEventEvent{
 		BeginAt: beginAt,
 		EndAt:   endAt,
@@ -61,7 +61,7 @@ func doBatchSave(ctx context.Context, event *BatchSaveLinkTraceEventEvent) error
 		"end_at":     event.EndAt,
 	}
 	hlog.CtxInfof(ctx, "batch save link trace begin, req:%v", req)
-	_, err := utils.HttpPost(ctx, conf.GetConfig().Api.BatchSaveLinkTrace, map[string]string{"Channel": "local", "env": "trace-20241122"}, req)
+	_, err := utils.HttpPost(ctx, conf.GetConfig().Api.BatchSaveLinkTrace, map[string]string{"Channel": "local", "env": "fc-20241124"}, req)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "do batch save error:%v", err)
 	}

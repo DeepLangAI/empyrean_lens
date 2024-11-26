@@ -347,6 +347,18 @@ func NodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_le
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return "", nil, &consts.QueryRecordError
 		}
+		if len(apiLogsInput) == 0 && len(apiLogsOuput) == 0 {
+			apiLogsInput, err = aliyun.AbstractModelOutRequestQueryByTraceID(ctx, node.TraceID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[AbstractModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
+				return "", nil, &consts.QueryRecordError
+			}
+			apiLogsOuput, err = aliyun.AbstractModelOutResponseQueryByTraceID(ctx, node.TraceID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQueryByTraceID] get api logs failed, err: %v", err)
+				return "", nil, &consts.QueryRecordError
+			}
+		}
 		return getReqAndResp(ctx, entryInfo.MultiID, entryInfo.EntryID, node, apiLogsInput, apiLogsOuput)
 	case empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:
 		apiLogsInput, err := aliyun.ViewPointModelOutRequestQuery(ctx, entryInfo.EntryID, start, end)
@@ -370,6 +382,18 @@ func NodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_le
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return "", nil, &consts.QueryRecordError
+		}
+		if len(apiLogsInput) == 0 && len(apiLogsOuput) == 0 {
+			apiLogsInput, err = aliyun.OutlineModelOutRequestQueryByTraceID(ctx, node.TraceID, entryInfo.UserID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[OutlineModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
+				return "", nil, &consts.QueryRecordError
+			}
+			apiLogsOuput, err = aliyun.OutlineModelOutResponseQueryByTraceID(ctx, node.TraceID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQueryByTraceID] get api logs failed, err: %v", err)
+				return "", nil, &consts.QueryRecordError
+			}
 		}
 		return getReqAndResp(ctx, entryInfo.MultiID, entryInfo.EntryID, node, apiLogsInput, apiLogsOuput)
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH:
@@ -418,7 +442,10 @@ func getReqAndResp(ctx context.Context, multiID, entryID string, node *empyrean_
 		return "", []*empyrean_lens.ApiLog{}, nil
 	}
 	// 错误和安全日志
-	errLogs, safeLogs := getErrorAndSafeLogs(ctx, multiID, entryID, node, apiLogsInput)
+	errLogs, safeLogs := []*empyrean_lens.ApiLog{}, []*empyrean_lens.ApiLog{}
+	if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS {
+		errLogs, safeLogs = getErrorAndSafeLogs(ctx, multiID, entryID, node, apiLogsInput)
+	}
 	// 遍历
 	for _, input := range apiLogsInput {
 		output := aliyun.FileProcessLog{

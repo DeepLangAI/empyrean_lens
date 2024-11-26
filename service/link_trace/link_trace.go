@@ -84,10 +84,11 @@ func FileLinkTrace(ctx context.Context, fileID string, refresh bool) (*plugin.Fi
 		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
 		EntryID:    fileID,
 		EntryType:  empyrean_lens.EntryTypeEnum_FILE,
-		Title:      "",
+		Title:      fileInfo.Name,
 		UserID:     fileInfo.UserID,
 		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_FILE), fileInfo.MultiId),
 		Status:     status,
+		TimeAt:     fileInfo.CreateTime.Format(consts.DateTimeTemplate),
 	}, nil
 }
 
@@ -137,10 +138,11 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string, refresh bool) (
 		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
 		EntryID:    webReaderID,
 		EntryType:  empyrean_lens.EntryTypeEnum_WEB,
-		Title:      "",
+		Title:      webReaderInfo.Title,
 		UserID:     webReaderInfo.UserID,
 		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), webReaderInfo.MultiId),
 		Status:     status,
+		TimeAt:     webReaderInfo.CreateTime.Format(consts.DateTimeTemplate),
 	}, nil
 }
 
@@ -218,10 +220,11 @@ func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.
 		Graph:      multiGrap,
 		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
 		Articles:   articles,
-		Title:      "",
+		Title:      multiInfo.Title,
 		UserID:     multiInfo.UserID,
 		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_MULTI), ""),
 		Status:     status,
+		TimeAt:     multiInfo.CreateTime.Format(consts.DateTimeTemplate),
 	}, nil
 }
 
@@ -531,24 +534,31 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 				return processLogsToNode(processType, append([]aliyun.FileProcessLog{processLogs1[0]}, processLogs2...)), nil
 			}
 		}
-		// 插件没有传文章ID，导致匹配不上，使用输入输出兜底
-		apiLogsInput, err := aliyun.AbstractModelOutRequestQuery(ctx, entryInfo.EntryID, start, end)
+		// 小程序没有传文章ID，导致匹配不上，使用输入输出兜底
+		traceIDLogs, err := aliyun.WechatFcTraceIDQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[AbstractModelOutRequestQuery] get api logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		apiLogsOuput, err := aliyun.AbstractModelOutResponseQuery(ctx, entryInfo.EntryID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQuery] get api logs failed, err: %v", err)
-			return nil, &consts.QueryRecordError
-		}
 		processLogs := []aliyun.FileProcessLog{}
-		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
-			processLogs = append(processLogs, apiLogsInput[0])
-			for _, apiLogOuput := range apiLogsOuput {
-				if apiLogOuput.TraceId == apiLogsInput[0].TraceId {
-					processLogs = append([]aliyun.FileProcessLog{apiLogsInput[0]}, apiLogOuput)
-					break
+		if len(traceIDLogs) > 0 && traceIDLogs[0].TraceId != "" {
+			apiLogsInput, err := aliyun.AbstractModelOutRequestQueryByTraceID(ctx, traceIDLogs[0].TraceId, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[AbstractModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			apiLogsOuput, err := aliyun.AbstractModelOutResponseQueryByTraceID(ctx, traceIDLogs[0].TraceId, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQueryByTraceID] get api logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+				processLogs = append(processLogs, apiLogsInput[0])
+				for _, apiLogOuput := range apiLogsOuput {
+					if apiLogOuput.TraceId == apiLogsInput[0].TraceId {
+						processLogs = append([]aliyun.FileProcessLog{apiLogsInput[0]}, apiLogOuput)
+						break
+					}
 				}
 			}
 		}
@@ -569,6 +579,26 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[OutlineModelOutResponseQuery] get api logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
+		}
+		// 小程序没有传文章ID，导致匹配不上，使用输入输出兜底
+		if len(apiLogsInput) == 0 && len(apiLogsOuput) == 0 {
+			traceIDLogs, err := aliyun.WechatFcTraceIDQuery(ctx, entryInfo.EntryID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[AbstractModelOutRequestQuery] get api logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			if len(traceIDLogs) > 0 && traceIDLogs[0].TraceId != "" {
+				apiLogsInput, err = aliyun.OutlineModelOutRequestQueryByTraceID(ctx, traceIDLogs[0].TraceId, entryInfo.UserID, start, end)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[OutlineModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
+					return nil, &consts.QueryRecordError
+				}
+				apiLogsOuput, err = aliyun.OutlineModelOutResponseQueryByTraceID(ctx, traceIDLogs[0].TraceId, start, end)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQueryByTraceID] get api logs failed, err: %v", err)
+					return nil, &consts.QueryRecordError
+				}
+			}
 		}
 		processLogs := []aliyun.FileProcessLog{}
 		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {

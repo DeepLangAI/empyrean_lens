@@ -4,8 +4,8 @@ logger:
   log_level: "debug"
 
 api:
-  save_link_trace: "https://qa-empyrean-lens.lingowhale.com/api/v1/link_trace/save"
-  batch_save_link_trace: "https://qa-empyrean-lens.lingowhale.com/api/v1/link_trace/batch_save"
+  save_link_trace: "https://empyrean-lens.lingowhale.com/api/v1/link_trace/save"
+  batch_save_link_trace: "https://empyrean-lens.lingowhale.com/api/v1/link_trace/batch_save"
 
 mns:
   save_link_trace:

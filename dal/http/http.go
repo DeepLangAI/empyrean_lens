@@ -76,7 +76,7 @@ type UploadLogInfo struct {
 
 func (s *shenceDal) GetUploadInfoByTime(ctx context.Context, dateStr string) ([]UploadLogInfo, error) {
 
-	sqlStr := fmt.Sprintf("SELECT distinct_id,trace_id,failure_reason,file_size,file_name,file_type,$ip,date,time FROM events WHERE event='UploadFile' and product_name='lingowhale' and  date = '%s'", dateStr)
+	sqlStr := fmt.Sprintf("SELECT distinct_id,trace_id,failure_reason,file_size,file_name,file_type,$ip,date,time FROM events WHERE event='Web_UploadFileFailure' and product_name='lingowhale' and  date = '%s'", dateStr)
 
 	logs, err := s.executeSql(ctx, sqlStr)
 	if err != nil {
@@ -101,7 +101,7 @@ func (s *shenceDal) GetUploadInfoByTime(ctx context.Context, dateStr string) ([]
 		item.FailureReason = log["failure_reason"]
 		item.Date = dateStr
 		item.Time = log["time"]
-		hlog.Info("upload log: %v", item)
+		hlog.Info("upload log:", item)
 		UploadInfos = append(UploadInfos, item)
 	}
 	return UploadInfos, err
@@ -139,7 +139,7 @@ func (s *shenceDal) GetGenerateErrLogByTime(ctx context.Context, dateStr string)
 		item.Code = log["code"]
 		item.Date = dateStr
 		item.Time = log["time"]
-		hlog.Info("upload log: %v", item)
+		hlog.Info("upload log: ", item)
 		UploadInfos = append(UploadInfos, item)
 	}
 	return UploadInfos, err

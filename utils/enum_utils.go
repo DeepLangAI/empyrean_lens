@@ -1,8 +1,12 @@
 package utils
 
 import (
-	"empyrean_lens/biz/model/empyrean_lens"
 	"fmt"
+	"strings"
+	"time"
+
+	"empyrean_lens/biz/model/empyrean_lens"
+	"empyrean_lens/consts"
 )
 
 func ChannelIntToString(channel int) string {
@@ -37,4 +41,77 @@ func ChannelIntToString(channel int) string {
 		return "语鲸web"
 	}
 	return fmt.Sprintf("%v", channel)
+}
+
+func GetActionName(entryType int, multiID string) string {
+	if entryType == int(empyrean_lens.EntryTypeEnum_MULTI) {
+		return "多文档"
+	}
+	if entryType == int(empyrean_lens.EntryTypeEnum_WEB) {
+		if multiID != "" {
+			return "多文档-子文档web"
+		} else {
+			return "单文档web"
+		}
+	}
+	if entryType == int(empyrean_lens.EntryTypeEnum_FILE) {
+		if multiID != "" {
+			return "多文档-子文档pdf"
+		} else {
+			return "单文档pdf"
+		}
+	}
+	return ""
+}
+
+func GetStatusFromNode(nodes []*empyrean_lens.GraphNode) (string, empyrean_lens.ActionStatusEnum) {
+	// 获取状态，失败原因
+	fileAction := ""
+	linkStatus := empyrean_lens.ActionStatusEnum_SUCCESS
+	for _, node := range nodes {
+		if node.Status == empyrean_lens.ActionStatusEnum_FAIL {
+			fileAction = node.Name
+			linkStatus = empyrean_lens.ActionStatusEnum_FAIL
+			break
+		}
+		if node.Status == empyrean_lens.ActionStatusEnum_WORTHLESS {
+			fileAction = node.Name
+			linkStatus = empyrean_lens.ActionStatusEnum_WORTHLESS
+			break
+		}
+		if node.Status == empyrean_lens.ActionStatusEnum_LENGTH_ERROR {
+			fileAction = node.Name
+			linkStatus = empyrean_lens.ActionStatusEnum_LENGTH_ERROR
+			break
+		}
+	}
+	// 如果状态为成功，遍历是否有未执行的
+	if linkStatus == empyrean_lens.ActionStatusEnum_SUCCESS {
+		for _, node := range nodes {
+			if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
+				fileAction = node.Name
+				linkStatus = empyrean_lens.ActionStatusEnum_UNREACHEAD
+				break
+			}
+		}
+	}
+	return fileAction, linkStatus
+}
+
+func GetCostFromNodes(nodes []*empyrean_lens.GraphNode) int {
+	start, end := "", ""
+	for _, node := range nodes {
+		if start == "" || (node.EnterTime != "" && strings.Compare(start, node.EnterTime) > 0) {
+			start = node.EnterTime
+		}
+		if node.FinishTime != "" && strings.Compare(end, node.FinishTime) < 0 {
+			end = node.FinishTime
+		}
+	}
+	if start != "" && end != "" {
+		startTime, _ := time.Parse(consts.DateTimeTemplate, start)
+		endTime, _ := time.Parse(consts.DateTimeTemplate, end)
+		return int(endTime.Sub(startTime).Milliseconds())
+	}
+	return 0
 }

@@ -364,6 +364,8 @@ const (
 	ActionStatusEnum_UNREACHEAD ActionStatusEnum = 4
 	// 无意义
 	ActionStatusEnum_WORTHLESS ActionStatusEnum = 5
+	// 长度错误
+	ActionStatusEnum_LENGTH_ERROR ActionStatusEnum = 6
 )
 
 func (p ActionStatusEnum) String() string {
@@ -382,6 +384,8 @@ func (p ActionStatusEnum) String() string {
 		return "UNREACHEAD"
 	case ActionStatusEnum_WORTHLESS:
 		return "WORTHLESS"
+	case ActionStatusEnum_LENGTH_ERROR:
+		return "LENGTH_ERROR"
 	}
 	return "<UNSET>"
 }
@@ -402,6 +406,8 @@ func ActionStatusEnumFromString(s string) (ActionStatusEnum, error) {
 		return ActionStatusEnum_UNREACHEAD, nil
 	case "WORTHLESS":
 		return ActionStatusEnum_WORTHLESS, nil
+	case "LENGTH_ERROR":
+		return ActionStatusEnum_LENGTH_ERROR, nil
 	}
 	return ActionStatusEnum(0), fmt.Errorf("not a valid ActionStatusEnum string")
 }
@@ -19821,10 +19827,14 @@ func (p *DocLinkTraceResp) String() string {
 type DocLinkTraceRespData struct {
 	LinkGraph *TraceLinkGraph `thrift:"link_graph,1" form:"link_graph" json:"link_graph" query:"link_graph"`
 	// end to end cost, seconds
-	Cost      float64       `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
-	EntryID   string        `thrift:"entry_id,3" form:"entry_id" json:"entry_id" query:"entry_id"`
-	EntryType EntryTypeEnum `thrift:"entry_type,4" form:"entry_type" json:"entry_type" query:"entry_type"`
-	Title     string        `thrift:"title,5" form:"title" json:"title" query:"title"`
+	Cost       float64          `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
+	EntryID    string           `thrift:"entry_id,3" form:"entry_id" json:"entry_id" query:"entry_id"`
+	EntryType  EntryTypeEnum    `thrift:"entry_type,4" form:"entry_type" json:"entry_type" query:"entry_type"`
+	Title      string           `thrift:"title,5" form:"title" json:"title" query:"title"`
+	UserID     string           `thrift:"user_id,6" form:"user_id" json:"user_id" query:"user_id"`
+	ActionName string           `thrift:"action_name,7" form:"action_name" json:"action_name" query:"action_name"`
+	Status     ActionStatusEnum `thrift:"status,8" form:"status" json:"status" query:"status"`
+	TimeAt     string           `thrift:"time_at,9" form:"time_at" json:"time_at" query:"time_at"`
 }
 
 func NewDocLinkTraceRespData() *DocLinkTraceRespData {
@@ -19856,12 +19866,32 @@ func (p *DocLinkTraceRespData) GetTitle() (v string) {
 	return p.Title
 }
 
+func (p *DocLinkTraceRespData) GetUserID() (v string) {
+	return p.UserID
+}
+
+func (p *DocLinkTraceRespData) GetActionName() (v string) {
+	return p.ActionName
+}
+
+func (p *DocLinkTraceRespData) GetStatus() (v ActionStatusEnum) {
+	return p.Status
+}
+
+func (p *DocLinkTraceRespData) GetTimeAt() (v string) {
+	return p.TimeAt
+}
+
 var fieldIDToName_DocLinkTraceRespData = map[int16]string{
 	1: "link_graph",
 	2: "cost",
 	3: "entry_id",
 	4: "entry_type",
 	5: "title",
+	6: "user_id",
+	7: "action_name",
+	8: "status",
+	9: "time_at",
 }
 
 func (p *DocLinkTraceRespData) IsSetLinkGraph() bool {
@@ -19922,6 +19952,38 @@ func (p *DocLinkTraceRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 5:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField5(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 6:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField8(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 9:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField9(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -20008,6 +20070,50 @@ func (p *DocLinkTraceRespData) ReadField5(iprot thrift.TProtocol) error {
 	p.Title = _field
 	return nil
 }
+func (p *DocLinkTraceRespData) ReadField6(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.UserID = _field
+	return nil
+}
+func (p *DocLinkTraceRespData) ReadField7(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ActionName = _field
+	return nil
+}
+func (p *DocLinkTraceRespData) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field ActionStatusEnum
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = ActionStatusEnum(v)
+	}
+	p.Status = _field
+	return nil
+}
+func (p *DocLinkTraceRespData) ReadField9(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TimeAt = _field
+	return nil
+}
 
 func (p *DocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -20033,6 +20139,22 @@ func (p *DocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField5(oprot); err != nil {
 			fieldId = 5
+			goto WriteFieldError
+		}
+		if err = p.writeField6(oprot); err != nil {
+			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
+			goto WriteFieldError
+		}
+		if err = p.writeField9(oprot); err != nil {
+			fieldId = 9
 			goto WriteFieldError
 		}
 	}
@@ -20136,6 +20258,74 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
+}
+
+func (p *DocLinkTraceRespData) writeField6(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("user_id", thrift.STRING, 6); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.UserID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *DocLinkTraceRespData) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("action_name", thrift.STRING, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ActionName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *DocLinkTraceRespData) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("status", thrift.I32, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
+func (p *DocLinkTraceRespData) writeField9(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time_at", thrift.STRING, 9); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TimeAt); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
 }
 
 func (p *DocLinkTraceRespData) String() string {
@@ -20806,8 +20996,12 @@ type MultiDocLinkTraceRespData struct {
 	// end to end cost, seconds
 	Cost float64 `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
 	// 多文档中包含的文档列表
-	Articles []*Article `thrift:"articles,3" form:"articles" json:"articles" query:"articles"`
-	Title    string     `thrift:"title,4" form:"title" json:"title" query:"title"`
+	Articles   []*Article       `thrift:"articles,3" form:"articles" json:"articles" query:"articles"`
+	Title      string           `thrift:"title,4" form:"title" json:"title" query:"title"`
+	UserID     string           `thrift:"user_id,5" form:"user_id" json:"user_id" query:"user_id"`
+	ActionName string           `thrift:"action_name,6" form:"action_name" json:"action_name" query:"action_name"`
+	Status     ActionStatusEnum `thrift:"status,7" form:"status" json:"status" query:"status"`
+	TimeAt     string           `thrift:"time_at,8" form:"time_at" json:"time_at" query:"time_at"`
 }
 
 func NewMultiDocLinkTraceRespData() *MultiDocLinkTraceRespData {
@@ -20835,11 +21029,31 @@ func (p *MultiDocLinkTraceRespData) GetTitle() (v string) {
 	return p.Title
 }
 
+func (p *MultiDocLinkTraceRespData) GetUserID() (v string) {
+	return p.UserID
+}
+
+func (p *MultiDocLinkTraceRespData) GetActionName() (v string) {
+	return p.ActionName
+}
+
+func (p *MultiDocLinkTraceRespData) GetStatus() (v ActionStatusEnum) {
+	return p.Status
+}
+
+func (p *MultiDocLinkTraceRespData) GetTimeAt() (v string) {
+	return p.TimeAt
+}
+
 var fieldIDToName_MultiDocLinkTraceRespData = map[int16]string{
 	1: "graph",
 	2: "cost",
 	3: "articles",
 	4: "title",
+	5: "user_id",
+	6: "action_name",
+	7: "status",
+	8: "time_at",
 }
 
 func (p *MultiDocLinkTraceRespData) IsSetGraph() bool {
@@ -20892,6 +21106,38 @@ func (p *MultiDocLinkTraceRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 4:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField4(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 5:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField5(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 6:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField8(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -20978,6 +21224,50 @@ func (p *MultiDocLinkTraceRespData) ReadField4(iprot thrift.TProtocol) error {
 	p.Title = _field
 	return nil
 }
+func (p *MultiDocLinkTraceRespData) ReadField5(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.UserID = _field
+	return nil
+}
+func (p *MultiDocLinkTraceRespData) ReadField6(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ActionName = _field
+	return nil
+}
+func (p *MultiDocLinkTraceRespData) ReadField7(iprot thrift.TProtocol) error {
+
+	var _field ActionStatusEnum
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = ActionStatusEnum(v)
+	}
+	p.Status = _field
+	return nil
+}
+func (p *MultiDocLinkTraceRespData) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TimeAt = _field
+	return nil
+}
 
 func (p *MultiDocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -20999,6 +21289,22 @@ func (p *MultiDocLinkTraceRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField4(oprot); err != nil {
 			fieldId = 4
+			goto WriteFieldError
+		}
+		if err = p.writeField5(oprot); err != nil {
+			fieldId = 5
+			goto WriteFieldError
+		}
+		if err = p.writeField6(oprot); err != nil {
+			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
 			goto WriteFieldError
 		}
 	}
@@ -21093,6 +21399,74 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
+}
+
+func (p *MultiDocLinkTraceRespData) writeField5(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("user_id", thrift.STRING, 5); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.UserID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
+}
+
+func (p *MultiDocLinkTraceRespData) writeField6(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("action_name", thrift.STRING, 6); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ActionName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *MultiDocLinkTraceRespData) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("status", thrift.I32, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *MultiDocLinkTraceRespData) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time_at", thrift.STRING, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TimeAt); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
 }
 
 func (p *MultiDocLinkTraceRespData) String() string {
@@ -21571,8 +21945,13 @@ func (p *LinkNodeLogResp) String() string {
 type LinkNodeLogRespData struct {
 	Logs []*ApiLog `thrift:"logs,1" form:"logs" json:"logs" query:"logs"`
 	// end to end cost, seconds
-	Cost    float64 `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
-	TraceID string  `thrift:"trace_id,3" form:"trace_id" json:"trace_id" query:"trace_id"`
+	Cost       float64          `thrift:"cost,2" form:"cost" json:"cost" query:"cost"`
+	TraceID    string           `thrift:"trace_id,3" form:"trace_id" json:"trace_id" query:"trace_id"`
+	Title      string           `thrift:"title,4" form:"title" json:"title" query:"title"`
+	UserID     string           `thrift:"user_id,5" form:"user_id" json:"user_id" query:"user_id"`
+	ActionName string           `thrift:"action_name,6" form:"action_name" json:"action_name" query:"action_name"`
+	NodeName   string           `thrift:"node_name,7" form:"node_name" json:"node_name" query:"node_name"`
+	Status     ActionStatusEnum `thrift:"status,8" form:"status" json:"status" query:"status"`
 }
 
 func NewLinkNodeLogRespData() *LinkNodeLogRespData {
@@ -21591,10 +21970,35 @@ func (p *LinkNodeLogRespData) GetTraceID() (v string) {
 	return p.TraceID
 }
 
+func (p *LinkNodeLogRespData) GetTitle() (v string) {
+	return p.Title
+}
+
+func (p *LinkNodeLogRespData) GetUserID() (v string) {
+	return p.UserID
+}
+
+func (p *LinkNodeLogRespData) GetActionName() (v string) {
+	return p.ActionName
+}
+
+func (p *LinkNodeLogRespData) GetNodeName() (v string) {
+	return p.NodeName
+}
+
+func (p *LinkNodeLogRespData) GetStatus() (v ActionStatusEnum) {
+	return p.Status
+}
+
 var fieldIDToName_LinkNodeLogRespData = map[int16]string{
 	1: "logs",
 	2: "cost",
 	3: "trace_id",
+	4: "title",
+	5: "user_id",
+	6: "action_name",
+	7: "node_name",
+	8: "status",
 }
 
 func (p *LinkNodeLogRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -21635,6 +22039,46 @@ func (p *LinkNodeLogRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 3:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 4:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField4(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 5:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField5(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 6:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 7:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField8(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -21713,6 +22157,61 @@ func (p *LinkNodeLogRespData) ReadField3(iprot thrift.TProtocol) error {
 	p.TraceID = _field
 	return nil
 }
+func (p *LinkNodeLogRespData) ReadField4(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Title = _field
+	return nil
+}
+func (p *LinkNodeLogRespData) ReadField5(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.UserID = _field
+	return nil
+}
+func (p *LinkNodeLogRespData) ReadField6(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ActionName = _field
+	return nil
+}
+func (p *LinkNodeLogRespData) ReadField7(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.NodeName = _field
+	return nil
+}
+func (p *LinkNodeLogRespData) ReadField8(iprot thrift.TProtocol) error {
+
+	var _field ActionStatusEnum
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = ActionStatusEnum(v)
+	}
+	p.Status = _field
+	return nil
+}
 
 func (p *LinkNodeLogRespData) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -21730,6 +22229,26 @@ func (p *LinkNodeLogRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField3(oprot); err != nil {
 			fieldId = 3
+			goto WriteFieldError
+		}
+		if err = p.writeField4(oprot); err != nil {
+			fieldId = 4
+			goto WriteFieldError
+		}
+		if err = p.writeField5(oprot); err != nil {
+			fieldId = 5
+			goto WriteFieldError
+		}
+		if err = p.writeField6(oprot); err != nil {
+			fieldId = 6
+			goto WriteFieldError
+		}
+		if err = p.writeField7(oprot); err != nil {
+			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
 			goto WriteFieldError
 		}
 	}
@@ -21809,6 +22328,91 @@ WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
 }
 
+func (p *LinkNodeLogRespData) writeField4(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("title", thrift.STRING, 4); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Title); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField5(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("user_id", thrift.STRING, 5); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.UserID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField6(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("action_name", thrift.STRING, 6); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ActionName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField7(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("node_name", thrift.STRING, 7); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.NodeName); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *LinkNodeLogRespData) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("status", thrift.I32, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
 func (p *LinkNodeLogRespData) String() string {
 	if p == nil {
 		return "<nil>"
@@ -21840,7 +22444,8 @@ type ApiLog struct {
 	FinishTime string `thrift:"finish_time,10" form:"finish_time" json:"finish_time" query:"finish_time"`
 	// 错误响应信息
 	ErrorMsg string `thrift:"error_msg,11" form:"error_msg" json:"error_msg" query:"error_msg"`
-	TraceID  string `thrift:"trace_id,12" form:"trace_id" json:"trace_id" query:"trace_id"`
+	// trace id
+	TraceID string `thrift:"trace_id,12" form:"trace_id" json:"trace_id" query:"trace_id"`
 }
 
 func NewApiLog() *ApiLog {
@@ -22468,6 +23073,789 @@ func (p *ApiLog) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("ApiLog(%+v)", *p)
+
+}
+
+// 保存链路信息到数据库
+type SaveLinkTraceReq struct {
+	EntryID   string        `thrift:"entry_id,1" form:"entry_id" json:"entry_id" query:"entry_id"`
+	EntryType EntryTypeEnum `thrift:"entry_type,2" form:"entry_type" json:"entry_type" query:"entry_type"`
+}
+
+func NewSaveLinkTraceReq() *SaveLinkTraceReq {
+	return &SaveLinkTraceReq{}
+}
+
+func (p *SaveLinkTraceReq) GetEntryID() (v string) {
+	return p.EntryID
+}
+
+func (p *SaveLinkTraceReq) GetEntryType() (v EntryTypeEnum) {
+	return p.EntryType
+}
+
+var fieldIDToName_SaveLinkTraceReq = map[int16]string{
+	1: "entry_id",
+	2: "entry_type",
+}
+
+func (p *SaveLinkTraceReq) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_SaveLinkTraceReq[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *SaveLinkTraceReq) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.EntryID = _field
+	return nil
+}
+func (p *SaveLinkTraceReq) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field EntryTypeEnum
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = EntryTypeEnum(v)
+	}
+	p.EntryType = _field
+	return nil
+}
+
+func (p *SaveLinkTraceReq) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("SaveLinkTraceReq"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *SaveLinkTraceReq) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("entry_id", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.EntryID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *SaveLinkTraceReq) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("entry_type", thrift.I32, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.EntryType)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *SaveLinkTraceReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("SaveLinkTraceReq(%+v)", *p)
+
+}
+
+// 保存链路信息到数据库
+type SaveLinkTraceResp struct {
+	Code int64  `thrift:"code,1" form:"code" json:"code" query:"code"`
+	Msg  string `thrift:"msg,2" form:"msg" json:"msg" query:"msg"`
+}
+
+func NewSaveLinkTraceResp() *SaveLinkTraceResp {
+	return &SaveLinkTraceResp{}
+}
+
+func (p *SaveLinkTraceResp) GetCode() (v int64) {
+	return p.Code
+}
+
+func (p *SaveLinkTraceResp) GetMsg() (v string) {
+	return p.Msg
+}
+
+var fieldIDToName_SaveLinkTraceResp = map[int16]string{
+	1: "code",
+	2: "msg",
+}
+
+func (p *SaveLinkTraceResp) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_SaveLinkTraceResp[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *SaveLinkTraceResp) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Code = _field
+	return nil
+}
+func (p *SaveLinkTraceResp) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Msg = _field
+	return nil
+}
+
+func (p *SaveLinkTraceResp) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("SaveLinkTraceResp"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *SaveLinkTraceResp) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("code", thrift.I64, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.Code); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *SaveLinkTraceResp) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("msg", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Msg); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *SaveLinkTraceResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("SaveLinkTraceResp(%+v)", *p)
+
+}
+
+// 批量保存链路信息到数据库
+type BatchSaveLinkTraceReq struct {
+	// 开始时间戳
+	BeginAt int64 `thrift:"begin_at,1" form:"begin_at" json:"begin_at" query:"begin_at"`
+	// 结束时间戳
+	EndAt     int64         `thrift:"end_at,2" form:"end_at" json:"end_at" query:"end_at"`
+	EntryType EntryTypeEnum `thrift:"entry_type,3" form:"entry_type" json:"entry_type" query:"entry_type"`
+}
+
+func NewBatchSaveLinkTraceReq() *BatchSaveLinkTraceReq {
+	return &BatchSaveLinkTraceReq{}
+}
+
+func (p *BatchSaveLinkTraceReq) GetBeginAt() (v int64) {
+	return p.BeginAt
+}
+
+func (p *BatchSaveLinkTraceReq) GetEndAt() (v int64) {
+	return p.EndAt
+}
+
+func (p *BatchSaveLinkTraceReq) GetEntryType() (v EntryTypeEnum) {
+	return p.EntryType
+}
+
+var fieldIDToName_BatchSaveLinkTraceReq = map[int16]string{
+	1: "begin_at",
+	2: "end_at",
+	3: "entry_type",
+}
+
+func (p *BatchSaveLinkTraceReq) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.I32 {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_BatchSaveLinkTraceReq[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *BatchSaveLinkTraceReq) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.BeginAt = _field
+	return nil
+}
+func (p *BatchSaveLinkTraceReq) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.EndAt = _field
+	return nil
+}
+func (p *BatchSaveLinkTraceReq) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field EntryTypeEnum
+	if v, err := iprot.ReadI32(); err != nil {
+		return err
+	} else {
+		_field = EntryTypeEnum(v)
+	}
+	p.EntryType = _field
+	return nil
+}
+
+func (p *BatchSaveLinkTraceReq) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("BatchSaveLinkTraceReq"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *BatchSaveLinkTraceReq) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("begin_at", thrift.I64, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.BeginAt); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *BatchSaveLinkTraceReq) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("end_at", thrift.I64, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.EndAt); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *BatchSaveLinkTraceReq) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("entry_type", thrift.I32, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI32(int32(p.EntryType)); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *BatchSaveLinkTraceReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("BatchSaveLinkTraceReq(%+v)", *p)
+
+}
+
+type BatchSaveLinkTraceResp struct {
+	Code int64  `thrift:"code,1" form:"code" json:"code" query:"code"`
+	Msg  string `thrift:"msg,2" form:"msg" json:"msg" query:"msg"`
+}
+
+func NewBatchSaveLinkTraceResp() *BatchSaveLinkTraceResp {
+	return &BatchSaveLinkTraceResp{}
+}
+
+func (p *BatchSaveLinkTraceResp) GetCode() (v int64) {
+	return p.Code
+}
+
+func (p *BatchSaveLinkTraceResp) GetMsg() (v string) {
+	return p.Msg
+}
+
+var fieldIDToName_BatchSaveLinkTraceResp = map[int16]string{
+	1: "code",
+	2: "msg",
+}
+
+func (p *BatchSaveLinkTraceResp) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_BatchSaveLinkTraceResp[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *BatchSaveLinkTraceResp) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Code = _field
+	return nil
+}
+func (p *BatchSaveLinkTraceResp) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Msg = _field
+	return nil
+}
+
+func (p *BatchSaveLinkTraceResp) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("BatchSaveLinkTraceResp"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *BatchSaveLinkTraceResp) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("code", thrift.I64, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.Code); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *BatchSaveLinkTraceResp) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("msg", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Msg); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *BatchSaveLinkTraceResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("BatchSaveLinkTraceResp(%+v)", *p)
 
 }
 
@@ -24253,6 +25641,608 @@ func (p *WcdWorthlessRespData) String() string {
 
 }
 
+// 通过trace_id查询对应的entry_id
+type TraceIdToEntryIdReq struct {
+	TraceID string `thrift:"trace_id,1" form:"trace_id" json:"trace_id" query:"trace_id"`
+	UserID  string `thrift:"user_id,2" form:"user_id" json:"user_id" query:"user_id"`
+	Time    string `thrift:"time,3" form:"time" json:"time" query:"time"`
+}
+
+func NewTraceIdToEntryIdReq() *TraceIdToEntryIdReq {
+	return &TraceIdToEntryIdReq{}
+}
+
+func (p *TraceIdToEntryIdReq) GetTraceID() (v string) {
+	return p.TraceID
+}
+
+func (p *TraceIdToEntryIdReq) GetUserID() (v string) {
+	return p.UserID
+}
+
+func (p *TraceIdToEntryIdReq) GetTime() (v string) {
+	return p.Time
+}
+
+var fieldIDToName_TraceIdToEntryIdReq = map[int16]string{
+	1: "trace_id",
+	2: "user_id",
+	3: "time",
+}
+
+func (p *TraceIdToEntryIdReq) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_TraceIdToEntryIdReq[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdReq) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TraceID = _field
+	return nil
+}
+func (p *TraceIdToEntryIdReq) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.UserID = _field
+	return nil
+}
+func (p *TraceIdToEntryIdReq) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Time = _field
+	return nil
+}
+
+func (p *TraceIdToEntryIdReq) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("TraceIdToEntryIdReq"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdReq) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("trace_id", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TraceID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdReq) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("user_id", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.UserID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdReq) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Time); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("TraceIdToEntryIdReq(%+v)", *p)
+
+}
+
+type TraceIdToEntryIdResp struct {
+	Code int64                     `thrift:"code,1" form:"code" json:"code" query:"code"`
+	Msg  string                    `thrift:"msg,2" form:"msg" json:"msg" query:"msg"`
+	Data *TraceIdToEntryIdRespData `thrift:"data,3" form:"data" json:"data" query:"data"`
+}
+
+func NewTraceIdToEntryIdResp() *TraceIdToEntryIdResp {
+	return &TraceIdToEntryIdResp{}
+}
+
+func (p *TraceIdToEntryIdResp) GetCode() (v int64) {
+	return p.Code
+}
+
+func (p *TraceIdToEntryIdResp) GetMsg() (v string) {
+	return p.Msg
+}
+
+var TraceIdToEntryIdResp_Data_DEFAULT *TraceIdToEntryIdRespData
+
+func (p *TraceIdToEntryIdResp) GetData() (v *TraceIdToEntryIdRespData) {
+	if !p.IsSetData() {
+		return TraceIdToEntryIdResp_Data_DEFAULT
+	}
+	return p.Data
+}
+
+var fieldIDToName_TraceIdToEntryIdResp = map[int16]string{
+	1: "code",
+	2: "msg",
+	3: "data",
+}
+
+func (p *TraceIdToEntryIdResp) IsSetData() bool {
+	return p.Data != nil
+}
+
+func (p *TraceIdToEntryIdResp) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_TraceIdToEntryIdResp[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdResp) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Code = _field
+	return nil
+}
+func (p *TraceIdToEntryIdResp) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Msg = _field
+	return nil
+}
+func (p *TraceIdToEntryIdResp) ReadField3(iprot thrift.TProtocol) error {
+	_field := NewTraceIdToEntryIdRespData()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Data = _field
+	return nil
+}
+
+func (p *TraceIdToEntryIdResp) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("TraceIdToEntryIdResp"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdResp) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("code", thrift.I64, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.Code); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdResp) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("msg", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Msg); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdResp) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("data", thrift.STRUCT, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Data.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("TraceIdToEntryIdResp(%+v)", *p)
+
+}
+
+type TraceIdToEntryIdRespData struct {
+	EntryID string `thrift:"entry_id,1" form:"entry_id" json:"entry_id" query:"entry_id"`
+}
+
+func NewTraceIdToEntryIdRespData() *TraceIdToEntryIdRespData {
+	return &TraceIdToEntryIdRespData{}
+}
+
+func (p *TraceIdToEntryIdRespData) GetEntryID() (v string) {
+	return p.EntryID
+}
+
+var fieldIDToName_TraceIdToEntryIdRespData = map[int16]string{
+	1: "entry_id",
+}
+
+func (p *TraceIdToEntryIdRespData) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_TraceIdToEntryIdRespData[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdRespData) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.EntryID = _field
+	return nil
+}
+
+func (p *TraceIdToEntryIdRespData) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("TraceIdToEntryIdRespData"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdRespData) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("entry_id", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.EntryID); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *TraceIdToEntryIdRespData) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("TraceIdToEntryIdRespData(%+v)", *p)
+
+}
+
 type Rentention interface {
 	OverviewRender(ctx context.Context, req *EmptyReq) (r *EmptyResp, err error)
 
@@ -24523,10 +26513,16 @@ type LinkTrace interface {
 	MultiDocLinkTrace(ctx context.Context, req *MultiDocLinkTraceReq) (r *MultiDocLinkTraceResp, err error)
 	// 链路中某节点的日志查询
 	LinkNodeLogs(ctx context.Context, req *LinkNodeLogReq) (r *LinkNodeLogResp, err error)
+	// 保存链路信息到数据库
+	SaveLinkTrace(ctx context.Context, req *SaveLinkTraceReq) (r *SaveLinkTraceResp, err error)
+	// 批量保存链路信息到数据库
+	BatchSaveLinkTrace(ctx context.Context, req *BatchSaveLinkTraceReq) (r *BatchSaveLinkTraceResp, err error)
 	// wcd节点处理的详情
 	WcdNodeDetail(ctx context.Context, req *WcdOssDetalReq) (r *WcdOssDetalResp, err error)
 	// wcd处理结果无意义日志
 	WcdOssWorthlessLogs(ctx context.Context, req *WcdWorthlessReq) (r *WcdWorthlessResp, err error)
+	// 通过trace_id查询对应的entry_id
+	TraceIdToEntryId(ctx context.Context, req *TraceIdToEntryIdReq) (r *TraceIdToEntryIdResp, err error)
 }
 
 type LinkTraceClient struct {
@@ -24591,6 +26587,24 @@ func (p *LinkTraceClient) LinkNodeLogs(ctx context.Context, req *LinkNodeLogReq)
 	}
 	return _result.GetSuccess(), nil
 }
+func (p *LinkTraceClient) SaveLinkTrace(ctx context.Context, req *SaveLinkTraceReq) (r *SaveLinkTraceResp, err error) {
+	var _args LinkTraceSaveLinkTraceArgs
+	_args.Req = req
+	var _result LinkTraceSaveLinkTraceResult
+	if err = p.Client_().Call(ctx, "SaveLinkTrace", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+func (p *LinkTraceClient) BatchSaveLinkTrace(ctx context.Context, req *BatchSaveLinkTraceReq) (r *BatchSaveLinkTraceResp, err error) {
+	var _args LinkTraceBatchSaveLinkTraceArgs
+	_args.Req = req
+	var _result LinkTraceBatchSaveLinkTraceResult
+	if err = p.Client_().Call(ctx, "BatchSaveLinkTrace", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
 func (p *LinkTraceClient) WcdNodeDetail(ctx context.Context, req *WcdOssDetalReq) (r *WcdOssDetalResp, err error) {
 	var _args LinkTraceWcdNodeDetailArgs
 	_args.Req = req
@@ -24605,6 +26619,15 @@ func (p *LinkTraceClient) WcdOssWorthlessLogs(ctx context.Context, req *WcdWorth
 	_args.Req = req
 	var _result LinkTraceWcdOssWorthlessLogsResult
 	if err = p.Client_().Call(ctx, "WcdOssWorthlessLogs", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+func (p *LinkTraceClient) TraceIdToEntryId(ctx context.Context, req *TraceIdToEntryIdReq) (r *TraceIdToEntryIdResp, err error) {
+	var _args LinkTraceTraceIdToEntryIdArgs
+	_args.Req = req
+	var _result LinkTraceTraceIdToEntryIdResult
+	if err = p.Client_().Call(ctx, "TraceIdToEntryId", &_args, &_result); err != nil {
 		return
 	}
 	return _result.GetSuccess(), nil
@@ -31751,8 +33774,11 @@ func NewLinkTraceProcessor(handler LinkTrace) *LinkTraceProcessor {
 	self.AddToProcessorMap("DocLinkTrace", &linkTraceProcessorDocLinkTrace{handler: handler})
 	self.AddToProcessorMap("MultiDocLinkTrace", &linkTraceProcessorMultiDocLinkTrace{handler: handler})
 	self.AddToProcessorMap("LinkNodeLogs", &linkTraceProcessorLinkNodeLogs{handler: handler})
+	self.AddToProcessorMap("SaveLinkTrace", &linkTraceProcessorSaveLinkTrace{handler: handler})
+	self.AddToProcessorMap("BatchSaveLinkTrace", &linkTraceProcessorBatchSaveLinkTrace{handler: handler})
 	self.AddToProcessorMap("WcdNodeDetail", &linkTraceProcessorWcdNodeDetail{handler: handler})
 	self.AddToProcessorMap("WcdOssWorthlessLogs", &linkTraceProcessorWcdOssWorthlessLogs{handler: handler})
+	self.AddToProcessorMap("TraceIdToEntryId", &linkTraceProcessorTraceIdToEntryId{handler: handler})
 	return self
 }
 func (p *LinkTraceProcessor) Process(ctx context.Context, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
@@ -31965,6 +33991,102 @@ func (p *linkTraceProcessorLinkNodeLogs) Process(ctx context.Context, seqId int3
 	return true, err
 }
 
+type linkTraceProcessorSaveLinkTrace struct {
+	handler LinkTrace
+}
+
+func (p *linkTraceProcessorSaveLinkTrace) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := LinkTraceSaveLinkTraceArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("SaveLinkTrace", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	var err2 error
+	result := LinkTraceSaveLinkTraceResult{}
+	var retval *SaveLinkTraceResp
+	if retval, err2 = p.handler.SaveLinkTrace(ctx, args.Req); err2 != nil {
+		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing SaveLinkTrace: "+err2.Error())
+		oprot.WriteMessageBegin("SaveLinkTrace", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return true, err2
+	} else {
+		result.Success = retval
+	}
+	if err2 = oprot.WriteMessageBegin("SaveLinkTrace", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 = result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.Flush(ctx); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
+}
+
+type linkTraceProcessorBatchSaveLinkTrace struct {
+	handler LinkTrace
+}
+
+func (p *linkTraceProcessorBatchSaveLinkTrace) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := LinkTraceBatchSaveLinkTraceArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("BatchSaveLinkTrace", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	var err2 error
+	result := LinkTraceBatchSaveLinkTraceResult{}
+	var retval *BatchSaveLinkTraceResp
+	if retval, err2 = p.handler.BatchSaveLinkTrace(ctx, args.Req); err2 != nil {
+		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing BatchSaveLinkTrace: "+err2.Error())
+		oprot.WriteMessageBegin("BatchSaveLinkTrace", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return true, err2
+	} else {
+		result.Success = retval
+	}
+	if err2 = oprot.WriteMessageBegin("BatchSaveLinkTrace", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 = result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.Flush(ctx); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
+}
+
 type linkTraceProcessorWcdNodeDetail struct {
 	handler LinkTrace
 }
@@ -32044,6 +34166,54 @@ func (p *linkTraceProcessorWcdOssWorthlessLogs) Process(ctx context.Context, seq
 		result.Success = retval
 	}
 	if err2 = oprot.WriteMessageBegin("WcdOssWorthlessLogs", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 = result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.Flush(ctx); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
+}
+
+type linkTraceProcessorTraceIdToEntryId struct {
+	handler LinkTrace
+}
+
+func (p *linkTraceProcessorTraceIdToEntryId) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := LinkTraceTraceIdToEntryIdArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("TraceIdToEntryId", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	var err2 error
+	result := LinkTraceTraceIdToEntryIdResult{}
+	var retval *TraceIdToEntryIdResp
+	if retval, err2 = p.handler.TraceIdToEntryId(ctx, args.Req); err2 != nil {
+		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing TraceIdToEntryId: "+err2.Error())
+		oprot.WriteMessageBegin("TraceIdToEntryId", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return true, err2
+	} else {
+		result.Success = retval
+	}
+	if err2 = oprot.WriteMessageBegin("TraceIdToEntryId", thrift.REPLY, seqId); err2 != nil {
 		err = err2
 	}
 	if err2 = result.Write(oprot); err == nil && err2 != nil {
@@ -33213,6 +35383,582 @@ func (p *LinkTraceLinkNodeLogsResult) String() string {
 
 }
 
+type LinkTraceSaveLinkTraceArgs struct {
+	Req *SaveLinkTraceReq `thrift:"req,1"`
+}
+
+func NewLinkTraceSaveLinkTraceArgs() *LinkTraceSaveLinkTraceArgs {
+	return &LinkTraceSaveLinkTraceArgs{}
+}
+
+var LinkTraceSaveLinkTraceArgs_Req_DEFAULT *SaveLinkTraceReq
+
+func (p *LinkTraceSaveLinkTraceArgs) GetReq() (v *SaveLinkTraceReq) {
+	if !p.IsSetReq() {
+		return LinkTraceSaveLinkTraceArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+
+var fieldIDToName_LinkTraceSaveLinkTraceArgs = map[int16]string{
+	1: "req",
+}
+
+func (p *LinkTraceSaveLinkTraceArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *LinkTraceSaveLinkTraceArgs) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_LinkTraceSaveLinkTraceArgs[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *LinkTraceSaveLinkTraceArgs) ReadField1(iprot thrift.TProtocol) error {
+	_field := NewSaveLinkTraceReq()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Req = _field
+	return nil
+}
+
+func (p *LinkTraceSaveLinkTraceArgs) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("SaveLinkTrace_args"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *LinkTraceSaveLinkTraceArgs) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("req", thrift.STRUCT, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Req.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *LinkTraceSaveLinkTraceArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LinkTraceSaveLinkTraceArgs(%+v)", *p)
+
+}
+
+type LinkTraceSaveLinkTraceResult struct {
+	Success *SaveLinkTraceResp `thrift:"success,0,optional"`
+}
+
+func NewLinkTraceSaveLinkTraceResult() *LinkTraceSaveLinkTraceResult {
+	return &LinkTraceSaveLinkTraceResult{}
+}
+
+var LinkTraceSaveLinkTraceResult_Success_DEFAULT *SaveLinkTraceResp
+
+func (p *LinkTraceSaveLinkTraceResult) GetSuccess() (v *SaveLinkTraceResp) {
+	if !p.IsSetSuccess() {
+		return LinkTraceSaveLinkTraceResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var fieldIDToName_LinkTraceSaveLinkTraceResult = map[int16]string{
+	0: "success",
+}
+
+func (p *LinkTraceSaveLinkTraceResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *LinkTraceSaveLinkTraceResult) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 0:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField0(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_LinkTraceSaveLinkTraceResult[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *LinkTraceSaveLinkTraceResult) ReadField0(iprot thrift.TProtocol) error {
+	_field := NewSaveLinkTraceResp()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Success = _field
+	return nil
+}
+
+func (p *LinkTraceSaveLinkTraceResult) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("SaveLinkTrace_result"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField0(oprot); err != nil {
+			fieldId = 0
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *LinkTraceSaveLinkTraceResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.IsSetSuccess() {
+		if err = oprot.WriteFieldBegin("success", thrift.STRUCT, 0); err != nil {
+			goto WriteFieldBeginError
+		}
+		if err := p.Success.Write(oprot); err != nil {
+			return err
+		}
+		if err = oprot.WriteFieldEnd(); err != nil {
+			goto WriteFieldEndError
+		}
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 end error: ", p), err)
+}
+
+func (p *LinkTraceSaveLinkTraceResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LinkTraceSaveLinkTraceResult(%+v)", *p)
+
+}
+
+type LinkTraceBatchSaveLinkTraceArgs struct {
+	Req *BatchSaveLinkTraceReq `thrift:"req,1"`
+}
+
+func NewLinkTraceBatchSaveLinkTraceArgs() *LinkTraceBatchSaveLinkTraceArgs {
+	return &LinkTraceBatchSaveLinkTraceArgs{}
+}
+
+var LinkTraceBatchSaveLinkTraceArgs_Req_DEFAULT *BatchSaveLinkTraceReq
+
+func (p *LinkTraceBatchSaveLinkTraceArgs) GetReq() (v *BatchSaveLinkTraceReq) {
+	if !p.IsSetReq() {
+		return LinkTraceBatchSaveLinkTraceArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+
+var fieldIDToName_LinkTraceBatchSaveLinkTraceArgs = map[int16]string{
+	1: "req",
+}
+
+func (p *LinkTraceBatchSaveLinkTraceArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *LinkTraceBatchSaveLinkTraceArgs) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_LinkTraceBatchSaveLinkTraceArgs[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *LinkTraceBatchSaveLinkTraceArgs) ReadField1(iprot thrift.TProtocol) error {
+	_field := NewBatchSaveLinkTraceReq()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Req = _field
+	return nil
+}
+
+func (p *LinkTraceBatchSaveLinkTraceArgs) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("BatchSaveLinkTrace_args"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *LinkTraceBatchSaveLinkTraceArgs) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("req", thrift.STRUCT, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Req.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *LinkTraceBatchSaveLinkTraceArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LinkTraceBatchSaveLinkTraceArgs(%+v)", *p)
+
+}
+
+type LinkTraceBatchSaveLinkTraceResult struct {
+	Success *BatchSaveLinkTraceResp `thrift:"success,0,optional"`
+}
+
+func NewLinkTraceBatchSaveLinkTraceResult() *LinkTraceBatchSaveLinkTraceResult {
+	return &LinkTraceBatchSaveLinkTraceResult{}
+}
+
+var LinkTraceBatchSaveLinkTraceResult_Success_DEFAULT *BatchSaveLinkTraceResp
+
+func (p *LinkTraceBatchSaveLinkTraceResult) GetSuccess() (v *BatchSaveLinkTraceResp) {
+	if !p.IsSetSuccess() {
+		return LinkTraceBatchSaveLinkTraceResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var fieldIDToName_LinkTraceBatchSaveLinkTraceResult = map[int16]string{
+	0: "success",
+}
+
+func (p *LinkTraceBatchSaveLinkTraceResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *LinkTraceBatchSaveLinkTraceResult) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 0:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField0(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_LinkTraceBatchSaveLinkTraceResult[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *LinkTraceBatchSaveLinkTraceResult) ReadField0(iprot thrift.TProtocol) error {
+	_field := NewBatchSaveLinkTraceResp()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Success = _field
+	return nil
+}
+
+func (p *LinkTraceBatchSaveLinkTraceResult) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("BatchSaveLinkTrace_result"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField0(oprot); err != nil {
+			fieldId = 0
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *LinkTraceBatchSaveLinkTraceResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.IsSetSuccess() {
+		if err = oprot.WriteFieldBegin("success", thrift.STRUCT, 0); err != nil {
+			goto WriteFieldBeginError
+		}
+		if err := p.Success.Write(oprot); err != nil {
+			return err
+		}
+		if err = oprot.WriteFieldEnd(); err != nil {
+			goto WriteFieldEndError
+		}
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 end error: ", p), err)
+}
+
+func (p *LinkTraceBatchSaveLinkTraceResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LinkTraceBatchSaveLinkTraceResult(%+v)", *p)
+
+}
+
 type LinkTraceWcdNodeDetailArgs struct {
 	Req *WcdOssDetalReq `thrift:"req,1"`
 }
@@ -33786,5 +36532,293 @@ func (p *LinkTraceWcdOssWorthlessLogsResult) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("LinkTraceWcdOssWorthlessLogsResult(%+v)", *p)
+
+}
+
+type LinkTraceTraceIdToEntryIdArgs struct {
+	Req *TraceIdToEntryIdReq `thrift:"req,1"`
+}
+
+func NewLinkTraceTraceIdToEntryIdArgs() *LinkTraceTraceIdToEntryIdArgs {
+	return &LinkTraceTraceIdToEntryIdArgs{}
+}
+
+var LinkTraceTraceIdToEntryIdArgs_Req_DEFAULT *TraceIdToEntryIdReq
+
+func (p *LinkTraceTraceIdToEntryIdArgs) GetReq() (v *TraceIdToEntryIdReq) {
+	if !p.IsSetReq() {
+		return LinkTraceTraceIdToEntryIdArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+
+var fieldIDToName_LinkTraceTraceIdToEntryIdArgs = map[int16]string{
+	1: "req",
+}
+
+func (p *LinkTraceTraceIdToEntryIdArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *LinkTraceTraceIdToEntryIdArgs) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_LinkTraceTraceIdToEntryIdArgs[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *LinkTraceTraceIdToEntryIdArgs) ReadField1(iprot thrift.TProtocol) error {
+	_field := NewTraceIdToEntryIdReq()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Req = _field
+	return nil
+}
+
+func (p *LinkTraceTraceIdToEntryIdArgs) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("TraceIdToEntryId_args"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *LinkTraceTraceIdToEntryIdArgs) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("req", thrift.STRUCT, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Req.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *LinkTraceTraceIdToEntryIdArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LinkTraceTraceIdToEntryIdArgs(%+v)", *p)
+
+}
+
+type LinkTraceTraceIdToEntryIdResult struct {
+	Success *TraceIdToEntryIdResp `thrift:"success,0,optional"`
+}
+
+func NewLinkTraceTraceIdToEntryIdResult() *LinkTraceTraceIdToEntryIdResult {
+	return &LinkTraceTraceIdToEntryIdResult{}
+}
+
+var LinkTraceTraceIdToEntryIdResult_Success_DEFAULT *TraceIdToEntryIdResp
+
+func (p *LinkTraceTraceIdToEntryIdResult) GetSuccess() (v *TraceIdToEntryIdResp) {
+	if !p.IsSetSuccess() {
+		return LinkTraceTraceIdToEntryIdResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var fieldIDToName_LinkTraceTraceIdToEntryIdResult = map[int16]string{
+	0: "success",
+}
+
+func (p *LinkTraceTraceIdToEntryIdResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *LinkTraceTraceIdToEntryIdResult) Read(iprot thrift.TProtocol) (err error) {
+
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 0:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField0(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_LinkTraceTraceIdToEntryIdResult[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *LinkTraceTraceIdToEntryIdResult) ReadField0(iprot thrift.TProtocol) error {
+	_field := NewTraceIdToEntryIdResp()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Success = _field
+	return nil
+}
+
+func (p *LinkTraceTraceIdToEntryIdResult) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("TraceIdToEntryId_result"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField0(oprot); err != nil {
+			fieldId = 0
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *LinkTraceTraceIdToEntryIdResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.IsSetSuccess() {
+		if err = oprot.WriteFieldBegin("success", thrift.STRUCT, 0); err != nil {
+			goto WriteFieldBeginError
+		}
+		if err := p.Success.Write(oprot); err != nil {
+			return err
+		}
+		if err = oprot.WriteFieldEnd(); err != nil {
+			goto WriteFieldEndError
+		}
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 end error: ", p), err)
+}
+
+func (p *LinkTraceTraceIdToEntryIdResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("LinkTraceTraceIdToEntryIdResult(%+v)", *p)
 
 }

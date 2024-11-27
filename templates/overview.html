@@ -1709,6 +1709,8 @@
         showErrorTable_all()
     }
     function handleErrorList(){
+
+
         menus.push('接口错误列表')
         modifySidebar();
         // 不再显示#评分详情对应的div
@@ -1769,29 +1771,40 @@
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
-                const row = `
-                    <tr>
-                        <td>${response.data.data[i].api_name}</td>
-                        <td>${response.data.data[i].host}</td>
-                        <td ${
-                            (response.data.data[i].num_error_req > 0 || response.data.data[i].num_biz_error_req > 0) && response.data.data[i].api_name != '当日总览'? `
-                                class="clickable"
-                                onclick=handleErrorDetail('{0}','{1}','{2}','{3}')`.format(
-                                response.data.data[i].host,
-                                response.data.data[i].api_path,
-                                date,
-                                2,
-                            ) :  ''
-                        }>${response.data.data[i].num_error_req + response.data.data[i].num_biz_error_req}</td>
-                        <td>${response.data.data[i].num_total_req}</td>
-                        <td class="color-cell" style="background: ${getColor((response.data.data[i].num_error_req / response.data.data[i].num_total_req * 100).toFixed(2))}">${(response.data.data[i].err_percent).toFixed(2)}%</td>
-                        <td>${response.data.data[i].num_code_3xx}</td>
-                        <td>${response.data.data[i].num_code_4xx}</td>
-                        <td>${response.data.data[i].num_code_5xx}</td>
-                        <td>${response.data.data[i].num_biz_error_req}</td>
-                    </tr>
-                `;
-                table.append(row);
+                let data = response.data.data[i]
+                const $row = $('<tr>');
+
+                const apiName = data.api_name;
+                const host = data.host;
+                const numErrorReq = data.num_error_req;
+                const numBizErrorReq = data.num_biz_error_req;
+                const numTotalReq = data.num_total_req;
+                const errPercent = (numErrorReq / numTotalReq * 100).toFixed(2);
+                const numCode3xx = data.num_code_3xx;
+                const numCode4xx = data.num_code_4xx;
+                const numCode5xx = data.num_code_5xx;
+
+                // 添加 api_name 和 host 列
+                $row.append($('<td>').text(apiName));
+                $row.append($('<td>').text(host));
+
+                // 处理错误请求列
+                const errorCount = numErrorReq + numBizErrorReq;
+                const errorCell = $('<td>').text(errorCount);
+
+                if ((numErrorReq > 0 || numBizErrorReq > 0) && apiName !== '当日总览') {
+                    errorCell.addClass('clickable').attr('onclick', `handleErrorDetail('${host}', '${data.api_path}', '${date}', 2)`);
+                }
+
+                $row.append(errorCell);
+                $row.append($('<td>').text(numTotalReq));
+                $row.append($('<td>').addClass('color-cell').css('background', getColor(errPercent)).text(`${errPercent}%`));
+                $row.append($('<td>').text(numCode3xx));
+                $row.append($('<td>').text(numCode4xx));
+                $row.append($('<td>').text(numCode5xx));
+                $row.append($('<td>').text(numBizErrorReq));
+
+                table.append($row);
                 hideLoadingStatus();
             }
             setGridColor()
@@ -1804,6 +1817,33 @@
 
     }
     function handleErrorDetail(host, path, date, codeType=0){
+        function goToLinkTrace($row){
+            let traceId = $row.find('td:nth-child(5)').text()
+            let time = $row.find('td:nth-child(1)').text()
+            let userId = $row.find('td:nth-child(6)').text()
+            showLoadingStatus()
+            axios.get('/api/v1/link_trace/trace_id_to_entry_id', {
+                params: {
+                    trace_id: traceId,
+                    time: time,
+                    user_id: userId,
+                }
+            }).then(response => {
+                hideLoadingStatus()
+                console.log(response.data)
+                let data = response.data.data
+                let entryId = data.entry_id
+                if (!entryId) {
+                    alert('没有找到对应的entry_id')
+                    return
+                }
+                window.open(`/public/html/link_trace.html?query=${entryId}`, '_blank')
+            }).catch(error => {
+
+            }).finally(()=>{
+                hideLoadingStatus()
+            })
+        }
         showLoadingStatus()
         axios.get('/api/v1/report/fail/detail', {
             params:{
@@ -1838,6 +1878,7 @@
                     <th>客户端IP</th>
                     <th>业务响应码</th>
                     <th>业务错误信息</th>
+                    <th>操作</th>
                 </tr>
             `
             table.append(rowhead);
@@ -1861,6 +1902,13 @@
                 tr.append($('<td>').text(response.data.data[i].client_ip))
                 tr.append($('<td>').text(response.data.data[i].biz_code))
                 tr.append($('<td>').text(response.data.data[i].biz_msg))
+                tr.append($('<td>')
+                    .addClass('clickable')
+                    .text('链路追踪')
+                    .click(() => {
+                        goToLinkTrace(tr)
+                    })
+                );
                 table.append(tr)
             }
             setGridColor()

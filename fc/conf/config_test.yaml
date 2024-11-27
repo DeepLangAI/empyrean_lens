@@ -1,0 +1,14 @@
+# 日志配置
+logger:
+  log_path: "./logs/system"
+  log_level: "debug"
+
+api:
+  save_link_trace: "https://qa-empyrean-lens.lingowhale.com/api/v1/link_trace/save"
+  batch_save_link_trace: "https://qa-empyrean-lens.lingowhale.com/api/v1/link_trace/batch_save"
+
+mns:
+  save_link_trace:
+    name: "save-link-trace-qa"
+  batch_save_link_trace:
+    name: "batch_save_link_trace"

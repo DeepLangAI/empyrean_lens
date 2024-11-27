@@ -477,6 +477,7 @@ enum ActionStatusEnum {
     FAIL = 3 // 模块执行失败
     UNREACHEAD = 4 // 未执行
     WORTHLESS = 5 // 无意义
+    LENGTH_ERROR = 6 // 长度错误
 }
 
 enum LinkNodeTypeEnum{
@@ -571,6 +572,10 @@ struct DocLinkTraceRespData {
     3: string entry_id
     4: EntryTypeEnum entry_type
     5: string title
+    6: string user_id
+    7: string action_name
+    8: ActionStatusEnum status
+    9: string time_at
 }
 
 // 多文档链路查询
@@ -596,6 +601,10 @@ struct MultiDocLinkTraceRespData {
     2: double cost // end to end cost, seconds
     3: list<Article> articles // 多文档中包含的文档列表
     4: string title
+    5: string user_id
+    6: string action_name
+    7: ActionStatusEnum status
+    8: string time_at
 }
 
 // 链路中某节点的日志查询
@@ -610,10 +619,16 @@ struct LinkNodeLogResp {
     2: string msg
     3: LinkNodeLogRespData data
 }
+
 struct LinkNodeLogRespData {
     1: list<ApiLog> logs
     2: double cost // end to end cost, seconds
     3: string trace_id
+    4: string title
+    5: string user_id
+    6: string action_name
+    7: string node_name 
+    8: ActionStatusEnum status
 }
 
 struct ApiLog {
@@ -628,7 +643,31 @@ struct ApiLog {
     9: string enter_time // DateHourMinSecTemplate
     10: string finish_time // DateHourMinSecTemplate
     11: string error_msg // 错误响应信息
-    12: string trace_id  // trace id
+    12: string trace_id // trace id
+}
+
+// 保存链路信息到数据库
+struct SaveLinkTraceReq {
+    1: string entry_id
+    2: EntryTypeEnum entry_type
+}
+
+// 保存链路信息到数据库
+struct SaveLinkTraceResp {
+    1: i64 code
+    2: string msg
+}
+
+// 批量保存链路信息到数据库
+struct BatchSaveLinkTraceReq {
+    1: i64 begin_at  // 开始时间戳
+    2: i64 end_at  // 结束时间戳
+    3: EntryTypeEnum entry_type
+}
+
+struct BatchSaveLinkTraceResp {
+    1: i64 code
+    2: string msg
 }
 
 // 查wcd在oss上传的详细日志
@@ -678,7 +717,21 @@ struct WcdWorthlessRespData{
     9: string oss_key
 }
 
+// 通过trace_id查询对应的entry_id
+struct TraceIdToEntryIdReq{
+    1: string trace_id
+    2: string user_id
+    3: string time
+}
 
+struct TraceIdToEntryIdResp{
+    1: i64 code
+    2: string msg
+    3: TraceIdToEntryIdRespData data
+}
+struct TraceIdToEntryIdRespData{
+    1: string entry_id
+}
 
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
@@ -784,6 +837,14 @@ service LinkTrace{
     LinkNodeLogResp LinkNodeLogs(1: LinkNodeLogReq req) (
         api.get="/api/v1/link_trace/node_logs"
     )
+    // 保存链路信息到数据库
+    SaveLinkTraceResp SaveLinkTrace(1: SaveLinkTraceReq req) (
+        api.post="/api/v1/link_trace/save"
+    )
+    // 批量保存链路信息到数据库
+    BatchSaveLinkTraceResp BatchSaveLinkTrace(1: BatchSaveLinkTraceReq req) (
+        api.post="/api/v1/link_trace/batch_save"
+    )
     // wcd节点处理的详情
     WcdOssDetalResp WcdNodeDetail(1: WcdOssDetalReq req) (
         api.get="/api/v1/link_trace/wcd_oss_detail"
@@ -791,5 +852,9 @@ service LinkTrace{
     // wcd处理结果无意义日志
     WcdWorthlessResp WcdOssWorthlessLogs(1: WcdWorthlessReq req) (
         api.get="/api/v1/link_trace/wcd_worthless"
+    )
+    // 通过trace_id查询对应的entry_id
+    TraceIdToEntryIdResp TraceIdToEntryId(1: TraceIdToEntryIdReq req) (
+        api.get="/api/v1/link_trace/trace_id_to_entry_id"
     )
 }

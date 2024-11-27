@@ -75,6 +75,13 @@ type ShenCe struct {
 	Url     string `yaml:"url"`
 }
 
+type MnsConfig struct {
+	AccessKeyID     string `yaml:"access_key_id"`
+	AccessKeySecret string `yaml:"access_key_secret"`
+	Endpoint        string `yaml:"endpoint"`
+	QueueName       string `yaml:"queue_name"`
+}
+
 // 配置文件路径
 const ConfigPath = "./conf/config_%s.yaml"
 

@@ -2,9 +2,8 @@ package link_trace
 
 import (
 	"context"
-	"reflect"
+	"fmt"
 	"sort"
-	"sync"
 	"time"
 
 	"empyrean_lens/biz/model/empyrean_lens"
@@ -37,71 +36,176 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 		hlog.CtxErrorf(ctx, "strat time must before end time, start:%v, end:%v", begin, end)
 		return nil, &consts.RetParamError
 	}
-	// 并发查询
-	res := []*empyrean_lens.UserActionRespData{}
-	wg, mu := sync.WaitGroup{}, sync.Mutex{}
-	wg.Add(3)
-	// file 数据
-	go func() {
-		defer wg.Done()
-		data, err := findFile(ctx, req, begin, end, req.OnlyExternal)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "find file error, err:%v", err)
-			return
-		}
-		mu.Lock()
-		res = append(res, data)
-		mu.Unlock()
-	}()
-	// web reader 数据
-	go func() {
-		defer wg.Done()
-		data, err := findWebReader(ctx, req, begin, end, req.OnlyExternal)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "find web reader error, err:%v", err)
-			return
-		}
-		mu.Lock()
-		res = append(res, data)
-		mu.Unlock()
-	}()
-	// multi 数据
-	go func() {
-		defer wg.Done()
-		data, err := findMulti(ctx, req, begin, end, req.OnlyExternal)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "find multi error, err:%v", err)
-			return
-		}
-		mu.Lock()
-		res = append(res, data)
-		mu.Unlock()
-	}()
-	wg.Wait()
-	// 排序组合
-	rows := []*empyrean_lens.UserActionRespRow{}
-	for _, v := range res {
-		rows = append(rows, v.Rows...)
+	// 直接从bi获取记录
+	rows, bizCode := getUserActionFromBi(ctx, req, begin, end)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "get user action from bi error, err:%v", err)
+		return nil, bizCode
 	}
-	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].CreateTime > rows[j].CreateTime
-	})
-	hasNext := false
-	for _, v := range res {
-		hasNext = hasNext || v.HasNext
-	}
-	hasNext = hasNext || len(rows) >= int(req.Limit+req.Skip)
-	if len(rows) > int(req.Skip) {
-		rows = rows[int(req.Skip):]
-	}
-	if len(rows) > int(req.Limit) {
-		rows = rows[:int(req.Limit)]
+	// 如果为空，并且query不为空，查询traceID
+	if len(rows) == 0 && req.Query != "" {
+		rows, bizCode = getUserActionFromTraceID(ctx, req, begin, end)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "get user action from bi error, err:%v", err)
+			rows = []*empyrean_lens.UserActionRespRow{}
+		}
 	}
 	// 返回
 	return &empyrean_lens.UserActionRespData{
-		HasNext: hasNext,
+		HasNext: len(rows) == int(req.Limit),
 		Rows:    rows,
 	}, nil
+}
+
+// 从宽表中获取
+func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) ([]*empyrean_lens.UserActionRespRow, *consts.BizCode) {
+	status := []int32{}
+	for _, v := range req.Status {
+		status = append(status, int32(v))
+	}
+	if len(status) == 5 {
+		status = append(status, int32(empyrean_lens.ActionStatusEnum_WORTHLESS))
+		status = append(status, int32(empyrean_lens.ActionStatusEnum_LENGTH_ERROR))
+	}
+	var entryInfos []*bi.EntryInfo
+	// 查询数据库
+	if req.Query == "" {
+		// 没有query，直接查询
+		res, err := bi.NewEntryInfoDao().FindByTimeRange(ctx, status, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		entryInfos = res
+	} else {
+		// 有query，先查宽表，再查最近上传未入宽表的
+		res, err := bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		entryInfos = res
+	}
+	// 转换
+	resources := []*empyrean_lens.ResourceInfo{}
+	rows := []*empyrean_lens.UserActionRespRow{}
+	multiEntryInfo := []*empyrean_lens.UserActionRespRow{}
+	for _, entryInfo := range entryInfos {
+		actionRow := entryInfo.TranslateUserActionRow()
+		rows = append(rows, actionRow)
+		resources = append(resources, actionRow.Resources...)
+		if actionRow.EntryType == empyrean_lens.EntryTypeEnum_MULTI {
+			multiEntryInfo = append(multiEntryInfo, actionRow)
+		}
+	}
+	// 补充resources信息
+	resourceMapping, err := getResourceInfo(ctx, resources)
+	if err != nil {
+		return nil, &consts.QueryRecordError
+	}
+	for _, resource := range resources {
+		key := fmt.Sprintf("%d_%s", resource.EntryType, resource.EntryID)
+		if _, ok := resourceMapping[key]; ok {
+			resource.Title = resourceMapping[key].Title
+			resource.URL = resourceMapping[key].URL
+		}
+	}
+	// 过滤多文档生成失败后跳过的子文档
+	err = filterMultiResourceInfo(ctx, multiEntryInfo)
+	if err != nil {
+		return nil, &consts.QueryRecordError
+	}
+	return rows, nil
+}
+
+func getUserActionFromTraceID(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) ([]*empyrean_lens.UserActionRespRow, *consts.BizCode) {
+	// 查找traceID
+	entryIDs, err := getEntryIdFromAliyun(ctx, "", req.Query, begin, end)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[getUserActionFromTraceID] get entry from aliyun failed, err: %v", err)
+		return nil, &consts.QueryRecordError
+	}
+	// 判断是否存在
+	resources := []*empyrean_lens.ResourceInfo{}
+	rows := []*empyrean_lens.UserActionRespRow{}
+	if len(entryIDs) != 0 {
+		entryInfoList, err := searchEntryID(ctx, entryIDs)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[getUserActionFromTraceID] get entry action failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		for _, entryInfo := range entryInfoList {
+			row := entryInfo.TranslateUserActionRow()
+			rows = append(rows, row)
+			resources = append(resources, row.Resources...)
+		}
+	}
+	// 补充resources信息
+	resourceMapping, err := getResourceInfo(ctx, resources)
+	if err != nil {
+		return nil, &consts.QueryRecordError
+	}
+	for _, resource := range resources {
+		key := fmt.Sprintf("%d_%s", resource.EntryType, resource.EntryID)
+		if _, ok := resourceMapping[key]; ok {
+			resource.Title = resourceMapping[key].Title
+			resource.URL = resourceMapping[key].URL
+		}
+	}
+	return rows, nil
+}
+
+func getResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInfo) (map[string]*empyrean_lens.ResourceInfo, *consts.BizCode) {
+	entryIDs := []string{}
+	for _, resource := range resources {
+		entryIDs = append(entryIDs, resource.EntryID)
+	}
+	// 查找记录
+	webReaderEntryInfos, err := bi.NewEntryInfoDao().FindByEntryIDs(ctx, entryIDs)
+	if err != nil {
+		return nil, &consts.QueryRecordError
+	}
+	resourceMapping := map[string]*empyrean_lens.ResourceInfo{}
+	for _, entryInfo := range webReaderEntryInfos {
+		key := fmt.Sprintf("%d_%s", entryInfo.EntryType, entryInfo.EntryID)
+		resourceMapping[key] = &empyrean_lens.ResourceInfo{
+			EntryType: empyrean_lens.EntryTypeEnum(entryInfo.EntryType),
+			EntryID:   entryInfo.EntryID,
+			Title:     entryInfo.Title,
+			URL:       entryInfo.EntryURL,
+		}
+	}
+	return resourceMapping, nil
+}
+
+func filterMultiResourceInfo(ctx context.Context, multiEntryInfo []*empyrean_lens.UserActionRespRow) *consts.BizCode {
+	entryIDs := []string{}
+	for _, entryInfo := range multiEntryInfo {
+		entryIDs = append(entryIDs, entryInfo.EntryID)
+	}
+	// 查找记录
+	multiEntryInfos, err := plugin.NewMultiDao().FindMultiByIds(ctx, entryIDs)
+	if err != nil {
+		return &consts.QueryRecordError
+	}
+	multiEntryInfoMapping := map[string]*plugin.MultiModel{}
+	for _, entryInfo := range multiEntryInfos {
+		multiEntryInfoMapping[entryInfo.ID.Hex()] = entryInfo
+	}
+	// 过滤
+	for _, multi := range multiEntryInfo {
+		if multiInfo, ok := multiEntryInfoMapping[multi.EntryID]; ok {
+			newResources := []*empyrean_lens.ResourceInfo{}
+			for _, resource := range multi.Resources {
+				for _, article := range multiInfo.ArticleList {
+					if article.EntryId == resource.EntryID {
+						newResources = append(newResources, resource)
+						break
+					}
+				}
+			}
+			multi.Resources = newResources
+		}
+	}
+	return nil
 }
 
 func findFile(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time, onlyOuter bool) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
@@ -378,6 +482,40 @@ func findMulti(ctx context.Context, req empyrean_lens.UserActionReq, begin, end 
 	}, nil
 }
 
+func findFromMongo(ctx context.Context, rows []*empyrean_lens.UserActionRespRow) ([]*empyrean_lens.UserActionRespRow, *consts.BizCode) {
+	// 查数据库
+	entryIDs := []string{}
+	for _, row := range rows {
+		entryIDs = append(entryIDs, row.EntryID)
+	}
+	entryInfos, err := bi.NewEntryInfoDao().FindByEntryIDs(ctx, entryIDs)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindByEntryIDs] error: %+v", err)
+		return nil, &consts.QueryRecordError
+	}
+	// 替换数据
+	entryMapping := map[string]*bi.EntryInfo{}
+	for _, entryInfo := range entryInfos {
+		key := fmt.Sprintf("%d_%s", entryInfo.EntryType, entryInfo.EntryID)
+		entryMapping[key] = entryInfo
+	}
+	newRows := []*empyrean_lens.UserActionRespRow{}
+	for _, row := range rows {
+		key := fmt.Sprintf("%d_%s", row.EntryType, row.EntryID)
+		resources := row.Resources
+		if entryInfo, ok := entryMapping[key]; ok {
+			if entryInfo.ParentEntryID == "" {
+				newRow := entryInfo.TranslateUserActionRow()
+				newRow.Resources = resources
+				newRows = append(newRows, newRow)
+			}
+		} else {
+			newRows = append(newRows, row)
+		}
+	}
+	return newRows, nil
+}
+
 func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserActionRespRow {
 	return &empyrean_lens.UserActionRespRow{
 		UserID:     file.UserID,
@@ -481,53 +619,5 @@ func actionStatus(actionType string, status, analysisStatus, mergeStatus, summar
 		}
 	default:
 		return -1
-	}
-}
-
-// 冒泡排序，排序任何类型的数组
-func bubbleSort(arr interface{}, less func(i, j int) bool) {
-	switch reflect.TypeOf(arr).Kind() {
-	case reflect.Slice:
-		mySlice := reflect.ValueOf(arr)
-		for i := 0; i < mySlice.Len()-1; i++ {
-			for j := 0; j < mySlice.Len()-i-1; j++ {
-				if less(j, j+1) {
-					temp := mySlice.Index(j + 1)
-					mySlice.Index(j + 1).Set(mySlice.Index(j))
-					mySlice.Index(j).Set(temp)
-				}
-			}
-		}
-		// 数组倒叙
-		for i := 0; i < mySlice.Len()/2; i++ {
-			temp := mySlice.Index(mySlice.Len() - i - 1)
-			mySlice.Index(mySlice.Len() - i - 1).Set(mySlice.Index(i))
-			mySlice.Index(i).Set(temp)
-		}
-	}
-}
-
-// 快速排序，排序任何类型的数组
-func quickSort(arr interface{}, less func(i, j int) bool) {
-	switch reflect.TypeOf(arr).Kind() {
-	case reflect.Slice:
-		mySlice := reflect.ValueOf(arr)
-		if mySlice.Len() <= 1 {
-			return
-		}
-		pivot := mySlice.Index(0)
-		left := reflect.MakeSlice(reflect.TypeOf(arr), 0, 0)
-		right := reflect.MakeSlice(reflect.TypeOf(arr), 0, 0)
-		for i := 1; i < mySlice.Len(); i++ {
-			if less(i, 0) {
-				left = reflect.Append(left, mySlice.Index(i))
-			} else {
-				right = reflect.Append(right, mySlice.Index(i))
-			}
-		}
-		quickSort(left.Interface(), less)
-		quickSort(right.Interface(), less)
-		mySlice.Set(reflect.Append(left, pivot))
-		mySlice.Set(reflect.Append(mySlice, right))
 	}
 }

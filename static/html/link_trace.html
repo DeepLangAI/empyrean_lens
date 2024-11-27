@@ -12,11 +12,11 @@
     <script src="/public/js/jquery-3.6.0.min.js"></script>
     <script src="/public/js/axios.min.js"></script>
     <script src="/public/js/echarts.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="/public/js/moment.min.js"></script>
+    <script src="/public/js/d3.v7.min.js"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <script src="/public/js/highlight.min.js"></script>
+    <link rel="stylesheet" href="/public/js/default.min.css">
 
     <script src="/public/js/sweetalert2.min.js"></script>
     <link rel="stylesheet" href="/public/css/sweetalert2.min.css">
@@ -1054,6 +1054,7 @@
         FAIL : 3, // 模块执行失败
         UNREACHED : 4, // 未执行
         WORTHLESS: 5, // 无意义
+        LENGTH_ERROR: 6, // 长度不匹配
     }
     const COLORS = {}
     // COLORS[ActionStatusEnum.SUCCESS] = '#87e578'
@@ -1068,6 +1069,7 @@
     COLORS[ActionStatusEnum.FAIL] = 'rgba(255, 4, 4, 0.8)'; // 80% 不透明度
     COLORS[ActionStatusEnum.UNREACHED] = 'rgba(185, 185, 185, 0.6)'; // 80% 不透明度
     COLORS[ActionStatusEnum.WORTHLESS] = 'rgba(43,92,255,0.8)'; // 80% 不透明度
+    COLORS[ActionStatusEnum.LENGTH_ERROR] = 'rgba(103,43,255,0.8)'; // 80% 不透明度
 
     function statusToString(status){
         if (status == ActionStatusEnum.SUCCESS){
@@ -1082,6 +1084,8 @@
             return "未执行"
         }else if (status == ActionStatusEnum.WORTHLESS){
             return "无意义"
+        }else if (status == ActionStatusEnum.LENGTH_ERROR){
+            return "长度不匹配"
         }else{
             return "未知"
         }
@@ -1183,6 +1187,13 @@
             return false
         }
         return true
+    }
+    function reformatFloat(value){
+        let valueFormatted = value.toFixed(2)
+        if (valueFormatted.endsWith('.00')){
+            valueFormatted = valueFormatted.slice(0, -3)
+        }
+        return valueFormatted
     }
 
     function reformatJsonStr(jsonStr){
@@ -1574,99 +1585,376 @@
         }
 
         // 创建树形图的函数
-        function createTreeDiagram(graphData, rootName='用户上传', titles=[], docInfo=null) {
-            function nameWidth(name){
-                if (!name){
-                    return 0
+        // function createTreeDiagram(graphData, rootName='用户上传', titles=[], docInfo=null) {
+        //     function nameWidth(name){
+        //         if (!name){
+        //             return 0
+        //         }
+        //         // 判断名字中有多少英文字符、数字、下划线
+        //         let count = 0;
+        //         for (let i = 0; i < name.length; i++) {
+        //             if ((name.charCodeAt(i) >= 65 && name.charCodeAt(i) <= 90) || (name.charCodeAt(i) >= 97 && name.charCodeAt(i) <= 122) || (name.charCodeAt(i) >= 48 && name.charCodeAt(i) <= 57) || name.charCodeAt(i) == 95) {
+        //                 count++;
+        //             }
+        //         }
+        //         return name.length - count / 2
+        //     }
+        //     function calculateDepth(data){
+        //         let ans = 1
+        //         let depths = []
+        //         for (let i = 0; i < data.children.length; i++){
+        //             depths.push(calculateDepth(data.children[i]))
+        //         }
+        //         if (depths.length > 0){
+        //             ans += Math.max(...depths)
+        //         }
+        //         return ans
+        //     }
+        //
+        //     function calculateWidth(data){
+        //         let ans = 0
+        //         if (data.children.length >= 2){
+        //             ans += data.children.length
+        //         }
+        //         for (let i = 0; i < data.children.length; i++){
+        //             ans += calculateWidth(data.children[i])
+        //         }
+        //         return ans
+        //     }
+        //     const data = buildHierarchy(graphData, rootName);
+        //
+        //     // 设置图表尺寸
+        //     const margin = { top: 20, right: 20, bottom: 30, left: 20 };
+        //
+        //     // 计算需要的宽度，假设每个节点宽度为 50px
+        //     const nodeWidth = 210;
+        //     const maxWidth = calculateWidth(data) + 1
+        //     const maxDepth = calculateDepth(data)
+        //
+        //     // 创建一个新的 div 作为 SVG 的容器
+        //     let svgContainer = $('<div>').css({
+        //         'width': Math.max((maxWidth) * (nodeWidth + 20) + margin.left + margin.right, 400), // 计算宽度
+        //         'height': maxDepth * 60 + margin.top + margin.bottom, // 可以根据需要调整高度
+        //         'position': 'relative',
+        //     });
+        //     // 获取容器的宽高
+        //     const width = svgContainer.width() - margin.left - margin.right;
+        //     const height = svgContainer.height() - margin.top - margin.bottom;
+        //     // 放置各title，均匀分布
+        //     const titlesContainer = $('<div>').css({
+        //         'position': 'absolute',
+        //         'top': 0,
+        //         'left': 0,
+        //         'width': '100%',
+        //         'height': '100%',
+        //         'pointer-events': 'none',
+        //     });
+        //     for (let i = 0; i < titles.length; i++){
+        //         const $title = $('<div>')
+        //             .text(reformatLongTitle(titles[i]))
+        //             .addClass('trace-link-title')
+        //             .css({
+        //                 'top': margin.top + 5,
+        //                 'left': (
+        //                     (i + 1) * (svgContainer.width()) / (titles.length + 1)
+        //                     + margin.left
+        //                     - nodeWidth / 2 * (i == 0 ? 1 : 0)
+        //                 ),
+        //             })
+        //
+        //         titlesContainer.append($title);
+        //     }
+        //     svgContainer.append(titlesContainer);
+        //
+        //
+        //     // 创建SVG
+        //     const svg = d3.select(svgContainer[0])
+        //         .append("svg")
+        //         .attr("width", width)
+        //         .attr("height", height)
+        //         .append("g")
+        //         .attr("transform", `translate(${margin.left},${margin.top})`);
+        //
+        //     // 添加边框
+        //     svg.append("rect")
+        //         .attr("width", width)
+        //         .attr("height", height)
+        //         .style("stroke", "black")
+        //         .style("fill", "none")
+        //         .style("stroke-width", 1)
+        //         .style("stroke-dasharray", "5,5")
+        //         .attr("transform", `translate(${-margin.left},${-margin.top})`)
+        //         .attr("rx", 5)
+        //         .attr("ry", 5);
+        //
+        //     // 创建树形布局
+        //     const tree = d3.tree()
+        //         .size([width - margin.left - margin.right, height - margin.top - margin.bottom])
+        //         .separation((a, b) => (a.parent == b.parent ? 0.9 : 1.2));
+        //
+        //     // 创建层次结构
+        //     const root = d3.hierarchy(data);
+        //
+        //     // 分配树形布局到数据
+        //     tree(root);
+        //
+        //     // 添加连接线和箭头
+        //     const links = svg.selectAll(".link")
+        //         .data(root.links())
+        //         .enter().append("g")
+        //         .attr("class", "link");
+        //
+        //     // 绘制连接线
+        //     links.append("path")
+        //         .attr("d", d3.linkVertical()
+        //             .x(d => d.x)
+        //             .y(d => {
+        //                 if (d.data.name == '用户上传'){
+        //                     return d.y
+        //                 }
+        //                 return d.y-25
+        //             }))
+        //         .style("fill", "none")
+        //         .style("stroke", "#000");
+        //
+        //     // 绘制箭头
+        //     links.append("polygon")
+        //         .attr("points", (d) => {
+        //             const x1 = d.target.x; // 目标节点的 x 坐标
+        //             const y1 = d.target.y; // 目标节点的 y 坐标
+        //             const x2 = d.source.x; // 源节点的 x 坐标
+        //             const y2 = d.source.y; // 源节点的 y 坐标
+        //
+        //             // 计算箭头坐标
+        //             const arrowLength = 8; // 箭头长度
+        //             const arrowWidth = 5; // 箭头宽度
+        //
+        //             // 箭头的起始点在目标节点的上方
+        //             const arrowX = x1; // 箭头的 x 坐标
+        //             const arrowY = y1 - 10; // 箭头的 y 坐标（上方）
+        //
+        //             return `
+        //         ${arrowX},${arrowY}
+        //         ${arrowX - arrowLength * Math.cos(Math.PI / 3)},${arrowY - arrowLength * Math.sin(Math.PI / 3)}
+        //         ${arrowX + arrowLength * Math.cos(Math.PI / 3)},${arrowY - arrowLength * Math.sin(Math.PI / 3)}
+        //     `;
+        //         })
+        //         .style("fill", "#000"); // 箭头颜色
+        //
+        //     // 创建 tooltip
+        //     const tooltip = d3.select("body").append("div")
+        //         .attr("class", "tooltip")
+        //         .style("position", "absolute")
+        //         .style("visibility", "hidden")
+        //         .style("background", "lightsteelblue")
+        //         .style("padding", "5px")
+        //         .style("border-radius", "5px")
+        //         .style("z-index", "999")
+        //         .style("pointer-events", "none");
+        //
+        //     // 创建节点
+        //     const node = svg.selectAll(".node")
+        //         .data(root.descendants())
+        //         .enter().append("g")
+        //         .attr("class", "node")
+        //         .attr("transform", d => `translate(${d.x},${d.y})`)
+        //         .on("mouseover", function(event, d) {
+        //             const $this = $(this)
+        //             let htmlStr = `节点: ${d.data.name}`
+        //             if (d.data.enter_time) {
+        //                 htmlStr += `<br>进入节点时间: ${d.data.enter_time}`
+        //             }
+        //             if (d.data.finish_time) {
+        //                 htmlStr += `<br>处理耗时: ${duration(
+        //                     d.data.enter_time, d.data.finish_time
+        //                 )}`
+        //             }
+        //             if (d.data.status != ActionStatusEnum.UNK && d.data.status != undefined) {
+        //                 htmlStr += `<br>节点状态: ${statusToString(d.data.status)}`
+        //             }
+        //
+        //             tooltip.style("visibility", "visible")
+        //                 .html(htmlStr) // 显示详细信息
+        //                 .style("top", (event.pageY - 10) + "px") // 设置 tooltip 的位置
+        //                 .style("left", (event.pageX + 10) + "px");
+        //             // 为节点添加边框
+        //             d3.select(this).select("rect")
+        //                 .style("stroke-width", 2)
+        //                 .style("stroke", "black");
+        //         })
+        //         .on("mousemove", function(event) {
+        //             tooltip.style("top", (event.pageY - 10) + "px")
+        //                 .style("left", (event.pageX + 10) + "px");
+        //         })
+        //         .on("mouseout", function() {
+        //             tooltip.style("visibility", "hidden");
+        //             // 移除节点边框
+        //             d3.select(this).select("rect")
+        //                 .style("stroke-width", 0);
+        //         })
+        //         .on('click', function (event, d){
+        //             // 如果是UNREACHED，LENGTH_ERROR，则不显示日志
+        //             let skipStatus = [ActionStatusEnum.UNREACHED, ActionStatusEnum.LENGTH_ERROR]
+        //             if (!skipStatus.includes(d.data.status)) {
+        //                 console.log(d.data)
+        //                 CreateNodeApiLogsPage(d.data.entry_id, d.data.entry_type, d.data.type, d.data.name, docInfo, d.data.trace_id)
+        //             }
+        //         });
+        //
+        //
+        //     // 为节点添加长方形
+        //     node.append("rect")
+        //         // .attr("width", d => Math.max((nameWidth(d.data.name)) * 12, 60))
+        //         .attr("width", nodeWidth + 10)
+        //         .attr("height", 35) // 减小高度
+        //         // .attr("x", d => -Math.max(nameWidth(d.data.name) * 12, 60) / 2)
+        //         .attr("x", -nodeWidth / 2 - 5)
+        //         .attr("y", -12.5)
+        //         .attr("rx", 5)
+        //         .style("stroke-width", 0)
+        //         .attr("ry", 5);
+        //
+        //     // 为节点添加文本（节点名称）
+        //     node.append("text")
+        //         .attr("dy", "0.35em")
+        //         .attr("text-anchor", "middle")
+        //         .attr("y", 5)
+        //         .text(d => d.data.name);
+        //
+        //     // 为节点添加文本（创建时间）
+        //     node.append("text")
+        //         .attr("dy", "0.35em")
+        //         .attr("text-anchor", "end") // 右对齐
+        //         // .attr("x", d => -(nameWidth(d.data.name)) * 12) // 左侧偏移
+        //         .attr("y", -20)
+        //         .text(d => (d.data.finish_time || "").slice(10)); // 显示 create_time 字段
+        //
+        //     node.select("rect")
+        //         .attr("fill", (d, i) => {
+        //             return COLORS[d.data.status] || "#fff"
+        //         });
+        //     return svgContainer
+        // }
+        function createTreeDiagram(graphData, rootName = '用户上传', titles = [], docInfo = null) {
+            function nameWidth(name) {
+                if (!name) {
+                    return 0;
                 }
-                // 判断名字中有多少英文字符、数字、下划线
                 let count = 0;
                 for (let i = 0; i < name.length; i++) {
-                    if ((name.charCodeAt(i) >= 65 && name.charCodeAt(i) <= 90) || (name.charCodeAt(i) >= 97 && name.charCodeAt(i) <= 122) || (name.charCodeAt(i) >= 48 && name.charCodeAt(i) <= 57) || name.charCodeAt(i) == 95) {
+                    if ((name.charCodeAt(i) >= 65 && name.charCodeAt(i) <= 90) ||
+                        (name.charCodeAt(i) >= 97 && name.charCodeAt(i) <= 122) ||
+                        (name.charCodeAt(i) >= 48 && name.charCodeAt(i) <= 57) ||
+                        name.charCodeAt(i) == 95) {
                         count++;
                     }
                 }
-                return name.length - count / 2
-            }
-            function calculateDepth(data){
-                let ans = 1
-                let depths = []
-                for (let i = 0; i < data.children.length; i++){
-                    depths.push(calculateDepth(data.children[i]))
-                }
-                if (depths.length > 0){
-                    ans += Math.max(...depths)
-                }
-                return ans
+                return name.length - count / 2;
             }
 
-            function calculateWidth(data){
-                let ans = 0
-                if (data.children.length >= 2){
-                    ans += data.children.length
+            function calculateDepth(data) {
+                let ans = 1;
+                let depths = [];
+                for (let i = 0; i < data.children.length; i++) {
+                    depths.push(calculateDepth(data.children[i]));
                 }
-                for (let i = 0; i < data.children.length; i++){
-                    ans += calculateWidth(data.children[i])
+                if (depths.length > 0) {
+                    ans += Math.max(...depths);
                 }
-                return ans
+                return ans;
             }
+
+            function calculateWidth(data) {
+                let ans = 0;
+                if (data.children.length >= 2) {
+                    ans += data.children.length;
+                }
+                for (let i = 0; i < data.children.length; i++) {
+                    ans += calculateWidth(data.children[i]);
+                }
+                return ans;
+            }
+
             const data = buildHierarchy(graphData, rootName);
+            let nonClickableStatus = [ActionStatusEnum.UNREACHED, ActionStatusEnum.LENGTH_ERROR, undefined, null]
 
             // 设置图表尺寸
             const margin = { top: 20, right: 20, bottom: 30, left: 20 };
-
-            // 计算需要的宽度，假设每个节点宽度为 50px
             const nodeWidth = 210;
-            const maxWidth = calculateWidth(data) + 1
-            const maxDepth = calculateDepth(data)
+            const maxWidth = calculateWidth(data) + 1;
+            let maxDepth = calculateDepth(data);
+            if (rootName == '用户上传') {
+                maxDepth += 1;
+            }
 
-            // 创建一个新的 div 作为 SVG 的容器
+            // 创建 scrollContainer，启用水平滚动条
+            let svgContainerWidth = Math.max((maxWidth) * (nodeWidth + 20) + margin.left + margin.right, 400);
+            let scrollContainerStyle = {
+                'width': '100%',
+                'max-width': '100%',
+                'overflow-x': 'auto',
+                'overflow-y': 'hidden',
+                'position': 'relative',
+            }
+            if (maxWidth <= 7){
+                scrollContainerStyle['display'] = 'flex'
+                scrollContainerStyle['justify-content'] = 'center'
+            }
+            let scrollContainer = $('<div>').css(scrollContainerStyle);
+
+            // 创建 svgContainer
             let svgContainer = $('<div>').css({
-                'width': Math.max((maxWidth) * nodeWidth + margin.left + margin.right, 400), // 计算宽度
-                'height': maxDepth * 60 + margin.top + margin.bottom, // 可以根据需要调整高度
+                'width': svgContainerWidth,
+                'height': maxDepth * 60 + margin.top + margin.bottom,
                 'position': 'relative',
             });
+
+            // 将 svgContainer 添加到 scrollContainer 中
+            scrollContainer.append(svgContainer);
+
             // 获取容器的宽高
             const width = svgContainer.width() - margin.left - margin.right;
-            const height = svgContainer.height() - margin.top - margin.bottom;
-            // 放置各title，均匀分布
+            const height = svgContainer.height() - margin.top - margin.bottom + 50;
+
+            // 放置各 title，均匀分布
             const titlesContainer = $('<div>').css({
                 'position': 'absolute',
                 'top': 0,
                 'left': 0,
-                'width': '100%',
+                'width': svgContainerWidth,
                 'height': '100%',
                 'pointer-events': 'none',
             });
-            for (let i = 0; i < titles.length; i++){
+
+            for (let i = 0; i < titles.length; i++) {
                 const $title = $('<div>')
                     .text(reformatLongTitle(titles[i]))
                     .addClass('trace-link-title')
                     .css({
-                        'top': margin.top + 5,
+                        'top': margin.top + 20,
                         'left': (
                             (i + 1) * (svgContainer.width()) / (titles.length + 1)
                             + margin.left
                             - nodeWidth / 2 * (i == 0 ? 1 : 0)
                         ),
-                    })
+                    });
 
                 titlesContainer.append($title);
             }
+
             svgContainer.append(titlesContainer);
 
-
-            // 创建SVG
+            // 创建 SVG
             const svg = d3.select(svgContainer[0])
                 .append("svg")
-                .attr("width", width)
+                .attr("width", width + 50)
                 .attr("height", height)
                 .append("g")
                 .attr("transform", `translate(${margin.left},${margin.top})`);
 
             // 添加边框
             svg.append("rect")
-                .attr("width", width)
+                .attr("width", width + 50)
                 .attr("height", height)
                 .style("stroke", "black")
                 .style("fill", "none")
@@ -1678,66 +1966,23 @@
 
             // 创建树形布局
             const tree = d3.tree()
-                .size([width - margin.left - margin.right, height - margin.top - margin.bottom])
+                .size([width, height - 50])
                 .separation((a, b) => (a.parent == b.parent ? 0.9 : 1.2));
 
-            // 创建层次结构
             const root = d3.hierarchy(data);
-
-            // 分配树形布局到数据
             tree(root);
 
-            // // 添加连接线
-            // svg.selectAll(".link")
-            //     .data(root.links())
-            //     .enter().append("path")
-            //     .attr("class", "link")
-            //     .attr("d", d3.linkVertical()
-            //         .x(d => d.x)
-            //         .y(d => d.y-15))
-            // 添加连接线和箭头
             const links = svg.selectAll(".link")
                 .data(root.links())
                 .enter().append("g")
                 .attr("class", "link");
 
-            // 绘制连接线
             links.append("path")
                 .attr("d", d3.linkVertical()
                     .x(d => d.x)
-                    .y(d => {
-                        if (d.data.name == '用户上传'){
-                            return d.y
-                        }
-                        return d.y-25
-                    }))
+                    .y(d => d.y))
                 .style("fill", "none")
                 .style("stroke", "#000");
-
-            // 绘制箭头
-            links.append("polygon")
-                .attr("points", (d) => {
-                    const x1 = d.target.x; // 目标节点的 x 坐标
-                    const y1 = d.target.y; // 目标节点的 y 坐标
-                    const x2 = d.source.x; // 源节点的 x 坐标
-                    const y2 = d.source.y; // 源节点的 y 坐标
-
-                    // 计算箭头坐标
-                    const arrowLength = 8; // 箭头长度
-                    const arrowWidth = 5; // 箭头宽度
-
-                    // 箭头的起始点在目标节点的上方
-                    const arrowX = x1; // 箭头的 x 坐标
-                    const arrowY = y1 - 10; // 箭头的 y 坐标（上方）
-
-                    return `
-                ${arrowX},${arrowY}
-                ${arrowX - arrowLength * Math.cos(Math.PI / 3)},${arrowY - arrowLength * Math.sin(Math.PI / 3)}
-                ${arrowX + arrowLength * Math.cos(Math.PI / 3)},${arrowY - arrowLength * Math.sin(Math.PI / 3)}
-            `;
-                })
-                .style("fill", "#000"); // 箭头颜色
-
             // 创建 tooltip
             const tooltip = d3.select("body").append("div")
                 .attr("class", "tooltip")
@@ -1749,13 +1994,13 @@
                 .style("z-index", "999")
                 .style("pointer-events", "none");
 
-            // 创建节点
+
             const node = svg.selectAll(".node")
                 .data(root.descendants())
                 .enter().append("g")
                 .attr("class", "node")
                 .attr("transform", d => `translate(${d.x},${d.y})`)
-                .on("mouseover", function(event, d) {
+                .on("mouseover", function (event, d) {
                     const $this = $(this)
                     let htmlStr = `节点: ${d.data.name}`
                     if (d.data.enter_time) {
@@ -1771,49 +2016,41 @@
                     }
 
                     tooltip.style("visibility", "visible")
-                        .html(htmlStr) // 显示详细信息
-                        .style("top", (event.pageY - 10) + "px") // 设置 tooltip 的位置
+                        .html(htmlStr)
+                        .style("top", (event.pageY - 10) + "px")
                         .style("left", (event.pageX + 10) + "px");
-                    // 为节点添加边框
-                    d3.select(this).select("rect")
-                        .style("stroke-width", 2)
-                        .style("stroke", "black");
+                    d3.select(this).select("rect").style("stroke-width", 2).style("stroke", "black");
                 })
-                .on("mousemove", function(event) {
+                .on("mousemove", function (event) {
                     tooltip.style("top", (event.pageY - 10) + "px")
                         .style("left", (event.pageX + 10) + "px");
                 })
-                .on("mouseout", function() {
+                .on("mouseout", function () {
                     tooltip.style("visibility", "hidden");
-                    // 移除节点边框
-                    d3.select(this).select("rect")
-                        .style("stroke-width", 0);
+                    d3.select(this).select("rect").style("stroke-width", 0);
                 })
-                .on('click', function (event, d){
-                    console.log(d.data)
-                    CreateNodeApiLogsPage(d.data.entry_id, d.data.entry_type, d.data.type, d.data.name, docInfo, d.data.trace_id)
+                .on('click', function (event, d) {
+                    if (!nonClickableStatus.includes(d.data.status)) {
+                        CreateNodeApiLogsPage(d.data.entry_id, d.data.entry_type, d.data.type, d.data.name, docInfo, d.data.trace_id);
+                    }
                 });
 
-
-            // 为节点添加长方形
+            // 创建节点
             node.append("rect")
-                // .attr("width", d => Math.max((nameWidth(d.data.name)) * 12, 60))
                 .attr("width", nodeWidth + 10)
-                .attr("height", 35) // 减小高度
-                // .attr("x", d => -Math.max(nameWidth(d.data.name) * 12, 60) / 2)
+                .attr("height", 35)
                 .attr("x", -nodeWidth / 2 - 5)
                 .attr("y", -12.5)
                 .attr("rx", 5)
-                .style("stroke-width", 0)
-                .attr("ry", 5);
-
-            // 为节点添加文本（节点名称）
+                .attr("ry", 5)
+                .style('stroke-width', 0)
+                .style('cursor', d => nonClickableStatus.includes(d.data.status) ? 'default' : 'pointer')
+                .attr("fill", d => COLORS[d.data.status] || "#fff");
+            // 创建节点名称
             node.append("text")
-                .attr("dy", "0.35em")
+                .attr("dy", "0.60em")
                 .attr("text-anchor", "middle")
-                .attr("y", 5)
                 .text(d => d.data.name);
-
             // 为节点添加文本（创建时间）
             node.append("text")
                 .attr("dy", "0.35em")
@@ -1822,12 +2059,10 @@
                 .attr("y", -20)
                 .text(d => (d.data.finish_time || "").slice(10)); // 显示 create_time 字段
 
-            node.select("rect")
-                .attr("fill", (d, i) => {
-                    return COLORS[d.data.status] || "#fff"
-                });
-            return svgContainer
+
+            return scrollContainer;
         }
+
 
         function createWcdExpanders(entryId, traceId, ossInfo){
             function createExpander(title, content, valueFunc){
@@ -2507,6 +2742,10 @@
                     .text('✅ ' + statusToString(ActionStatusEnum.UNREACHED))
                     .attr('status', ActionStatusEnum.UNREACHED)
                     .css({'background': COLORS[ActionStatusEnum.UNREACHED]}),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + statusToString(ActionStatusEnum.LENGTH_ERROR))
+                    .attr('status', ActionStatusEnum.LENGTH_ERROR)
+                    .css({'background': COLORS[ActionStatusEnum.LENGTH_ERROR]}),
             ]
             // 批量添加点击事件
             for (let i = 0; i < $statusSelectDropdownContents.length; i++) {
@@ -2710,7 +2949,7 @@
                         });
                         return ans
                     }},
-                    { header: '耗时（秒）', value: row => row.cost},
+                    { header: '耗时（秒）', value: row => reformatFloat(row.cost)},
                     { header: '结果', value: row => statusToString(row.status),
                         clickable: row=>true, click: row=> {
                             handleClickActionStatus(row)
@@ -2761,8 +3000,127 @@
                 if (!mute){
                     showLoadingStatus($loadingContainer)
                 }
+                let mocking = false;
+                if (mocking){
+                    let mockData = {
+                        "code": 0,
+                        "msg": "success",
+                        "data": {
+                            "has_next": false,
+                            "rows": [
+                                {
+                                    "user_id": "b5a91d1574db4466953b09a88da24f47",
+                                    "create_time": "2024-11-16 17:46:03,654",
+                                    "channel": "语鲸web",
+                                    "action_name": "多文档",
+                                    "title": "j.issn等2篇多文档总结",
+                                    "resources": [
+                                        {
+                                            "entry_id": "673869db43731425e307dbe9",
+                                            "entry_type": 10,
+                                            "title": "j.issn.1001-411X.202108039(2).pdf",
+                                            "url": "https://wcd-file-bucket-prod.oss-cn-zhangjiakou.aliyuncs.com/raw/b5a91d1574db4466953b09a88da24f47/20241116174603_1857721786088759296_2010905.pdf"
+                                        },
+                                        {
+                                            "entry_id": "673869db43731425e307dbec",
+                                            "entry_type": 7,
+                                            "title": "",
+                                            "url": "https://kns.cnki.net/reader/flowpdf?invoice=xPeLdSvzt0iQHj3LBZFygNmljV7F0oFCKQ2n/yMvbXBOjdP/BGaPWMxlw+VbVHR1qtcJksxyxAIM27+OfhlJdhMFzKBRo67CwPQjdfMe3bgngX7BR7f+XzfJvL4K9wcM3U3+ECI5QpasqMr7JwlWxft1iq19eK9DuLf25/8Lq+4=\u0026platform=NZKPT\u0026product=CJFQ\u0026filename=JXSJ202410022\u0026tablename=cjfdauto\u0026type=JOURNAL\u0026scope=trial\u0026dflag=pdf\u0026pages=\u0026language=CHS\u0026trial=\u0026nonce=ED15AF757F0D49F581EDE8ABBC1C1150\u0026cflag=pdf"
+                                        }
+                                    ],
+                                    "cost": 0,
+                                    "status": 3,
+                                    "entry_type": 12,
+                                    "entry_id": "673869db9d6f04b3d973beee"
+                                },
+                                {
+                                    "user_id": "b5a91d1574db4466953b09a88da24f47",
+                                    "create_time": "2024-11-16 17:46:03,578",
+                                    "channel": "语鲸web",
+                                    "action_name": "多文档-单文档web",
+                                    "title": "",
+                                    "resources": [
+                                        {
+                                            "entry_id": "673869db43731425e307dbec",
+                                            "entry_type": 7,
+                                            "title": "",
+                                            "url": "https://kns.cnki.net/reader/flowpdf?invoice=xPeLdSvzt0iQHj3LBZFygNmljV7F0oFCKQ2n/yMvbXBOjdP/BGaPWMxlw+VbVHR1qtcJksxyxAIM27+OfhlJdhMFzKBRo67CwPQjdfMe3bgngX7BR7f+XzfJvL4K9wcM3U3+ECI5QpasqMr7JwlWxft1iq19eK9DuLf25/8Lq+4=\u0026platform=NZKPT\u0026product=CJFQ\u0026filename=JXSJ202410022\u0026tablename=cjfdauto\u0026type=JOURNAL\u0026scope=trial\u0026dflag=pdf\u0026pages=\u0026language=CHS\u0026trial=\u0026nonce=ED15AF757F0D49F581EDE8ABBC1C1150\u0026cflag=pdf"
+                                        }
+                                    ],
+                                    "cost": 0,
+                                    "status": 3,
+                                    "entry_type": 7,
+                                    "entry_id": "673869db43731425e307dbec"
+                                },
+                                {
+                                    "user_id": "b5a91d1574db4466953b09a88da24f47",
+                                    "create_time": "2024-11-16 17:43:42,041",
+                                    "channel": "语鲸web",
+                                    "action_name": "多文档",
+                                    "title": "j.issn等2篇多文档总结",
+                                    "resources": [
+                                        {
+                                            "entry_id": "6738694d1ab139c41a5d0e68",
+                                            "entry_type": 10,
+                                            "title": "j.issn.1001-411X.202108039(1).pdf",
+                                            "url": "https://wcd-file-bucket-prod.oss-cn-zhangjiakou.aliyuncs.com/raw/b5a91d1574db4466953b09a88da24f47/20241116174341_1857721191835574272_2010905.pdf"
+                                        },
+                                        {
+                                            "entry_id": "6738694d1ab139c41a5d0e6b",
+                                            "entry_type": 7,
+                                            "title": "",
+                                            "url": "https://www.camda.cn/message/2022/61719.html"
+                                        }
+                                    ],
+                                    "cost": 0,
+                                    "status": 3,
+                                    "entry_type": 12,
+                                    "entry_id": "6738694e5c30ed9aff3bd851"
+                                },
+                                {
+                                    "user_id": "b5a91d1574db4466953b09a88da24f47",
+                                    "create_time": "2024-11-16 17:43:41,919",
+                                    "channel": "语鲸web",
+                                    "action_name": "多文档-单文档web",
+                                    "title": "",
+                                    "resources": [
+                                        {
+                                            "entry_id": "6738694d1ab139c41a5d0e6b",
+                                            "entry_type": 7,
+                                            "title": "",
+                                            "url": "https://www.camda.cn/message/2022/61719.html"
+                                        }
+                                    ],
+                                    "cost": 0,
+                                    "status": 3,
+                                    "entry_type": 7,
+                                    "entry_id": "6738694d1ab139c41a5d0e6b"
+                                }
+                            ]
+                        }
+                    }.data;
+                    // 给data添加序号
+                    mockData.rows.forEach((item, index) => {
+                        item.index = index + 1 + currentPage * pageSize;
+                    })
+                    hasMoreData = false;
+                    hideLoadingStatus($loadingContainer)
+                    updateTable(mockData);
+                    updatePagination();
+                    return
+                }
+
                 let currentPageBkp = currentPage;
                 let query = $query.val()
+                let tmpQuery = localStorage.getItem('query')
+                if (tmpQuery && tmpQuery !== query){
+                    query = tmpQuery
+                    $query.val(query)
+                    localStorage.setItem('query', '')
+                    if ($externalSelect.text()[0] === '✅'){
+                        $externalSelect.click()
+                    }
+                }
                 let startTime = $startDatetime.val().replace('T', ' ') + ':00';
                 let endTime = $endDatetime.val().replace('T', ' ') + ':00';
                 // 遍历$statusSelectDropdownContents
@@ -2825,8 +3183,16 @@
             createPage("用户行为", $page)
         }
 
+        function searchByUrlParms(){
+            const urlParams = new URLSearchParams(window.location.search);
+            let query = urlParams.get('query')
+            if (query){
+                localStorage.setItem('query', query)
+            }
+        }
 
         function main() {
+            searchByUrlParms()
             CreateHomePage()
         }
 

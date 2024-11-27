@@ -15,7 +15,7 @@ import (
 func GetWcdOssLogDetail(ctx context.Context, req empyrean_lens.WcdOssDetalReq) ([]*empyrean_lens.WcdOssDetalRespData, *consts.BizCode) {
 	ossList := []aliyun.WcdOssZipModel{}
 
-	if req.OssBucket != "" && req.OssBucket != "" {
+	if req.OssBucket != "" && req.OssKey != "" {
 		// 有指定oss bucket和key，直接下载
 		ossList = append(ossList, aliyun.WcdOssZipModel{
 			Bucket: req.OssBucket,

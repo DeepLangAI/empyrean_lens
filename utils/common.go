@@ -2,7 +2,9 @@ package utils
 
 import (
 	"empyrean_lens/consts"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -255,4 +257,39 @@ func ExtractLogInfo(log string) (time.Time, string, string, float64) {
 
 func IsProbe(host string) bool {
 	return host == "47.92.241.26" || host == "47.92.55.166"
+}
+
+// IPInfo 用于解析 IP-API 返回的 JSON 数据
+type IPInfo struct {
+	Country    string `json:"country"`    // 国家
+	RegionName string `json:"regionName"` // 省份/州
+	City       string `json:"city"`       // 城市
+	Query      string `json:"query"`      // 查询的 IP
+	Status     string `json:"status"`     // 状态 ("success" 或 "fail")
+}
+
+// GetIPLocation 查询IP的地理位置信息
+// 输入: IP地址字符串
+// 输出: 位置信息 (country-region-city) 或 "-"
+func GetIPLocation(ip string) string {
+	// 调用 IP-API 服务
+	resp, err := http.Get("http://ip-api.com/json/" + ip)
+	if err != nil {
+		return "-" // 查询失败返回 "-"
+	}
+	defer resp.Body.Close()
+
+	// 解析返回的 JSON 数据
+	var info IPInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return "-"
+	}
+
+	// 检查查询状态
+	if info.Status != "success" {
+		return "-"
+	}
+
+	// 格式化返回值 country-region-city
+	return fmt.Sprintf("%s-%s-%s", info.Country, info.RegionName, info.City)
 }

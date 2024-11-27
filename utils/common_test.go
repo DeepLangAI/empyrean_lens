@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -34,4 +35,23 @@ func TestExtractLogInfo(t *testing.T) {
 	t.Log(tId)
 	t.Log(uId)
 	t.Log(c)
+}
+
+func TestGetIPLocation(t *testing.T) {
+	type args struct {
+		ip string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		// TODO: Add test cases.
+		{"test1", args{"0.114.114.114"}, "中国 ips.cn"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, GetIPLocation(tt.args.ip), "GetIPLocation(%v)", tt.args.ip)
+		})
+	}
 }

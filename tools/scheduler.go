@@ -13,6 +13,11 @@ import (
 type ProbeRunner struct {
 }
 
+func GetCurrentDate() string {
+	now := time.Now()             // 获取当前时间
+	return now.Format("20060102") // 格式化为 "YYYYMMDD"
+}
+
 func (self *ProbeRunner) Run(ctx context.Context) {
 	s := gocron.NewScheduler(time.UTC)
 	// 每1分钟刷新一下当天的最新数据
@@ -26,5 +31,10 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	//	aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_WEEK, false)
 	//})
 	//s.StartBlocking()
+	//每10分钟获取一次前端上报到神策对异常日志信息
+	s.Every(10).Minutes().Do(func() {
+		empyrean_lens.SaveUploadLogByDate(ctx, GetCurrentDate())
+	})
+
 	s.StartAsync()
 }

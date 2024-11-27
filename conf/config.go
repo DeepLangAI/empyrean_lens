@@ -25,6 +25,7 @@ type Config struct {
 	Logger            conflib.Logger        `yaml:"logger"`
 	Lark              Lark                  `yaml:"lark"`
 	Oss               OSS                   `yaml:"oss"`
+	ShenCe            ShenCe                `yaml:"shence"`
 }
 
 type OSS struct {
@@ -66,6 +67,12 @@ type LarkAuth struct {
 	Emails      []string `yaml:"emails"`
 	Mobiles     []string `yaml:"mobiles"`
 	EmployeeNos []string `yaml:"employee_nos"`
+}
+
+type ShenCe struct {
+	Token   string `yaml:"api_key"`
+	Project string `yaml:"project"`
+	Url     string `yaml:"url"`
 }
 
 // 配置文件路径

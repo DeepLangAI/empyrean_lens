@@ -2,19 +2,20 @@ package utils
 
 import (
 	"bufio"
+	"bytes"
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bytedance/sonic"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
-	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
-	"github.com/bytedance/sonic"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 func DoPost(
@@ -62,6 +63,29 @@ func DoPost(
 		return err
 	}
 	return nil
+}
+
+func DoPostNew(ctx context.Context, url string, data map[string]interface{}, token string, project string) (string, error) {
+	// 建立链接
+	client := &http.Client{}
+	reqData, _ := json.Marshal(data)
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqData))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("api-key", token)
+	req.Header.Set("sensorsdata-project", project)
+	// 发起请求
+	rep, err := client.Do(req)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "post fail, data:%v, err:%v", reqData, err)
+		return "", err
+	}
+	if rep.StatusCode != 200 {
+		hlog.Errorf("must check fail, data:%v, code:%d", data, rep.StatusCode)
+		return "", errors.New("must check fail")
+	}
+	// 返回结果
+	body, _ := io.ReadAll(rep.Body)
+	return string(body), nil
 }
 
 func DoStreamPost(

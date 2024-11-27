@@ -35,6 +35,11 @@ redis:
   username: "svr_query"
   password: "REDACTED"
 
+shence:
+  api_key: "#K-EkE7btXHodiCAwtJqyD3PPzDhrk0jYV5"
+  project: "production"
+  url: "https://shenyankeji.cloud.sensorsdata.cn/api/v3/analytics/v1/model/sql/query"
+
 oss:
   endpoint: "oss-cn-zhangjiakou.aliyuncs.com"
   accessKey: "REDACTED"

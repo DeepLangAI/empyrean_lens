@@ -1006,13 +1006,23 @@
         }
 
         function createErrorGroup(errorLogs){
+            let keyToReadable = {
+                'ip_region': 'IP属地',
+                'user_id': '用户ID',
+                'failure_reason': '失败原因',
+            }
+            let readableToKey = {}
+            for (let key in keyToReadable) {
+                readableToKey[keyToReadable[key]] = key
+            }
             function showGroupedAnlz(key){
+                // key = keyToReadable[key] || key
                 let groupedLogs = groupLogsBy(errorLogs, key)
                 let $table = $('<table>')
                 let $thead = $('<thead>')
                 $thead.append(
                     $('<tr>')
-                        .append($('<th>').text(key))
+                        .append($('<th>').text(keyToReadable[key] || key))
                         .append($('<th>').text('次数'))
                 )
                 let $tbody = $('<tbody>')
@@ -1046,10 +1056,12 @@
             $container.append($selectorGroup, $tableContainer)
 
             let keys = Object.keys(errorLogs[0])
-            console.log(keys)
+            let skipKeys = ['time', 'date', 'trace_id']
+            keys = keys.filter(key => !skipKeys.includes(key))
+
             let key = 'failure_reason'
             keys.forEach(key => {
-                $selector.append($('<option>').text(key).attr('value', key))
+                $selector.append($('<option>').text(keyToReadable[key] || key).attr('value', key))
             })
             $selector.val(key)
             $selector.change(function() {

@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
+	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"sort"
 )
@@ -51,6 +52,19 @@ func (u *userError) GeneralErrorList(ctx context.Context, req empyrean_lens2.Use
 	return res, nil
 }
 
+func filesizeToReadable(size int64) string {
+	//	size, 单位B
+	if size < 1024 {
+		return fmt.Sprintf("%dB", size)
+	} else if size < 1024*1024 {
+		return fmt.Sprintf("%.2fKB", float64(size)/1024)
+	} else if size < 1024*1024*1024 {
+		return fmt.Sprintf("%.2fMB", float64(size)/1024/1024)
+	} else {
+		return fmt.Sprintf("%.2fGB", float64(size)/1024/1024/1024)
+	}
+}
+
 func (u *userError) UploadErrorList(ctx context.Context, req empyrean_lens2.UserErrorUploadReq) ([]*empyrean_lens2.UploadErrorLog, error) {
 	dao := empyrean_lens.NewUploadLogModelDao()
 	logs, err := dao.GetUploadInfoByTime(ctx, req.Date)
@@ -66,7 +80,7 @@ func (u *userError) UploadErrorList(ctx context.Context, req empyrean_lens2.User
 			Time:          log.Time.Format(consts.DateHourMinSecTemplate),
 			FailureReason: log.FailureReason,
 			FileName:      log.FileName,
-			FileSize:      "",
+			FileSize:      filesizeToReadable(log.FileSize),
 			FileType:      log.FileType,
 			IP:            log.Ip,
 			IPRegion:      log.IpRegion,

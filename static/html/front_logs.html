@@ -925,6 +925,20 @@
 
     $(document).ready(function() {
         let modalStack = []
+        let keyToReadable = {
+            'ip_region': 'IP属地',
+            'user_id': '用户ID',
+            'failure_reason': '失败原因',
+            'time': '时间',
+            'file_name': '文件名',
+            'file_type': '文件类型',
+            'file_size': '文件大小',
+            'date': '日期',
+        }
+        let readableToKey = {}
+        for (let key in keyToReadable) {
+            readableToKey[keyToReadable[key]] = key
+        }
 
         $(document).on('keydown', function(event) {
             if (event.key === 'Escape') {
@@ -991,7 +1005,7 @@
             let $thead = $('<thead>')
             let $tbody = $('<tbody>')
             $thead.append(
-                $('<tr>').append(keys.map(key => $('<th>').text(key)))
+                $('<tr>').append(keys.map(key => $('<th>').text(keyToReadable[key] || key)))
             )
             for (let i = 0; i < logs.length; i++) {
                 let log = logs[i];
@@ -1005,16 +1019,7 @@
             pushModal($modal)
         }
 
-        function createErrorGroup(errorLogs){
-            let keyToReadable = {
-                'ip_region': 'IP属地',
-                'user_id': '用户ID',
-                'failure_reason': '失败原因',
-            }
-            let readableToKey = {}
-            for (let key in keyToReadable) {
-                readableToKey[keyToReadable[key]] = key
-            }
+        function createErrorGroup(date, errorLogs){
             function showGroupedAnlz(key){
                 // key = keyToReadable[key] || key
                 let groupedLogs = groupLogsBy(errorLogs, key)
@@ -1037,7 +1042,7 @@
                         .addClass('clickable')
                     ).click(function (){
                             hideLastModal()
-                            showErrorLogDetail('异常详情：' + group[0], group[1])
+                            showErrorLogDetail(date + '异常详情：' + group[0], group[1])
                         })
                     $tbody.append($tr)
                 }
@@ -1101,7 +1106,7 @@
                 }
             }).then(response => {
                 let data = response.data.data
-                let $container = createErrorGroup(data)
+                let $container = createErrorGroup(date, data)
                 $body.append($container)
             }).catch(error => {
 
@@ -1140,7 +1145,7 @@
                 }
             }).then(response => {
                 let data = response.data.data
-                let $container = createErrorGroup(data)
+                let $container = createErrorGroup(date, data)
                 $modalContent.append($container)
             }).catch(error => {
 

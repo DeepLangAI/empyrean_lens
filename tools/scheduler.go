@@ -32,7 +32,7 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	//})
 	//s.StartBlocking()
 	//每10分钟获取一次前端上报到神策对异常日志信息
-	s.Every(10).Minutes().Do(func() {
+	s.Every(10).Minutes().StartImmediately().Do(func() {
 		empyrean_lens.SaveUploadLogByDate(ctx, GetCurrentDate())
 		empyrean_lens.SaveGenerateErrlogByDate(ctx, GetCurrentDate())
 	})

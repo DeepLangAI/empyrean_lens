@@ -7,6 +7,7 @@ import (
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal"
+	"empyrean_lens/service/mongo/empyrean_lens"
 	"empyrean_lens/service/passport"
 	"empyrean_lens/tools"
 	"empyrean_lens/utils"
@@ -20,11 +21,20 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
+func SaveUserLogsOnce() {
+	ctx := context.Background()
+	empyrean_lens.SaveOnceUploadLogByDate()
+	empyrean_lens.SaveOnceGenerateErrlogByDate()
+	hlog.CtxInfof(ctx, "save user logs once success")
+}
+
 func main() {
 
 	conf.InitConfig()
 	logger.Init(conf.GetConfig().Logger)
 	dal.Init()
+
+	SaveUserLogsOnce()
 
 	runner := tools.ProbeRunner{}
 	runner.Run(context.Background())

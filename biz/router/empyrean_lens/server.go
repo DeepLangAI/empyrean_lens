@@ -27,6 +27,18 @@ func Register(r *server.Hertz) {
 		{
 			_v1 := _api.Group("/v1", _v1Mw()...)
 			{
+				_front_err := _v1.Group("/front_err", _front_errMw()...)
+				_front_err.GET("/list", append(_errorlistMw(), empyrean_lens.ErrorList)...)
+				{
+					_generate := _front_err.Group("/generate", _generateMw()...)
+					_generate.GET("/list", append(_errorgenerateMw(), empyrean_lens.ErrorGenerate)...)
+				}
+				{
+					_upload := _front_err.Group("/upload", _uploadMw()...)
+					_upload.GET("/list", append(_erroruploadMw(), empyrean_lens.ErrorUpload)...)
+				}
+			}
+			{
 				_link_trace := _v1.Group("/link_trace", _link_traceMw()...)
 				_link_trace.POST("/batch_save", append(_batchsavelinktraceMw(), empyrean_lens.BatchSaveLinkTrace)...)
 				_link_trace.GET("/multi_doc", append(_multidoclinktraceMw(), empyrean_lens.MultiDocLinkTrace)...)
@@ -80,8 +92,8 @@ func Register(r *server.Hertz) {
 					_trend.GET("/request", append(_requesttrendsMw(), empyrean_lens.RequestTrends)...)
 				}
 				{
-					_upload := _report.Group("/upload", _uploadMw()...)
-					_upload.POST("/online_operation", append(_uploadonlineoperationMw(), empyrean_lens.UploadOnlineOperation)...)
+					_upload0 := _report.Group("/upload", _upload0Mw()...)
+					_upload0.POST("/online_operation", append(_uploadonlineoperationMw(), empyrean_lens.UploadOnlineOperation)...)
 				}
 				{
 					_user := _report.Group("/user", _userMw()...)

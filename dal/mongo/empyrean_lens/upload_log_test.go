@@ -3,7 +3,8 @@ package empyrean_lens
 import (
 	"context"
 	"empyrean_lens/conf"
-	"reflect"
+	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -100,43 +101,25 @@ func TestUploadLogModelDao_SaveBatch(t *testing.T) {
 }
 
 func TestUploadLogModelDao_CountLogsByStartDate(t *testing.T) {
-	type args struct {
-		ctx       context.Context
-		startDate string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    map[string]int64
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-		{
-			name: "test",
-			args: args{
-				ctx:       context.Background(),
-				startDate: "2024-11-15",
-			},
-			want:    nil,
-			wantErr: false,
-		},
-	}
-
-	ctx := context.Background()
 	conf.InitConfig()
+	ctx := context.Background()
 	Init(ctx)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			self := &UploadLogModelDao{}
-			got, err := self.CountLogsByTimeRange(tt.args.ctx, tt.args.startDate)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CountLogsByStartDate() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CountLogsByStartDate() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	t.Run("", func(t *testing.T) {
+		startDate := "2024-11-15"
+		endDate := "2024-11-20"
+		dao := UploadLogModelDao{}
+		timeRange, err := dao.CountLogsByTimeRange(ctx, startDate, endDate)
+		assert.Nil(t, err)
+		fmt.Println(timeRange)
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		startDate := ""
+		endDate := ""
+		dao := UploadLogModelDao{}
+		timeRange, err := dao.CountLogsByTimeRange(ctx, startDate, endDate)
+		assert.Nil(t, err)
+		fmt.Println(timeRange)
+	})
 }

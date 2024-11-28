@@ -733,6 +733,61 @@ struct TraceIdToEntryIdRespData{
     1: string entry_id
 }
 
+// 用户侧日志：错误列表
+struct UserErrorListReq{
+}
+struct UserErrorListResp{
+    1: i64 code
+    2: string msg
+    3: list<UserErrorListRespData> data
+}
+struct UserErrorListRespData{
+    1: string date
+    2: i64 num_error_upload
+    3: i64 num_error_generate
+}
+
+// 用户侧日志：错误详情
+struct UserErrorUploadReq{
+    2: string date
+}
+struct UserErrorUploadResp{
+    1: i64 code
+    2: string msg
+    3: list<UploadErrorLog> data
+}
+struct UploadErrorLog{
+    1: string date
+    2: string user_id
+    3: string time
+    4: string failure_reason
+    5: string file_name
+    6: string file_size
+    7: string file_type
+    8: string ip
+    9: string ip_region
+    10: string trace_id
+}
+// 用户侧日志，生成失败列表
+struct UserErrorGenerateReq{
+    2: string date
+}
+struct UserErrorGenerateResp{
+    1: i64 code
+    2: string msg
+    3: list<GenerateErrorLog> data
+}
+struct GenerateErrorLog{
+    1: string time
+    2: string user_id
+    3: string date
+    4: string entry_id
+    5: string failure_reason
+    6: string ip
+    7: string ip_region
+    8: string trace_id
+}
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -856,5 +911,20 @@ service LinkTrace{
     // 通过trace_id查询对应的entry_id
     TraceIdToEntryIdResp TraceIdToEntryId(1: TraceIdToEntryIdReq req) (
         api.get="/api/v1/link_trace/trace_id_to_entry_id"
+    )
+}
+
+service FrontError{
+    // 错误列表
+    UserErrorListResp ErrorList(1: UserErrorListReq req) (
+        api.get="/api/v1/front_err/list"
+    )
+    // 上传失败聚合
+    UserErrorUploadResp ErrorUpload(1: UserErrorUploadReq req) (
+        api.get="/api/v1/front_err/upload/list"
+    )
+    // 生成失败聚合
+    UserErrorGenerateResp ErrorGenerate(1: UserErrorGenerateReq req) (
+        api.get="/api/v1/front_err/generate/list"
     )
 }

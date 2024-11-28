@@ -2,6 +2,7 @@ package empyrean_lens
 
 import (
 	"context"
+	"empyrean_lens/consts"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,7 +21,7 @@ type GenerateErrLogModel struct {
 	IpRegion      string    `bson:"ip_region" json:"ip_region"`
 	FailureReason string    `bson:"failure_reason" json:"failure_reason"`
 	Date          string    `bson:"date" json:"date"`
-	Time          string    `bson:"time" json:"time"`
+	Time          time.Time `bson:"time" json:"time"`
 	UpdateTime    time.Time `bson:"update_time" json:"update_time"`
 }
 type GenerateErrLogDao struct{}
@@ -118,12 +119,20 @@ func (self *GenerateErrLogDao) GetGenerateErrlogByTime(ctx context.Context, date
 	return generateErrLogInfos, nil
 }
 
-func (self *GenerateErrLogDao) CountGenerateErrLogsByTimeRange(ctx context.Context, startDate string) (map[string]int64, error) {
+func (self *GenerateErrLogDao) CountGenerateErrLogsByTimeRange(ctx context.Context, startDate, endDate string) (map[string]int64, error) {
 	collection := probeDatabase.Collection(TableNameGenerateErrLog)
 
 	// 定义开始时间的过滤条件
-	filter := bson.M{
-		"date": bson.M{"$gte": startDate}, // 从指定开始日期起
+	conditions := []bson.M{}
+	if startDate != "" {
+		conditions = append(conditions, bson.M{"date": bson.M{"$gte": startDate}})
+	}
+	if endDate != "" {
+		conditions = append(conditions, bson.M{"date": bson.M{"$lte": endDate}})
+	}
+	filter := bson.M{}
+	if len(conditions) > 0 {
+		filter = bson.M{"$and": conditions}
 	}
 
 	// 聚合管道
@@ -146,6 +155,7 @@ func (self *GenerateErrLogDao) CountGenerateErrLogsByTimeRange(ctx context.Conte
 
 	// 解析聚合结果
 	rawResults := make(map[string]int64)
+	minDate := ""
 	for cursor.Next(ctx) {
 		var item struct {
 			Date  string `bson:"_id"`   // 分组字段对应 _id
@@ -156,6 +166,9 @@ func (self *GenerateErrLogDao) CountGenerateErrLogsByTimeRange(ctx context.Conte
 			return nil, err
 		}
 		rawResults[item.Date] = item.Count
+		if minDate == "" || item.Date < minDate {
+			minDate = item.Date
+		}
 	}
 
 	// 检查游标迭代错误
@@ -164,12 +177,22 @@ func (self *GenerateErrLogDao) CountGenerateErrLogsByTimeRange(ctx context.Conte
 		return nil, err
 	}
 
+	result := make(map[string]int64)
 	// 获取当前日期
-	currentDate := time.Now()
+	if endDate == "" {
+		endDate = time.Now().Format(consts.DateTemplate)
+	}
+	if startDate == "" {
+		startDate = minDate
+	}
+	currentDate, err := time.ParseInLocation(consts.DateTemplate, endDate, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "Invalid endDate format: %v", err)
+		return nil, err
+	}
 
 	// 补全缺失的日期
-	result := make(map[string]int64)
-	startTime, err := time.Parse("2006-01-02", startDate)
+	startTime, err := time.ParseInLocation(consts.DateTemplate, startDate, time.Local)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "Invalid startDate format: %v", err)
 		return nil, err
@@ -177,7 +200,7 @@ func (self *GenerateErrLogDao) CountGenerateErrLogsByTimeRange(ctx context.Conte
 
 	// 从 startDate 到当前日期之间的每一天
 	for startTime.Before(currentDate) || startTime.Equal(currentDate) {
-		dateStr := startTime.Format("2006-01-02")
+		dateStr := startTime.Format(consts.DateTemplate)
 		if count, exists := rawResults[dateStr]; exists {
 			result[dateStr] = count
 		} else {

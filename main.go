@@ -34,7 +34,7 @@ func main() {
 	logger.Init(conf.GetConfig().Logger)
 	dal.Init()
 
-	SaveUserLogsOnce()
+	//SaveUserLogsOnce()
 
 	runner := tools.ProbeRunner{}
 	runner.Run(context.Background())

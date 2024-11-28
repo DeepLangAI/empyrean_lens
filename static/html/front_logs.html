@@ -1,0 +1,1199 @@
+<!-- Write HTML code here -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>
+        语鲸稳定性
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+
+    <script src="/public/js/jquery-3.6.0.min.js"></script>
+    <script src="/public/js/axios.min.js"></script>
+    <script src="/public/js/echarts.min.js"></script>
+    <script src="/public/js/moment.min.js"></script>
+    <script src="/public/js/d3.v7.min.js"></script>
+
+    <script src="/public/js/highlight.min.js"></script>
+    <link rel="stylesheet" href="/public/js/default.min.css">
+
+    <script src="/public/js/sweetalert2.min.js"></script>
+    <link rel="stylesheet" href="/public/css/sweetalert2.min.css">
+
+
+    <link rel="stylesheet" href="/public/css/jquery-ui.css">
+    <script src="/public/js/jquery-ui.js"></script>
+
+
+    <style>
+        body {
+            /*background-color: #f0f2f5; !* 更柔和的浅灰色背景 *!*/
+            background-color: #ffffff; /* 更柔和的浅灰色背景 */
+            color: #333; /* 深灰色文本 */
+            font-family: 'Helvetica Neue', Arial, sans-serif; /* 更具吸引力的字体 */
+            font-size: 14px; /* 基础字体大小 */
+            text-align: left; /* 全局左对齐 */
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            color: #444; /* 更柔和的深灰色标题 */
+            text-align: center; /* 标题居中对齐 */
+            margin-top: 20px;
+        }
+
+        .container {
+            width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        table {
+            border-collapse: collapse; /* 合并边框 */
+            width: 100%; /* 表格宽度为100% */
+            margin: 20px 0; /* 表格上下间距 */
+            background-color: #fff; /* 白色背景 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 轻微的阴影效果 */
+        }
+
+        th, td {
+            border: 1px solid #ddd; /* 更柔和的边框颜色 */
+            padding: 10px; /* 增加内边距 */
+            text-align: center; /* 单元格内容居中对齐 */
+            font-size: 12px; /* 调整字体大小 */
+        }
+        td>a{
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+
+        th {
+            background-color: #f2f2f2; /* 表头背景颜色 */
+            font-weight: bold; /* 表头加粗 */
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9; /* 隔行变色 */
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 2px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pagination button.disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* 移动端样式 */
+        @media (max-width: 767px) {
+
+        }
+
+
+
+        /* CSS styles for the navigation bar */
+        nav {
+            background-color: #333;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        nav a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        nav a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        /* Styles for the content area */
+        body {
+            padding-top: 60px; /* Add some padding to the top of the content */
+        }
+
+        .clickable {
+            color: #ff9900;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .clickable-black {
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .clickable-black:hover {
+            background-color: #e0e0e0;
+            color: #e68a00;
+        }
+
+        .clickable:hover {
+            background-color: #e0e0e0;
+            color: #e68a00;
+        }
+        /* 添加CSS样式使面包屑横排 */
+        .breadcrumb {
+            list-style: none; /* 移除列表默认样式 */
+            padding-left: 10px !important; /* 移除默认的内边距 */
+            /*margin-left: 5px;*/
+            height: 35px;
+            margin: 0; /* 移除默认的外边距 */
+            display: flex; /* 使用Flexbox */
+            align-items: stretch; /* 使子项在交叉轴上的对齐方式居中（垂直居中） */
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            /*padding-left: 10px;*/
+            /*padding-right: 10px;*/
+            align-items: center; /* 垂直居中面包屑项内容 */
+            justify-content: center; /* 水平居中面包屑项内容 */
+        }
+
+        .breadcrumb-item:hover {
+            cursor: pointer;
+            background-color: #ddd;
+            color: black !important;
+            /*transition: background-color 0.5s ease;*/
+            /*transition: color 0.3s ease;*/
+            transition-delay: 0.1s;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "/"; /* 在面包屑项之间添加分隔符 */
+            padding: 0 0.5rem; /* 添加一些内边距以提高可读性 */
+
+        }
+
+        .breadcrumb-item.active {
+            color:  white; /* 通常活动或当前项的文本颜色会有所不同 */
+        }
+
+        .breadcrumb-item.active:first-child {
+            padding-left: 10px;
+        }
+        .breadcrumb-item.active:last-child {
+            font-weight: bold;
+        }
+
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .loading-container.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            border: 4px solid #333;
+            border-top-color: transparent;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            z-index: 9999;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 日志样式 */
+        .log-container {
+            font-size: 13px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-start;
+
+        }
+        .log-id {
+            width: 15px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        .log-time {
+            width: 50px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 20px;
+            font-family: inherit;
+        }
+        .log-details {
+            flex-grow: 1;
+        }
+        .log-details-header {
+            background-color: #f5f5f5;
+            padding: 5px 10px;
+            font-weight: lighter;
+            border-radius: 3px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-header span {
+            position: relative;
+            margin-right: 20px;
+            white-space: pre-wrap;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+        .log-details-header span:hover::after {
+            content: attr(data-field-name);
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #333;
+            color: #fff;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1;
+        }
+        .log-details-body {
+            padding: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .log-details-body > p {
+            text-align: left;
+            margin: -5px 0;
+            /*font-weight: bold;*/
+            padding: 5px 0px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            opacity: 0.9;
+
+            position: relative;
+            overflow: hidden;
+            /*max-height: 4.5em; !* 假设行高为1.5em，3行就是4.5em *!*/
+            line-height: 1.5em;
+            max-width: 700px;
+        }
+        .log-details-body p.expanded {
+            /*max-height: 400px;*/
+            /*overflow: scroll;*/
+        }
+        .log-details-body pre {
+            max-height: 20px;
+            /*overflow: scroll;*/
+        }
+        .log-details-body pre.expanded {
+            max-height: 400px;
+            overflow: scroll;
+        }
+        .log-details-body p>span {
+            font-family: inherit;
+            font-weight: normal;
+            background: #edeff3;
+            margin-right: 10px;
+        }
+        .copy-tip {
+            position: absolute;
+            bottom: 0;
+            right: 30px;
+            background: white;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
+        .copy-tip:hover{
+            background: #007bff; /* 悬停时的背景颜色 */
+            color: #ffffff;      /* 悬停时的字体颜色 */
+            text-decoration: underline;
+        }
+        .expand-tip {
+            position: absolute;
+            bottom: 0;
+            right: -10px;
+            background: white;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #007bff;
+        }
+        .expand-tip:hover {
+            background: #007bff; /* 悬停时的背景颜色 */
+            color: #ffffff;      /* 悬停时的字体颜色 */
+            text-decoration: underline;
+        }
+
+        .page {
+            position: absolute;
+            top: 90px;
+            left: 0;
+            width: 100%;
+            /*width: 800px;*/
+            height: 90vh;
+            overflow: scroll;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+            /*box-shadow: 0 0 20px rgba(0,0,0,0.1);*/
+            z-index: 2;
+        }
+
+        /*.page-header {*/
+        /*    background-color: #f0f0f0;*/
+        /*    padding: 10px;*/
+        /*    display: flex;*/
+        /*    align-items: center;*/
+        /*    justify-content: center; !* Center all content horizontally *!*/
+        /*    position: relative; !* Allows absolute positioning of the button *!*/
+        /*}*/
+        .page-body {
+            flex-grow: 1;
+            padding: 8px;
+            /*overflow-y: auto;*/
+        }
+        .page-tail {
+            background-color: #f0f0f0;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .home-button {
+            background: none;
+            border: none;
+            font-size: 16px;
+            margin-right: auto; /* Pushes the button to the far left */
+            cursor: pointer;
+            /*position: absolute; !* Positions the button within the header *!*/
+            /*left: 55px; !* Align the button to the right side *!*/
+            width: 20px;
+            transition: transform 0.3s, box-shadow 0.3s; /* 添加过渡效果 */
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 16px;
+            margin-right: auto; /* Pushes the button to the far left */
+            cursor: pointer;
+            position: absolute; /* Positions the button within the header */
+            left: 15px; /* Align the button to the left side */
+            width: 20px;
+            transition: transform 0.3s, box-shadow 0.3s; /* 添加过渡效果 */
+        }
+
+        .home-button:hover,
+        .back-button:hover {
+            transform: scale(1.1); /* 放大按钮 */
+            /*box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); !* 添加阴影 *!*/
+        }
+
+        .sticky-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+
+            border-radius: 8px; /* 添加圆角 */
+            /*box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); !* 添加阴影效果 *!*/
+        }
+
+        .sticky-table th {
+            background: linear-gradient(to bottom, #f8f8f8, #e0e0e0);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            /*word-wrap: break-word; !* 允许单词折行 *!*/
+            white-space: nowrap; /* 允许文本换行 */
+            max-width: 150px; /* 设置最大宽度 */
+            border-right: 1px solid #ddd; /* 添加右边框 */
+        }
+
+        .sticky-table th:last-child,
+        .sticky-table td:last-child {
+            border-right: none; /* 移除最后一列的右边框 */
+        }
+
+        .sticky-table td {
+            /*padding: 12px; !* 增加内边距以提升舒适度 *!*/
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-left: 3px;
+            padding-right: 3px;
+
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+            /*text-align: left;*/
+            font-size: 14px; /* 提高可读性 */
+            color: #333; /* 现代化的深灰色字体 */
+            border-right: 1px solid #ddd; /* 添加右边框 */
+            white-space: nowrap;
+        }
+
+        .sticky-table thead th {
+            background: linear-gradient(to bottom, #f8f8f8, #e0e0e0); /* 使用渐变色增强视觉效果 */
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            text-transform: uppercase; /* 添加大写字母样式 */
+            letter-spacing: 0.05em; /* 增加字母间距 */
+            font-weight: 600; /* 加粗字体 */
+        }
+
+        .table-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #444; /* 深灰色的标题色 */
+        }
+
+        .sticky-column {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            background-color: #fff;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05); /* 修改阴影效果为更柔和的样式 */
+            border-right: 1px solid #ddd; /* 添加边框以增强视觉分隔 */
+        }
+
+        /* 确保首列和表头首列的样式一致，保留冻结效果 */
+        .sticky-table thead th.sticky-column {
+            z-index: 3;
+            background: linear-gradient(to bottom, #f8f8f8, #e0e0e0); /* 确保表头固定列颜色一致 */
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+        }
+
+        .sticky-table tbody tr:nth-child(even) {
+            background-color: #f7f9fc; /* 更柔和的蓝色背景 */
+        }
+
+        .sticky-table tbody tr:hover {
+            background-color: #e2e6ea; /* 提供悬停效果的颜色变化 */
+            transition: background-color 0.3s ease; /* 增加平滑的过渡效果 */
+        }
+        .sticky-table tbody tr.selected {
+            background-color: #e2e6ea; /* 提供悬停效果的颜色变化 */
+        }
+
+        /* 确保固定列的背景色与行的背景色一致，并且完全不透明 */
+        .sticky-table tbody tr td.sticky-column {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            background-color: #fff;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05); /* 为固定列添加轻微的阴影效果 */
+            border-right: 1px solid #ddd; /* 增加边框分隔效果 */
+        }
+
+        .sticky-table tbody tr:nth-child(even) td.sticky-column {
+            background-color: #f7f9fc; /* 与其他偶数行颜色保持一致 */
+        }
+
+        .sticky-table tbody tr:hover td.sticky-column {
+            background-color: #e2e6ea; /* 与悬停行颜色一致 */
+            transition: background-color 0.3s ease; /* 添加过渡效果 */
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            /*margin-top: 20px;*/
+            position: relative;
+        }
+        .table-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #444; /* 深灰色的标题色 */
+        }
+
+        .next-button {
+            background-color: #5cd50a;
+            color: white;
+            border: none;
+            padding: 10px 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border-radius: 6px;
+            margin-left: 20px;
+        }
+        .next-button:hover {
+            background-color: #67ad5b;
+        }
+        /*不可用状态的.next-button*/
+        .next-button.disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .next-button-container{
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .node rect {
+            stroke: #000;
+            stroke-width: 1px;
+            cursor: pointer;
+        }
+        .node text {
+            /*font: 16px sans-serif;*/
+        }
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 1px;
+        }
+        .svg-container{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: scroll;
+        }
+
+        .status-bar{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 48px;
+            z-index: 4;
+            width: 100%;
+            background: #f0f2f5;
+        }
+
+        .custom-popup {
+            width: 150px; /* 调整宽度 */
+            border-radius: 8px; /* 圆角 */
+            padding: 10px; /* 内边距 */
+            font-size: 6px; /* 字体大小 */
+        }
+
+        .custom-popup-title {
+            font-size: 16px; /* 标题字体大小 */
+            margin: 0; /* 去掉默认的外边距 */
+        }
+
+        .custom-popup-icon {
+            /*width: 20px; !* 图标宽度 *!*/
+            /*height: 20px; !* 图标高度 *!*/
+            object-fit: contain; /* 使图标保持比例 */
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+        /*.tooltip:hover {*/
+        /*!*    hover时，文字颜色变化*!*/
+        /*    color: #105705;*/
+        /*    transition: color 0.3s ease; !* 增加平滑的过渡效果 *!*/
+        /*!*    bold*!*/
+        /*    font-weight: bold;*/
+        /*}*/
+        .tooltip:hover {
+            color: #105705;
+            font-weight: bold;
+            text-decoration: underline; /* 添加下划线 */
+            /*background-color: rgba(16, 87, 5, 0.1); !* 添加背景色变化 *!*/
+            /*text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); !* 添加文字阴影 *!*/
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 60px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            padding: 5px;
+            position: absolute;
+            z-index: 5;
+            bottom: 125%; /* 调整 tooltip 的位置 */
+            left: 50%;
+            margin-left: -30px; /* 使 tooltip 居中 */
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: x-small;
+        }
+
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%; /* 三角形位置 */
+            left: 50%;
+            margin-left: -5px; /* 居中三角形 */
+            border-width: 5px;
+            border-style: solid;
+            border-color: black transparent transparent transparent; /* 三角形颜色 */
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        td.key{
+            text-align: right;
+            padding-right: 0px;
+        }
+        td.value{
+            text-align: left;
+            padding-left: 5px;
+        }
+
+        /*下拉expander*/
+        .expander {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            /*transition: all 0.3s ease;*/
+            margin-right: 2%;
+            max-width: 700px;
+            margin-bottom: 10px;
+            transition: transform 0.3s ease;
+        }
+        .expander-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+        .expander-header .copy-btn {
+            position: absolute;
+            right: 40px;
+            color: #007bff;
+            background: #edeff3;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+        .expander-header .copy-btn:hover {
+            background: #007bff; /* 悬停时的背景颜色 */
+            color: #ffffff;      /* 悬停时的字体颜色 */
+            text-decoration: underline;
+        }
+        /* 添加 hover 效果 */
+        .expander-header:hover {
+            background-color: #f0f0f0; /* 更改背景色 */
+        }
+        /* 添加 hover 效果，仅作用于 h3 */
+        .expander-header:hover h3 {
+            color: #f6891c; /* 更改文字颜色 */
+        }
+        .expander-header h3 {
+            margin: 0;
+        }
+        .expander iframe {
+            width: 100%;
+            height: 50vh;
+        }
+        .expander-header:after {
+            content: '▼';
+            font-size: 16px;
+            transition: transform 0.3s ease;
+        }
+        .expander.active .expander-header:after {
+            transform: rotate(180deg);
+        }
+        .expander-content {
+            display: none;
+            padding: 10px;
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+        .expander.active .expander-content {
+            display: block;
+            max-height: 500px;
+            overflow: auto;
+        }
+
+
+        /* 弹窗样式 */
+        .modal {
+            /*display: block;*/
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal.active{
+            display: block;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            /*margin: 15% auto;*/
+            margin-left: 20%;
+            margin-right: 20%;
+            margin-top: 6%;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%;
+            animation: scaleIn 0.5s ease-in-out;
+            transform-origin: center center;
+            max-height: 70vh;
+            overflow-y: hidden;
+        }
+        .modal-header{
+            background-color: #fefefe;
+            /*padding: 20px;*/
+            /*border: 1px solid #888;*/
+            animation: scaleIn 0.5s ease-in-out;
+            transform-origin: center center;
+            max-height: 70vh;
+            overflow-y: scroll;
+        }
+        .modal-header h2{
+            display: contents;
+        }
+        .modal-body{
+            overflow: scroll;
+            max-height: inherit;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* 动画 */
+        /*@keyframes scaleIn {*/
+        /*    0% { transform: scale(0); }*/
+        /*    100% { transform: scale(1); }*/
+        /*}*/
+        @keyframes scaleIn {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+                animation-timing-function: ease-out;
+            }
+            40% {
+                transform: scale(1.02);
+                opacity: 1;
+                animation-timing-function: ease-out;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+                animation-timing-function: ease-out;
+            }
+        }
+
+        /*.selector-group{*/
+        /*    display: flex;*/
+        /*}*/
+        /*.selector{*/
+
+        /*}*/
+        .selector-group {
+            display: flex;
+            align-items: center; /* 垂直居中对齐 */
+            gap: 10px; /* 增加选择器和标签之间的间距 */
+        }
+
+        .selector-group div {
+            font-size: 16px; /* 设置标签的字体大小 */
+            color: #333; /* 标签颜色 */
+        }
+
+        .selector {
+            padding: 8px 12px; /* 内边距，增加选择器的点击区域 */
+            border: 1px solid #ccc; /* 边框颜色 */
+            border-radius: 4px; /* 边框圆角 */
+            background-color: #f9f9f9; /* 背景颜色 */
+            font-size: 14px; /* 字体大小 */
+            transition: border-color 0.3s ease; /* 平滑过渡效果 */
+        }
+
+        .selector:focus {
+            border-color: #00722d; /* 聚焦时改变边框颜色 */
+            outline: none; /* 去掉默认的聚焦轮廓 */
+        }
+
+        .selector option {
+            padding: 10px; /* 选项内边距 */
+        }
+
+
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/api/log/overview">语鲸稳定性一览</a>
+    <a href="/api/log/tools">高效工具箱</a>
+    <a href="/public/html/link_trace.html">链路追踪</a>
+    <a href="/public/html/front_logs.html" class="active">用户侧异常</a>
+</nav>
+
+<div id="app"></div>
+<div id="loading-container" class="loading-container">
+    <div class="loading-spinner"></div>
+</div>
+
+<script>
+
+    // 显示加载状态
+    function showLoadingStatus() {
+        $('#loading-container').removeClass('hide');
+    }
+
+    // 隐藏加载状态
+    function hideLoadingStatus() {
+        $('#loading-container').addClass('hide');
+    }
+
+
+    function groupLogsBy(logs, by){
+        let groupedLogs = {};
+        logs.forEach(log => {
+            let key = log[by];
+            if (!groupedLogs[key]) {
+                groupedLogs[key] = [];
+            }
+            groupedLogs[key].push(log);
+        });
+        // 转化为数组，按value长度排序，从大到小
+        let sortedLogs = Object
+            .entries(groupedLogs)
+            .sort((a, b) => b[1].length - a[1].length);
+        return sortedLogs
+    }
+
+
+    $(document).ready(function() {
+        let modalStack = []
+
+        $(document).on('keydown', function(event) {
+            if (event.key === 'Escape') {
+                handleClickModalClose();
+            }
+        });
+        function handleClickOutsideModal(event){
+            // 检查点击的目标是否是模态框（$modal）而不是模态框内容（$modalContent）
+            if ($(event.target).is('.modal.active') && !$(event.target).find('.modal-content').is(event.target)) {
+                handleClickModalClose(); // 调用关闭模态框的函数
+            }
+        }
+        function handleClickModalClose() {
+            removeLastModal()
+            showLastModal()
+        };
+
+        function showLastModal(){
+            if (modalStack.length > 0) {
+                let $modal = modalStack[modalStack.length - 1]
+                $modal.addClass('active')
+                $modal.show()
+                console.log("showLastModal", modalStack.length, $modal)
+            }
+            // $modal.fadeIn(300, function() {
+            //     // 添加active class
+            //     $modal.addClass('active')
+            // })
+        }
+
+        function hideLastModal(){
+            let $modal = modalStack[modalStack.length - 1]
+            $modal.removeClass('active')
+            // $modal.fadeOut(300, function() {
+            //     // 删除active class
+            //     $modal.removeClass('active')
+            // })
+        }
+        function removeLastModal(){
+            if (modalStack.length > 0){
+                let $modal = modalStack.pop()
+                $modal.remove()
+            }
+        }
+        function pushModal($modal){
+            $('#app').append($modal)
+            modalStack.push($modal)
+            $modal.addClass('active')
+        }
+
+        function showErrorLogDetail(title, logs){
+            let $modal = $('<div>').addClass('modal active').click(handleClickOutsideModal)
+            let $header = $('<div>').addClass('modal-header')
+            let $body = $('<div>').addClass('modal-body')
+            let $modalContent = $('<div>').addClass('modal-content')
+            let $closeBtn = $('<span>').addClass('close-button').text('x')
+            $closeBtn.on('click', handleClickModalClose)
+            $header.append(
+                $('<h2>').text(title),
+                $closeBtn,
+            )
+            let keys = Object.keys(logs[0])
+            let $table = $('<table>')
+            let $thead = $('<thead>')
+            let $tbody = $('<tbody>')
+            $thead.append(
+                $('<tr>').append(keys.map(key => $('<th>').text(key)))
+            )
+            for (let i = 0; i < logs.length; i++) {
+                let log = logs[i];
+                let $tr = $('<tr>').append(keys.map(key => $('<td>').text(log[key])))
+                $tbody.append($tr)
+            }
+            $table.append($thead).append($tbody)
+            $body.append($table)
+            $modalContent.append($header, $body)
+            $modal.append($modalContent)
+            pushModal($modal)
+        }
+
+        function createErrorGroup(errorLogs){
+            function showGroupedAnlz(key){
+                let groupedLogs = groupLogsBy(errorLogs, key)
+                let $table = $('<table>')
+                let $thead = $('<thead>')
+                $thead.append(
+                    $('<tr>')
+                        .append($('<th>').text(key))
+                        .append($('<th>').text('次数'))
+                )
+                let $tbody = $('<tbody>')
+                for (let i = 0; i < groupedLogs.length; i++) {
+                    let group = groupedLogs[i];
+                    let value = group[0]
+                    let count = group[1].length
+                    let $tr = $('<tr>')
+                    $tr.append($('<td>').text(value))
+                    $tr.append($('<td>')
+                        .text(count)
+                        .addClass('clickable')
+                    ).click(function (){
+                            hideLastModal()
+                            showErrorLogDetail('异常详情：' + group[0], group[1])
+                        })
+                    $tbody.append($tr)
+                }
+                $table.append($thead, $tbody)
+                $tableContainer.empty()
+                $tableContainer.append($table)
+            }
+            let $container = $('<div>')
+            let $selectorGroup = $('<div>').addClass('selector-group')
+            let $selector = $('<select>').addClass('selector')
+            $selectorGroup.append(
+                $('<div>').text('聚合依据'),
+                $selector
+            )
+            let $tableContainer = $('<div>').addClass('table-container')
+            $container.append($selectorGroup, $tableContainer)
+
+            let keys = Object.keys(errorLogs[0])
+            console.log(keys)
+            let key = 'failure_reason'
+            keys.forEach(key => {
+                $selector.append($('<option>').text(key).attr('value', key))
+            })
+            $selector.val(key)
+            $selector.change(function() {
+                key = $(this).val()
+                showGroupedAnlz(key)
+            })
+            showGroupedAnlz(key)
+            return $container
+        }
+
+        function createErrorGenerateModal(date){
+            let $app = $('#app')
+            let $modal = $('<div>').addClass('modal active').click(handleClickOutsideModal)
+            let $header = $('<div>').addClass('modal-header')
+            let $body = $('<div>').addClass('modal-body')
+            let $closeBtn = $('<span>')
+                .addClass('close-button')
+                .text('x')
+                .click(handleClickModalClose)
+            $header.append(
+                $('<h2>').text(date + '生成错误一览'),
+                $closeBtn
+            )
+            $body.append(
+            )
+            let $modalContent = $('<div>').addClass('modal-content').append(
+                $header,
+                $body
+            )
+            $modal.append($modalContent)
+            $app.append($modal)
+            modalStack.push($modal)
+            showLoadingStatus()
+            axios.get('/api/v1/front_err/generate/list', {
+                params: {
+                    date: date,
+                }
+            }).then(response => {
+                let data = response.data.data
+                let $container = createErrorGroup(data)
+                $body.append($container)
+            }).catch(error => {
+
+            }).finally(() => {
+                hideLoadingStatus()
+            })
+            console.log('createErrorGenerateModal')
+        }
+
+        function createErrorUploadModal(date){
+            let $app = $('#app')
+            let $modal = $('<div>').addClass('modal active').click(handleClickOutsideModal)
+            let $header = $('<div>').addClass('modal-header')
+            let $body = $('<div>').addClass('modal-body')
+            let $closeBtn = $('<span>')
+                .addClass('close-button')
+                .text('x')
+                .click(handleClickModalClose)
+            $header.append(
+                $('<h2>').text('上传错误一览'),
+                $closeBtn,
+            )
+            $body.append(
+            )
+            let $modalContent = $('<div>').addClass('modal-content').append(
+                $header,
+                $body,
+            )
+            $modal.append($modalContent)
+            $app.append($modal)
+            modalStack.push($modal)
+            showLoadingStatus()
+            axios.get('/api/v1/front_err/upload/list', {
+                params: {
+                    date: date,
+                }
+            }).then(response => {
+                let data = response.data.data
+                let $container = createErrorGroup(data)
+                $modalContent.append($container)
+            }).catch(error => {
+
+            }).finally(() => {
+                hideLoadingStatus()
+            })
+            console.log('createErrorUploadModal')
+        }
+
+        function main(){
+            let $app = $('#app')
+            let $tableContainer = $('<div>').addClass('table-container')
+            let $table = $('<table>')
+            $tableContainer.append($('<h1>').text('用户侧错误一览'), $table)
+            let $thead = $('<thead>')
+            let $tbody = $('<tbody>')
+            $thead.append(
+                $('<tr>')
+                    .append($('<th>').text('日期'))
+                    .append($('<th>').text('生成错误数'))
+                    .append($('<th>').text('上传错误数'))
+            )
+            showLoadingStatus()
+            axios.get('/api/v1/front_err/list', {
+                params: {
+
+                }
+            }).then(response => {
+                let data = response.data.data
+                console.log(data)
+                for (let i = 0; i < data.length; i++) {
+                    let row = data[i]
+                    let $tr = $('<tr>')
+                    let $date = $('<td>').text(row.date)
+                    let $num_error_generate = $('<td>').text(row.num_error_generate)
+                    let $num_error_upload = $('<td>').text(row.num_error_upload)
+                    $tr.append($date, $num_error_generate, $num_error_upload)
+                    if (row.num_error_generate > 0){
+                        $num_error_generate.addClass('clickable')
+                        $num_error_generate.click(function (){
+                            createErrorGenerateModal(row.date)
+                        })
+                    }
+
+                    if (row.num_error_upload > 0){
+                        $num_error_upload.addClass('clickable')
+                        $num_error_upload.click(function (){
+                            createErrorUploadModal(row.date)
+                        })
+                    }
+                    $tbody.append($tr)
+                }
+                $table.append($thead)
+                $table.append($tbody)
+                $app.append($tableContainer)
+            }).catch(error => {
+
+            }).finally(() => {
+                hideLoadingStatus()
+            })
+
+        }
+        main()
+    })
+
+</script>
+</body>
+</html>

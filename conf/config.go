@@ -26,6 +26,7 @@ type Config struct {
 	Lark              Lark                  `yaml:"lark"`
 	Oss               OSS                   `yaml:"oss"`
 	ShenCe            ShenCe                `yaml:"shence"`
+	MnsConfig         MnsConfig             `yaml:"mns_config"`
 }
 
 type OSS struct {

@@ -316,3 +316,33 @@ func _traceidtoentryidMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _front_errMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _errorlistMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _generateMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _errorgenerateMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _erroruploadMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _upload0Mw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

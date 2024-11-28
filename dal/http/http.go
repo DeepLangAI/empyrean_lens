@@ -3,12 +3,14 @@ package http
 import (
 	"context"
 	"empyrean_lens/conf"
+	consts2 "empyrean_lens/consts"
 	"empyrean_lens/utils"
 	"encoding/json"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var ShenceDal *shenceDal
@@ -71,7 +73,7 @@ type UploadLogInfo struct {
 	Ip            string
 	FailureReason string
 	Date          string
-	Time          string
+	Time          time.Time
 }
 
 func (s *shenceDal) GetUploadInfoByTime(ctx context.Context, dateStr string) ([]UploadLogInfo, error) {
@@ -100,7 +102,12 @@ func (s *shenceDal) GetUploadInfoByTime(ctx context.Context, dateStr string) ([]
 		}
 		item.FailureReason = log["failure_reason"]
 		item.Date = dateStr
-		item.Time = log["time"]
+		t, err := time.ParseInLocation(consts2.DateTimeTemplate, log["time"], time.Local)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "time parse error: %s", err)
+			continue
+		}
+		item.Time = t
 		hlog.Info("upload log:", item)
 		UploadInfos = append(UploadInfos, item)
 	}
@@ -115,7 +122,7 @@ type GenerateErrLogInfo struct {
 	FailureReason string
 	Code          string
 	Date          string
-	Time          string
+	Time          time.Time
 }
 
 func (s *shenceDal) GetGenerateErrLogByTime(ctx context.Context, dateStr string) ([]GenerateErrLogInfo, error) {
@@ -138,7 +145,12 @@ func (s *shenceDal) GetGenerateErrLogByTime(ctx context.Context, dateStr string)
 		item.FailureReason = log["msg"]
 		item.Code = log["code"]
 		item.Date = dateStr
-		item.Time = log["time"]
+		t, err := time.ParseInLocation(consts2.DateTimeTemplate, log["time"], time.Local)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "time parse error: %s", err)
+			continue
+		}
+		item.Time = t
 		hlog.Info("upload log: ", item)
 		UploadInfos = append(UploadInfos, item)
 	}

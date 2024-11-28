@@ -457,6 +457,8 @@ const (
 	DateHourMinuteTemplate = "2006-01-02 15:04:00"
 	DateHourMinSecTemplate = "2006-01-02 15:04:05"
 	DateTimeTemplate       = "2006-01-02 15:04:05,999"
+
+	UserErrorStartDate = "2024-11-15"
 )
 
 const (

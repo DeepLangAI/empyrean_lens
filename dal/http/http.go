@@ -96,7 +96,13 @@ func (s *shenceDal) GetUploadInfoByTime(ctx context.Context, dateStr string) ([]
 		if log["file_size"] == "" {
 			item.FileSize = 0
 		} else {
-			item.FileSize, _ = strconv.ParseInt(log["file_size"], 10, 64)
+			floatVal, err := strconv.ParseFloat(log["file_size"], 64)
+			if err != nil {
+				fmt.Println("Error parsing float:", err)
+			} else {
+				item.FileSize = int64(floatVal)
+				hlog.Debugf("file size: %d", item.FileSize)
+			}
 		}
 		item.FailureReason = log["failure_reason"]
 		item.Date = dateStr

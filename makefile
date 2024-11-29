@@ -7,3 +7,8 @@ init_server:
 dev_start:
 	export MODE_ENV=dev && go run *.go
 
+prod:
+	MODE_ENV=prod bash ./run.sh
+
+pre:
+	MODE_ENV=pre go run *.go

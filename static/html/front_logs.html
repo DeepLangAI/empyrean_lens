@@ -1009,10 +1009,10 @@
                 // remove date
                 keys.splice(keys.indexOf('date'), 1)
             }
-            if (keys.includes('failure_reason')) {
-                // remove failure_reason
-                keys.splice(keys.indexOf('failure_reason'), 1)
-            }
+            // if (keys.includes('failure_reason')) {
+            //     // remove failure_reason
+            //     keys.splice(keys.indexOf('failure_reason'), 1)
+            // }
             keys.sort((a, b) => {
                 if (order.includes(a) && order.includes(b)) {
                     return order.indexOf(a) - order.indexOf(b)

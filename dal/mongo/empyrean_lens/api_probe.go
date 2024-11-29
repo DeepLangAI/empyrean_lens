@@ -12,6 +12,13 @@ import (
 // const TableNameApiProbeLog = "api_probe"
 var TableNameApiProbeLog = "api_probe"
 
+type Step struct {
+	Link      string `bson:"link"`
+	RequestId string `bson:"request_id"`
+	MediaType string `bson:"media_type"`
+	FilePath  string `bson:"file_path"`
+}
+
 type ApiProbeLogModel struct {
 	//Id           primitive.ObjectID `bson:"_id" json:"id"`
 	Scene        string  `bson:"scene"`
@@ -26,6 +33,7 @@ type ApiProbeLogModel struct {
 	HttpCode     int32   `bson:"http_code"`
 	TraceId      string  `bson:"trace_id"`
 	Msg          string  `bson:"msg"`
+	Steps        []Step  `bson:"steps"`
 
 	Status     int32     `json:"status" bson:"status"`
 	CreateTime time.Time `bson:"create_time" json:"create_time"`

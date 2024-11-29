@@ -709,7 +709,62 @@
             right: 10px;
         }
 
+        /*探针日志图片*/
+        .gallary-background{
+            width: 100%;
+            height: 100%;
+            background: #50505069;
+            position: fixed;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            z-index: 9999;
+            display: flex;
+            justify-content: space-around;
+        }
+        .gallary-container{
+            width: 800px;
+            height: fit-content;
+            margin-top: 10%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .large-image {
+            width: 100%;
+        }
+        .gallary {
+            display: flex;
+            flex-wrap: wrap;
+            /*max-width: 600px;*/
+            margin: 20px;
+            max-height: 120px;
+            overflow: scroll;
+        }
+        .thumbnail {
+            width: 100px;
+            margin: 5px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border 0.3s;
+        }
+        .thumbnail.active {
+            border: 2px solid #007BFF;
+        }
+        .thumbnail:hover {
+            border: 2px solid #007BFF;
+        }
 
+        .ui-steps-btn{
+            position: relative;
+            white-space: pre-wrap;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            padding: 4px 5px;
+            border-radius: 3px;
+            color: rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+            float: right;
+        }
     </style>
 </head>
 <body>
@@ -1010,12 +1065,14 @@
             },
             didOpen: () => {
                 modifySidebar()
-                // hideLoadingStatus()
-                // document.getElementById('closeDrawerBtn').addEventListener('click', () => {
-                //     Swal.close();
-                // });
                 showRequestTrend(detail.date)
             },
+            willClose: ()=>{
+                $('.gallary-background').remove();
+            },
+            didClose: ()=>{
+                $(document).off('keydown');
+            }
         });
     }
     function showRequestTrend(date){
@@ -2112,7 +2169,22 @@
                     }
                     logDetailsBody.append( p );
                 }
-                logDetails.append(logDetailsHeader, logDetailsBody);
+                if (log['steps'].length){
+                    let $btn = $('<div>')
+                        .addClass('ui-steps-btn')
+                        .text('点击查看现场')
+                        .click(function (){
+                            let urls = []
+                            for (let step of log['steps']){
+                                urls.push(step['link'])
+                            }
+                            createGallary(urls)
+                        })
+                    // 添加到logDetailsHeadrs后作为邻居元素，不是作为子元素
+                    logDetails.append(logDetailsHeader, $btn, logDetailsBody);
+                } else{
+                    logDetails.append(logDetailsHeader, logDetailsBody);
+                }
                 logContainer.append(logId, logTime, logDetails);
                 table.append(logContainer);
             }
@@ -2970,6 +3042,41 @@
         return chartNode;
     }
 
+    function createGallary(imgUrls){
+        function roll(index, url){
+            $largeImg.attr('src', url)
+            $gallary.find('.thumbnail').removeClass('active')
+            $gallary.find(`[data-index="${index}"]`).addClass('active')
+        }
+        let $gallaryBackground = $('<div>')
+            .addClass('gallary-background')
+            .click(function (evant){
+                // 如果点击位置在gallaryContainer外，则移除gallaryContainer
+                if (!$(evant.target).closest('.gallary-container').length) {
+                    $gallaryBackground.remove()
+                }
+            })
+        let $gallaryContainer = $('<div>').addClass('gallary-container')
+        let $largeImg = $('<img>').attr('src', imgUrls[0]).addClass('large-image')
+        let $gallary = $('<div>').addClass('gallary')
+        for (let i = 0; i < imgUrls.length; i++) {
+            let url = imgUrls[i]
+            let $img = $(`<img src="${url}" class="thumbnail">`)
+                .attr('data-index', i)
+                .click(function (){
+                    roll(i, url)
+                })
+            if (i == 0){
+                $img.addClass('active')
+            }
+            $gallary.append($img)
+        }
+        $gallaryContainer.append($largeImg, $gallary)
+        $gallaryBackground.append($gallaryContainer)
+        // 在body中添加gallaryContainer
+        $gallaryBackground.appendTo('body')
+        return $gallaryContainer
+    }
 </script>
 
 </body>

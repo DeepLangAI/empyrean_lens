@@ -1070,10 +1070,10 @@
                     $tr.append($('<td>')
                         .text(count)
                         .addClass('clickable')
-                    ).click(function (){
+                        .click(function (){
                             hideLastModal()
                             showErrorLogDetail(date + '异常详情：' + group[0], group[1])
-                        })
+                        }))
                     $tbody.append($tr)
                 }
                 $table.append($thead, $tbody)

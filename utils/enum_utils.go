@@ -85,14 +85,25 @@ func GetStatusFromNode(nodes []*empyrean_lens.GraphNode) (string, empyrean_lens.
 			break
 		}
 	}
-	// 如果状态为成功，遍历是否有未执行的
-	if linkStatus == empyrean_lens.ActionStatusEnum_SUCCESS {
-		for _, node := range nodes {
-			if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
-				fileAction = node.Name
-				linkStatus = empyrean_lens.ActionStatusEnum_UNREACHEAD
-				break
+	// 遍历是否有未执行的
+	summaryTypes := []empyrean_lens.LinkNodeTypeEnum{
+		empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+		empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
+		empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+	}
+	for _, node := range nodes {
+		if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
+			fileAction = node.Name
+			if linkStatus != empyrean_lens.ActionStatusEnum_FAIL && Contains(summaryTypes, node.Type) {
+				linkStatus = empyrean_lens.ActionStatusEnum_FAIL
+				// 将模型生成未执行的转为失败
+				for _, node2 := range nodes {
+					if Contains(summaryTypes, node2.Type) {
+						node2.Status = empyrean_lens.ActionStatusEnum_FAIL
+					}
+				}
 			}
+			break
 		}
 	}
 	return fileAction, linkStatus

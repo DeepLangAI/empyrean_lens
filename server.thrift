@@ -603,7 +603,8 @@ struct Article {
     1: EntryTypeEnum entry_type
     2: string entry_id
     3: NodeId start_id
-    4: TraceLinkGraph graph
+    4: string title
+    5: TraceLinkGraph graph
 }
 
 struct MultiDocLinkTraceRespData {
@@ -639,6 +640,7 @@ struct LinkNodeLogRespData {
     6: string action_name
     7: string node_name 
     8: ActionStatusEnum status
+    9: string time_at
 }
 
 struct ApiLog {

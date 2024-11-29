@@ -2,6 +2,7 @@ package link_trace
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -40,10 +41,16 @@ func FileLinkTrace(ctx context.Context, fileID string, refresh bool) (*plugin.Fi
 	// 确定需要查的节点列表和节点关系
 	var pracessList []empyrean_lens.LinkNodeTypeEnum
 	var pracessMapping map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum
+	channelName := utils.ChannelIntToString(fileInfo.ChannelType)
 	if fileInfo.MultiId != "" {
-		pracessList = consts.MultiFileProcessList
-		pracessMapping = consts.MultiFileProcessMapping
-	} else if utils.ChannelIntToString(fileInfo.ChannelType) == "语鲸小助手" || utils.ChannelIntToString(fileInfo.ChannelType) == "语鲸小程序" {
+		if fileInfo.CopyFromFildID != "" {
+			pracessList = consts.MultiFileCopiedProcessList
+			pracessMapping = consts.MultiCopiedFileProcessMapping
+		} else {
+			pracessList = consts.MultiFileProcessList
+			pracessMapping = consts.MultiFileProcessMapping
+		}
+	} else if channelName == "语鲸小助手" || channelName == "语鲸小程序" || channelName == "语鲸插件" {
 		if fileInfo.CopyFromFildID != "" {
 			pracessList = consts.SinglePluginCopiedFileProcessList
 			pracessMapping = consts.SinglePluginCopiedFileProcessMapping
@@ -79,6 +86,7 @@ func FileLinkTrace(ctx context.Context, fileID string, refresh bool) (*plugin.Fi
 	}
 	// 返回
 	_, status := utils.GetStatusFromNode(linkTraceGraph.Nodes)
+
 	return fileInfo, &empyrean_lens.DocLinkTraceRespData{
 		LinkGraph:  linkTraceGraph,
 		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
@@ -153,6 +161,18 @@ func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.
 		hlog.CtxErrorf(ctx, "get multi info failed, err: %v", err)
 		return nil, nil, &consts.QueryRecordError
 	}
+	// 获取子文档信息
+	resources := []*empyrean_lens.ResourceInfo{}
+	for _, article := range multiInfo.ArticleList {
+		resources = append(resources, &empyrean_lens.ResourceInfo{
+			EntryType: empyrean_lens.EntryTypeEnum(article.EntryType),
+			EntryID:   article.EntryId,
+		})
+	}
+	resourceMapping, bizCode := GetResourceInfo(ctx, resources)
+	if bizCode != nil {
+		return nil, nil, &consts.QueryRecordError
+	}
 	// 并发链路信息
 	wg, graphMapping, multiGrap := sync.WaitGroup{}, sync.Map{}, &empyrean_lens.TraceLinkGraph{}
 	wg.Add(len(multiInfo.ArticleList) + 1)
@@ -201,6 +221,10 @@ func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.
 	// 整理数据
 	graphs, articles := []*empyrean_lens.TraceLinkGraph{}, []*empyrean_lens.Article{}
 	for _, article := range multiInfo.ArticleList {
+		key := fmt.Sprintf("%d_%s", article.EntryType, article.EntryId)
+		if _, ok := resourceMapping[key]; !ok {
+			continue
+		}
 		articleGraph, ok := graphMapping.Load(article.EntryId)
 		if ok && articleGraph != nil {
 			graph := articleGraph.(*empyrean_lens.TraceLinkGraph)
@@ -209,6 +233,7 @@ func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.
 				EntryType: empyrean_lens.EntryTypeEnum(article.EntryType),
 				EntryID:   article.EntryId,
 				StartID:   articleGraph.(*empyrean_lens.TraceLinkGraph).Nodes[0].ID,
+				Title:     resourceMapping[key].Title,
 				Graph:     graph,
 			})
 		}
@@ -385,7 +410,7 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 		}
 		// 没有抓取日志，使用输入输出兜底
 		if len(processLogs) == 0 {
-			apiLogsOuput, err := aliyun.CrawlerOutResponseQuery(ctx, entryInfo.EntryID, start, end)
+			apiLogsOuput, err := aliyun.CrawlerOutRequestQuery(ctx, entryInfo.EntryID, start, end)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
@@ -421,6 +446,14 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[PDFParserQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
+		}
+		// 兜底查fc日志
+		if len(processLogs) == 0 {
+			processLogs, err = aliyun.PDFParserFcErrorQuery(ctx, entryInfo.EntryID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[PDFParserFcErrorQuery] get process logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
 		}
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:
@@ -481,7 +514,7 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			return nil, &consts.QueryRecordError
 		}
 		if len(processLogs1) != 0 {
-			processLogs2, err := aliyun.SingleViewpointEndQuery(ctx, processLogs1[0].TraceId, start, end)
+			processLogs2, err := aliyun.SingleViewpointEndQuery(ctx, processLogs1[0].TraceId, entryInfo.EntryID, start, end)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[SingleViewpointEndQuery] get process logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
@@ -664,17 +697,21 @@ func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []al
 	if utils.InSlice(consts.LinkNodeTypeName[nodeType], []string{"概述生成", "关键信息生成", "大纲生成"}) && len(processLogs) != 0 {
 		length := len(processLogs)
 		enterTime := processLogs[0].Asctime
-		if processLogs[length-1].Cost != 0 {
-			enterTime = processLogs[length-1].Asctime.Add(-time.Millisecond * time.Duration(processLogs[length-1].Cost*1000))
+		processLog := processLogs[length-1]
+		for _, log := range processLogs {
+			if log.Cost != 0 && log.Asctime.Before(enterTime) {
+				processLog = log
+				break
+			}
 		}
 		return &empyrean_lens.GraphNode{
 			ID:         empyrean_lens.NodeId(primitive.NewObjectID().Hex()),
 			Type:       nodeType,
 			Name:       consts.LinkNodeTypeName[nodeType],
 			EnterTime:  enterTime.Format(consts.DateTimeTemplate),
-			FinishTime: processLogs[length-1].Asctime.Format(consts.DateTimeTemplate),
-			Status:     getActionStatus(nodeType, []aliyun.FileProcessLog{processLogs[length-1]}),
-			TraceID:    processLogs[length-1].TraceId,
+			FinishTime: processLog.Asctime.Format(consts.DateTimeTemplate),
+			Status:     getActionStatus(nodeType, []aliyun.FileProcessLog{processLog}),
+			TraceID:    processLog.TraceId,
 		}
 	}
 	enterTime := processLogs[0].Asctime.Add(-time.Millisecond * time.Duration(processLogs[0].Cost*1000))
@@ -868,7 +905,7 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		}
 	case empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:
 		for _, processLog := range processLogs {
-			if strings.Contains(processLog.Message, "苏秦解析异常") || strings.Contains(processLog.Message, "pdf解析异常") || strings.Contains(processLog.Message, "parsing file failed") {
+			if strings.Contains(processLog.Message, "苏秦解析异常") || strings.Contains(processLog.Message, "pdf解析异常") || strings.Contains(processLog.Message, "parsing file failed") || strings.Contains(processLog.Message, "请求异常") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}

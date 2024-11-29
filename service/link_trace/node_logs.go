@@ -46,21 +46,28 @@ func FileNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, 
 		return nil, &consts.QueryRecordError
 	}
 	// 先查数据库
-	hasLog, apiLogs, bizCOde := findNodeLogsFromMongo(ctx, int(empyrean_lens.EntryTypeEnum_FILE), entryID, nodeType)
-	if bizCOde != nil {
+	hasLog, apiLogs, action, bizCode := findNodeLogsFromMongo(ctx, int(empyrean_lens.EntryTypeEnum_FILE), entryID, nodeType)
+	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[findNodeLogsFromMongo] get api logs failed, err: %v", err)
-		return nil, bizCOde
+		return nil, bizCode
 	}
 	if (len(apiLogs) != 0 || hasLog) && !refresh {
 		return &empyrean_lens.LinkNodeLogRespData{
-			Logs: apiLogs,
-			Cost: getNodeCost(apiLogs),
+			Logs:       apiLogs,
+			Cost:       getNodeCost(apiLogs),
+			TraceID:    apiLogs[0].TraceID,
+			Title:      fileInfo.Name,
+			UserID:     fileInfo.UserID,
+			ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), fileInfo.MultiId),
+			Status:     empyrean_lens.ActionStatusEnum(action.ActionStatus),
+			NodeName:   consts.LinkNodeTypeName[nodeType],
+			TimeAt:     action.ActionStartTime.Format(consts.DateTimeTemplate),
 		}, nil
 	}
 	start := fileInfo.CreateTime.Add(-1 * time.Hour)
 	end := fileInfo.CreateTime.Add(24 * time.Hour)
 	// 获取节点日志
-	bizCode := &consts.BizCode{}
+	bizCode = &consts.BizCode{}
 	if node == nil {
 		node, bizCode = GetProcessNode(ctx, nodeType, fileInfo.TranslateEntryInfo(), start, end)
 		if bizCode != nil || node == nil {
@@ -98,15 +105,22 @@ func WebReaderNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeE
 		return nil, &consts.QueryRecordError
 	}
 	// 先查数据库
-	hasLog, apiLogs, bizCode := findNodeLogsFromMongo(ctx, int(empyrean_lens.EntryTypeEnum_WEB), entryID, nodeType)
+	hasLog, apiLogs, action, bizCode := findNodeLogsFromMongo(ctx, int(empyrean_lens.EntryTypeEnum_WEB), entryID, nodeType)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[findNodeLogsFromMongo] get api logs failed, err: %v", err)
 		return nil, bizCode
 	}
 	if (len(apiLogs) != 0 || hasLog) && !refresh {
 		return &empyrean_lens.LinkNodeLogRespData{
-			Logs: apiLogs,
-			Cost: getNodeCost(apiLogs),
+			Logs:       apiLogs,
+			Cost:       getNodeCost(apiLogs),
+			TraceID:    apiLogs[0].TraceID,
+			Title:      webReaderInfo.Title,
+			UserID:     webReaderInfo.UserID,
+			ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), webReaderInfo.MultiId),
+			Status:     empyrean_lens.ActionStatusEnum(action.ActionStatus),
+			NodeName:   consts.LinkNodeTypeName[nodeType],
+			TimeAt:     action.ActionStartTime.Format(consts.DateTimeTemplate),
 		}, nil
 	}
 	start := webReaderInfo.CreateTime.Add(-1 * time.Hour)
@@ -150,21 +164,28 @@ func MultiNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum,
 		return nil, &consts.QueryRecordError
 	}
 	// 先查数据库
-	hasLog, apiLogs, bizCOde := findNodeLogsFromMongo(ctx, int(empyrean_lens.EntryTypeEnum_MULTI), entryID, nodeType)
-	if bizCOde != nil {
+	hasLog, apiLogs, action, bizCode := findNodeLogsFromMongo(ctx, int(empyrean_lens.EntryTypeEnum_MULTI), entryID, nodeType)
+	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[findNodeLogsFromMongo] get api logs failed, err: %v", err)
-		return nil, bizCOde
+		return nil, bizCode
 	}
 	if (len(apiLogs) != 0 || hasLog) && !refresh {
 		return &empyrean_lens.LinkNodeLogRespData{
-			Logs: apiLogs,
-			Cost: getNodeCost(apiLogs),
+			Logs:       apiLogs,
+			Cost:       getNodeCost(apiLogs),
+			TraceID:    apiLogs[0].TraceID,
+			Title:      multiInfo.Title,
+			UserID:     multiInfo.UserID,
+			ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), ""),
+			Status:     empyrean_lens.ActionStatusEnum(action.ActionStatus),
+			NodeName:   consts.LinkNodeTypeName[nodeType],
+			TimeAt:     action.ActionStartTime.Format(consts.DateTimeTemplate),
 		}, nil
 	}
 	start := multiInfo.CreateTime.Add(-1 * time.Hour)
 	end := multiInfo.CreateTime.Add(24 * time.Hour)
 	// 获取节点日志
-	bizCode := &consts.BizCode{}
+	bizCode = &consts.BizCode{}
 	if node == nil {
 		node, bizCode = GetProcessNode(ctx, nodeType, multiInfo.TranslateEntryInfo(), start, end)
 		if bizCode != nil || node == nil {
@@ -194,23 +215,23 @@ func MultiNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum,
 	}, nil
 }
 
-func findNodeLogsFromMongo(ctx context.Context, entryType int, entryID string, nodeType empyrean_lens.LinkNodeTypeEnum) (bool, []*empyrean_lens.ApiLog, *consts.BizCode) {
+func findNodeLogsFromMongo(ctx context.Context, entryType int, entryID string, nodeType empyrean_lens.LinkNodeTypeEnum) (bool, []*empyrean_lens.ApiLog, *bi.EntryAction, *consts.BizCode) {
 	// 获取node节点记录
-	linkTraceGraph, bizCode := bi.NewEntryActionDao().FindByEntryTypeEntryIDAndActionType(ctx, entryType, entryID, int(nodeType))
+	entryAction, bizCode := bi.NewEntryActionDao().FindByEntryTypeEntryIDAndActionType(ctx, entryType, entryID, int(nodeType))
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[FindByEntryTypeEntryIDAndActionType] get link trace graph failed, err: %v", bizCode)
-		return false, nil, &consts.QueryRecordError
+		return false, nil, nil, &consts.QueryRecordError
 	}
-	if linkTraceGraph == nil {
-		return false, nil, nil
+	if entryAction == nil {
+		return false, nil, nil, nil
 	}
 	// 获取日志列表
 	logs := []*empyrean_lens.ApiLog{}
-	for _, log := range linkTraceGraph.ActionIOs {
-		logs = append(logs, log.TranslateApiLogs(linkTraceGraph.ActionType)...)
+	for _, log := range entryAction.ActionIOs {
+		logs = append(logs, log.TranslateApiLogs(entryAction.ActionType)...)
 	}
-	hasLog := (linkTraceGraph.ActionStatus == int(empyrean_lens.ActionStatusEnum_SUCCESS) || linkTraceGraph.ActionStatus == int(empyrean_lens.ActionStatusEnum_FAIL))
-	return hasLog, logs, nil
+	hasLog := (entryAction.ActionStatus == int(empyrean_lens.ActionStatusEnum_SUCCESS) || entryAction.ActionStatus == int(empyrean_lens.ActionStatusEnum_FAIL))
+	return hasLog, logs, entryAction, nil
 }
 
 func NodeErrorAndSafeLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_lens.GraphNode) (string, []*empyrean_lens.ApiLog, *consts.BizCode) {
@@ -565,6 +586,9 @@ func getErrorAndSafeLogs(ctx context.Context, multiID, entryID string, node *emp
 				apiLogsError, err = aliyun.MultiTraceIDErrorQuery(ctx, traceID, start, end)
 			} else {
 				apiLogsError, err = aliyun.SingleTraceIDErrorQuery(ctx, traceID, start, end)
+				if len(apiLogsError) == 0 && node.Type == empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH {
+					apiLogsError, err = aliyun.PDFParserFcErrorQuery(ctx, entryID, start, end)
+				}
 			}
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[getErrorAndSafeLogs] get err logs failed, err: %v", err)

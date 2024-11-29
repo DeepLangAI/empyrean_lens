@@ -13,6 +13,15 @@ import (
 func SaveBatch(ctx context.Context, data empyrean_lens.WriteProbeReq) error {
 	dao := el.NewApiProbeLogModelDao()
 	for _, d := range data.Data {
+		steps := []el.Step{}
+		for _, step := range d.Steps {
+			steps = append(steps, el.Step{
+				Link:      step.Link,
+				RequestId: step.RequestID,
+				MediaType: step.MediaType,
+				FilePath:  step.FilePath,
+			})
+		}
 		model := el.ApiProbeLogModel{
 			Scene:        d.Scene,
 			Api:          d.API,
@@ -27,6 +36,7 @@ func SaveBatch(ctx context.Context, data empyrean_lens.WriteProbeReq) error {
 			HttpCode:     d.HTTPCode,
 			TraceId:      d.TraceID,
 			Msg:          d.Msg,
+			Steps:        steps,
 
 			CreateTime: time.Now(),
 			UpdateTime: time.Now(),
@@ -219,6 +229,15 @@ func ProbeDetail(ctx context.Context, req empyrean_lens.ProbeLogDetailReq) ([]*e
 		if req.Scene != "" && log.Scene != req.Scene {
 			continue
 		}
+		steps := []*empyrean_lens.Step{}
+		for _, step := range log.Steps {
+			steps = append(steps, &empyrean_lens.Step{
+				Link:      step.Link,
+				RequestID: step.RequestId,
+				MediaType: step.MediaType,
+				FilePath:  step.FilePath,
+			})
+		}
 		detail := &empyrean_lens.ProbeLogDetailRespData{
 			// 处理时差
 			Date:         log.CreateTime.Add(8 * time.Hour).Format("2006-01-02"),
@@ -234,6 +253,7 @@ func ProbeDetail(ctx context.Context, req empyrean_lens.ProbeLogDetailReq) ([]*e
 			Host:         log.Host,
 			APIPath:      log.Api,
 			TraceID:      log.TraceId,
+			Steps:        steps,
 		}
 		data = append(data, detail)
 	}

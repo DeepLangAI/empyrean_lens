@@ -182,6 +182,7 @@ struct ProbeLogDetailRespData{
     11: string host
     12: string api_path
     13: string trace_id
+    14: list<Step> steps
 }
 
 # 全链路日志
@@ -269,6 +270,14 @@ struct DbRefreshData{
 }
 
 # 写入探针日志
+
+struct Step{
+    1: string link
+    2: string request_id
+    3: string media_type // image
+    4: string file_path
+}
+
 struct ProbeLog{
     1: string scene
     2: string api
@@ -282,6 +291,7 @@ struct ProbeLog{
     10: i32 http_code
     11: string trace_id
     12: string msg
+    13: list<Step> steps
 }
 
 struct WriteProbeReq{

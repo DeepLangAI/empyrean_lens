@@ -54,7 +54,7 @@ func TestProbeDetail(t *testing.T) {
 	conf.InitConfig()
 	dal.Init()
 	req := empyrean_lens.ProbeLogDetailReq{
-		DateBegin:  "2024-08-12",
+		DateBegin:  "2024-11-29",
 		DateEnd:    "",
 		Scene:      "",
 		NotCorrect: false,

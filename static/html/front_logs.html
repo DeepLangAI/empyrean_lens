@@ -788,6 +788,7 @@
             transform-origin: center center;
             max-height: 70vh;
             overflow-y: hidden;
+            border-radius: 12px;
         }
         .modal-header{
             background-color: #fefefe;
@@ -1001,6 +1002,25 @@
                 $closeBtn,
             )
             let keys = Object.keys(logs[0])
+            // keys按照如下顺序排序
+            let order = ['date', 'time', 'user_id', 'failure_reason', 'ip', 'ip_region']
+            // 未来的key按照字母顺序排序
+            if (keys.includes('date') && keys.includes('time')) {
+                // remove date
+                keys.splice(keys.indexOf('date'), 1)
+            }
+            keys.sort((a, b) => {
+                if (order.includes(a) && order.includes(b)) {
+                    return order.indexOf(a) - order.indexOf(b)
+                }
+                if (order.includes(a)) {
+                    return -1
+                }
+                if (order.includes(b)) {
+                    return 1
+                }
+                return a.localeCompare(b)
+            })
             let $table = $('<table>')
             let $thead = $('<thead>')
             let $tbody = $('<tbody>')
@@ -1009,7 +1029,17 @@
             )
             for (let i = 0; i < logs.length; i++) {
                 let log = logs[i];
-                let $tr = $('<tr>').append(keys.map(key => $('<td>').text(log[key])))
+                let $tr = $('<tr>')
+                for (let j = 0; j < keys.length; j++) {
+                    let key = keys[j];
+                    let $td = $('<td>').text(log[key])
+                    if (['ip_region', 'failure_reason'].includes(key)){
+                        $td.css({
+                            'white-space': 'nowrap',
+                        })
+                    }
+                    $tr.append($td)
+                }
                 $tbody.append($tr)
             }
             $table.append($thead).append($tbody)
@@ -1126,7 +1156,7 @@
                 .text('x')
                 .click(handleClickModalClose)
             $header.append(
-                $('<h2>').text('上传错误一览'),
+                $('<h2>').text(date + '上传错误一览'),
                 $closeBtn,
             )
             $body.append(

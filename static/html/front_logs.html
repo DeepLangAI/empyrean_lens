@@ -1095,7 +1095,7 @@
             $container.append($selectorGroup, $tableContainer)
 
             let keys = Object.keys(errorLogs[0])
-            let skipKeys = ['time', 'date', 'trace_id']
+            let skipKeys = ['time', 'date', 'trace_id', 'file_size', 'file_type']
             keys = keys.filter(key => !skipKeys.includes(key))
 
             let key = 'failure_reason'

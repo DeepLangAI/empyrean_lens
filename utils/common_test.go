@@ -55,3 +55,9 @@ func TestGetIPLocation(t *testing.T) {
 		})
 	}
 }
+func TestGetIPLocation1(t *testing.T) {
+	ip := "223.87.43.219"
+	location := GetIPLocation(ip)
+	assert.True(t, location != "-")
+	fmt.Println(location)
+}

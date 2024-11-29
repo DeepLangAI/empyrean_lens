@@ -329,7 +329,8 @@ type IPInfo struct {
 // 输出: 位置信息 (country-region-city) 或 "-"
 func GetIPLocation(ip string) string {
 	// 调用 IP-API 服务
-	resp, err := http.Get("http://ip-api.com/json/" + ip)
+	url := fmt.Sprintf("http://ip-api.com/json/%s?lang=zh-CN", ip)
+	resp, err := http.Get(url)
 	if err != nil {
 		return "-" // 查询失败返回 "-"
 	}

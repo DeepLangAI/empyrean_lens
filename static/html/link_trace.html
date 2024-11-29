@@ -2740,9 +2740,9 @@
                     .attr('status', ActionStatusEnum.FAIL)
                     .css({'background': COLORS[ActionStatusEnum.FAIL]}),
                 $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + statusToString(ActionStatusEnum.UNREACHED))
-                    .attr('status', ActionStatusEnum.UNREACHED)
-                    .css({'background': COLORS[ActionStatusEnum.UNREACHED]}),
+                    .text('✅ ' + statusToString(ActionStatusEnum.WORTHLESS))
+                    .attr('status', ActionStatusEnum.WORTHLESS)
+                    .css({'background': COLORS[ActionStatusEnum.WORTHLESS]}),
                 $('<div>').addClass('dropdown-content')
                     .text('✅ ' + statusToString(ActionStatusEnum.LENGTH_ERROR))
                     .attr('status', ActionStatusEnum.LENGTH_ERROR)
@@ -2816,8 +2816,8 @@
                             $('<div>').addClass('dropdown-content').text('过去7天').click(function () {
                                 let now = new Date();
                                 let startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-                                let endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                                setTimeRange(startTime, endTime)
+                                // let endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                                setTimeRange(startTime, now)
                             }),
                         ).hover(function () {
                             $(this).show()
@@ -3149,6 +3149,9 @@
                         only_external: onlyExternal,
                     }
                 }).then(response => {
+                    if (!checkResponse(response.data)){
+                        return
+                    }
                     const data = response.data.data;
 
                     // hasMoreData = data.has_next;

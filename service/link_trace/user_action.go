@@ -63,9 +63,13 @@ func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, b
 	for _, v := range req.Status {
 		status = append(status, int32(v))
 	}
-	if len(status) == 5 {
-		status = append(status, int32(empyrean_lens.ActionStatusEnum_WORTHLESS))
-		status = append(status, int32(empyrean_lens.ActionStatusEnum_LENGTH_ERROR))
+	// 未执行不支持筛选
+	if utils.Contains(status, int32(empyrean_lens.ActionStatusEnum_UNREACHEAD)) && len(status) == 1 {
+		status = []int32{}
+	}
+	// 错误包含未执行
+	if utils.Contains(status, int32(empyrean_lens.ActionStatusEnum_FAIL)) {
+		status = append(status, int32(empyrean_lens.ActionStatusEnum_UNREACHEAD))
 	}
 	var entryInfos []*bi.EntryInfo
 	// 查询数据库
@@ -97,7 +101,7 @@ func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, b
 		}
 	}
 	// 补充resources信息
-	resourceMapping, err := getResourceInfo(ctx, resources)
+	resourceMapping, err := GetResourceInfo(ctx, resources)
 	if err != nil {
 		return nil, &consts.QueryRecordError
 	}
@@ -134,12 +138,14 @@ func getUserActionFromTraceID(ctx context.Context, req empyrean_lens.UserActionR
 		}
 		for _, entryInfo := range entryInfoList {
 			row := entryInfo.TranslateUserActionRow()
-			rows = append(rows, row)
+			if utils.Contains(req.Status, row.Status) {
+				rows = append(rows, row)
+			}
 			resources = append(resources, row.Resources...)
 		}
 	}
 	// 补充resources信息
-	resourceMapping, err := getResourceInfo(ctx, resources)
+	resourceMapping, err := GetResourceInfo(ctx, resources)
 	if err != nil {
 		return nil, &consts.QueryRecordError
 	}
@@ -153,7 +159,7 @@ func getUserActionFromTraceID(ctx context.Context, req empyrean_lens.UserActionR
 	return rows, nil
 }
 
-func getResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInfo) (map[string]*empyrean_lens.ResourceInfo, *consts.BizCode) {
+func GetResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInfo) (map[string]*empyrean_lens.ResourceInfo, *consts.BizCode) {
 	entryIDs := []string{}
 	for _, resource := range resources {
 		entryIDs = append(entryIDs, resource.EntryID)

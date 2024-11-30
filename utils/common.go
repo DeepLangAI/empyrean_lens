@@ -244,7 +244,7 @@ func findKeyValue(log, key string) string {
 	return strings.TrimSpace(log[valueStart:])
 }
 
-func ExtractLogInfo(log string) (time.Time, string, string, float64) {
+func ExtractFcLogInfo(log string) (time.Time, string, string, float64) {
 	parts := strings.Split(log, " ")
 
 	timestampStr := parts[0]

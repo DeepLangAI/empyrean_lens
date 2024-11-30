@@ -1,7 +1,6 @@
 package aliyun
 
 import (
-	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 	"context"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/redis"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
@@ -809,50 +810,50 @@ func TracebackQueryOfDays(ctx context.Context, days []int) []TracebackDetail {
 	return results
 }
 
-func TraceSingleDocument(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	res, funcList := []FileProcessLog{}, []utillib.AsyncFunc{}
-	mu := &sync.Mutex{}
-	funcList = append(funcList, func() error {
-		overviewLogs, err := QuerySingleLogs(ctx, resourceId, timeBegin, timeEnd, SingleOverviewBeginQuery, SingleOverviewEndQuery)
-		if err != nil {
-			return err
-		}
-		mu.Lock()
-		res = append(res, overviewLogs...)
-		mu.Unlock()
-		return nil
-	})
-	funcList = append(funcList, func() error {
-		overviewLogs, err := QuerySingleLogs(ctx, resourceId, timeBegin, timeEnd, SingleOutlineBeginQuery, SingleOutlineEndQuery)
-		if err != nil {
-			return err
-		}
-		mu.Lock()
-		res = append(res, overviewLogs...)
-		mu.Unlock()
-		return nil
-	})
-	funcList = append(funcList, func() error {
-		overviewLogs, err := QuerySingleLogs(ctx, resourceId, timeBegin, timeEnd, SingleViewpointBeginQuery, SingleViewpointEndQuery)
-		if err != nil {
-			return err
-		}
-		mu.Lock()
-		res = append(res, overviewLogs...)
-		mu.Unlock()
-		return nil
-	})
+// func TraceSingleDocument(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+// 	res, funcList := []FileProcessLog{}, []utillib.AsyncFunc{}
+// 	mu := &sync.Mutex{}
+// 	funcList = append(funcList, func() error {
+// 		overviewLogs, err := QuerySingleLogs(ctx, resourceId, timeBegin, timeEnd, SingleOverviewBeginQuery, SingleOverviewEndQuery)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		mu.Lock()
+// 		res = append(res, overviewLogs...)
+// 		mu.Unlock()
+// 		return nil
+// 	})
+// 	funcList = append(funcList, func() error {
+// 		overviewLogs, err := QuerySingleLogs(ctx, resourceId, timeBegin, timeEnd, SingleOutlineBeginQuery, SingleOutlineEndQuery)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		mu.Lock()
+// 		res = append(res, overviewLogs...)
+// 		mu.Unlock()
+// 		return nil
+// 	})
+// 	funcList = append(funcList, func() error {
+// 		overviewLogs, err := QuerySingleLogs(ctx, resourceId, timeBegin, timeEnd, SingleViewpointBeginQuery, SingleViewpointEndQuery)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		mu.Lock()
+// 		res = append(res, overviewLogs...)
+// 		mu.Unlock()
+// 		return nil
+// 	})
 
-	errs := utillib.ParallelExec(ctx, funcList, len(funcList))
-	if len(errs) > 0 {
-		hlog.CtxErrorf(ctx, "[TraceSingleDocument] error:%+v", utils.JSONMarshal(errs))
-		return nil, errs[0]
-	}
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Asctime.Before(res[i].Asctime)
-	})
-	return res, nil
-}
+// 	errs := utillib.ParallelExec(ctx, funcList, len(funcList))
+// 	if len(errs) > 0 {
+// 		hlog.CtxErrorf(ctx, "[TraceSingleDocument] error:%+v", utils.JSONMarshal(errs))
+// 		return nil, errs[0]
+// 	}
+// 	sort.Slice(res, func(i, j int) bool {
+// 		return res[i].Asctime.Before(res[i].Asctime)
+// 	})
+// 	return res, nil
+// }
 
 type SingleQueryFunc func(ctx context.Context, id string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error)
 

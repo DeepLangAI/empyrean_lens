@@ -2117,6 +2117,38 @@ func ConvertFileProcessLog(ctx context.Context, logs []map[string]string) ([]Fil
 	return res, nil
 }
 
+func ConvertFileProcessLogFromFc(ctx context.Context, logs []map[string]string) ([]FileProcessLog, error) {
+	res := []FileProcessLog{}
+	for _, log := range logs {
+		fcLog := FileProcessLog{}
+		fcLog.Message = log["message"]
+		if idx := strings.Index(log["message"], "trace_id:"); idx != -1 {
+			if idx1 := strings.Index(log["message"][idx:], ","); idx1 != -1 {
+				fcLog.TraceId = log["message"][idx+9 : idx+idx1]
+			}
+		}
+		if idx := strings.Index(log["message"], "\"trace_id\":"); idx != -1 {
+			if idx1 := strings.Index(log["message"][idx:], ","); idx1 != -1 {
+				fcLog.TraceId = log["message"][idx+13 : idx+idx1-1]
+			}
+		}
+		if idx := strings.Index(log["message"], "\"asctime\":"); idx != -1 {
+			if idx1 := strings.Index(log["message"][idx:], ","); idx1 != -1 {
+				asctime := log["message"][idx+12 : idx+idx1]
+				timeAt, err := time.Parse(consts.DateHourMinSecTemplate, asctime)
+				if err == nil {
+					fcLog.Asctime = timeAt.Add(time.Hour * 8)
+				}
+				fcLog.Asctime = timeAt.Add(time.Hour * 8)
+			}
+		}
+		if fcLog.TraceId != "" && !fcLog.Asctime.IsZero() {
+			res = append(res, fcLog)
+		}
+	}
+	return res, nil
+}
+
 // pdf/url上传日志
 func ResourceUploadQuery(ctx context.Context, resourceId, resourceType string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2167,6 +2199,82 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
+func PDFParserFcQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `
+	(pdf_parse_pre or pdf_parse_prod) and message: "parse file" and "%s"
+	`
+	query = FormatWithTemplate(query, nil)
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "PDFParserFcQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.FC_PROJECT_NAME, consts.FC_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "PDFParserFcQuery query log error: %v", err)
+		return nil, err
+	}
+	res := []FileProcessLog{}
+	for _, log := range logs.Logs {
+		fcLog := FileProcessLog{}
+		// 字符串转int
+		timestamp, _ := strconv.Atoi(log["__time__"])
+		timeAt := time.Unix(int64(timestamp), 0)
+		if idx := strings.Index(log["message"], "Trace-Id:"); idx != -1 {
+			if idx1 := strings.Index(log["message"][idx:], "]"); idx1 != -1 {
+				fcLog.TraceId = log["message"][idx+13 : idx+idx1-1]
+			}
+		}
+		if fcLog.TraceId != "" && !timeAt.IsZero() {
+			fcLog.Asctime = timeAt
+			fcLog.Message = strings.TrimSpace(log["message"])
+			res = append(res, fcLog)
+		}
+	}
+	return res, nil
+}
+
+func PDFParserFcErrorQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `
+	(pdf_parse_pre or pdf_parse_prod) and message: "请求异常，稍后再试试吧" and "%s"
+	`
+	query = FormatWithTemplate(query, nil)
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "PDFParserFcQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.FC_PROJECT_NAME, consts.FC_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "PDFParserFcQuery query log error: %v", err)
+		return nil, err
+	}
+	res := []FileProcessLog{}
+	for _, log := range logs.Logs {
+		fcLog := FileProcessLog{}
+		// 字符串转int
+		timestamp, _ := strconv.Atoi(log["__time__"])
+		timeAt := time.Unix(int64(timestamp), 0)
+		if idx := strings.Index(log["message"], "Trace-Id:"); idx != -1 {
+			if idx1 := strings.Index(log["message"][idx:], "]"); idx1 != -1 {
+				fcLog.TraceId = log["message"][idx+13 : idx+idx1-1]
+			}
+		}
+		if fcLog.TraceId != "" && !timeAt.IsZero() {
+			fcLog.Asctime = timeAt
+			fcLog.Message = strings.TrimSpace(log["message"])
+			res = append(res, fcLog)
+		}
+	}
+	return res, nil
+}
+
 func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	logstore, err := client.GetMetricStore(consts.FC_PROJECT_NAME, consts.FC_LOG_STORE_NAME)
 	if err != nil {
@@ -2188,7 +2296,7 @@ func CrawlerQuery(ctx context.Context, resourceId string, timeBegin, timeEnd tim
 	logs := logResp.Logs
 	res := make([]FileProcessLog, len(logs))
 	for i := range logs {
-		asctime, userId, traceId, cost := utils.ExtractLogInfo(logs[i]["message"])
+		asctime, userId, traceId, cost := utils.ExtractFcLogInfo(logs[i]["message"])
 		res[i] = FileProcessLog{
 			Asctime: asctime,
 			UserId:  userId,
@@ -2333,7 +2441,7 @@ func SingleOutlineEndQuery(ctx context.Context, traceId string, timeBegin, timeE
 }
 
 func SingleOverviewBeginQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and message: "generate_type:0." and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
+	query := fmt.Sprintf(`(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "summary start" and (message: "generate_type:0." or message: "generate_type:0") and (message: "file_id:%s" or message: "url_id:%s")`, resourceId, resourceId)
 	hlog.CtxDebugf(ctx, "SingleOverviewBeginQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2384,9 +2492,9 @@ func SingleViewpointBeginQuery(ctx context.Context, resourceId string, timeBegin
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
-func SingleViewpointEndQuery(ctx context.Context, traceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and (message: "core link core_name:viewpoint, core_node:观点模型输出完成" or (levelname: ERROR and not "unlock fail")) and trace_id:"%s"`
-	query = fmt.Sprintf(query, traceId)
+func SingleViewpointEndQuery(ctx context.Context, traceId, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and (message: "core link core_name:viewpoint, core_node:观点模型输出完成" or (levelname: ERROR and not "unlock fail")) and trace_id:"%s" and message: "%s"`
+	query = fmt.Sprintf(query, traceId, resourceId)
 	hlog.CtxDebugf(ctx, "SingleViewpointEndQuery query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -2511,7 +2619,7 @@ func UploadOutResponseQuery(ctx context.Context, resourceId string, timeBegin, t
 }
 
 func CrawlerOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest crawler req" and "%s" and not "asctime"`
+	query := `message: "OutRequest crawler req" and "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "CrawlerOutRequestQuery query: %s", query)
 
@@ -2525,7 +2633,7 @@ func CrawlerOutRequestQuery(ctx context.Context, resourceId string, timeBegin, t
 		hlog.CtxErrorf(ctx, "CrawlerOutRequestQuery query log error: %v", err)
 		return nil, err
 	}
-	return ConvertFileProcessLog(ctx, logs.Logs)
+	return ConvertFileProcessLogFromFc(ctx, logs.Logs)
 }
 
 func CrawlerOutResponseQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
@@ -2543,7 +2651,7 @@ func CrawlerOutResponseQuery(ctx context.Context, resourceId string, timeBegin, 
 		hlog.CtxErrorf(ctx, "CrawlerOutResponseQuery query log error: %v", err)
 		return nil, err
 	}
-	return ConvertFileProcessLog(ctx, logs.Logs)
+	return ConvertFileProcessLogFromFc(ctx, logs.Logs)
 }
 
 func WcdOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {

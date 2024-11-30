@@ -1805,14 +1805,14 @@
             const container = $('#接口错误列表');
             container.empty()
             container.find("div").remove()
-            container.append(
-                $('<div>').attr('id', 'choices')
-                    .append(
-                        $('<div>').attr('id', 'env-choice').addClass('choice-container')
-                            .append($('<div>').text('仅预发').addClass('choice-btn').click(handleClickEnvChoiceBtn))
-                            .append($('<div>').text('仅正式').addClass('choice-btn').click(handleClickEnvChoiceBtn))
-                    )
-            )
+            // container.append(
+            //     $('<div>').attr('id', 'choices')
+            //         .append(
+            //             $('<div>').attr('id', 'env-choice').addClass('choice-container')
+            //                 .append($('<div>').text('仅预发').addClass('choice-btn').click(handleClickEnvChoiceBtn))
+            //                 .append($('<div>').text('仅正式').addClass('choice-btn').click(handleClickEnvChoiceBtn))
+            //         )
+            // )
             container.append(
                 $('<div>').attr('id', 'choices')
                     .append(

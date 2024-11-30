@@ -863,12 +863,12 @@ func SummreqCntQuery(ctx context.Context, daysLookback int) (map[string]int, err
 	query := `
 (__tag__:_container_name_:{{.BaseContainerName}}-python-prod) and summary start %s | select * from (
     select 
-    regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 1) file_id, 
-    regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 2) url_id, 
-    regexp_extract(message, 'summary start, file_id:(.*?), url_id:(.*?) generate_type:(.*?)\.$', 3) generate_type,
+    regexp_extract(message, 'summary start,.*?file_id:(.*?)(,|\s|$)', 1) file_id, 
+    regexp_extract(message, 'summary start,.*?url_id:(.*?)(,|\s|$)', 1) url_id,
+    regexp_extract(message, 'summary start,.*?generate_type:(.*?)(,|\s|$)', 1) generate_type,
     trace_id, user_id, asctime time
     from log order by time desc limit %v
-)
+) where generate_type != 'null'
 `
 	query = FormatWithTemplate(query, nil)
 

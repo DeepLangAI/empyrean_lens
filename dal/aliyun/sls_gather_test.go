@@ -326,7 +326,7 @@ func TestSummreqCntQuery(t *testing.T) {
 func TestSummaryGeneralOfDay(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	ov, _ := SceneGeneralOfDay(ctx, 2)
+	ov, _ := SceneGeneralOfDay(ctx, 0)
 	for _, o := range ov.Overviews {
 		//if len(o.SlowDetails) > 0 {
 		//	fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SlowReq, o.SlowDetails)

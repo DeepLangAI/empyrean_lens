@@ -749,10 +749,10 @@
             transition: border 0.3s;
         }
         .thumbnail.active {
-            border: 2px solid #007BFF;
+            border: 2px solid #0bc111;
         }
         .thumbnail:hover {
-            border: 2px solid #007BFF;
+            border: 2px solid #48b300;
         }
 
         .ui-steps-btn{
@@ -764,6 +764,24 @@
             color: rgba(0, 0, 0, 0.6);
             cursor: pointer;
             float: right;
+        }
+        .control-panel{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .control-panel-item{
+            width: 22px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .control-panel-item:hover {
+            background-color: rgba(0, 255, 72, 0.1); /* 悬停时添加背景色 */
+            border-radius: 4px; /* 添加圆角 */
+            cursor: pointer;
+        }
+        .control-panel-item:active {
+            transform: scale(0.90); /* 点击时缩小 */
         }
     </style>
 </head>
@@ -3043,7 +3061,10 @@
     }
 
     function createGallary(imgUrls){
-        function roll(index, url){
+        let currentIndex = 0
+        function roll(index){
+            let url = imgUrls[index]
+            currentIndex = index
             $largeImg.attr('src', url)
             $gallary.find('.thumbnail').removeClass('active')
             $gallary.find(`[data-index="${index}"]`).addClass('active')
@@ -3056,6 +3077,26 @@
                     $gallaryBackground.remove()
                 }
             })
+        let $controlPanel = $('<div>')
+            .addClass('control-panel')
+            .append(
+                $('<img src="/public/img/首页.svg">').addClass('control-panel-item').click(()=>{
+                    roll(0)
+                }),
+                $('<img src="/public/img/左.svg">').addClass('control-panel-item').click(()=>{
+                    if (currentIndex == 0){
+                        roll(imgUrls.length - 1)
+                    }else{
+                        roll(currentIndex - 1)
+                    }
+                }),
+                $('<img src="/public/img/右.svg">').addClass('control-panel-item').click(()=>{
+                    roll((currentIndex + 1) % imgUrls.length)
+                }),
+                $('<img src="/public/img/末页.svg">').addClass('control-panel-item').click(()=>{
+                    roll(imgUrls.length - 1)
+                }),
+            )
         let $gallaryContainer = $('<div>').addClass('gallary-container')
         let $largeImg = $('<img>').attr('src', imgUrls[0]).addClass('large-image')
         let $gallary = $('<div>').addClass('gallary')
@@ -3071,7 +3112,7 @@
             }
             $gallary.append($img)
         }
-        $gallaryContainer.append($largeImg, $gallary)
+        $gallaryContainer.append($largeImg, $controlPanel, $gallary)
         $gallaryBackground.append($gallaryContainer)
         // 在body中添加gallaryContainer
         $gallaryBackground.appendTo('body')

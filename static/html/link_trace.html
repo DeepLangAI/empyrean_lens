@@ -2285,6 +2285,11 @@
                         } else if (input.verbose == true){
                             title = '丰富大纲结果'
                         }
+                        if (input.en_mode == true){
+                            title = '英文' + title
+                        } else if (input.en_mode == false){
+                            title = '中文' + title
+                        }
                         let expanders = createOutlineFinshExpanders(title, output)
                         logDetailsBody.prepend(expanders)
                     }

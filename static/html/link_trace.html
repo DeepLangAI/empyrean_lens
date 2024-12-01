@@ -25,6 +25,8 @@
     <link rel="stylesheet" href="/public/css/jquery-ui.css">
     <script src="/public/js/jquery-ui.js"></script>
 
+    <link rel="stylesheet" href="/public/css/tree.css">
+    <script src="/public/js/tree.js"></script>
 
     <style>
         body {
@@ -1044,7 +1046,18 @@
         PieChart: 1,
     }
     const NodeTypeEnum = {
-        WCD_PARSE_FINISH: 3, //wcd
+        UPLOAD_FINISH: 1,  // 上传完成
+        CRAWLER_FINISH: 2,  // 抓取完成
+        WCD_PARSE_FINISH: 3,  // wcd解析完成
+        SUQIN_PARSE_FINISH: 4,  // 苏秦解析完成
+        TEXT_PARSE_FINISH: 5,  // text-parse完成
+        EDU_PARSE_FINISH: 6,  // edu-parse完成
+        SUMMARY_FINISH: 7,  // 概述生成
+        KEY_INFO_FINISH: 8,  // 关键信息生成
+        OUTLINE_FINISH: 9,  // 大纲生成
+        MULTI_ANALYSIS_FINISH: 10,  // 单文档解析
+        MULTI_TOPIC_FINISH: 11,  // 主题生成
+        MULTI_OUTLINE_FINISH: 12,  // 大纲生成
     }
 
     const ActionStatusEnum = {
@@ -2064,51 +2077,65 @@
             return scrollContainer;
         }
 
+        function createOutlineFinshExpanders(title, log){
+            let $expanders = $('<div>')
+            let tree = Tree.parseSingleDoc_OutlineOutput(log)
+            let $treeDom = tree.toDOM()
+            tree.print()
+
+            let $treeExpander = createExpander(title, $treeDom,
+                ()=>{
+                    return log
+                })
+            $expanders.append($treeExpander)
+            return $expanders
+        }
+
+        function createExpander(title, content, valueFunc){
+            let $expander = $('<div class="expander">');
+
+            let $header = $('<div class="expander-header">').append(
+                $('<h3>').text(title),
+                $('<div class="copy-btn">').text('复制').click(function (e){
+                    e.stopPropagation();        // 阻止事件冒泡，避免触发 p 的点击事件
+                    navigator.clipboard.writeText(valueFunc()).then(function() {
+                        Swal.fire({
+                            position: "top-end",
+                            icon: "success",
+                            title: "复制成功",
+                            showConfirmButton: false,
+                            timer: 1000,
+                            customClass: {
+                                popup: 'custom-popup',
+                                title: 'custom-popup-title',
+                                icon: 'custom-popup-icon',
+                            }
+                        });
+                    }, function(err) {
+                        console.error('Async: Could not copy text: ', err);
+                    });
+                }),
+            );
+
+            let $content = $('<div class="expander-content">');
+
+            if (typeof content === 'string' || content instanceof String) {
+                // 如果 content 是纯文本，直接添加
+                $content.append(`<div>${content}</div>`);
+            } else {
+                // 如果 content 不是纯文本，直接 append 到 expander-content
+                $content.append(content);
+            }
+
+            $expander.append($header, $content);
+
+            $expander.find('.expander-header').click(function (){
+                $(this).parent().toggleClass('active');
+            })
+            return $expander
+        }
 
         function createWcdExpanders(entryId, traceId, ossInfo){
-            function createExpander(title, content, valueFunc){
-                let $expander = $('<div class="expander">');
-
-                let $header = $('<div class="expander-header">').append(
-                    $('<h3>').text(title),
-                    $('<div class="copy-btn">').text('复制').click(function (e){
-                        e.stopPropagation();        // 阻止事件冒泡，避免触发 p 的点击事件
-                        navigator.clipboard.writeText(valueFunc()).then(function() {
-                            Swal.fire({
-                                position: "top-end",
-                                icon: "success",
-                                title: "复制成功",
-                                showConfirmButton: false,
-                                timer: 1000,
-                                customClass: {
-                                    popup: 'custom-popup',
-                                    title: 'custom-popup-title',
-                                    icon: 'custom-popup-icon',
-                                }
-                            });
-                        }, function(err) {
-                            console.error('Async: Could not copy text: ', err);
-                        });
-                    }),
-                );
-
-                let $content = $('<div class="expander-content">');
-
-                if (typeof content === 'string' || content instanceof String) {
-                    // 如果 content 是纯文本，直接添加
-                    $content.append(`<div>${content}</div>`);
-                } else {
-                    // 如果 content 不是纯文本，直接 append 到 expander-content
-                    $content.append(content);
-                }
-
-                $expander.append($header, $content);
-
-                $expander.find('.expander-header').click(function (){
-                    $(this).parent().toggleClass('active');
-                })
-                return $expander
-            }
             let expanders = $('<div>')
             axios.get('/api/v1/link_trace/wcd_oss_detail', {
                 params: {
@@ -2247,6 +2274,19 @@
                     if (log["output"].indexOf("model_result_str") != -1){
                         let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId, ossInfo)
                         logDetailsBody.prepend(wcdExpanders)
+                    }
+                } else if (nodeType == NodeTypeEnum.OUTLINE_FINISH){
+                    if (log['output']){
+                        let output = JSON.parse(log['output'])
+                        let input = JSON.parse(log['input'])
+                        let title = '大纲结果'
+                        if (input.verbose == false){
+                            title = '简版大纲结果'
+                        } else if (input.verbose == true){
+                            title = '丰富大纲结果'
+                        }
+                        let expanders = createOutlineFinshExpanders(title, output)
+                        logDetailsBody.prepend(expanders)
                     }
                 }
                 logDetails.append(logDetailsHeader, logDetailsBody)

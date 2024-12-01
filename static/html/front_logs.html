@@ -764,7 +764,7 @@
         .modal {
             display: flex;
             align-items: center;
-            justify-items: center;
+            justify-content: center;
             position: fixed;
             z-index: 1;
             left: 0;
@@ -780,7 +780,7 @@
         .modal-content {
             background-color: #fefefe;
             /*margin: 15% auto;*/
-            margin-left: 20%;
+            /*margin-left: 20%;*/
             /*margin-right: 20%;*/
             /*margin-top: 6%;*/
             padding: 20px;
@@ -950,7 +950,7 @@
         });
         function handleClickOutsideModal(event){
             // 检查点击的目标是否是模态框（$modal）而不是模态框内容（$modalContent）
-            if ($(event.target).is('.modal.active') && !$(event.target).find('.modal-content').is(event.target)) {
+            if ($(event.target).is('.modal') && !$(event.target).find('.modal-content').is(event.target)) {
                 handleClickModalClose(); // 调用关闭模态框的函数
             }
         }
@@ -962,7 +962,7 @@
         function showLastModal(){
             if (modalStack.length > 0) {
                 let $modal = modalStack[modalStack.length - 1]
-                $modal.addClass('active')
+                // $modal.addClass('active')
                 $modal.show()
                 console.log("showLastModal", modalStack.length, $modal)
             }
@@ -974,7 +974,7 @@
 
         function hideLastModal(){
             let $modal = modalStack[modalStack.length - 1]
-            $modal.removeClass('active')
+            // $modal.removeClass('active')
             // $modal.fadeOut(300, function() {
             //     // 删除active class
             //     $modal.removeClass('active')
@@ -989,7 +989,7 @@
         function pushModal($modal){
             $('#app').append($modal)
             modalStack.push($modal)
-            $modal.addClass('active')
+            // $modal.addClass('active')
         }
 
         function showErrorLogDetail(title, logs){

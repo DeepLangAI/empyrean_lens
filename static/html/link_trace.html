@@ -1007,6 +1007,26 @@
             overflow: auto;
         }
 
+        .share-button {
+            color: white; /* 字体颜色 */
+            border: none; /* 去掉边框 */
+            /*border-radius: 5px; !* 圆角 *!*/
+            font-size: 16px; /* 字体大小 */
+            cursor: pointer; /* 鼠标指针样式 */
+            transition: background-color 0.3s, transform 0.2s; /* 动画效果 */
+            /*float: right;*/
+            /*width: 30px;*/
+        }
+
+        .share-button:hover {
+            /*background-color: rgba(166, 166, 166, 0.54); !* 悬停时的颜色 *!*/
+            transform: scale(1.05); /* 悬停时放大效果 */
+        }
+
+        .share-button:active {
+            transform: scale(0.95); /* 点击时缩小效果 */
+        }
+
 
     </style>
 </head>
@@ -2606,7 +2626,32 @@
                 $('<td>').addClass('clickable').text('查看用户行为轨迹').on('click', function() {
                     console.log('查看用户行为轨迹');
                     createUserActionTimeline(userId, time.replace(/,/g, '.'));
-                })
+                }),
+                $('<td>')
+                    .addClass('clickable share-button')
+                    .append(
+                        $('<img src="/public/img/share.svg">')
+                            .css({
+                                width: '25px',
+                            })
+                    )
+                    .click(function() {
+                        let shareUrl = `https://empyrean-lens.lingowhale.com/public/html/link_trace.html?query=${entry_id}`
+                        navigator.clipboard.writeText(shareUrl).then(function () {
+                            Swal.fire({
+                                position: "top-end",
+                                icon: "success",
+                                title: "已复制分享链接",
+                                showConfirmButton: false,
+                                timer: 1000,
+                                customClass: {
+                                    popup: 'custom-popup',
+                                    title: 'custom-popup-title',
+                                    icon: 'custom-popup-icon',
+                                }
+                            });
+                        });
+                    }),
             );
 
             // 将行添加到表格

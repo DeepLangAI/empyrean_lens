@@ -2097,6 +2097,20 @@
             return scrollContainer;
         }
 
+        function createMultiOutlineFinshExpanders(title, log){
+            let $expanders = $('<div>')
+            let tree = Tree.parseMultiDoc_OutlineOutput(log)
+            let $treeDom = tree.toDOM()
+            tree.print()
+
+            let $treeExpander = createExpander(title, $treeDom,
+                ()=>{
+                    return log
+                })
+            $expanders.append($treeExpander)
+            return $expanders
+        }
+
         function createOutlineFinshExpanders(title, log){
             let $expanders = $('<div>')
             let tree = Tree.parseSingleDoc_OutlineOutput(log)
@@ -2313,6 +2327,16 @@
                         let expanders = createOutlineFinshExpanders(title, output)
                         logDetailsBody.prepend(expanders)
                     }
+                } else if (nodeType == NodeTypeEnum.MULTI_OUTLINE_FINISH){
+                    let output = JSON.parse(log['output'])
+                    let title = '多文档大纲结果'
+                    try{
+                        let input = JSON.parse(log['input'])
+                        title = `【${input.theme}】多文档大纲结果`
+                    } catch (e){
+                    }
+                    let expanders = createMultiOutlineFinshExpanders(title, output)
+                    logDetailsBody.prepend(expanders)
                 }
                 logDetails.append(logDetailsHeader, logDetailsBody)
                 logContainer.append(logId, logTime, logDetails)

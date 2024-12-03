@@ -2111,6 +2111,34 @@
             return $expanders
         }
 
+        function createAbstractFinishExpanders(title, log){
+            let $expanders = $('<div>')
+            let tree = Tree.parseSingleDoc_AbstractOutput(log)
+            let $treeDom = tree.toDOM()
+            tree.print()
+
+            let $treeExpander = createExpander(title, $treeDom,
+                ()=>{
+                    return log
+                })
+            $expanders.append($treeExpander)
+            return $expanders
+        }
+
+        function createViewpointFinshExpanders(title, log){
+            let $expanders = $('<div>')
+            let tree = Tree.parseSingleDoc_ViewpointOutput(log)
+            let $treeDom = tree.toDOM()
+            tree.print()
+
+            let $treeExpander = createExpander(title, $treeDom,
+                ()=>{
+                    return log
+                })
+            $expanders.append($treeExpander)
+            return $expanders
+        }
+
         function createOutlineFinshExpanders(title, log){
             let $expanders = $('<div>')
             let tree = Tree.parseSingleDoc_OutlineOutput(log)
@@ -2336,6 +2364,32 @@
                     } catch (e){
                     }
                     let expanders = createMultiOutlineFinshExpanders(title, output)
+                    logDetailsBody.prepend(expanders)
+                } else if (nodeType == NodeTypeEnum.KEY_INFO_FINISH ){
+                    let output = JSON.parse(log['output'])
+                    let title = '关键信息结果'
+                    try{
+                        let input = JSON.parse(log['input'])
+                        if (input.en_mode == true){
+                            title = '英文' + title
+                        }
+                    } catch (e){
+
+                    }
+                    let expanders = createViewpointFinshExpanders(title, output)
+                    logDetailsBody.prepend(expanders)
+                } else if (nodeType == NodeTypeEnum.SUMMARY_FINISH){
+                    let output = JSON.parse(log['output'])
+                    let title = '概述结果'
+                    try{
+                        let input = JSON.parse(log['input'])
+                        if (input.en_mode == true){
+                            title = '英文' + title
+                        }
+                    } catch (e){
+
+                    }
+                    let expanders = createAbstractFinishExpanders(title, output)
                     logDetailsBody.prepend(expanders)
                 }
                 logDetails.append(logDetailsHeader, logDetailsBody)

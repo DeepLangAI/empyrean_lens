@@ -20,6 +20,50 @@ class Tree {
     constructor(rootValue) {
         this.root = new TreeNode(rootValue); // 初始化树的根节点
     }
+
+    static parseSingleDoc_AbstractOutput(log){
+        let tree = new Tree('root')
+        let abstract = ''
+        for (let i = 0; i < log.length; i ++){
+            let subLog = log[i];
+            if (subLog == "data too long"){
+                continue
+            }
+            // if type is string
+            if (typeof subLog === 'string') {
+                subLog = JSON.parse(subLog)
+            }
+
+            if (subLog['text'] === undefined){
+                continue
+            }
+            abstract += subLog['text'][0]
+        }
+        let child = new TreeNode(abstract)
+        tree.root.addChild(child)
+        return tree
+    }
+    static parseSingleDoc_ViewpointOutput(log){
+        let tree = new Tree('root')
+        for (let i = 0; i < log.length; i ++){
+            let subLog = log[i];
+            if (subLog == "data too long"){
+                continue
+            }
+            // if type is string
+            if (typeof subLog === 'string') {
+                subLog = JSON.parse(subLog)
+            }
+
+            if (subLog['text'] === undefined){
+                continue
+            }
+            let child = new TreeNode(subLog['text'][0])
+            tree.root.addChild(child)
+        }
+        return tree
+    }
+
     static parseSingleDoc_OutlineOutput(log){
         let tree = new Tree('root');
         let stack = []

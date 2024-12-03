@@ -622,11 +622,12 @@ func getErrorAndSafeLogs(ctx context.Context, multiID, entryID string, node *emp
 		apiLogsError := value.([]aliyun.FileProcessLog)
 		for _, apiLogError := range apiLogsError {
 			apiLog := &empyrean_lens.ApiLog{
-				HTTPCode:   500,
-				EnterTime:  apiLogError.Asctime.Format(consts.DateTimeTemplate),
-				FinishTime: apiLogError.Asctime.Format(consts.DateTimeTemplate),
-				ErrorMsg:   apiLogError.Message,
-				TraceID:    apiLogError.TraceId,
+				HTTPCode:      500,
+				EnterTime:     apiLogError.Asctime.Format(consts.DateTimeTemplate),
+				FinishTime:    apiLogError.Asctime.Format(consts.DateTimeTemplate),
+				ErrorMsg:      apiLogError.Message,
+				TraceID:       apiLogError.TraceId,
+				ContainerName: apiLogError.ContainerName,
 			}
 			errLogs = append(errLogs, apiLog)
 		}
@@ -637,11 +638,12 @@ func getErrorAndSafeLogs(ctx context.Context, multiID, entryID string, node *emp
 		apiLogsError := value.([]aliyun.FileProcessLog)
 		for _, apiLogError := range apiLogsError {
 			apiLog := &empyrean_lens.ApiLog{
-				HTTPCode:   500,
-				EnterTime:  apiLogError.Asctime.Format(consts.DateTimeTemplate),
-				FinishTime: apiLogError.Asctime.Format(consts.DateTimeTemplate),
-				ErrorMsg:   apiLogError.Message,
-				TraceID:    apiLogError.TraceId,
+				HTTPCode:      500,
+				EnterTime:     apiLogError.Asctime.Format(consts.DateTimeTemplate),
+				FinishTime:    apiLogError.Asctime.Format(consts.DateTimeTemplate),
+				ErrorMsg:      apiLogError.Message,
+				TraceID:       apiLogError.TraceId,
+				ContainerName: apiLogError.ContainerName,
 			}
 			safeLogs = append(safeLogs, apiLog)
 		}

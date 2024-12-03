@@ -2079,7 +2079,11 @@ type FileProcessLog struct {
 	TraceId string    `json:"trace_id"`
 	UserId  string    `json:"user_id"`
 	Cost    float64   `json:"cost"`
+
+	ContainerName string `json:"container_name"`
 }
+
+const KeyContainerName = "__tag__:_container_name_"
 
 func ConvertFileProcessLog(ctx context.Context, logs []map[string]string) ([]FileProcessLog, error) {
 	res := make([]FileProcessLog, len(logs))
@@ -2107,11 +2111,12 @@ func ConvertFileProcessLog(ctx context.Context, logs []map[string]string) ([]Fil
 		}
 
 		res[i] = FileProcessLog{
-			Asctime: t,
-			Message: strings.TrimSpace(logs[i]["message"]),
-			TraceId: strings.TrimSpace(logs[i]["trace_id"]),
-			UserId:  uid,
-			Cost:    c,
+			Asctime:       t,
+			Message:       strings.TrimSpace(logs[i]["message"]),
+			TraceId:       strings.TrimSpace(logs[i]["trace_id"]),
+			UserId:        uid,
+			Cost:          c,
+			ContainerName: logs[i][KeyContainerName],
 		}
 	}
 	return res, nil
@@ -2266,6 +2271,7 @@ func PDFParserFcErrorQuery(ctx context.Context, resourceId string, timeBegin, ti
 				fcLog.TraceId = log["message"][idx+13 : idx+idx1-1]
 			}
 		}
+		fcLog.ContainerName = log[KeyContainerName]
 		if fcLog.TraceId != "" && !timeAt.IsZero() {
 			fcLog.Asctime = timeAt
 			fcLog.Message = strings.TrimSpace(log["message"])

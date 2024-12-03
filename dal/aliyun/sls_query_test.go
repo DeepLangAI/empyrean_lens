@@ -264,3 +264,16 @@ func TestWcdWorthlessQuery(t *testing.T) {
 		}
 	}
 }
+
+func TestSingleTraceIDErrorQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+	end := time.Now()
+	begin := end.AddDate(0, 0, -1)
+	query, err := SingleTraceIDErrorQuery(ctx, "674e8557c4fe05b1e29358a8", begin, end)
+	assert.Nil(t, err)
+	for i, log := range query {
+		fmt.Printf("%v %+v", i+1, log)
+	}
+}

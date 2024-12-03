@@ -2315,7 +2315,7 @@
                 let logDetailsHeader = $('<div>').addClass('log-details-header');
                 let logDetailsBody = $('<div>').addClass('log-details-body');
 
-                let keysInHeader = ["http_code", "enter_time", "finish_time"]
+                let keysInHeader = ["http_code", "enter_time", "finish_time", "container_name"]
                 for (var key in log){
                     const id = key +'-' + i;
                     let value = log[key]

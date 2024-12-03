@@ -656,6 +656,7 @@ struct ApiLog {
     10: string finish_time // DateHourMinSecTemplate
     11: string error_msg // 错误响应信息
     12: string trace_id // trace id
+    13: string container_name // 如webcrawler-python-prod
 }
 
 // 保存链路信息到数据库

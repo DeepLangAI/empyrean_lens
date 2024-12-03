@@ -26,7 +26,14 @@
     <script src="/public/js/jquery-ui.js"></script>
 
     <link rel="stylesheet" href="/public/css/tree.css">
-    <script src="/public/js/tree.js"></script>
+<!--    <script src="/public/js/tree.js"></script>-->
+<!--    <script src="/public/js/tree.js?t=<?= time(); ?>"></script>-->
+    <script>
+        // 动态生成时间戳
+        var script = document.createElement('script');
+        script.src = '/public/js/tree.js?t=' + new Date().getTime();
+        document.head.appendChild(script);
+    </script>
 
     <style>
         body {

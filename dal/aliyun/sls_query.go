@@ -180,7 +180,7 @@ func ModelNginxIngressBasicQuery(ctx context.Context, daysLookback int, host str
 	for _, api := range apiDetails {
 		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api.Api))
 	}
-	query = fmt.Sprintf(query, consts.FilterProbeUser, strings.Join(formatedApis, ",\n"), host, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.ModelFilterProbeuser, strings.Join(formatedApis, ",\n"), host, consts.LOG_QUERY_LIMIT)
 	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
 	// 查询日志
 	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)

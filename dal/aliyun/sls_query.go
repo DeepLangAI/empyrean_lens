@@ -42,7 +42,7 @@ func QueryLogsWithRetry(ctx context.Context, logstore *sls.LogStore, from, to in
 	for i := 0; i < consts.LOG_QUERY_RETRY_TIMES; i++ {
 		resp, err = logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
 		if err != nil { // retry
-			hlog.CtxErrorf(ctx, "%v, query log failed, retrying: %v", i+1, err)
+			hlog.CtxErrorf(ctx, "%v, query log failed, retrying: %v. query: %v", i+1, err, query)
 			time.Sleep(time.Duration(i) * time.Second)
 			continue
 		}

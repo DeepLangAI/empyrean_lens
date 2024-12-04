@@ -114,6 +114,7 @@ func (self *GenerateErrLogDao) GetGenerateErrlogByTime(ctx context.Context, date
 			hlog.CtxErrorf(ctx, "mongo decode error:%v", err)
 			return generateErrLogInfos, err
 		}
+		generateErrLogInfo.Time = generateErrLogInfo.Time.Local()
 		generateErrLogInfos = append(generateErrLogInfos, generateErrLogInfo)
 	}
 	return generateErrLogInfos, nil

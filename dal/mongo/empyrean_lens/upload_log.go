@@ -116,6 +116,7 @@ func (self *UploadLogModelDao) GetUploadInfoByTime(ctx context.Context, dateStr 
 			hlog.CtxErrorf(ctx, "mongo decode error:%v", err)
 			return uploadInfos, err
 		}
+		uploadInfo.Time = uploadInfo.Time.Local()
 		uploadInfos = append(uploadInfos, uploadInfo)
 	}
 	return uploadInfos, nil

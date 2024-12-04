@@ -29,7 +29,7 @@ func ProbeTimespanFailRate(ctx context.Context, timespan int) (map[string]float6
 	totalReq := map[string]int32{}
 	failRate := map[string]float64{}
 	for _, model := range models {
-		date := model.CreateTime.Format("2006-01-02")
+		date := model.CreateTime.Local().Format(consts.DateTemplate)
 		totalReq[date] += 1
 		if !model.Correct {
 			failReq[date] += 1

@@ -1085,6 +1085,7 @@
 <div id="app"></div>
 
 <script>
+    const DataTooLong = "data too long"
 
     const EntryTypeEnum = {
         WEB: 7,
@@ -2369,75 +2370,77 @@
 
                     logDetailsBody.append(p)
                 }
-                if (nodeType == NodeTypeEnum.WCD_PARSE_FINISH){
-                    let wcdOutput = log["output"]
-                    let wcdRequestId = ''
-                    let ossInfo = {}
-                    try{
-                        let wcdOutputObj = JSON.parse(wcdOutput)
-                        wcdRequestId = wcdOutputObj['wcd-request-id']
-                        ossInfo = wcdOutputObj['oss_info'] || {}
-                    }catch (e){
+                if (log['output'] != DataTooLong){
+                    if (nodeType == NodeTypeEnum.WCD_PARSE_FINISH){
+                        let wcdOutput = log["output"]
+                        let wcdRequestId = ''
+                        let ossInfo = {}
+                        try{
+                            let wcdOutputObj = JSON.parse(wcdOutput)
+                            wcdRequestId = wcdOutputObj['wcd-request-id']
+                            ossInfo = wcdOutputObj['oss_info'] || {}
+                        }catch (e){
 
-                    }
-                    if (log["output"].indexOf("model_result_str") != -1){
-                        let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId, ossInfo)
-                        logDetailsBody.prepend(wcdExpanders)
-                    }
-                } else if (nodeType == NodeTypeEnum.OUTLINE_FINISH){
-                    if (log['output']){
-                        let output = JSON.parse(log['output'])
-                        let input = JSON.parse(log['input'])
-                        let title = '大纲结果'
-                        if (input.verbose == false){
-                            title = '简版大纲结果'
-                        } else if (input.verbose == true){
-                            title = '丰富大纲结果'
                         }
-                        // if (input.en_mode == true){
-                        //     title = '英文' + title
-                        // } else if (input.en_mode == false){
-                        //     title = '中文' + title
-                        // }
-                        let expanders = createOutlineFinshExpanders(title, output)
+                        if (log["output"].indexOf("model_result_str") != -1){
+                            let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId, ossInfo)
+                            logDetailsBody.prepend(wcdExpanders)
+                        }
+                    } else if (nodeType == NodeTypeEnum.OUTLINE_FINISH){
+                        if (log['output']){
+                            let output = JSON.parse(log['output'])
+                            let input = JSON.parse(log['input'])
+                            let title = '大纲结果'
+                            if (input.verbose == false){
+                                title = '简版大纲结果'
+                            } else if (input.verbose == true){
+                                title = '丰富大纲结果'
+                            }
+                            // if (input.en_mode == true){
+                            //     title = '英文' + title
+                            // } else if (input.en_mode == false){
+                            //     title = '中文' + title
+                            // }
+                            let expanders = createOutlineFinshExpanders(title, output)
+                            logDetailsBody.prepend(expanders)
+                        }
+                    } else if (nodeType == NodeTypeEnum.MULTI_OUTLINE_FINISH){
+                        let output = JSON.parse(log['output'])
+                        let title = '多文档大纲结果'
+                        try{
+                            let input = JSON.parse(log['input'])
+                            title = `【${input.theme}】多文档大纲结果`
+                        } catch (e){
+                        }
+                        let expanders = createMultiOutlineFinshExpanders(title, output)
+                        logDetailsBody.prepend(expanders)
+                    } else if (nodeType == NodeTypeEnum.KEY_INFO_FINISH){
+                        let output = JSON.parse(log['output'])
+                        let title = '关键信息结果'
+                        try{
+                            let input = JSON.parse(log['input'])
+                            if (input.en_mode == true){
+                                title = '英文' + title
+                            }
+                        } catch (e){
+
+                        }
+                        let expanders = createViewpointFinshExpanders(title, output)
+                        logDetailsBody.prepend(expanders)
+                    } else if (nodeType == NodeTypeEnum.SUMMARY_FINISH){
+                        let output = JSON.parse(log['output'])
+                        let title = '概述结果'
+                        try{
+                            let input = JSON.parse(log['input'])
+                            if (input.en_mode == true){
+                                title = '英文' + title
+                            }
+                        } catch (e){
+
+                        }
+                        let expanders = createAbstractFinishExpanders(title, output)
                         logDetailsBody.prepend(expanders)
                     }
-                } else if (nodeType == NodeTypeEnum.MULTI_OUTLINE_FINISH){
-                    let output = JSON.parse(log['output'])
-                    let title = '多文档大纲结果'
-                    try{
-                        let input = JSON.parse(log['input'])
-                        title = `【${input.theme}】多文档大纲结果`
-                    } catch (e){
-                    }
-                    let expanders = createMultiOutlineFinshExpanders(title, output)
-                    logDetailsBody.prepend(expanders)
-                } else if (nodeType == NodeTypeEnum.KEY_INFO_FINISH ){
-                    let output = JSON.parse(log['output'])
-                    let title = '关键信息结果'
-                    try{
-                        let input = JSON.parse(log['input'])
-                        if (input.en_mode == true){
-                            title = '英文' + title
-                        }
-                    } catch (e){
-
-                    }
-                    let expanders = createViewpointFinshExpanders(title, output)
-                    logDetailsBody.prepend(expanders)
-                } else if (nodeType == NodeTypeEnum.SUMMARY_FINISH){
-                    let output = JSON.parse(log['output'])
-                    let title = '概述结果'
-                    try{
-                        let input = JSON.parse(log['input'])
-                        if (input.en_mode == true){
-                            title = '英文' + title
-                        }
-                    } catch (e){
-
-                    }
-                    let expanders = createAbstractFinishExpanders(title, output)
-                    logDetailsBody.prepend(expanders)
                 }
                 logDetails.append(logDetailsHeader, logDetailsBody)
                 logContainer.append(logId, logTime, logDetails)

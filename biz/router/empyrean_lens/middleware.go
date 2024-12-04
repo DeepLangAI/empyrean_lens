@@ -62,6 +62,7 @@ func CookieMiddleWare() app.HandlerFunc {
 func rootMw() []app.HandlerFunc {
 	// your code...
 	return []app.HandlerFunc{
+		middleware.TraceServerMiddleware(),
 		middleware.RequestLogServerMiddleware(),
 		CookieMiddleWare(),
 	}

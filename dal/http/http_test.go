@@ -23,7 +23,7 @@ func Test_shenceDal_GetUploadInfoByTime(t *testing.T) {
 			name: "test",
 			args: args{
 				ctx:     context.Background(),
-				dateStr: "2024-12-01",
+				dateStr: "2024-12-02",
 			},
 			want:    nil,
 			wantErr: false,

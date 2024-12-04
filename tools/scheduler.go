@@ -14,8 +14,8 @@ type ProbeRunner struct {
 }
 
 func GetCurrentDate() string {
-	now := time.Now()             // 获取当前时间
-	return now.Format("20060102") // 格式化为 "YYYYMMDD"
+	now := time.Now()                      // 获取当前时间
+	return now.Format(consts.DateTemplate) // 格式化为 "YYYYMMDD"
 }
 
 func (self *ProbeRunner) Run(ctx context.Context) {

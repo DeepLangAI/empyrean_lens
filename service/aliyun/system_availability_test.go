@@ -46,7 +46,7 @@ func TestSystemTimespanAvailability(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	dal.Init()
-	availability, err := SystemTimespanAvailability(ctx, consts.TIMESPAN_WEEK)
+	availability, err := SystemTimespanAvailability(ctx, consts.TIMESPAN_TODAY)
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -58,7 +58,7 @@ func TestSlowQueryRate(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	dal.Init()
-	rates, err := SlowQueryRate(ctx, consts.TIMESPAN_WEEK)
+	rates, err := SlowQueryRate(ctx, consts.TIMESPAN_TODAY)
 	if err != nil {
 		t.Error(err)
 	} else {

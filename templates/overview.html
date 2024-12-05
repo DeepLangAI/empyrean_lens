@@ -731,6 +731,11 @@
             border-radius: 10px;
             overflow: hidden;
         }
+        .large-image-container {
+            width: 100%;
+            max-height: 50vh;
+            overflow: scroll;
+        }
         .large-image {
             width: 100%;
         }
@@ -3167,6 +3172,7 @@
                 }),
             )
         let $gallaryContainer = $('<div>').addClass('gallary-container')
+        let $largeImgContainer = $('<div>').addClass('large-image-container')
         let $largeImg = $('<img>').attr('src', imgUrls[0]).addClass('large-image')
         let $gallary = $('<div>').addClass('gallary')
         for (let i = 0; i < imgUrls.length; i++) {
@@ -3181,7 +3187,8 @@
             }
             $gallary.append($img)
         }
-        $gallaryContainer.append($largeImg, $controlPanel, $gallary)
+        $largeImgContainer.append($largeImg)
+        $gallaryContainer.append($largeImgContainer, $controlPanel, $gallary)
         $gallaryBackground.append($gallaryContainer)
         // 在body中添加gallaryContainer
         $gallaryBackground.appendTo('body')

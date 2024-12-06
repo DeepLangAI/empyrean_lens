@@ -1875,7 +1875,7 @@
                 const numErrorReq = data.num_error_req;
                 const numBizErrorReq = data.num_biz_error_req;
                 const numTotalReq = data.num_total_req;
-                const errPercent = (numErrorReq / numTotalReq * 100).toFixed(2);
+                const errPercent = ((numErrorReq + numBizErrorReq) / numTotalReq * 100).toFixed(2);
                 const numCode3xx = data.num_code_3xx;
                 const numCode4xx = data.num_code_4xx;
                 const numCode5xx = data.num_code_5xx;

@@ -358,6 +358,9 @@ func NodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_le
 		}
 		return getReqAndResp(ctx, entryInfo.MultiID, entryInfo.EntryID, node, apiLogsInput, apiLogsOuput)
 	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:
+		if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
+			return node.TraceID, []*empyrean_lens.ApiLog{}, nil
+		}
 		apiLogsInput, err := aliyun.AbstractModelOutRequestQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
@@ -394,6 +397,9 @@ func NodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_le
 		}
 		return getReqAndResp(ctx, entryInfo.MultiID, entryInfo.EntryID, node, apiLogsInput, apiLogsOuput)
 	case empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:
+		if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
+			return node.TraceID, []*empyrean_lens.ApiLog{}, nil
+		}
 		apiLogsInput, err := aliyun.OutlineModelOutRequestQuery(ctx, entryInfo.EntryID, entryInfo.UserID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
@@ -584,6 +590,9 @@ func getErrorAndSafeLogs(ctx context.Context, multiID, entryID string, node *emp
 			var apiLogsError []aliyun.FileProcessLog
 			if multiID != "" {
 				apiLogsError, err = aliyun.MultiTraceIDErrorQuery(ctx, traceID, start, end)
+				if len(apiLogsError) == 0 && node.Type == empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH {
+					apiLogsError, err = aliyun.PDFParserFcErrorQuery(ctx, entryID, start, end)
+				}
 			} else {
 				apiLogsError, err = aliyun.SingleTraceIDErrorQuery(ctx, traceID, start, end)
 				if len(apiLogsError) == 0 && node.Type == empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH {

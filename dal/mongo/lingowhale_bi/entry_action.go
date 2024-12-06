@@ -177,6 +177,11 @@ func (d *EntryActionDao) EntryActionExist(ctx context.Context, entryType int, en
 }
 
 func (d *EntryAction) TranslateGraphNode() *empyrean_lens.GraphNode {
+	// 状态转换，未执行认为是失败
+	status := empyrean_lens.ActionStatusEnum(d.ActionStatus)
+	if status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
+		status = empyrean_lens.ActionStatusEnum_FAIL
+	}
 	node := &empyrean_lens.GraphNode{
 		ID:         d.ID.Hex(),
 		Name:       consts.LinkNodeTypeName[empyrean_lens.LinkNodeTypeEnum(d.ActionType)],

@@ -98,7 +98,7 @@ func GetStatusFromNode(nodes []*empyrean_lens.GraphNode) (string, empyrean_lens.
 				linkStatus = empyrean_lens.ActionStatusEnum_FAIL
 				// 将模型生成未执行的转为失败
 				for _, node2 := range nodes {
-					if Contains(summaryTypes, node2.Type) {
+					if Contains(summaryTypes, node2.Type) && node2.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
 						node2.Status = empyrean_lens.ActionStatusEnum_FAIL
 					}
 				}

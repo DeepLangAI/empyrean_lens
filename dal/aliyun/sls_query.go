@@ -1870,7 +1870,7 @@ func BusinessLogQueryByTraceIdUserId(ctx context.Context, userId, traceId string
 	to := timeEnd.Unix()
 
 	query := `
-%v %v|select
+%v and trace_id: "%v"|select
 user_id, trace_id,
 COALESCE(asctime, time) AS time,
 -- asctime time,

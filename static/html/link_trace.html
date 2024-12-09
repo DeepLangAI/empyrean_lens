@@ -1086,6 +1086,7 @@
 
 <script>
     const DataTooLong = "data too long"
+    const LinkTraceNewSystem = "https://empyrean-lens-tool.lingowhale.com"
 
     const EntryTypeEnum = {
         WEB: 7,
@@ -1124,6 +1125,10 @@
         MULTI_OUTLINE_FINISH: 12,  // 大纲生成
     }
 
+    const SystemChoiceEnum = {
+        STAY : "stay",
+        GOTO_NEW : "goToNewSystem",
+    }
     const ActionStatusEnum = {
         UNK : -1,
         SUCCESS : 0, // 表示正常完成
@@ -1188,7 +1193,119 @@
         return false
     }
 
+    function showSystemChooseAlert() {
+        let timerInterval;
 
+        // 获取当前时间戳
+        const currentTime = Date.now();
+        const mutedUntil = localStorage.getItem('swalMuted');
+
+        // 检查是否已经选择过不再提醒且是否已过一天
+        if (mutedUntil && currentTime < mutedUntil) {
+            const lastChoice = localStorage.getItem('lastChoice');
+            if (lastChoice === SystemChoiceEnum.GOTO_NEW) {
+                // 如果选择过不再提醒且之前选择了前往新系统，直接跳转
+                window.location.href = LinkTraceNewSystem; // 替换为新系统的URL
+            }
+            return;
+        }
+
+        Swal.fire({
+            title: '即将前往新系统',
+            text: '请在 3 秒内选择操作。',
+            showCancelButton: true,
+            confirmButtonText: '前往新系统',
+            cancelButtonText: '留在当前页面',
+            timer: 3000,
+            timerProgressBar: true,
+            html: `
+            <strong id="countdown">3 秒</strong>
+            <br>
+            <input type="checkbox" id="muteCheckbox"> 今天不再提醒
+        `,
+            willOpen: () => {
+                const $countdownElement = $('#countdown');
+                let timeLeft = 3;
+
+                timerInterval = setInterval(() => {
+                    timeLeft -= 1;
+                    $countdownElement.text(`${timeLeft} 秒`);
+
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                    }
+                }, 1000);
+            },
+            willClose: () => {
+                clearInterval(timerInterval);
+            }
+        }).then((result) => {
+            clearInterval(timerInterval);
+
+            const muteCheckbox = document.getElementById('muteCheckbox');
+
+            if (muteCheckbox.checked) {
+                // 设置为当前时间加一天（86400000 毫秒）
+                localStorage.setItem('swalMuted', currentTime + 24 * 60 * 60 * 1000);
+            }
+
+            if (result.isConfirmed) {
+                // 点击“前往新系统”
+                localStorage.setItem('lastChoice', SystemChoiceEnum.GOTO_NEW); // 记录选择前往新系统
+                window.location.href = LinkTraceNewSystem; // 替换为新系统的URL
+            } else if (result.dismiss === Swal.DismissReason.timer) {
+                // 倒计时结束，自动前往新系统
+                localStorage.setItem('lastChoice', SystemChoiceEnum.GOTO_NEW); // 记录选择前往新系统
+                window.location.href = LinkTraceNewSystem; // 替换为新系统的URL
+            } else {
+                // 点击“留在当前页面”
+                localStorage.setItem('lastChoice', SystemChoiceEnum.STAY); // 记录选择留在当前页面
+            }
+        });
+    }
+
+    // function showSystemChooseAlert() {
+    //     let timerInterval;
+    //
+    //     Swal.fire({
+    //         title: '即将前往新系统',
+    //         text: '请在 2 秒内选择操作。',
+    //         showCancelButton: true,
+    //         confirmButtonText: '前往新系统',
+    //         cancelButtonText: '留在当前页面',
+    //         timer: 3000,
+    //         timerProgressBar: true,
+    //         html: '<strong id="countdown">3 秒</strong>',
+    //         willOpen: () => {
+    //             const $countdownElement = $('#countdown')
+    //             let timeLeft = 3;
+    //
+    //             timerInterval = setInterval(() => {
+    //                 timeLeft -= 1;
+    //                 $countdownElement.text(`${timeLeft} 秒`)
+    //                 console.log('countdown: ' + timeLeft)
+    //
+    //                 if (timeLeft <= 0) {
+    //                     clearInterval(timerInterval);
+    //                 }
+    //             }, 1000);
+    //         },
+    //         willClose: () => {
+    //             clearInterval(timerInterval);
+    //         }
+    //     }).then((result) => {
+    //         clearInterval(timerInterval);
+    //
+    //         if (result.isConfirmed) {
+    //             // 点击“前往新系统”
+    //             window.location.href = LinkTraceNewSystem; // 替换为新系统的URL
+    //         } else if (result.dismiss === Swal.DismissReason.timer) {
+    //             // 倒计时结束，自动前往新系统
+    //             window.location.href = LinkTraceNewSystem; // 替换为新系统的URL
+    //         }
+    //         // 如果点击了“留在当前页面”，可以在这里添加相应的逻辑
+    //     });
+    // }
 
     // 显示加载状态
     function showLoadingStatus(loadingContainer) {
@@ -1353,12 +1470,13 @@
 
 
     $(document).ready(function() {
+        showSystemChooseAlert()
+
         let $loadingContainer = createLoadingContainer()
         let $dragModal = $('<div>').addClass("draggable-window")
         const $app = $('#app');
         let $guideBtn = $('<div class="guide">').text('前往新系统').click(()=>{
-            let newUrl = 'https://empyrean-lens-tool.lingowhale.com'
-            window.open(newUrl, '_blank')
+            window.open(LinkTraceNewSystem, '_blank')
         })
         let $backButton = $('<img>')
             .addClass('home-button')

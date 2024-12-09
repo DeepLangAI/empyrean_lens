@@ -2477,7 +2477,7 @@
                 }
             }).then(response => {
                 const data = response.data.data;
-                if (data.logs.length == 0){
+                if (!response.data || data.logs.length == 0){
                     Swal.fire({
                         position: "top-end",
                         icon: "error",

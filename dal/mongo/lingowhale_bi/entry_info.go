@@ -157,7 +157,7 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 		queryFilter,
 		{"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime}},
 		{"parent_entry_id": ""},
-		{"channel_type": bson.M{"$nin": []int32{70, 71, 72}}},
+		{"channel_type": bson.M{"$in": []int32{70, 71, 72}}},
 	}}
 	if len(status) > 0 {
 		filter["link_status"] = bson.M{"$in": status}

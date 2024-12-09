@@ -49,7 +49,7 @@ func KeySet(ctx context.Context, key string, value interface{}, expiration time.
 func KeySetNx(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	cmd := rdb.SetNX(ctx, key, value, expiration)
 	if res, err := cmd.Result(); err != nil || !res {
-		return fmt.Errorf("set key fail, key:%s, err:%s", key, err.Error())
+		return fmt.Errorf("set key fail, key:%s, err:%v", key, err)
 	}
 	return nil
 }

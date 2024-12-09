@@ -196,6 +196,7 @@ func MultiSaveToMongo(ctx context.Context, multiInfo *plugin.MultiModel, linkTra
 }
 
 func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, articleInfo interface{}, linkTrace interface{}) *bi.EntryInfo {
+	copyFromEntryId := ""
 	entryInfo, nodes := &bi.EntryInfo{}, []*empyrean_lens.GraphNode{}
 	switch entryType {
 	case empyrean_lens.EntryTypeEnum_WEB:
@@ -203,11 +204,13 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 		linkTrace := linkTrace.(*empyrean_lens.DocLinkTraceRespData)
 		nodes = linkTrace.LinkGraph.Nodes
 		entryInfo = webReaderInfo.TranslateEntryInfo()
+		copyFromEntryId = webReaderInfo.CopyFromUrlID
 	case empyrean_lens.EntryTypeEnum_FILE:
 		fileInfo := articleInfo.(*plugin.File)
 		linkTrace := linkTrace.(*empyrean_lens.DocLinkTraceRespData)
 		nodes = linkTrace.LinkGraph.Nodes
 		entryInfo = fileInfo.TranslateEntryInfo()
+		copyFromEntryId = fileInfo.CopyFromFildID
 	case empyrean_lens.EntryTypeEnum_MULTI:
 		multiInfo := articleInfo.(*plugin.MultiModel)
 		linkTrace := linkTrace.(*empyrean_lens.MultiDocLinkTraceRespData)
@@ -216,6 +219,7 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 			nodes = append(nodes, article.Graph.Nodes...)
 		}
 		entryInfo = multiInfo.TranslateEntryInfo()
+		copyFromEntryId = multiInfo.CopyFromMultiID
 	}
 	// 用户类型
 	userInfos, err := bi.NewUserInfoDao().FindFileByUids(ctx, []string{entryInfo.UserID})
@@ -227,20 +231,6 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 			entryInfo.UserType = int(userInfo.UserType)
 		}
 	}
-	// web端上传的，需要考虑模型生成
-	if !utils.IsWebChannel(entryInfo.ChannelType) {
-		newNodes := []*empyrean_lens.GraphNode{}
-		for _, node := range nodes {
-			if !utils.Contains([]empyrean_lens.LinkNodeTypeEnum{
-				empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
-				empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
-				empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
-			}, node.Type) {
-				newNodes = append(newNodes, node)
-			}
-		}
-		nodes = newNodes
-	}
 	// 计数耗时
 	entryInfo.Cost = utils.GetCostFromNodes(nodes)
 	// 获取状态，失败原因
@@ -249,8 +239,8 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 	// 是否是拷贝来的
 	if entryType == empyrean_lens.EntryTypeEnum_WEB || entryType == empyrean_lens.EntryTypeEnum_FILE {
 		if entryInfo.LinkStatus == int(empyrean_lens.ActionStatusEnum_FAIL) {
-			if len(nodes) > 2 && nodes[1].Status != empyrean_lens.ActionStatusEnum_FAIL {
-				entryInfo.ParentEntryID = ""
+			if entryInfo.ParentEntryID == "" && len(nodes) > 2 && nodes[1].Status == empyrean_lens.ActionStatusEnum_FAIL {
+				entryInfo.ParentEntryID = copyFromEntryId
 			}
 		}
 	}

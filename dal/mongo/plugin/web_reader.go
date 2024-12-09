@@ -16,19 +16,20 @@ import (
 )
 
 type WebReader struct {
-	ID                 primitive.ObjectID `bson:"_id" json:"_id"`
-	URL                string             `bson:"url" json:"url" validate:"required"`
-	UserID             string             `bson:"user_id" json:"user_id" validate:"required,min=5,max=64"`
-	Title              string             `bson:"title" json:"title" default:""`
-	Status             int                `bson:"status" json:"status"`
-	ChannelType        int                `bson:"channel_type" json:"channel_type"`
-	MultiId            string             `bson:"multi_id" json:"multi_id"`
-	CopyFromUrlID      string             `bson:"copy_from_url_id" json:"copy_from_url_id"`
-	CopyFromResourceID string             `bson:"copy_from_resource_id" json:"copy_from_resource_id"`
-	ContentSize        int                `bson:"content_size" json:"content_size"`
-	IsDeleted          bool               `bson:"is_deleted" json:"is_deleted" default:"false"`
-	CreateTime         time.Time          `bson:"create_time" json:"create_time"`
-	UpdateTime         time.Time          `bson:"update_time" json:"update_time"`
+	ID                  primitive.ObjectID `bson:"_id" json:"_id"`
+	URL                 string             `bson:"url" json:"url" validate:"required"`
+	UserID              string             `bson:"user_id" json:"user_id" validate:"required,min=5,max=64"`
+	Title               string             `bson:"title" json:"title" default:""`
+	Status              int                `bson:"status" json:"status"`
+	ChannelType         int                `bson:"channel_type" json:"channel_type"`
+	MultiId             string             `bson:"multi_id" json:"multi_id"`
+	CopyFromUrlID       string             `bson:"copy_from_url_id" json:"copy_from_url_id"`
+	CopyFromResourceID  string             `bson:"copy_from_resource_id" json:"copy_from_resource_id"`
+	CopyParseResultFrom string             `bson:"copy_parse_result_from" json:"copy_parse_result_from"`
+	ContentSize         int                `bson:"content_size" json:"content_size"`
+	IsDeleted           bool               `bson:"is_deleted" json:"is_deleted" default:"false"`
+	CreateTime          time.Time          `bson:"create_time" json:"create_time"`
+	UpdateTime          time.Time          `bson:"update_time" json:"update_time"`
 }
 
 const TableNameWebReader = "web_reader"
@@ -55,7 +56,7 @@ func (d *WebReaderDao) FindWebReaderById(ctx context.Context, id string) (*WebRe
 		//{"is_deleted": false},
 		{"_id": _id},
 	}}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
+	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo find error:%+v", err)

@@ -84,7 +84,7 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 	// 存在，upload
 	if info != nil {
 		filter := bson.M{"entry_id": entryInfo.EntryID, "entry_type": entryInfo.EntryType}
-		update := bson.M{"title": entryInfo.Title, "status": entryInfo.Status, "link_status": entryInfo.LinkStatus, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles}
+		update := bson.M{"title": entryInfo.Title, "status": entryInfo.Status, "link_status": entryInfo.LinkStatus, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles, "parent_entry_id": entryInfo.ParentEntryID}
 		_, err := biCollection.Collection(TableNameEntryInfo()).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)
@@ -229,6 +229,11 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 			EntryID:   d.EntryID,
 			EntryType: empyrean_lens.EntryTypeEnum(d.EntryType),
 		})
+	}
+	// 状态转换，未执行认为是失败
+	status := empyrean_lens.ActionStatusEnum(d.LinkStatus)
+	if status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
+		status = empyrean_lens.ActionStatusEnum_FAIL
 	}
 	return &empyrean_lens.UserActionRespRow{
 		UserID:     d.UserID,

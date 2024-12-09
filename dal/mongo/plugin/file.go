@@ -16,19 +16,20 @@ import (
 )
 
 type File struct {
-	ID                 primitive.ObjectID `bson:"_id" json:"_id"`
-	UserID             string             `bson:"user_id" json:"user_id"`
-	Name               string             `bson:"name" json:"name"`
-	FileURL            string             `bson:"file_url" json:"file_url"`
-	Status             int                `bson:"status" json:"status"`
-	ChannelType        int                `bson:"channel_type" json:"channel_type"`
-	MultiId            string             `bson:"multi_id" json:"multi_id"`
-	CopyFromFildID     string             `bson:"copy_from_file_id" json:"copy_from_file_id"`
-	CopyFromResourceID string             `bson:"copy_from_resource_id" json:"copy_from_resource_id"`
-	ContentSize        int                `bson:"content_size" json:"content_size"`
-	IsDelete           bool               `bson:"is_delete" json:"is_delete" default:"false"`
-	CreateTime         time.Time          `bson:"create_time" json:"create_time"`
-	UpdateTime         time.Time          `bson:"update_time" json:"update_time"`
+	ID                  primitive.ObjectID `bson:"_id" json:"_id"`
+	UserID              string             `bson:"user_id" json:"user_id"`
+	Name                string             `bson:"name" json:"name"`
+	FileURL             string             `bson:"file_url" json:"file_url"`
+	Status              int                `bson:"status" json:"status"`
+	ChannelType         int                `bson:"channel_type" json:"channel_type"`
+	MultiId             string             `bson:"multi_id" json:"multi_id"`
+	CopyFromFildID      string             `bson:"copy_from_file_id" json:"copy_from_file_id"`
+	CopyFromResourceID  string             `bson:"copy_from_resource_id" json:"copy_from_resource_id"`
+	CopyParseResultFrom string             `bson:"copy_parse_result_from" json:"copy_parse_result_from"`
+	ContentSize         int                `bson:"content_size" json:"content_size"`
+	IsDelete            bool               `bson:"is_delete" json:"is_delete" default:"false"`
+	CreateTime          time.Time          `bson:"create_time" json:"create_time"`
+	UpdateTime          time.Time          `bson:"update_time" json:"update_time"`
 }
 
 const TableNameFile = "file"
@@ -55,7 +56,7 @@ func (d *FileDao) FindFileById(ctx context.Context, id string) (*File, error) {
 		//{"is_delete": false},
 		{"_id": _id},
 	}}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1})
+	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1})
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindFileById] mongo find error:%+v", err)

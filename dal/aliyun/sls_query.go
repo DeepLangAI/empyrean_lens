@@ -2190,7 +2190,7 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "苏秦解析异常，file_id:" or message: "苏秦解析异常" or message: "parsing file failed")
+	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "苏秦解析异常，file_id:" or message: "苏秦解析异常" or message: "parsing file failed" or message: "read pdf fail")
 	`
 	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, resourceId)
@@ -3208,6 +3208,30 @@ func WechatFcTraceIDQuery(ctx context.Context, resourceId string, timeBegin, tim
 				Asctime: timeAt,
 			})
 		}
+	}
+	return processLogs, nil
+}
+
+func SummaryGenerateQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `(functionName: summary_generate_prod or functionName: summary_generate_pre) and "generate summary entryId" and message: %s`
+	query = fmt.Sprintf(query, resourceId)
+	hlog.CtxDebugf(ctx, "SummaryGenerateQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.FC_PROJECT_NAME, consts.FC_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "SummaryGenerateQuery query log error: %v", err)
+		return nil, err
+	}
+	processLogs := []FileProcessLog{}
+	for _, log := range logs.Logs {
+		processLogs = append(processLogs, FileProcessLog{
+			Message: strings.TrimSpace(log["message"]),
+		})
 	}
 	return processLogs, nil
 }

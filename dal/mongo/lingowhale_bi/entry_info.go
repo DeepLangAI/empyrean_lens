@@ -125,7 +125,6 @@ func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, only
 		"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime},
 		"parent_entry_id":   "",
 		"multi_id":          "",
-		"channel_type":      bson.M{"$nin": []int32{70, 71, 72}},
 	}
 	if len(status) > 0 {
 		filter["link_status"] = bson.M{"$in": status}
@@ -157,7 +156,6 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 		queryFilter,
 		{"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime}},
 		{"parent_entry_id": ""},
-		{"channel_type": bson.M{"$in": []int32{70, 71, 72}}},
 	}}
 	if len(status) > 0 {
 		filter["link_status"] = bson.M{"$in": status}
@@ -187,7 +185,6 @@ func (d *EntryInfoDao) FindByEntryIDsWithoutCopy(ctx context.Context, entryIDs [
 	filter := bson.M{"$and": []bson.M{
 		{"parent_entry_id": ""},
 		{"entry_id": bson.M{"$in": entryIDs}},
-		{"channel_type": bson.M{"$nin": []int32{70, 71, 72}}},
 	}}
 	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter)
 	if err != nil {

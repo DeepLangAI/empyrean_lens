@@ -257,6 +257,10 @@ func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plug
 		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
 			empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
 		}...)
+	case "语鲸app", "语鲸h5":
+		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
+			empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+		}...)
 	}
 	// 过滤不需要的节点
 	return filterNeedNodeType(noNeedNodeType, pracessList, pracessMapping)
@@ -774,6 +778,10 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 				}
 			}
 		}
+		// 千问兜底
+		if len(apiLogsInput) != 0 && len(apiLogsOuput) == 0 {
+			return processLogsToNode(processType, apiLogsInput), nil
+		}
 		processLogs := []aliyun.FileProcessLog{}
 		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
 			processLogs = append(processLogs, apiLogsInput[0])
@@ -1076,6 +1084,8 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 				if strings.Contains(msg, "data too long") {
 					return empyrean_lens.ActionStatusEnum_SUCCESS
 				}
+			} else {
+				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:

@@ -22,6 +22,7 @@ type WebReader struct {
 	Title               string             `bson:"title" json:"title" default:""`
 	Status              int                `bson:"status" json:"status"`
 	ChannelType         int                `bson:"channel_type" json:"channel_type"`
+	RealChannelType     int                `bson:"real_channel_type" json:"real_channel_type"`
 	MultiId             string             `bson:"multi_id" json:"multi_id"`
 	CopyFromUrlID       string             `bson:"copy_from_url_id" json:"copy_from_url_id"`
 	CopyFromResourceID  string             `bson:"copy_from_resource_id" json:"copy_from_resource_id"`
@@ -149,10 +150,9 @@ func (d *WebReaderDao) FindWebReaderByTimeRangeForSave(ctx context.Context, star
 
 	filter := bson.M{
 		//"is_deleted": false,
-		"create_time":  bson.M{"$gte": startTime, "$lt": endTime},
-		"channel_type": bson.M{"$nin": []int32{72, 82, 85}},
+		"create_time": bson.M{"$gte": startTime, "$lt": endTime},
 	}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1}).
+	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1}).
 		SetSort(bson.D{{Key: "create_time", Value: -1}})
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {
@@ -212,6 +212,9 @@ func (d *WebReader) TranslateEntryInfo() *bi.EntryInfo {
 	parentEntryID := d.CopyFromUrlID
 	if d.CopyFromResourceID != "" {
 		parentEntryID = d.CopyFromResourceID
+	}
+	if d.RealChannelType >= int(empyrean_lens.ChannelType_IosUrl) {
+		d.ChannelType = d.RealChannelType
 	}
 	return &bi.EntryInfo{
 		ID:              primitive.NewObjectID(),

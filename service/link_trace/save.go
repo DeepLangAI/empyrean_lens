@@ -357,6 +357,15 @@ func BatchSave(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, begin
 		for _, multiInfo := range multiInfos {
 			articleList = append(articleList, multiInfo.TranslateEntryInfo())
 		}
+	case empyrean_lens.EntryTypeEnum_SUMMARY:
+		summaries, err := plugin.NewSummaryDao().FindSummaryByTimeRangeForSave(ctx, int(empyrean_lens.EntryTypeEnum_SUMMARY), begin, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "get summary infos failed, err: %v", err)
+			return &consts.QueryRecordError
+		}
+		for _, summary := range summaries {
+			articleList = append(articleList, summary.TranslateEntryInfo())
+		}
 	}
 	// 上报消息队列
 	msgList := []plugin.ArticleEntry{}

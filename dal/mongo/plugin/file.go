@@ -22,6 +22,7 @@ type File struct {
 	FileURL             string             `bson:"file_url" json:"file_url"`
 	Status              int                `bson:"status" json:"status"`
 	ChannelType         int                `bson:"channel_type" json:"channel_type"`
+	RealChannelType     int                `bson:"real_channel_type" json:"real_channel_type"`
 	MultiId             string             `bson:"multi_id" json:"multi_id"`
 	CopyFromFildID      string             `bson:"copy_from_file_id" json:"copy_from_file_id"`
 	CopyFromResourceID  string             `bson:"copy_from_resource_id" json:"copy_from_resource_id"`
@@ -151,9 +152,8 @@ func (d *FileDao) FindFileByTimeRangeForSave(ctx context.Context, startTime, end
 		//"is_delete": false,
 		"create_time":           bson.M{"$gte": startTime, "$lt": endTime},
 		"copy_from_resource_id": "",
-		"channel_type":          bson.M{"$nin": []int32{72, 82, 85}},
 	}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1}).
+	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1}).
 		SetSort(bson.D{{Key: "create_time", Value: -1}})
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {
@@ -211,6 +211,9 @@ func (d *File) TranslateEntryInfo() *bi.EntryInfo {
 	parentEntryID := d.CopyFromFildID
 	if d.CopyFromResourceID != "" {
 		parentEntryID = d.CopyFromResourceID
+	}
+	if d.RealChannelType >= int(empyrean_lens.ChannelType_IosUrl) {
+		d.ChannelType = d.RealChannelType
 	}
 	return &bi.EntryInfo{
 		ID:              primitive.NewObjectID(),

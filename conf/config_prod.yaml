@@ -27,7 +27,7 @@ mongo_empyreanlens:
 
 # 日志配置
 logger:
-  log_path: './logs/system'
+  log_path: '/opt/output/logs/system'
   log_level: "info"
 
 redis:

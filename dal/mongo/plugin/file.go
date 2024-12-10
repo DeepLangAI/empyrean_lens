@@ -57,7 +57,7 @@ func (d *FileDao) FindFileById(ctx context.Context, id string) (*File, error) {
 		//{"is_delete": false},
 		{"_id": _id},
 	}}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1})
+	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1})
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindFileById] mongo find error:%+v", err)

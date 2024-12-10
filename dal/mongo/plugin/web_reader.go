@@ -57,7 +57,7 @@ func (d *WebReaderDao) FindWebReaderById(ctx context.Context, id string) (*WebRe
 		//{"is_deleted": false},
 		{"_id": _id},
 	}}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
+	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo find error:%+v", err)

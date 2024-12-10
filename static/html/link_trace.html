@@ -1264,49 +1264,6 @@
         });
     }
 
-    // function showSystemChooseAlert() {
-    //     let timerInterval;
-    //
-    //     Swal.fire({
-    //         title: '即将前往新系统',
-    //         text: '请在 2 秒内选择操作。',
-    //         showCancelButton: true,
-    //         confirmButtonText: '前往新系统',
-    //         cancelButtonText: '留在当前页面',
-    //         timer: 3000,
-    //         timerProgressBar: true,
-    //         html: '<strong id="countdown">3 秒</strong>',
-    //         willOpen: () => {
-    //             const $countdownElement = $('#countdown')
-    //             let timeLeft = 3;
-    //
-    //             timerInterval = setInterval(() => {
-    //                 timeLeft -= 1;
-    //                 $countdownElement.text(`${timeLeft} 秒`)
-    //                 console.log('countdown: ' + timeLeft)
-    //
-    //                 if (timeLeft <= 0) {
-    //                     clearInterval(timerInterval);
-    //                 }
-    //             }, 1000);
-    //         },
-    //         willClose: () => {
-    //             clearInterval(timerInterval);
-    //         }
-    //     }).then((result) => {
-    //         clearInterval(timerInterval);
-    //
-    //         if (result.isConfirmed) {
-    //             // 点击“前往新系统”
-    //             window.location.href = LinkTraceNewSystem; // 替换为新系统的URL
-    //         } else if (result.dismiss === Swal.DismissReason.timer) {
-    //             // 倒计时结束，自动前往新系统
-    //             window.location.href = LinkTraceNewSystem; // 替换为新系统的URL
-    //         }
-    //         // 如果点击了“留在当前页面”，可以在这里添加相应的逻辑
-    //     });
-    // }
-
     // 显示加载状态
     function showLoadingStatus(loadingContainer) {
         loadingContainer.removeClass('hide');

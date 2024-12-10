@@ -2370,7 +2370,7 @@
 
                     logDetailsBody.append(p)
                 }
-                if (log['output'] != DataTooLong){
+                if (log['output'] != DataTooLong && log['output']){
                     if (nodeType == NodeTypeEnum.WCD_PARSE_FINISH){
                         let wcdOutput = log["output"]
                         let wcdRequestId = ''

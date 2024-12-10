@@ -5,7 +5,7 @@ go 1.20
 replace github.com/apache/thrift => github.com/apache/thrift v0.13.0
 
 require (
-	codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib v1.0.28
+	codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib v1.0.39
 	github.com/aliyun/aliyun-log-go-sdk v0.1.80
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/apache/thrift v0.13.0

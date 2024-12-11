@@ -52,10 +52,14 @@ func FileNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum, 
 		return nil, bizCode
 	}
 	if (len(apiLogs) != 0 || hasLog) && !refresh {
+		traceId := ""
+		if len(apiLogs) != 0 {
+			traceId = apiLogs[0].TraceID
+		}
 		return &empyrean_lens.LinkNodeLogRespData{
 			Logs:       apiLogs,
 			Cost:       getNodeCost(apiLogs),
-			TraceID:    apiLogs[0].TraceID,
+			TraceID:    traceId,
 			Title:      fileInfo.Name,
 			UserID:     fileInfo.UserID,
 			ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), fileInfo.MultiId),
@@ -174,10 +178,15 @@ func MultiNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeEnum,
 		return nil, bizCode
 	}
 	if (len(apiLogs) != 0 || hasLog) && !refresh {
+		traceId := ""
+		if len(apiLogs) != 0 {
+			traceId = apiLogs[0].TraceID
+		}
+
 		return &empyrean_lens.LinkNodeLogRespData{
 			Logs:       apiLogs,
 			Cost:       getNodeCost(apiLogs),
-			TraceID:    apiLogs[0].TraceID,
+			TraceID:    traceId,
 			Title:      multiInfo.Title,
 			UserID:     multiInfo.UserID,
 			ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), ""),

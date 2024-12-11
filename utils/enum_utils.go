@@ -39,6 +39,17 @@ func ChannelIntToString(channel int) string {
 		empyrean_lens.ChannelType_WebLingoMulti:
 		// 原本是灵狗，但由于前端传参没改回来，只能在这里改成语鲸
 		return "语鲸web"
+	case empyrean_lens.ChannelType_IosUrl,
+		empyrean_lens.ChannelType_IosPdf,
+		empyrean_lens.ChannelType_IosMulti,
+		empyrean_lens.ChannelType_AndroidUrl,
+		empyrean_lens.ChannelType_AndroidPdf,
+		empyrean_lens.ChannelType_AndroidMulti,
+		empyrean_lens.ChannelType_IosFeedback,
+		empyrean_lens.ChannelType_AndroidFeedback:
+		return "语鲸app"
+	case empyrean_lens.ChannelType_H5Page:
+		return "语鲸h5"
 	}
 	return fmt.Sprintf("%v", channel)
 }

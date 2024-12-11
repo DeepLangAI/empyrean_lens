@@ -498,6 +498,7 @@ const (
 	EntryInfoEntrySourceSubscribe            // 订阅
 	EntryInfoEntrySourceOperationsPre        // 运营预置
 	EntryInfoEntrySourceShare                // 用户分享
+	EntryInfoEntrySourceSummary              // 总结
 )
 
 const (
@@ -505,6 +506,7 @@ const (
 	EntryInfoDataTypeMultiSingle        // 多文档-单文档
 	EntryInfoDataTypeMulti              // 多文档
 	EntryInfoDataTypeResource           // 单文档-订阅
+	EntryInfoDataTypeSummary            // 总结
 )
 
 // 链路追踪
@@ -517,29 +519,6 @@ var SingleFileProcessList = []empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
 	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
 }
-var SingleCopiedFileProcessList = []empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
-}
-var SinglePluginFileProcessList = []empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
-	// empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
-	// empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
-}
-var SinglePluginCopiedFileProcessList = []empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
-	// empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
-	// empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
-}
 var SingleWebReaderProcessList = []empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
 	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH,
@@ -550,25 +529,6 @@ var SingleWebReaderProcessList = []empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
 	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
 }
-var SinglePluginWebReaderProcessList = []empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH,
-	//empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
-	// empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
-	//empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
-	// empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
-}
-var SingleMiniWebReaderProcessList = []empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH,
-	//empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
-	//empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
-}
 var MultiProcessList = []empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH,
 	empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH,
@@ -576,12 +536,6 @@ var MultiProcessList = []empyrean_lens.LinkNodeTypeEnum{
 var MultiFileProcessList = []empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
 	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
-	empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH,
-}
-var MultiFileCopiedProcessList = []empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH,
 	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
 	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
 	empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH,
@@ -616,39 +570,12 @@ var SingleFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_len
 	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:  {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:   {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
 }
-var SingleCopiedFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:     {empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:  {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
-}
-var SinglePluginFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:      {empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:  {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
-	// empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:   {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
-}
-var SinglePluginCopiedFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:     {empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
-	// empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:  {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
-}
 var SingleWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:  {empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH: {empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH},
 	//empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
-}
-var SinglePluginWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:    {empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
-	// empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
-}
-var SingleMiniWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:    {empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:   {empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
 }
 var MultiProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH: {empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH},
@@ -658,11 +585,6 @@ var MultiFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens
 	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:  {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:   {empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH},
-}
-var MultiCopiedFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
-	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:     {empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:  {empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH},
 }
 var MultiWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:  {empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH},

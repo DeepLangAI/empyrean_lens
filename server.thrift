@@ -17,7 +17,7 @@ struct DailyScoreReq {
 struct DailyScoreRespData {
     1: string date
     2: i32 score
-    3: double day_over_day  # [0, 100]
+    3: double day_over_day,  // [0, 100]
     4: double week_over_week # [0, 100]
     5: double fail_rate
     6: double slow_rate
@@ -462,21 +462,32 @@ enum ChannelType {
     WebLingoUrl = 70,  // url 灵狗web 端
     WebLingoPdf = 71,  // pdf 灵狗web 端
     WebLingoMulti = 72  // multi 灵狗web 端
+
+    IosUrl = 80,  // url ios 端
+    IosPdf = 81,  // pdf ios 端
+    IosMulti = 82,  // mutil ios 端
+    AndroidUrl = 83,  // url android 端
+    AndroidPdf = 84,  // pdf android 端
+    AndroidMulti = 85,  // mutil android 端
+    IosFeedback = 86,  // feedback ios 端
+    AndroidFeedback = 87,  // feedback android 端
+
+    H5Page = 90,  // app h5页面
 }
 
 // 实体类型
 enum EntryTypeEnum{
-    WORD = 1  # 词
-    QUOTE = 2  # 句
-    COLL = 3  # 搭配
-    COLL_QUOTE = 4  # 句子搭配
-    SUMMARY = 5  # 概述
-    OUTLINE = 6  # 大纲
-    WEB = 7  # 网页
-    EXTRACT = 8  # 摘录
-    FILE = 10  # pdf
-    VIEWPOINT = 11  # 关键观点
-    MULTI = 12  # 多文档总结
+    WORD = 1,  // 词
+    QUOTE = 2,  // 句
+    COLL = 3,  // 搭配
+    COLL_QUOTE = 4,  // 句子搭配
+    SUMMARY = 5,  // 概述
+    OUTLINE = 6,  // 大纲
+    WEB = 7,  // 网页
+    EXTRACT = 8,  // 摘录
+    FILE = 10,  // pdf
+    VIEWPOINT = 11,  // 关键观点
+    MULTI = 12,  // 多文档总结
 }
 
 enum ActionStatusEnum {

@@ -231,6 +231,7 @@ func findNodeLogsFromMongo(ctx context.Context, entryType int, entryID string, n
 		logs = append(logs, log.TranslateApiLogs(entryAction.ActionType)...)
 	}
 	hasLog := (entryAction.ActionStatus == int(empyrean_lens.ActionStatusEnum_SUCCESS) || entryAction.ActionStatus == int(empyrean_lens.ActionStatusEnum_FAIL))
+	hasLog = hasLog && (len(logs) != 0)
 	return hasLog, logs, entryAction, nil
 }
 

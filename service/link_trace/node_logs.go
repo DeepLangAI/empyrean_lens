@@ -111,10 +111,14 @@ func WebReaderNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeE
 		return nil, bizCode
 	}
 	if (len(apiLogs) != 0 || hasLog) && !refresh {
+		traceId := ""
+		if len(apiLogs) != 0 {
+			traceId = apiLogs[0].TraceID
+		}
 		return &empyrean_lens.LinkNodeLogRespData{
 			Logs:       apiLogs,
 			Cost:       getNodeCost(apiLogs),
-			TraceID:    apiLogs[0].TraceID,
+			TraceID:    traceId,
 			Title:      webReaderInfo.Title,
 			UserID:     webReaderInfo.UserID,
 			ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), webReaderInfo.MultiId),
@@ -231,7 +235,7 @@ func findNodeLogsFromMongo(ctx context.Context, entryType int, entryID string, n
 		logs = append(logs, log.TranslateApiLogs(entryAction.ActionType)...)
 	}
 	hasLog := (entryAction.ActionStatus == int(empyrean_lens.ActionStatusEnum_SUCCESS) || entryAction.ActionStatus == int(empyrean_lens.ActionStatusEnum_FAIL))
-	hasLog = hasLog && (len(logs) != 0)
+	//hasLog = hasLog && (len(logs) != 0)
 	return hasLog, logs, entryAction, nil
 }
 

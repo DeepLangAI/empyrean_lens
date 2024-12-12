@@ -38,6 +38,9 @@ func FileLinkTrace(ctx context.Context, fileID string, refresh bool) (*plugin.Fi
 		hlog.CtxErrorf(ctx, "get file info failed, err: %v", err)
 		return nil, nil, &consts.QueryRecordError
 	}
+	if fileInfo.RealChannelType >= int(empyrean_lens.ChannelType_IosUrl) {
+		fileInfo.ChannelType = fileInfo.RealChannelType
+	}
 	// 确定需要查的节点列表和节点关系
 	pracessList, pracessMapping := getFileLinkTracePracessConfig(ctx, fileInfo)
 	// 先查数据库
@@ -79,6 +82,9 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string, refresh bool) (
 	if err != nil || webReaderInfo == nil {
 		hlog.CtxErrorf(ctx, "get web reader info failed, err: %v", err)
 		return nil, nil, &consts.QueryRecordError
+	}
+	if webReaderInfo.RealChannelType >= int(empyrean_lens.ChannelType_IosUrl) {
+		webReaderInfo.ChannelType = webReaderInfo.RealChannelType
 	}
 	// 确定需要查的节点列表和节点关系
 	pracessList, pracessMapping := getWebReaderLinkTracePracessConfig(ctx, webReaderInfo)
@@ -257,6 +263,10 @@ func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plug
 		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
 			empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
 		}...)
+	case "语鲸app", "语鲸h5":
+		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
+			empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+		}...)
 	}
 	// 过滤不需要的节点
 	return filterNeedNodeType(noNeedNodeType, pracessList, pracessMapping)
@@ -305,6 +315,10 @@ func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File) (
 		// 小助手，小程序没有关键信息
 		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
 			empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
+		}...)
+	case "语鲸app", "语鲸h5":
+		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
+			empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
 		}...)
 	}
 	// 过滤不需要的节点
@@ -774,6 +788,10 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 				}
 			}
 		}
+		// 千问兜底
+		if len(apiLogsInput) != 0 && len(apiLogsOuput) == 0 {
+			return processLogsToNode(processType, apiLogsInput), nil
+		}
 		processLogs := []aliyun.FileProcessLog{}
 		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
 			processLogs = append(processLogs, apiLogsInput[0])
@@ -1076,6 +1094,10 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 				if strings.Contains(msg, "data too long") {
 					return empyrean_lens.ActionStatusEnum_SUCCESS
 				}
+			} else if strings.Contains(processLog.Message, "core core_name:") {
+				return empyrean_lens.ActionStatusEnum_SUCCESS
+			} else {
+				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:

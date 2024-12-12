@@ -3183,7 +3183,7 @@ func MultiIDSafeQuery(ctx context.Context, multiID string, timeBegin, timeEnd ti
 }
 
 func WechatFcTraceIDQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "%s" and message: "概述/大纲生成完成"`
+	query := `message: "%s" and message: "generate summary"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "WechatFcTraceIDQuery query: %s", query)
 	logstore, err := client.GetMetricStore(consts.FC_PROJECT_NAME, consts.FC_LOG_STORE_NAME)
@@ -3201,10 +3201,16 @@ func WechatFcTraceIDQuery(ctx context.Context, resourceId string, timeBegin, tim
 		res := map[string]interface{}{}
 		err := json.Unmarshal([]byte(log["message"]), &res)
 		if err == nil {
-			timeAt, _ := time.Parse(consts.DateTimeTemplate, res["asctime"].(string))
+			traceID := ""
+			if idx := strings.Index(res["msg"].(string), "Trace-Id:"); idx != -1 {
+				if idx1 := strings.Index(res["msg"].(string)[idx:], "]"); idx1 != -1 {
+					traceID = res["msg"].(string)[idx+9 : idx+idx1]
+				}
+			}
+			timeAt, _ := time.Parse(consts.DateTimeTemplate, res["time"].(string))
 			processLogs = append(processLogs, FileProcessLog{
 				Message: strings.TrimSpace(log["message"]),
-				TraceId: strings.TrimSpace(res["trace_id"].(string)),
+				TraceId: traceID,
 				Asctime: timeAt,
 			})
 		}

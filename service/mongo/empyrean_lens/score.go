@@ -54,6 +54,7 @@ func ScoreRelatedDetailQuery(ctx context.Context, req empyrean_lens2.DailyScoreR
 			TotalReq:      d.TotalReq,
 		})
 	}
+	hlog.CtxInfof(ctx, "系统分数：%+v", data)
 	return data, nil
 }
 

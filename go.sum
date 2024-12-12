@@ -1,7 +1,7 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib v1.0.28 h1:EBQ9ZuyEYa/Y15/5lJcgwefj/CMN1ELD/PkbPz7pv3c=
-codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib v1.0.28/go.mod h1:PasAVTGs2oXQHdW9CL56ooDeEIGZQ8/U9SRjVtcNMlQ=
+codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib v1.0.39 h1:TcjLYqUoiPUPgLYXTIvU/p5xa2S2+/A3ZJkKqSyKh0U=
+codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib v1.0.39/go.mod h1:PasAVTGs2oXQHdW9CL56ooDeEIGZQ8/U9SRjVtcNMlQ=
 github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 h1:lTG4HQym5oPKjL7nGs+csTgiDna685ZXjxijkne828g=
 github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966/go.mod h1:Mid70uvE93zn9wgF92A/r5ixgnvX8Lh68fxp9KQBaI0=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=

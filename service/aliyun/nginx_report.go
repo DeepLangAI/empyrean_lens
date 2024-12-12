@@ -160,6 +160,9 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 		return nil, err
 	}
 	data := []*empyrean_lens.ApiFailureDetailRespData{}
+	sort.Slice(api, func(i, j int) bool {
+		return api[i].Time.After(api[j].Time)
+	})
 	for _, log := range api {
 		data = append(data, &empyrean_lens.ApiFailureDetailRespData{
 			Time:     log.Time.Format(consts.DateHourMinSecTemplate),

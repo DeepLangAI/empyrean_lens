@@ -1210,22 +1210,25 @@
             return;
         }
 
+        let timeLeft = 5;
+        let remindDays = 7;
         Swal.fire({
             title: '即将前往新系统',
-            text: '请在 3 秒内选择操作。',
+            text: `请在 ${timeLeft} 秒内选择操作。`,
             showCancelButton: true,
             confirmButtonText: '前往新系统',
             cancelButtonText: '留在当前页面',
-            timer: 3000,
+            timer: timeLeft * 1000,
             timerProgressBar: true,
             html: `
-            <strong id="countdown">3 秒</strong>
-            <br>
-            <input type="checkbox" id="muteCheckbox"> 今天不再提醒
+        <strong id="countdown">${timeLeft} 秒</strong>
+        <br>
+        <label style="cursor:pointer;">
+            <input type="checkbox" id="muteCheckbox"> ${remindDays}天内不再提醒
+        </label>
         `,
             willOpen: () => {
                 const $countdownElement = $('#countdown');
-                let timeLeft = 3;
 
                 timerInterval = setInterval(() => {
                     timeLeft -= 1;
@@ -1246,7 +1249,7 @@
 
             if (muteCheckbox.checked) {
                 // 设置为当前时间加一天（86400000 毫秒）
-                localStorage.setItem('swalMuted', currentTime + 24 * 60 * 60 * 1000);
+                localStorage.setItem('swalMuted', currentTime + 24 * 60 * 60 * 1000 * remindDays);
             }
 
             if (result.isConfirmed) {

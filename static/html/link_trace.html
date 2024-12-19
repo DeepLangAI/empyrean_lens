@@ -2940,7 +2940,7 @@
                 }
                 for (const node of data.graph.nodes){
                     node.entry_id = entry_id
-                    node.entry_type = EntryTypeEnum.MULTI
+                    node.entry_type = data.entry_type
                 }
 
                 let $svgContainer = $('<div>').addClass('svg-container')

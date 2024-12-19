@@ -153,7 +153,7 @@ func SubscribeSingleLinkTrace(ctx context.Context, entryType empyrean_lens.Entry
 		return nil, nil, &consts.QueryRecordError
 	}
 	// 确定需要查的节点列表和节点关系
-	pracessList, pracessMapping := getSubscribeLinkTracePracessConfig(int(entryType), isFromMulti, withoutSummary)
+	pracessList, pracessMapping := getSubscribeLinkTracePracessConfig(int(entryType), resourceInfo.NovelFormID, isFromMulti, withoutSummary)
 	// 先查数据库
 	linkTraceGraph, bizCode := findLinkTraceFromMongo(ctx, int(entryType), entryID, pracessList, pracessMapping)
 	if bizCode != nil {
@@ -386,7 +386,7 @@ func SubscriMultibeLinkTrace(ctx context.Context, entryType empyrean_lens.EntryT
 	go func() {
 		defer wg.Done()
 		// 确定需要查的节点列表和节点关系
-		pracessList, pracessMapping := getSubscribeLinkTracePracessConfig(int(entryType), true, withoutSummary)
+		pracessList, pracessMapping := getSubscribeLinkTracePracessConfig(int(entryType), resourceInfo.NovelFormID, true, withoutSummary)
 		// 先查数据库
 		linkTraceGraph, bizCode := findLinkTraceFromMongo(ctx, int(entryType), entryID, pracessList, pracessMapping)
 		if bizCode != nil {
@@ -657,6 +657,11 @@ func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plug
 	if webReaderInfo.CopyFromResourceID != "" {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
+		// 有没有新内容形态
+		resourceInfo, _ := plugin.NewResourceDao().FindResourceById(ctx, webReaderInfo.CopyFromResourceID)
+		if resourceInfo != nil && resourceInfo.NovelFormID == "" {
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH)
+		}
 	}
 	if webReaderInfo.CopyFromUrlID != "" {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
@@ -712,6 +717,24 @@ func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plug
 					empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
 				}...)
 			}
+			// 没有概述，不需要概述节点
+			summaries, err := plugin.NewSummaryDao().FindByUserIDAndUrl(ctx, webReaderInfo.UserID, webReaderInfo.URL)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "get summary failed, err: %v", err)
+			} else {
+				hasSummary := false
+				for _, summary := range summaries {
+					if summary.CreateTime.Before(webReaderInfo.CreateTime.Add(1 * time.Minute)) {
+						if empyrean_lens.EntryTypeEnum(summary.EntryType) == empyrean_lens.EntryTypeEnum_SUMMARY {
+							hasSummary = true
+							break
+						}
+					}
+				}
+				if !hasSummary {
+					noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH)
+				}
+			}
 		}
 	case "语鲸小助手", "语鲸小程序":
 		// 小助手，小程序没有关键信息
@@ -741,7 +764,16 @@ func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File, w
 	}
 	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
 	// copy来源不需要，不需要上传节点
-	if fileInfo.CopyFromResourceID != "" || fileInfo.CopyFromFildID != "" {
+	if fileInfo.CopyFromResourceID != "" {
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
+		// 有没有新内容形态
+		resourceInfo, _ := plugin.NewResourceDao().FindResourceById(ctx, fileInfo.CopyFromResourceID)
+		if resourceInfo != nil && resourceInfo.NovelFormID == "" {
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH)
+		}
+	}
+	// copy来源不需要，不需要上传节点
+	if fileInfo.CopyFromFildID != "" {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
 	}
 	// 是否需要模型生成
@@ -782,6 +814,7 @@ func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File, w
 	case "语鲸web":
 		// 语鲸web端，没有fc日志，不需要模型生成
 		if fileInfo.CopyFromResourceID == "" {
+			// 没有自动生成，不需要生成节点
 			start := fileInfo.CreateTime.Add(-24 * time.Hour)
 			end := fileInfo.CreateTime.Add(24 * time.Hour)
 			logs, _ := aliyun.SummaryGenerateQuery(ctx, fileInfo.ID.Hex(), start, end)
@@ -791,6 +824,24 @@ func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File, w
 					empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
 					empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
 				}...)
+			}
+			// 没有概述，不需要概述节点
+			summaries, err := plugin.NewSummaryDao().FindByUserIDAndUrl(ctx, fileInfo.UserID, fileInfo.FileURL)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "get summary failed, err: %v", err)
+			} else {
+				hasSummary := false
+				for _, summary := range summaries {
+					if summary.CreateTime.Before(fileInfo.CreateTime.Add(1 * time.Minute)) {
+						if empyrean_lens.EntryTypeEnum(summary.EntryType) == empyrean_lens.EntryTypeEnum_SUMMARY {
+							hasSummary = true
+							break
+						}
+					}
+				}
+				if !hasSummary {
+					noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH)
+				}
 			}
 		}
 	case "语鲸小助手", "语鲸小程序":
@@ -807,7 +858,7 @@ func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File, w
 	return filterUnNeedNodeType(noNeedNodeType, pracessList, pracessMapping)
 }
 
-func getSubscribeLinkTracePracessConfig(entryType int, isFromMulti, withoutSummary bool) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
+func getSubscribeLinkTracePracessConfig(entryType int, novelFormID string, isFromMulti, withoutSummary bool) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
 	pracessList := []empyrean_lens.LinkNodeTypeEnum{}
 	pracessMapping := map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{}
 	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
@@ -839,6 +890,10 @@ func getSubscribeLinkTracePracessConfig(entryType int, isFromMulti, withoutSumma
 			empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH,
 			empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH,
 		}...)
+	}
+	// 是否有新内容形态
+	if novelFormID == "" {
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH)
 	}
 	return filterUnNeedNodeType(noNeedNodeType, pracessList, pracessMapping)
 }

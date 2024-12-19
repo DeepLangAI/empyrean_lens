@@ -613,8 +613,6 @@ var SubscribeFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_
 	empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:  {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:   {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:     {empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:    {empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:     {empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH},
 }
 var SingleWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
@@ -627,8 +625,6 @@ var SingleWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrea
 var SubscribeWebReaderProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH: {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:   {empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:  {empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:   {empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH},
 }
 var MultiProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
@@ -636,7 +632,6 @@ var MultiProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.Lin
 }
 var SubscribeMultiProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{
 	empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH:   {empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH},
-	empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:       {empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH},
 	empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH: {empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH},
 }
 var MultiFileProcessMapping = map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{

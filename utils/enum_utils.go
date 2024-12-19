@@ -127,6 +127,9 @@ func GetStatusFromNode(nodes []*empyrean_lens.GraphNode) (string, empyrean_lens.
 			break
 		}
 	}
+	if len(nodes) == 1 {
+		return fileAction, linkStatus
+	}
 	// 遍历是否有未执行的
 	summaryTypes := []empyrean_lens.LinkNodeTypeEnum{
 		empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,

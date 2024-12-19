@@ -198,7 +198,8 @@ func IsCopyNodeType(parentEntryType int, nodeType int) bool {
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH) ||
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH) ||
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH) ||
-		nodeType == int(empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH)
+		nodeType == int(empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH) ||
+		nodeType == int(empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH)
 }
 
 func EntryTypeToNodeType(entryType empyrean_lens.EntryTypeEnum) empyrean_lens.LinkNodeTypeEnum {

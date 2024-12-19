@@ -123,6 +123,24 @@ func (d *EntryActionDao) FindByEntryTypeEntryID(ctx context.Context, entryType i
 	return entryActions, nil
 }
 
+func (d *EntryActionDao) FindByEntryTypeEntryIDNodeType(ctx context.Context, entryType, nodeType int, entryID string) ([]*EntryAction, error) {
+	var entryActions []*EntryAction
+	cur, err := biCollection.Collection(TableNameEntryAction()).Find(ctx, bson.M{"entry_id": entryID, "action_channel": entryType, "action_type": nodeType})
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		hlog.CtxErrorf(ctx, "db error, method:FindByEntryTypeEntryID, err:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if err = cur.All(ctx, &entryActions); err != nil {
+		hlog.CtxErrorf(ctx, "[FindByEntryTypeEntryID] mongo all error:%+v", err)
+		return nil, err
+	}
+	return entryActions, nil
+}
+
 func (d *EntryActionDao) FindByTraceID(ctx context.Context, traceID string) ([]*EntryAction, error) {
 	var entryActions []*EntryAction
 	cur, err := biCollection.Collection(TableNameEntryAction()).Find(ctx, bson.M{"action_ios.trace_id": traceID})

@@ -28,7 +28,7 @@ func HandleSaveLinkTrace(ctx context.Context, msgBody []byte) error {
 	err = doSave(ctx, event)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "save link trace error:%v, event:%v", err, event)
-		return err
+		return nil
 	}
 
 	hlog.CtxInfof(ctx, "save link trace success, event:%v", event)
@@ -40,7 +40,7 @@ func doSave(ctx context.Context, event *SaveLinkTraceEvent) error {
 		"entry_type": event.EntryType,
 		"entry_id":   event.EntryID,
 	}
-	_, err := utils.HttpPost(ctx, conf.GetConfig().Api.SaveLinkTrace, map[string]string{"Channel": "local", "env": "fc-20241124"}, req)
+	_, err := utils.HttpPost(ctx, conf.GetConfig().Api.SaveLinkTrace, map[string]string{"Channel": "local", "env": "master-summary"}, req)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "do save error:%v", err)
 	}

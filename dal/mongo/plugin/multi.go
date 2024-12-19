@@ -21,6 +21,7 @@ const TableNameMulti = "multi"
 type ArticleEntry struct {
 	EntryId   string           `json:"entry_id" bson:"entry_id"`
 	EntryType consts.EntryType `json:"entry_type" bson:"entry_type"`
+	Title     string           `json:"title" bson:"title"`
 }
 
 type MultiModel struct {
@@ -243,6 +244,16 @@ func (d *MultiModel) TranslateEntryInfo() *bi.EntryInfo {
 			EntryType: int(article.EntryType),
 		})
 	}
+	parentEntryID := ""
+	parentEntryType := int(empyrean_lens.EntryTypeEnum_MULTI)
+	if d.CopyFromMultiID != "" {
+		parentEntryID = d.CopyFromMultiID
+		parentEntryType = int(empyrean_lens.EntryTypeEnum_MULTI)
+	}
+	if d.CopyFromResourceID != "" {
+		parentEntryID = d.CopyFromResourceID
+		parentEntryType = int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI)
+	}
 	return &bi.EntryInfo{
 		ID:              primitive.NewObjectID(),
 		EntryID:         d.ID.Hex(),
@@ -254,7 +265,8 @@ func (d *MultiModel) TranslateEntryInfo() *bi.EntryInfo {
 		UserID:          d.UserID,
 		Title:           d.Title,
 		ChannelType:     d.ChannelType,
-		ParentEntryID:   d.CopyFromMultiID,
+		ParentEntryID:   parentEntryID,
+		ParentEntryType: parentEntryType,
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum_MULTI, d.AnalysisStatus, d.SummaryStatus, d.MergeStatus)),
 		Cost:            0, // TODO
 		EntryCreateTime: d.CreateTime,

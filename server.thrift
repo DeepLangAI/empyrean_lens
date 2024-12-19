@@ -488,6 +488,10 @@ enum EntryTypeEnum{
     FILE = 10,  // pdf
     VIEWPOINT = 11,  // 关键观点
     MULTI = 12,  // 多文档总结
+    MULTI_OUTLINE = 126,  // 多文档总结
+    SUBSCRIBE_WEB = 71,  // 订阅网页
+    SUBSCRIBE_FILE = 101,  // 订阅pdf
+    SUBSCRIBE_MULTI = 121,  // 订阅多文档
 }
 
 enum ActionStatusEnum {
@@ -513,7 +517,12 @@ enum LinkNodeTypeEnum{
     OUTLINE_FINISH = 9  // 大纲生成
     MULTI_ANALYSIS_FINISH = 10  // 单文档解析
     MULTI_TOPIC_FINISH = 11  // 主题生成
-    MULTI_OUTLINE_FINISH = 12  // 大纲生成
+    MULTI_OUTLINE_FINISH = 12  // 多文档大纲生成
+    SUMMARY_RETRY_FINISH = 13  // 概述重新生成
+    KEY_INFO_RETRY_FINISH = 14  // 关键信息重新生成
+    OUTLINE_RETRY_FINISH = 15  // 大纲重新生成
+    MULTI_OUTLINE_RETRY_FINISH = 16  // 多文档大纲重新生成
+    SUBSCRIBE_NOVEL_FORM_FINISH = 17  // 订阅内容新形态
 }
 
 // 用户行为查询
@@ -601,7 +610,8 @@ struct DocLinkTraceRespData {
 
 // 多文档链路查询
 struct MultiDocLinkTraceReq {
-    1: string multi_id
+    1: string entry_id
+    2: EntryTypeEnum entry_type
 }
 
 struct MultiDocLinkTraceResp {
@@ -622,11 +632,13 @@ struct MultiDocLinkTraceRespData {
     1: TraceLinkGraph graph // 关于多文档本身的链路图，如多文档合并、主题生成、多文档大纲生成完成等，有可能退化为链表。
     2: double cost // end to end cost, seconds
     3: list<Article> articles // 多文档中包含的文档列表
-    4: string title
-    5: string user_id
-    6: string action_name
-    7: ActionStatusEnum status
-    8: string time_at
+    4: string entry_id
+    5: EntryTypeEnum entry_type
+    6: string title
+    7: string user_id
+    8: string action_name
+    9: ActionStatusEnum status
+    10: string time_at
 }
 
 // 链路中某节点的日志查询

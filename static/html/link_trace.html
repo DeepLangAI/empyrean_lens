@@ -2902,7 +2902,7 @@
             });
         }
 
-        function CreateMultiDocTraceGraphPage(entry_id, {userId, time, isMulti, title, status, resources}){
+        function CreateMultiDocTraceGraphPage(entry_id, entry_type, {userId, time, isMulti, title, status, resources}){
             let fileTitles = []
             for (let i = 0; i < resources.length; i++){
                 fileTitles.push(resources[i].title)
@@ -2914,7 +2914,8 @@
 
             axios.get('/api/v1/link_trace/multi_doc',{
                 params: {
-                    multi_id: entry_id,
+                    entry_id: entry_id,
+                    entry_type: entry_type,
                 }
             }).then(response => {
                 const data = response.data.data;
@@ -3165,7 +3166,7 @@
             )
             function handleClickActionStatus(row){
                 if (row.resources.length >= 2) {
-                    CreateMultiDocTraceGraphPage(row.entry_id,{
+                    CreateMultiDocTraceGraphPage(row.entry_id, row.entry_type, {
                         'userId': row.user_id,
                         'time': row.create_time,
                         'isMulti': row.resources.length >= 2,

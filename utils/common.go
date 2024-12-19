@@ -291,6 +291,13 @@ func GetActionStatus(entryType empyrean_lens.EntryTypeEnum, status1, status2, st
 			return empyrean_lens.ActionStatusEnum_SUCCESS
 		}
 		return empyrean_lens.ActionStatusEnum_FAIL
+	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB,
+		empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE,
+		empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI:
+		if status1 == consts.SubscribeSuccessStatus {
+			return empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return empyrean_lens.ActionStatusEnum_FAIL
 	}
 	return empyrean_lens.ActionStatusEnum_FAIL
 }
@@ -299,13 +306,16 @@ func GetDataType(multiID, copyFromResourceId string, entryType empyrean_lens.Ent
 	switch entryType {
 	case empyrean_lens.EntryTypeEnum_WEB, empyrean_lens.EntryTypeEnum_FILE:
 		if copyFromResourceId != "" {
-			return consts.EntryInfoDataTypeResource
+			return consts.EntryInfoDataTypeSingleFromSubscribe
 		}
 		if multiID != "" {
 			return consts.EntryInfoDataTypeMultiSingle
 		}
 		return consts.EntryInfoDataTypeSingle
 	case empyrean_lens.EntryTypeEnum_MULTI:
+		if copyFromResourceId != "" {
+			return consts.EntryInfoDataTypeMultiFromSubscribe
+		}
 		return consts.EntryInfoDataTypeMulti
 	}
 	return consts.EntryInfoDataTypeSingle

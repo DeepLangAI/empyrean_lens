@@ -3,6 +3,7 @@ package link_trace
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -21,17 +22,31 @@ import (
 func LinkTrace(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID string) (interface{}, interface{}, *consts.BizCode) {
 	switch entryType {
 	case empyrean_lens.EntryTypeEnum_FILE:
-		return FileLinkTrace(ctx, entryID, false)
+		return FileLinkTrace(ctx, entryID, "", false, false)
 	case empyrean_lens.EntryTypeEnum_WEB:
-		return WebReaderLinkTrace(ctx, entryID, false)
+		return WebReaderLinkTrace(ctx, entryID, "", false, false)
 	case empyrean_lens.EntryTypeEnum_MULTI:
 		return MultiLinkTrace(ctx, entryID, false)
+	case empyrean_lens.EntryTypeEnum_SUMMARY:
+		return SummaryTrace(ctx, entryType, entryID, false)
+	case empyrean_lens.EntryTypeEnum_OUTLINE:
+		return SummaryTrace(ctx, entryType, entryID, false)
+	case empyrean_lens.EntryTypeEnum_VIEWPOINT:
+		return SummaryTrace(ctx, entryType, entryID, false)
+	case empyrean_lens.EntryTypeEnum_MULTI_OUTLINE:
+		return MultiOutlineLinkTrace(ctx, entryType, entryID, false)
+	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB:
+		return SubscribeSingleLinkTrace(ctx, entryType, entryID, false, false, false)
+	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE:
+		return SubscribeSingleLinkTrace(ctx, entryType, entryID, false, false, false)
+	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI:
+		return SubscriMultibeLinkTrace(ctx, entryType, entryID, false, false)
 	default:
 		return nil, nil, &consts.RetParamError
 	}
 }
 
-func FileLinkTrace(ctx context.Context, fileID string, refresh bool) (*plugin.File, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
+func FileLinkTrace(ctx context.Context, fileID, multiID string, refresh, withoutSummary bool) (*plugin.File, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
 	// 获取文章详情
 	fileInfo, err := plugin.NewFileDao().FindFileById(ctx, fileID)
 	if err != nil || fileInfo == nil {
@@ -41,8 +56,11 @@ func FileLinkTrace(ctx context.Context, fileID string, refresh bool) (*plugin.Fi
 	if fileInfo.RealChannelType >= int(empyrean_lens.ChannelType_IosUrl) {
 		fileInfo.ChannelType = fileInfo.RealChannelType
 	}
+	if multiID != "" {
+		fileInfo.MultiId = multiID
+	}
 	// 确定需要查的节点列表和节点关系
-	pracessList, pracessMapping := getFileLinkTracePracessConfig(ctx, fileInfo)
+	pracessList, pracessMapping := getFileLinkTracePracessConfig(ctx, fileInfo, withoutSummary)
 	// 先查数据库
 	linkTraceGraph, bizCode := findLinkTraceFromMongo(ctx, int(empyrean_lens.EntryTypeEnum_FILE), fileID, pracessList, pracessMapping)
 	if bizCode != nil {
@@ -60,23 +78,28 @@ func FileLinkTrace(ctx context.Context, fileID string, refresh bool) (*plugin.Fi
 			return nil, nil, bizCode
 		}
 	}
+	// 是否需要删除苏秦节点
+	for _, node := range linkTraceGraph.Nodes {
+		if node.Type == empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH && node.EnterTime == "" {
+			linkTraceGraph = DeleteSuqinNode(linkTraceGraph)
+		}
+	}
 	// 返回
 	_, status := utils.GetStatusFromNode(linkTraceGraph.Nodes)
-
 	return fileInfo, &empyrean_lens.DocLinkTraceRespData{
 		LinkGraph:  linkTraceGraph,
-		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
+		Cost:       float64(utils.GetCostFromNodes(linkTraceGraph.Nodes)),
 		EntryID:    fileID,
 		EntryType:  empyrean_lens.EntryTypeEnum_FILE,
 		Title:      fileInfo.Name,
 		UserID:     fileInfo.UserID,
-		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_FILE), fileInfo.MultiId),
+		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_FILE), fileInfo.MultiId, fileInfo.CopyFromResourceID, "", 0),
 		Status:     status,
 		TimeAt:     fileInfo.CreateTime.Format(consts.DateTimeTemplate),
 	}, nil
 }
 
-func WebReaderLinkTrace(ctx context.Context, webReaderID string, refresh bool) (*plugin.WebReader, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
+func WebReaderLinkTrace(ctx context.Context, webReaderID, multiID string, refresh, withoutSummary bool) (*plugin.WebReader, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
 	// 获取文章详情
 	webReaderInfo, err := plugin.NewWebReaderDao().FindWebReaderById(ctx, webReaderID)
 	if err != nil || webReaderInfo == nil {
@@ -86,8 +109,11 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string, refresh bool) (
 	if webReaderInfo.RealChannelType >= int(empyrean_lens.ChannelType_IosUrl) {
 		webReaderInfo.ChannelType = webReaderInfo.RealChannelType
 	}
+	if multiID != "" {
+		webReaderInfo.MultiId = multiID
+	}
 	// 确定需要查的节点列表和节点关系
-	pracessList, pracessMapping := getWebReaderLinkTracePracessConfig(ctx, webReaderInfo)
+	pracessList, pracessMapping := getWebReaderLinkTracePracessConfig(ctx, webReaderInfo, withoutSummary)
 	// 先查数据库
 	linkTraceGraph, bizCode := findLinkTraceFromMongo(ctx, int(empyrean_lens.EntryTypeEnum_WEB), webReaderID, pracessList, pracessMapping)
 	if bizCode != nil {
@@ -108,14 +134,122 @@ func WebReaderLinkTrace(ctx context.Context, webReaderID string, refresh bool) (
 	_, status := utils.GetStatusFromNode(linkTraceGraph.Nodes)
 	return webReaderInfo, &empyrean_lens.DocLinkTraceRespData{
 		LinkGraph:  linkTraceGraph,
-		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
+		Cost:       float64(utils.GetCostFromNodes(linkTraceGraph.Nodes)),
 		EntryID:    webReaderID,
 		EntryType:  empyrean_lens.EntryTypeEnum_WEB,
 		Title:      webReaderInfo.Title,
 		UserID:     webReaderInfo.UserID,
-		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), webReaderInfo.MultiId),
+		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), webReaderInfo.MultiId, webReaderInfo.CopyFromResourceID, "", 0),
 		Status:     status,
 		TimeAt:     webReaderInfo.CreateTime.Format(consts.DateTimeTemplate),
+	}, nil
+}
+
+func SubscribeSingleLinkTrace(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID string, isFromMulti, refresh, withoutSummary bool) (*plugin.Resource, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
+	// 获取文章详情
+	resourceInfo, err := plugin.NewResourceDao().FindResourceById(ctx, entryID)
+	if err != nil || resourceInfo == nil {
+		hlog.CtxErrorf(ctx, "get resource info failed, err: %v", err)
+		return nil, nil, &consts.QueryRecordError
+	}
+	// 确定需要查的节点列表和节点关系
+	pracessList, pracessMapping := getSubscribeLinkTracePracessConfig(int(entryType), isFromMulti, withoutSummary)
+	// 先查数据库
+	linkTraceGraph, bizCode := findLinkTraceFromMongo(ctx, int(entryType), entryID, pracessList, pracessMapping)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[findLinkTraceFromMongo] get link trace graph failed, err: %v", bizCode)
+		return nil, nil, bizCode
+	}
+	// 数据库没有，查阿里云日志
+	if refresh || linkTraceGraph == nil {
+		start := resourceInfo.CreateTime.Add(-24 * time.Hour)
+		end := resourceInfo.CreateTime.Add(24 * time.Hour)
+		linkTraceGraph, bizCode = LinkTraceGraph(ctx, resourceInfo.TranslateEntryInfo(), start, end, pracessList, pracessMapping)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
+			return nil, nil, bizCode
+		}
+	}
+	// 返回
+	_, status := utils.GetStatusFromNode(linkTraceGraph.Nodes)
+	return resourceInfo, &empyrean_lens.DocLinkTraceRespData{
+		LinkGraph:  linkTraceGraph,
+		Cost:       float64(utils.GetCostFromNodes(linkTraceGraph.Nodes)),
+		EntryID:    entryID,
+		EntryType:  entryType,
+		UserID:     resourceInfo.UserID,
+		Title:      resourceInfo.Title,
+		ActionName: utils.GetActionName(int(entryType), "", "", "", 0),
+		Status:     status,
+		TimeAt:     resourceInfo.CreateTime.Format(consts.DateTimeTemplate),
+	}, nil
+}
+
+func SummaryTrace(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID string, refresh bool) (*plugin.Summary, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
+	// 获取summary详情
+	summaryInfo, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(entryType), entryID)
+	if err != nil || summaryInfo == nil {
+		hlog.CtxErrorf(ctx, "get summary info failed, err: %v", err)
+		return nil, nil, &consts.QueryRecordError
+	}
+	// 查询文章的链路追踪，不包含模型生成节点
+	articleInfo, articleLinkTraceGroup, bizCode := SummaryArticleTrace(ctx, summaryInfo, refresh)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[SummaryArticleTrace] get article graph failed, err: %v", bizCode)
+		return nil, nil, bizCode
+	}
+	if articleInfo == nil && articleLinkTraceGroup == nil {
+		hlog.CtxInfof(ctx, "is not retry summary, entryType: %v, entryID: %v", summaryInfo.EntryType, summaryInfo.ID)
+		return nil, nil, &consts.QueryRecordError
+	}
+	// 确定需要查的节点列表和节点关系
+	pracessList, pracessMapping := getSummaryLinkTracePracessConfig(ctx, summaryInfo)
+	// 先查数据库
+	linkTraceGraph, bizCode := findLinkTraceFromMongo(ctx, int(entryType), entryID, pracessList, pracessMapping)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[findLinkTraceFromMongo] get link trace graph failed, err: %v", bizCode)
+		return nil, nil, bizCode
+	}
+	// 数据库没有，查阿里云日志
+	if refresh || linkTraceGraph == nil {
+		start := summaryInfo.CreateTime.Add(-24 * time.Hour)
+		end := summaryInfo.CreateTime.Add(24 * time.Hour)
+		linkTraceGraph, bizCode = LinkTraceGraph(ctx, summaryInfo.TranslateEntryInfo(), start, end, pracessList, pracessMapping)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
+			return nil, nil, bizCode
+		}
+		if linkTraceGraph == nil || len(linkTraceGraph.Nodes) == 0 {
+			return nil, nil, &consts.QueryRecordError
+		}
+	}
+	// 将重新生成放到解析节点后面
+	lenNode := len(articleLinkTraceGroup.LinkGraph.Nodes)
+	articleLinkTraceGroup.LinkGraph.Edges[articleLinkTraceGroup.LinkGraph.Nodes[lenNode-1].ID] = []string{linkTraceGraph.Nodes[0].ID}
+	articleLinkTraceGroup.LinkGraph.Nodes = append(articleLinkTraceGroup.LinkGraph.Nodes, linkTraceGraph.Nodes...)
+	// 返回数据
+	actionName := ""
+	if articleLinkTraceGroup.EntryType == consts.EntryTypePDF {
+		actionName = utils.GetActionName(int(entryType), articleInfo.(*plugin.File).MultiId, articleInfo.(*plugin.File).CopyFromResourceID, summaryInfo.SummaryLangType, summaryInfo.OutlineType)
+		summaryInfo.SourceEntryID = articleInfo.(*plugin.File).ID.Hex()
+		summaryInfo.SourceEntryType = consts.EntryTypePDF
+		summaryInfo.SourceTitle = articleInfo.(*plugin.File).Name
+	} else {
+		actionName = utils.GetActionName(int(entryType), articleInfo.(*plugin.WebReader).MultiId, articleInfo.(*plugin.WebReader).CopyFromResourceID, summaryInfo.SummaryLangType, summaryInfo.OutlineType)
+		summaryInfo.SourceEntryID = articleInfo.(*plugin.WebReader).ID.Hex()
+		summaryInfo.SourceEntryType = consts.EntryTypeWEB
+		summaryInfo.SourceTitle = articleInfo.(*plugin.WebReader).Title
+	}
+	return summaryInfo, &empyrean_lens.DocLinkTraceRespData{
+		LinkGraph:  articleLinkTraceGroup.LinkGraph,
+		Cost:       float64(utils.GetCostFromNodes(linkTraceGraph.Nodes)),
+		EntryID:    summaryInfo.ID.Hex(),
+		EntryType:  empyrean_lens.EntryTypeEnum(summaryInfo.EntryType),
+		Title:      articleLinkTraceGroup.Title,
+		UserID:     articleLinkTraceGroup.UserID,
+		ActionName: actionName,
+		Status:     linkTraceGraph.Nodes[0].Status,
+		TimeAt:     linkTraceGraph.Nodes[0].EnterTime,
 	}, nil
 }
 
@@ -146,14 +280,14 @@ func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.
 		go func() {
 			defer wg.Done()
 			if articleEntry.EntryType == consts.EntryTypePDF {
-				_, articleGraph, bizCode := FileLinkTrace(ctx, articleEntry.EntryId, refresh)
+				_, articleGraph, bizCode := FileLinkTrace(ctx, articleEntry.EntryId, multiID, refresh, false)
 				if bizCode != nil {
 					hlog.CtxErrorf(ctx, "[FileLinkTrace] get article graph failed, err: %v", bizCode)
 					return
 				}
 				graphMapping.Store(articleEntry.EntryId, articleGraph.LinkGraph)
 			} else {
-				_, articleGraph, bizCode := WebReaderLinkTrace(ctx, articleEntry.EntryId, refresh)
+				_, articleGraph, bizCode := WebReaderLinkTrace(ctx, articleEntry.EntryId, multiID, refresh, false)
 				if bizCode != nil {
 					hlog.CtxErrorf(ctx, "[WebReaderLinkTrace] get article graph failed, err: %v", bizCode)
 					return
@@ -164,7 +298,7 @@ func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.
 	}
 	go func() {
 		defer wg.Done()
-		pracessList, pracessMapping := consts.MultiProcessList, consts.MultiProcessMapping
+		pracessList, pracessMapping := getMultiLinkTracePracessConfig(ctx, multiInfo)
 		linkTraceGraph, bizCode := findLinkTraceFromMongo(ctx, int(empyrean_lens.EntryTypeEnum_MULTI), multiInfo.ID.Hex(), pracessList, pracessMapping)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[findLinkTraceFromMongo] get link trace graph failed, err: %v", bizCode)
@@ -208,55 +342,376 @@ func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.
 	_, status := utils.GetStatusFromNode(linkTraceGraph.Nodes)
 	return multiInfo, &empyrean_lens.MultiDocLinkTraceRespData{
 		Graph:      multiGrap,
-		Cost:       getLinkTraceCost(linkTraceGraph.Nodes),
+		Cost:       float64(utils.GetCostFromNodes(linkTraceGraph.Nodes)),
 		Articles:   articles,
+		EntryID:    multiID,
+		EntryType:  empyrean_lens.EntryTypeEnum_MULTI,
 		Title:      multiInfo.Title,
 		UserID:     multiInfo.UserID,
-		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_MULTI), ""),
+		ActionName: utils.GetActionName(int(empyrean_lens.EntryTypeEnum_MULTI), "", multiInfo.CopyFromResourceID, "", 0),
 		Status:     status,
 		TimeAt:     multiInfo.CreateTime.Format(consts.DateTimeTemplate),
 	}, nil
 }
 
-func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plugin.WebReader) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
+func SubscriMultibeLinkTrace(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID string, refresh, withoutSummary bool) (*plugin.Resource, *empyrean_lens.MultiDocLinkTraceRespData, *consts.BizCode) {
+	// 获取文章详情
+	resourceInfo, err := plugin.NewResourceDao().FindResourceById(ctx, entryID)
+	if err != nil || resourceInfo == nil {
+		hlog.CtxErrorf(ctx, "get resource info failed, err: %v", err)
+		return nil, nil, &consts.QueryRecordError
+	}
+	// 获取多文档对应的子文档
+	novelFormInfo, err := plugin.NewResourceNovelFormDao().FindResourceNovelFormById(ctx, resourceInfo.NovelFormID)
+	if err != nil || novelFormInfo == nil {
+		hlog.CtxErrorf(ctx, "get novel form info failed, err: %v", err)
+		return nil, nil, &consts.QueryRecordError
+	}
+	resourceInfo.ArticleList = novelFormInfo.RelatedEntry
+	// 并发链路信息
+	wg, graphMapping, multiGrap := sync.WaitGroup{}, sync.Map{}, &empyrean_lens.TraceLinkGraph{}
+	wg.Add(len(resourceInfo.ArticleList) + 1)
+	for idx := range resourceInfo.ArticleList {
+		articleEntry := resourceInfo.ArticleList[idx]
+		go func() {
+			defer wg.Done()
+			_, articleGraph, bizCode := SubscribeSingleLinkTrace(ctx, empyrean_lens.EntryTypeEnum(articleEntry.EntryType), articleEntry.EntryId, true, refresh, true)
+			if bizCode != nil {
+				hlog.CtxErrorf(ctx, "[SubscribeSingleLinkTrace] get article graph failed, err: %v", bizCode)
+				return
+			}
+			graphMapping.Store(articleEntry.EntryId, articleGraph.LinkGraph)
+		}()
+	}
+	go func() {
+		defer wg.Done()
+		// 确定需要查的节点列表和节点关系
+		pracessList, pracessMapping := getSubscribeLinkTracePracessConfig(int(entryType), true, withoutSummary)
+		// 先查数据库
+		linkTraceGraph, bizCode := findLinkTraceFromMongo(ctx, int(entryType), entryID, pracessList, pracessMapping)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "[findLinkTraceFromMongo] get link trace graph failed, err: %v", bizCode)
+			return
+		}
+		// 数据库没有，查阿里云日志
+		if refresh || linkTraceGraph == nil {
+			start := resourceInfo.CreateTime.Add(-24 * time.Hour)
+			end := resourceInfo.CreateTime.Add(24 * time.Hour)
+			linkTraceGraph, bizCode = LinkTraceGraph(ctx, resourceInfo.TranslateEntryInfo(), start, end, pracessList, pracessMapping)
+			if bizCode != nil {
+				hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
+				return
+			}
+		}
+		multiGrap = linkTraceGraph
+	}()
+	wg.Wait()
+	// 整理数据
+	graphs, articles := []*empyrean_lens.TraceLinkGraph{}, []*empyrean_lens.Article{}
+	for _, article := range resourceInfo.ArticleList {
+		articleGraph, ok := graphMapping.Load(article.EntryId)
+		if ok && articleGraph != nil {
+			graph := articleGraph.(*empyrean_lens.TraceLinkGraph)
+			graphs = append(graphs, graph)
+			articles = append(articles, &empyrean_lens.Article{
+				EntryType: empyrean_lens.EntryTypeEnum(article.EntryType),
+				EntryID:   article.EntryId,
+				StartID:   articleGraph.(*empyrean_lens.TraceLinkGraph).Nodes[0].ID,
+				Title:     article.Title,
+				Graph:     graph,
+			})
+		}
+	}
+	linkTraceGraph := mergeLinkTraceGraph(graphs, multiGrap)
+	// 返回
+	_, status := utils.GetStatusFromNode(linkTraceGraph.Nodes)
+	return resourceInfo, &empyrean_lens.MultiDocLinkTraceRespData{
+		Graph:      multiGrap,
+		Cost:       float64(utils.GetCostFromNodes(linkTraceGraph.Nodes)),
+		Articles:   articles,
+		EntryID:    entryID,
+		EntryType:  entryType,
+		UserID:     resourceInfo.UserID,
+		Title:      resourceInfo.Title,
+		ActionName: utils.GetActionName(int(entryType), "", "", "", 0),
+		Status:     status,
+		TimeAt:     resourceInfo.CreateTime.Format(consts.DateTimeTemplate),
+	}, nil
+}
+
+func MultiOutlineLinkTrace(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID string, refresh bool) (*plugin.MultiAigc, *empyrean_lens.MultiDocLinkTraceRespData, *consts.BizCode) {
+	// 获取多文档大纲记录
+	multiAgicInfo, err := plugin.NewMultiAigcDao().QueryByID(ctx, entryID)
+	if err != nil || multiAgicInfo == nil {
+		hlog.CtxErrorf(ctx, "get multi aigc info failed, err: %v", err)
+		return nil, nil, &consts.QueryRecordError
+	}
+	// 判断是否是重新生成
+	if !IsRetryMultiOutline(ctx, multiAgicInfo) {
+		hlog.CtxInfof(ctx, "is not retry aigc, entryType: %v, entryID: %v", entryType, entryID)
+		return nil, nil, nil
+	}
+	// 确定需要查的节点列表和节点关系
+	pracessList := []empyrean_lens.LinkNodeTypeEnum{empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_RETRY_FINISH}
+	pracessMapping := map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{}
+	// 先查数据库
+	linkTraceGraph, bizCode := findLinkTraceFromMongo(ctx, int(entryType), entryID, pracessList, pracessMapping)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[findLinkTraceFromMongo] get link trace graph failed, err: %v", bizCode)
+		return nil, nil, bizCode
+	}
+	// 数据库没有，查阿里云日志
+	if refresh || linkTraceGraph == nil {
+		start := multiAgicInfo.CreateTime.Add(-24 * time.Hour)
+		end := multiAgicInfo.CreateTime.Add(24 * time.Hour)
+		linkTraceGraph, bizCode = LinkTraceGraph(ctx, multiAgicInfo.TranslateEntryInfo(), start, end, pracessList, pracessMapping)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "[LinkTraceGraph] get link trace graph failed, err: %v", bizCode)
+			return nil, nil, bizCode
+		}
+		if linkTraceGraph == nil || len(linkTraceGraph.Nodes) == 0 {
+			return nil, nil, &consts.QueryRecordError
+		}
+	}
+	// 查询多文档的链路追踪，不包含模型生成节点
+	multiInfo, multiLinkTraceGroup, bizCode := MultiLinkTrace(ctx, multiAgicInfo.MultiID, refresh)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[MultiLinkTrace] get multi graph failed, err: %v", bizCode)
+		return nil, nil, bizCode
+	}
+	multiAgicInfo.UserID = multiInfo.UserID
+	multiAgicInfo.ArticleList = multiInfo.ArticleList
+	multiAgicInfo.ChannelType = multiInfo.ChannelType
+	multiAgicInfo.CopyFromResourceID = multiInfo.CopyFromResourceID
+	multiAgicInfo.Title = multiInfo.Title
+	// 整理数据
+	multiLinkTraceGroup.Graph.Nodes[1] = linkTraceGraph.Nodes[0]
+	themeNodeID := multiLinkTraceGroup.Graph.Nodes[0].ID
+	multiLinkTraceGroup.GetGraph().Edges[themeNodeID] = []string{linkTraceGraph.Nodes[0].ID}
+	return multiAgicInfo, &empyrean_lens.MultiDocLinkTraceRespData{
+		Graph:      multiLinkTraceGroup.Graph,
+		Cost:       float64(utils.GetCostFromNodes(linkTraceGraph.Nodes)),
+		Articles:   multiLinkTraceGroup.Articles,
+		Title:      multiInfo.Title,
+		UserID:     multiInfo.UserID,
+		ActionName: utils.GetActionName(int(entryType), multiAgicInfo.MultiID, multiInfo.CopyFromResourceID, "", 0),
+		Status:     linkTraceGraph.Nodes[0].Status,
+		TimeAt:     linkTraceGraph.Nodes[0].EnterTime,
+	}, nil
+}
+
+func DeleteSuqinNode(linkTraceGraph *empyrean_lens.TraceLinkGraph) *empyrean_lens.TraceLinkGraph {
+	// 苏秦未触发，删除该节点
+	newNodes := []*empyrean_lens.GraphNode{}
+	suqinNodeID, suqinChildren := "", []string{}
+	for _, node := range linkTraceGraph.Nodes {
+		if node.Type == empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH {
+			suqinNodeID = node.ID
+			suqinChildren = linkTraceGraph.Edges[suqinNodeID]
+			continue
+		}
+		newNodes = append(newNodes, node)
+	}
+	linkTraceGraph.Nodes = newNodes
+	newEdges := map[string][]string{}
+	for nodeID, nodeChildren := range linkTraceGraph.Edges {
+		if nodeID == suqinNodeID {
+			continue
+		}
+		if utils.Contains(nodeChildren, suqinNodeID) {
+			newNodeChildren := []string{}
+			nodeChildren = append(nodeChildren, suqinChildren...)
+			for _, child := range nodeChildren {
+				if child == suqinNodeID {
+					continue
+				} else {
+					newNodeChildren = append(newNodeChildren, child)
+				}
+			}
+			newEdges[nodeID] = newNodeChildren
+		} else {
+			newEdges[nodeID] = nodeChildren
+		}
+	}
+	linkTraceGraph.Edges = newEdges
+	return linkTraceGraph
+}
+
+func SummaryArticleTrace(ctx context.Context, summaryInfo *plugin.Summary, refresh bool) (interface{}, *empyrean_lens.DocLinkTraceRespData, *consts.BizCode) {
+	if summaryInfo.FileID != "" {
+		fileInfo, err := plugin.NewFileDao().FindFileById(ctx, summaryInfo.FileID)
+		if err != nil || fileInfo == nil {
+			hlog.CtxErrorf(ctx, "get file info failed, err: %v", err)
+			return nil, nil, &consts.QueryRecordError
+		}
+		// 判断是否是重新生成
+		if !IsRetrySummary(ctx, summaryInfo, fileInfo.MultiId, fileInfo.CopyFromResourceID) {
+			hlog.CtxInfof(ctx, "is not retry summary, entryType: %v, entryID: %v", summaryInfo.EntryType, summaryInfo.ID)
+			return nil, nil, nil
+		}
+		// save file
+		Save(ctx, empyrean_lens.EntryTypeEnum_FILE, fileInfo.ID.Hex())
+		info, articleGraph, bizCode := FileLinkTrace(ctx, fileInfo.ID.Hex(), "", refresh, true)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "[FileLinkTrace] get article graph failed, err: %v", bizCode)
+			return nil, nil, bizCode
+		}
+		return info, articleGraph, nil
+	} else {
+		webReaderInfo, err := plugin.NewWebReaderDao().FindWebReaderByUserIDAndUrl(ctx, summaryInfo.UserID, summaryInfo.Url)
+		if err != nil || webReaderInfo == nil {
+			hlog.CtxErrorf(ctx, "get web reader info failed, err: %v", err)
+			return nil, nil, &consts.QueryRecordError
+		}
+		// 判断是否是重新生成
+		if !IsRetrySummary(ctx, summaryInfo, webReaderInfo.MultiId, webReaderInfo.CopyFromResourceID) {
+			hlog.CtxInfof(ctx, "is not retry summary, entryType: %v, entryID: %v", summaryInfo.EntryType, summaryInfo.ID)
+			return nil, nil, nil
+		}
+		// save web reader
+		Save(ctx, empyrean_lens.EntryTypeEnum_WEB, webReaderInfo.ID.Hex())
+		info, articleGraph, bizCode := WebReaderLinkTrace(ctx, webReaderInfo.ID.Hex(), "", refresh, true)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "[WebReaderLinkTrace] get article graph failed, err: %v", bizCode)
+			return nil, nil, bizCode
+		}
+		return info, articleGraph, nil
+	}
+}
+
+func IsRetrySummary(ctx context.Context, summaryInfo *plugin.Summary, multiID, copyFromResource string) bool {
+	// 判断是否是重试summary
+	// 记录文章时已经记录
+	evnetInfo, err := bi.NewEntryInfoDao().FindBySummaryID(ctx, summaryInfo.ID.Hex())
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get event info failed, err: %v", err)
+		return true
+	}
+	if evnetInfo != nil {
+		hlog.CtxInfof(ctx, "not need save, summaryInfo: %v", summaryInfo)
+		return false
+	}
+	// 根据文章来源判断
+	// 订阅、多文档、插件、app端、小程序（关键观点）、小助手（关键观点）都是重新生成
+	if len(copyFromResource) != 0 || len(multiID) != 0 { //订阅
+		return true
+	}
+	channelName := utils.ChannelIntToString(summaryInfo.ChannelType)
+	if channelName == "语鲸插件" { //插件
+		return true
+	}
+	if channelName == "语鲸app" || channelName == "语鲸h5" { //app端
+		return true
+	}
+	if channelName == "语鲸小程序" && summaryInfo.EntryType == consts.EntryTypeWEB { //小程序
+		return true
+	}
+	if channelName == "语鲸小助手" && summaryInfo.EntryType == consts.EntryTypeWEB { //小助手
+		return true
+	}
+	// 根据生成时间判断
+	firstSummary, err := plugin.NewSummaryDao().QueryFirstSummary(ctx, summaryInfo.EntryType, summaryInfo.OutlineType, summaryInfo.UserID, summaryInfo.Url)
+	if err != nil || firstSummary == nil {
+		hlog.CtxErrorf(ctx, "get first summary failed, err: %v", err)
+		return false
+	}
+	if firstSummary.ID != summaryInfo.ID {
+		return true
+	}
+	return false
+}
+
+func IsRetryMultiOutline(ctx context.Context, multiAigcInfo *plugin.MultiAigc) bool {
+	// 根据生成时间判断
+	theme := ""
+	for key := range multiAigcInfo.AigcResult {
+		if multiAigcInfo.AigcResult[key] != nil {
+			theme = key
+			break
+		}
+	}
+	firstAigc, err := plugin.NewMultiAigcDao().QueryFirstAigc(ctx, multiAigcInfo.MultiID, theme)
+	if err != nil || firstAigc == nil {
+		hlog.CtxErrorf(ctx, "get first summary failed, err: %v", err)
+		return false
+	}
+	if multiAigcInfo.ID != firstAigc.ID {
+		return true
+	}
+	return false
+}
+
+func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plugin.WebReader, withoutSummary bool) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
 	pracessList := consts.SingleWebReaderProcessList
 	pracessMapping := consts.SingleWebReaderProcessMapping
-	if webReaderInfo.MultiId != "" {
+	if webReaderInfo.CopyFromResourceID == "" && webReaderInfo.MultiId != "" {
 		pracessList = consts.MultiWebReaderProcessList
 		pracessMapping = consts.MultiWebReaderProcessMapping
 	}
+	if webReaderInfo.CopyFromResourceID != "" {
+		pracessList = consts.SubscribeWebReaderProcessList
+		pracessMapping = consts.SubscribeWebReaderProcessMapping
+	}
 	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
-	// copy来源不需要，crawler wcd edu
-	if webReaderInfo.CopyParseResultFrom != "" {
+	// 订阅来源，没有crawler节点
+	if webReaderInfo.CopyFromResourceID != "" {
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
+	}
+	if webReaderInfo.CopyFromUrlID != "" {
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH)
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH)
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH)
+	}
+	// 是否需要模型生成
+	if withoutSummary {
 		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
-			empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH,
 		}...)
 	}
 	// 模型生成
 	channelName := utils.ChannelIntToString(webReaderInfo.ChannelType)
 	switch channelName {
 	case "语鲸插件":
-		// 插件没有自动 模型生成，没有crawler
-		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
-			empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
-		}...)
-	case "语鲸web":
-		// 语鲸web端，没有fc日志，不需要模型生成
-		start := webReaderInfo.CreateTime.Add(-24 * time.Hour)
-		end := webReaderInfo.CreateTime.Add(24 * time.Hour)
-		logs, _ := aliyun.SummaryGenerateQuery(ctx, webReaderInfo.ID.Hex(), start, end)
-		if len(logs) == 0 {
+		// 插件来源，是否已经生成，已生成需要记录
+		summaryNodeTypes := []empyrean_lens.LinkNodeTypeEnum{}
+		summaries, err := plugin.NewSummaryDao().FindByUserIDAndUrl(ctx, webReaderInfo.UserID, webReaderInfo.URL)
+		if err != nil || len(summaries) == 0 {
+			hlog.CtxErrorf(ctx, "get summary failed, err: %v", err)
+		} else {
+			for _, summary := range summaries {
+				if summary.CreateTime.Before(webReaderInfo.CreateTime.Add(1 * time.Minute)) {
+					summaryType := empyrean_lens.EntryTypeEnum(summary.EntryType)
+					summaryNodeTypes = append(summaryNodeTypes, utils.EntryTypeToNodeType(summaryType))
+				}
+			}
+		}
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
+		if len(summaryNodeTypes) == 0 {
 			noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
 				empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
 				empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
 				empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+				empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH,
 			}...)
+		}
+	case "语鲸web":
+		// 语鲸web端，没有fc日志，不需要模型生成
+		if webReaderInfo.CopyFromResourceID == "" {
+			start := webReaderInfo.CreateTime.Add(-24 * time.Hour)
+			end := webReaderInfo.CreateTime.Add(24 * time.Hour)
+			logs, _ := aliyun.SummaryGenerateQuery(ctx, webReaderInfo.ID.Hex(), start, end)
+			if len(logs) == 0 {
+				noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
+					empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+					empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
+					empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+				}...)
+			}
 		}
 	case "语鲸小助手", "语鲸小程序":
 		// 小助手，小程序没有关键信息
@@ -269,47 +724,74 @@ func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plug
 		}...)
 	}
 	// 过滤不需要的节点
-	return filterNeedNodeType(noNeedNodeType, pracessList, pracessMapping)
+	return filterUnNeedNodeType(noNeedNodeType, pracessList, pracessMapping)
 }
 
-func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
+func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File, withoutSummary bool) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
 	pracessList := consts.SingleFileProcessList
 	pracessMapping := consts.SingleFileProcessMapping
 	// 多文档不需要模型生成
-	if fileInfo.MultiId != "" {
+	if fileInfo.CopyFromResourceID == "" && fileInfo.MultiId != "" {
 		pracessList = consts.MultiFileProcessList
 		pracessMapping = consts.MultiFileProcessMapping
 	}
+	if fileInfo.CopyFromResourceID != "" {
+		pracessList = consts.SubscribeFileProcessList
+		pracessMapping = consts.SubscribeFileProcessMapping
+	}
 	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
-	// copy来源不需要，苏秦、edu、text
-	if fileInfo.CopyParseResultFrom != "" {
+	// copy来源不需要，不需要上传节点
+	if fileInfo.CopyFromResourceID != "" || fileInfo.CopyFromFildID != "" {
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
+	}
+	// 是否需要模型生成
+	if withoutSummary {
 		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
-			empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH,
 		}...)
 	}
 	// 模型生成
 	channelName := utils.ChannelIntToString(fileInfo.ChannelType)
 	switch channelName {
 	case "语鲸插件":
-		// 插件没有自动 模型生成
-		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
-			empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
-			empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
-		}...)
-	case "语鲸web":
-		// 语鲸web端，没有fc日志，不需要模型生成
-		start := fileInfo.CreateTime.Add(-24 * time.Hour)
-		end := fileInfo.CreateTime.Add(24 * time.Hour)
-		logs, _ := aliyun.SummaryGenerateQuery(ctx, fileInfo.ID.Hex(), start, end)
-		if len(logs) == 0 {
+		// 插件来源，是否已经生成，已生成需要记录
+		summaryNodeTypes := []empyrean_lens.LinkNodeTypeEnum{}
+		summaries, err := plugin.NewSummaryDao().FindByUserIDAndUrl(ctx, fileInfo.UserID, fileInfo.FileURL)
+		if err != nil || len(summaries) == 0 {
+			hlog.CtxErrorf(ctx, "get summary failed, err: %v", err)
+		} else {
+			for _, summary := range summaries {
+				if summary.CreateTime.Before(fileInfo.CreateTime.Add(1 * time.Minute)) {
+					summaryType := empyrean_lens.EntryTypeEnum(summary.EntryType)
+					summaryNodeTypes = append(summaryNodeTypes, utils.EntryTypeToNodeType(summaryType))
+				}
+			}
+		}
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
+		if len(summaryNodeTypes) == 0 {
 			noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
 				empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
 				empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
 				empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+				empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH,
 			}...)
+		}
+	case "语鲸web":
+		// 语鲸web端，没有fc日志，不需要模型生成
+		if fileInfo.CopyFromResourceID == "" {
+			start := fileInfo.CreateTime.Add(-24 * time.Hour)
+			end := fileInfo.CreateTime.Add(24 * time.Hour)
+			logs, _ := aliyun.SummaryGenerateQuery(ctx, fileInfo.ID.Hex(), start, end)
+			if len(logs) == 0 {
+				noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
+					empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+					empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
+					empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+				}...)
+			}
 		}
 	case "语鲸小助手", "语鲸小程序":
 		// 小助手，小程序没有关键信息
@@ -322,10 +804,70 @@ func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File) (
 		}...)
 	}
 	// 过滤不需要的节点
-	return filterNeedNodeType(noNeedNodeType, pracessList, pracessMapping)
+	return filterUnNeedNodeType(noNeedNodeType, pracessList, pracessMapping)
 }
 
-func filterNeedNodeType(noNeedNodeType []empyrean_lens.LinkNodeTypeEnum, pracessList []empyrean_lens.LinkNodeTypeEnum, pracessMapping map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
+func getSubscribeLinkTracePracessConfig(entryType int, isFromMulti, withoutSummary bool) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
+	pracessList := []empyrean_lens.LinkNodeTypeEnum{}
+	pracessMapping := map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{}
+	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
+	switch entryType {
+	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB):
+		if !isFromMulti {
+			pracessList, pracessMapping = consts.SubscribeWebReaderProcessList, consts.SubscribeWebReaderProcessMapping
+		} else {
+			pracessList, pracessMapping = consts.MultiWebReaderProcessList, consts.MultiWebReaderProcessMapping
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
+		}
+	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE):
+		if !isFromMulti {
+			pracessList, pracessMapping = consts.SubscribeFileProcessList, consts.SubscribeFileProcessMapping
+		} else {
+			pracessList, pracessMapping = consts.MultiFileProcessList, consts.MultiFileProcessMapping
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
+		}
+	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI):
+		pracessList, pracessMapping = consts.SubscribeMultiProcessList, consts.SubscribeMultiProcessMapping
+	}
+	// 过滤不需要的节点
+	if withoutSummary {
+		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
+			empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH,
+			empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH,
+		}...)
+	}
+	return filterUnNeedNodeType(noNeedNodeType, pracessList, pracessMapping)
+}
+
+func getSummaryLinkTracePracessConfig(ctx context.Context, summaryInfo *plugin.Summary) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
+	pracessList := []empyrean_lens.LinkNodeTypeEnum{}
+	pracessMapping := map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{}
+	switch summaryInfo.EntryType {
+	case int(empyrean_lens.EntryTypeEnum_SUMMARY):
+		pracessList = append(pracessList, empyrean_lens.LinkNodeTypeEnum_SUMMARY_RETRY_FINISH)
+	case int(empyrean_lens.EntryTypeEnum_OUTLINE):
+		pracessList = append(pracessList, empyrean_lens.LinkNodeTypeEnum_OUTLINE_RETRY_FINISH)
+	case int(empyrean_lens.EntryTypeEnum_VIEWPOINT):
+		pracessList = append(pracessList, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_RETRY_FINISH)
+	}
+	return pracessList, pracessMapping
+}
+
+func getMultiLinkTracePracessConfig(ctx context.Context, multiInfo *plugin.MultiModel) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
+	pracessList, pracessMapping := consts.MultiProcessList, consts.MultiProcessMapping
+	if multiInfo.CopyFromMultiID != "" || multiInfo.CopyFromResourceID != "" {
+		return []empyrean_lens.LinkNodeTypeEnum{
+			empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH,
+		}, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{}
+	}
+	return pracessList, pracessMapping
+}
+
+func filterUnNeedNodeType(noNeedNodeType []empyrean_lens.LinkNodeTypeEnum, pracessList []empyrean_lens.LinkNodeTypeEnum, pracessMapping map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
 	newPracessList := []empyrean_lens.LinkNodeTypeEnum{}
 	for _, pracessType := range pracessList {
 		if !utils.Contains(noNeedNodeType, pracessType) {
@@ -363,6 +905,21 @@ func filterNeedNodeType(noNeedNodeType []empyrean_lens.LinkNodeTypeEnum, pracess
 
 func findLinkTraceFromMongo(ctx context.Context, entryType int, entryID string,
 	pracessList []empyrean_lens.LinkNodeTypeEnum, pracessMapping map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) (*empyrean_lens.TraceLinkGraph, *consts.BizCode) {
+	if len(pracessList) == 0 {
+		return &empyrean_lens.TraceLinkGraph{
+			Nodes: []*empyrean_lens.GraphNode{},
+			Edges: map[string][]string{},
+		}, nil
+	}
+	// 先查数据库
+	entryInfo, err := bi.NewEntryInfoDao().FindByEntryIDAndEntryType(ctx, entryID, entryType)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindByEntryIDAndEntryType] get entry actions failed, err: %v", err)
+		return nil, &consts.QueryRecordError
+	}
+	if entryInfo == nil {
+		return nil, nil
+	}
 	// 先查数据库
 	entryActions, err := bi.NewEntryActionDao().FindByEntryTypeEntryID(ctx, entryType, entryID)
 	if err != nil {
@@ -380,6 +937,13 @@ func findLinkTraceFromMongo(ctx context.Context, entryType int, entryID string,
 		if _, ok := nodeMappingNew[actionType]; !ok {
 			if utils.Contains(pracessList, empyrean_lens.LinkNodeTypeEnum(action.ActionType)) {
 				nodeMappingNew[actionType] = action.TranslateGraphNode()
+				if entryType == int(empyrean_lens.EntryTypeEnum_OUTLINE) {
+					if entryInfo.OutlineType == 2 {
+						nodeMappingNew[actionType].Name = "详细" + nodeMappingNew[actionType].Name
+					} else {
+						nodeMappingNew[actionType].Name = "简单" + nodeMappingNew[actionType].Name
+					}
+				}
 				nodes = append(nodes, nodeMappingNew[actionType])
 			}
 		}
@@ -388,13 +952,13 @@ func findLinkTraceFromMongo(ctx context.Context, entryType int, entryID string,
 	for pracessType, pracessTypeList := range pracessMapping {
 		node1, ok := nodeMappingNew[pracessType]
 		if !ok || node1 == nil {
-			continue
+			node1 = makeEmptyNode(pracessType)
 		}
 		edges[node1.ID] = []empyrean_lens.NodeId{}
 		for _, itemType := range pracessTypeList {
 			node2, ok := nodeMappingNew[itemType]
 			if !ok || node2 == nil {
-				continue
+				node2 = makeEmptyNode(pracessType)
 			}
 			edges[node1.ID] = append(edges[node1.ID], node2.ID)
 		}
@@ -409,6 +973,12 @@ func findLinkTraceFromMongo(ctx context.Context, entryType int, entryID string,
 // 获取链路追踪图
 func LinkTraceGraph(ctx context.Context, entryInfo *bi.EntryInfo, start, end time.Time,
 	pracessList []empyrean_lens.LinkNodeTypeEnum, pracessMapping map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) (*empyrean_lens.TraceLinkGraph, *consts.BizCode) {
+	if len(pracessList) == 0 {
+		return &empyrean_lens.TraceLinkGraph{
+			Nodes: []*empyrean_lens.GraphNode{},
+			Edges: map[string][]string{},
+		}, nil
+	}
 	// 并发获取节点日志
 	wg, nodeMapping := sync.WaitGroup{}, sync.Map{}
 	wg.Add(len(pracessList))
@@ -500,8 +1070,48 @@ func LinkTraceGraph(ctx context.Context, entryInfo *bi.EntryInfo, start, end tim
 	}, nil
 }
 
-// 获取节点日志
 func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeEnum, entryInfo *bi.EntryInfo, start, end time.Time) (*empyrean_lens.GraphNode, *consts.BizCode) {
+	if entryInfo.ParentEntryID != "" && utils.IsCopyNodeType(entryInfo.ParentEntryType, int(processType)) {
+		// 先从数据库拿日志
+		entryActions, err := bi.NewEntryActionDao().FindByEntryTypeEntryIDNodeType(ctx, entryInfo.ParentEntryType, int(processType), entryInfo.ParentEntryID)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[FindByEntryTypeEntryIDNodeType] get entry actions failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		if len(entryActions) != 0 && len(entryActions[0].ActionIOs) != 0 {
+			name := entryActions[0].TranslateGraphNode().Name
+			if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_OUTLINE) {
+				if entryInfo.OutlineType == 2 {
+					name = "详细" + name
+				} else {
+					name = "简单" + name
+				}
+			}
+			return &empyrean_lens.GraphNode{
+				ID:         primitive.NewObjectID().Hex(),
+				Name:       name,
+				Type:       processType,
+				Status:     empyrean_lens.ActionStatusEnum(entryActions[0].ActionStatus),
+				EnterTime:  entryActions[0].ActionStartTime.Format(consts.DateTimeTemplate),
+				FinishTime: entryActions[0].ActionEndTime.Format(consts.DateTimeTemplate),
+				TraceID:    entryActions[0].ActionIOs[0].TraceID,
+			}, nil
+		}
+		// 获取文章信息
+		newEntryInfo, bizCode := GetEntryInfo(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "get entry info failed, err: %v", bizCode)
+			return nil, &consts.QueryRecordError
+		}
+		start := newEntryInfo.EntryCreateTime.Add(-24 * time.Hour)
+		end := newEntryInfo.EntryCreateTime.Add(24 * time.Hour)
+		return doGetProcessNode(ctx, processType, newEntryInfo, start, end)
+	}
+	return doGetProcessNode(ctx, processType, entryInfo, start, end)
+}
+
+// 获取节点日志
+func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeEnum, entryInfo *bi.EntryInfo, start, end time.Time) (*empyrean_lens.GraphNode, *consts.BizCode) {
 	switch processType {
 	case empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:
 		processLogs, err := aliyun.ResourceUploadQuery(ctx, entryInfo.EntryID, consts.EntryTypeMap[entryInfo.EntryType], start, end)
@@ -550,7 +1160,16 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 		}
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:
-		processLogs, err := aliyun.PDFParserQuery(ctx, entryInfo.EntryID, start, end)
+		// 查询copy日志
+		processLogs, err := aliyun.PDFParserCopyQuery(ctx, entryInfo.EntryID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[PDFParserCopyQuery] get process logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		if len(processLogs) > 0 {
+			return makeEmptyNode(processType), nil
+		}
+		processLogs, err = aliyun.PDFParserQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[PDFParserQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
@@ -642,16 +1261,7 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		processLogs := []aliyun.FileProcessLog{}
-		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
-			processLogs = append(processLogs, apiLogsInput[0])
-			for _, apiLogOuput := range apiLogsOuput {
-				if apiLogOuput.TraceId == apiLogsInput[0].TraceId {
-					processLogs = append([]aliyun.FileProcessLog{apiLogsInput[0]}, apiLogOuput)
-					break
-				}
-			}
-		}
+		processLogs := append(apiLogsInput, apiLogsOuput...)
 		// 兜底，长度不够
 		if len(processLogs) == 0 && entryInfo.ContentSize < 100 {
 			node := makeEmptyNode(processType)
@@ -661,20 +1271,23 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:
 		// 查数据库，没有记录，说明未执行/长度不够
-		count, err := plugin.NewSummaryDao().CountByUserIDAndUrl(ctx, entryInfo.UserID, entryInfo.EntryURL, int(empyrean_lens.EntryTypeEnum_SUMMARY))
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[CountByUserIDAndUrl] count summary num fail, err: %v", err)
-			return nil, &consts.QueryRecordError
-		}
-		if count == 0 {
-			node := makeEmptyNode(processType)
-			// 兜底，长度不够
-			if entryInfo.ContentSize < 100 {
-				node.Status = empyrean_lens.ActionStatusEnum_LENGTH_ERROR
-			} else {
-				node.Status = empyrean_lens.ActionStatusEnum_UNREACHEAD
+		// 订阅文章，生成内容不会入库
+		if !utils.IsSubscribe(int(entryInfo.EntryType)) {
+			count, err := plugin.NewSummaryDao().CountByUserIDAndUrl(ctx, entryInfo.UserID, entryInfo.EntryURL, int(empyrean_lens.EntryTypeEnum_SUMMARY))
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[CountByUserIDAndUrl] count summary num fail, err: %v", err)
+				return nil, &consts.QueryRecordError
 			}
-			return node, nil
+			if count == 0 {
+				node := makeEmptyNode(processType)
+				// 兜底，长度不够
+				if entryInfo.ContentSize < 100 {
+					node.Status = empyrean_lens.ActionStatusEnum_LENGTH_ERROR
+				} else {
+					node.Status = empyrean_lens.ActionStatusEnum_UNREACHEAD
+				}
+				return node, nil
+			}
 		}
 		processLogs1, err := aliyun.SingleOverviewBeginQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
@@ -723,15 +1336,7 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 				hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQueryByTraceID] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
-				processLogs = append(processLogs, apiLogsInput[0])
-				for _, apiLogOuput := range apiLogsOuput {
-					if apiLogOuput.TraceId == apiLogsInput[0].TraceId {
-						processLogs = append([]aliyun.FileProcessLog{apiLogsInput[0]}, apiLogOuput)
-						break
-					}
-				}
-			}
+			processLogs = append(apiLogsInput, apiLogsOuput...)
 		}
 		// 兜底，长度不够
 		if len(processLogs) == 0 && entryInfo.ContentSize < 100 {
@@ -742,23 +1347,28 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:
 		// 查数据库，没有记录，说明未执行/长度不够
-		count, err := plugin.NewSummaryDao().CountByUserIDAndUrl(ctx, entryInfo.UserID, entryInfo.EntryURL, int(empyrean_lens.EntryTypeEnum_OUTLINE))
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[CountByUserIDAndUrl] count summary num fail, err: %v", err)
-			return nil, &consts.QueryRecordError
-		}
-		if count == 0 {
-			node := makeEmptyNode(processType)
-			// 兜底，长度不够
-			if entryInfo.ContentSize < 1000 {
-				node.Status = empyrean_lens.ActionStatusEnum_LENGTH_ERROR
-			} else {
-				node.Status = empyrean_lens.ActionStatusEnum_UNREACHEAD
+		// 订阅文章，生成内容不会入库
+		userID := "resource_server"
+		if !utils.IsSubscribe(int(entryInfo.EntryType)) {
+			userID = entryInfo.UserID
+			count, err := plugin.NewSummaryDao().CountByUserIDAndUrl(ctx, entryInfo.UserID, entryInfo.EntryURL, int(empyrean_lens.EntryTypeEnum_OUTLINE))
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[CountByUserIDAndUrl] count summary num fail, err: %v", err)
+				return nil, &consts.QueryRecordError
 			}
-			return node, nil
+			if count == 0 {
+				node := makeEmptyNode(processType)
+				// 兜底，长度不够
+				if entryInfo.ContentSize < 1000 {
+					node.Status = empyrean_lens.ActionStatusEnum_LENGTH_ERROR
+				} else {
+					node.Status = empyrean_lens.ActionStatusEnum_UNREACHEAD
+				}
+				return node, nil
+			}
 		}
 		// 有记录时再查日志
-		apiLogsInput, err := aliyun.OutlineModelOutRequestQuery(ctx, entryInfo.EntryID, entryInfo.UserID, start, end)
+		apiLogsInput, err := aliyun.OutlineModelOutRequestQuery(ctx, entryInfo.EntryID, userID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[OutlineModelOutRequestQuery] get api logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
@@ -776,7 +1386,7 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 				return nil, &consts.QueryRecordError
 			}
 			if len(traceIDLogs) > 0 && traceIDLogs[0].TraceId != "" {
-				apiLogsInput, err = aliyun.OutlineModelOutRequestQueryByTraceID(ctx, traceIDLogs[0].TraceId, entryInfo.UserID, start, end)
+				apiLogsInput, err = aliyun.OutlineModelOutRequestQueryByTraceID(ctx, traceIDLogs[0].TraceId, userID, start, end)
 				if err != nil {
 					hlog.CtxErrorf(ctx, "[OutlineModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
 					return nil, &consts.QueryRecordError
@@ -792,16 +1402,7 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 		if len(apiLogsInput) != 0 && len(apiLogsOuput) == 0 {
 			return processLogsToNode(processType, apiLogsInput), nil
 		}
-		processLogs := []aliyun.FileProcessLog{}
-		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
-			processLogs = append(processLogs, apiLogsInput[0])
-			for _, apiLogOuput := range apiLogsOuput {
-				if apiLogOuput.TraceId == apiLogsInput[0].TraceId {
-					processLogs = append([]aliyun.FileProcessLog{apiLogsInput[0]}, apiLogOuput)
-					break
-				}
-			}
-		}
+		processLogs := append(apiLogsInput, apiLogsOuput...)
 		// 兜底，长度不够
 		if len(processLogs) == 0 && entryInfo.ContentSize < 1000 {
 			node := makeEmptyNode(processType)
@@ -815,6 +1416,19 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			hlog.CtxErrorf(ctx, "[MultiAnalysisQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
+		if len(processLogs) == 0 {
+			apiLogsInput, err := aliyun.MultiSingleAnalysisModelOutRequestQuery(ctx, entryInfo.EntryID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			apiLogsOuput, err := aliyun.MultiSingleAnalysisModelOutResponseQuery(ctx, entryInfo.EntryID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			return processLogsToNode(processType, append(apiLogsInput, apiLogsOuput...)), nil
+		}
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH:
 		processLogs, err := aliyun.MultiThemeQuery(ctx, entryInfo.EntryID, start, end)
@@ -822,12 +1436,57 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			hlog.CtxErrorf(ctx, "[MultiThemeQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
+		// 订阅来源，需要查询traceID
+		if len(processLogs) == 0 || utils.IsSubscribe(int(entryInfo.EntryType)) {
+			traceLogs, err := aliyun.ResourceTraceIDQuery(ctx, entryInfo.EntryID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[ResourceTraceIDQuery] get trace logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			if len(traceLogs) != 0 {
+				traceID := traceLogs[0].TraceId
+				apiLogsInput, err := aliyun.MultiThemeModelOutRequestQuery(ctx, traceID, start, end)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+					return nil, &consts.QueryRecordError
+				}
+				apiLogsOuput, err := aliyun.MultiThemeModelOutResponseQuery(ctx, traceID, start, end)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+					return nil, &consts.QueryRecordError
+				}
+				processLogs = append(apiLogsInput, apiLogsOuput...)
+			}
+		}
 		return processLogsToNode(processType, processLogs), nil
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:
+		// 订阅来源，需要查询traceID
 		processLogs, err := aliyun.MultiOutlineQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[MultiOutlineQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
+		}
+		// 订阅来源，需要查询traceID
+		if len(processLogs) == 0 || utils.IsSubscribe(int(entryInfo.EntryType)) {
+			traceLogs, err := aliyun.ResourceTraceIDQuery(ctx, entryInfo.EntryID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[ResourceTraceIDQuery] get trace logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			if len(traceLogs) != 0 {
+				traceID := traceLogs[0].TraceId
+				apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, traceID, start, end)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+					return nil, &consts.QueryRecordError
+				}
+				apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, traceID, start, end)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+					return nil, &consts.QueryRecordError
+				}
+				processLogs = append(apiLogsInput, apiLogsOuput...)
+			}
 		}
 		// 为空，使用错误日志兜底
 		if len(processLogs) == 0 {
@@ -845,6 +1504,174 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 			}
 		}
 		return processLogsToNode(processType, processLogs), nil
+	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_RETRY_FINISH:
+		node := makeEmptyNode(processType)
+		// 获取summary记录
+		summaryInfo, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(empyrean_lens.EntryTypeEnum_SUMMARY), entryInfo.EntryID)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[QueryByTypeAndID] get summary info failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		// 获取traceID
+		logs, err := aliyun.TraceIDQuery(ctx, entryInfo.EntryID, start, end)
+		if err != nil || len(logs) == 0 {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get traceID failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		traceID := logs[0].TraceId
+		node.TraceID = traceID
+		if summaryInfo == nil || summaryInfo.Content == "" {
+			node.Status = empyrean_lens.ActionStatusEnum_FAIL
+			return node, nil
+		}
+		// 查输入输出
+		apiLogsInput, err := aliyun.AbstractModelOutRequestQueryByTraceID(ctx, traceID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		apiLogsOuput, err := aliyun.AbstractModelOutResponseQueryByTraceID(ctx, traceID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		node.EnterTime = summaryInfo.CreateTime.Format(consts.DateTimeTemplate)
+		if len(apiLogsInput) > 0 {
+			node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+		}
+		node.FinishTime = summaryInfo.UpdateTime.Format(consts.DateTimeTemplate)
+		if len(apiLogsOuput) > 0 {
+			node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
+		}
+		node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		node.TraceID = traceID
+		return node, nil
+	case empyrean_lens.LinkNodeTypeEnum_KEY_INFO_RETRY_FINISH:
+		node := makeEmptyNode(processType)
+		// 获取summary记录
+		summaryInfo, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(empyrean_lens.EntryTypeEnum_VIEWPOINT), entryInfo.EntryID)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[QueryByTypeAndID] get summary info failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		// 获取traceID
+		logs, err := aliyun.TraceIDQuery(ctx, entryInfo.EntryID, start, end)
+		if err != nil || len(logs) == 0 {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get traceID failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		traceID := logs[0].TraceId
+		node.TraceID = traceID
+		if summaryInfo == nil || summaryInfo.Content == "" {
+			node.Status = empyrean_lens.ActionStatusEnum_FAIL
+			return node, nil
+		}
+		// 查输入输出
+		apiLogsInput, err := aliyun.ViewPointModelOutRequestQuery(ctx, traceID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		apiLogsOuput, err := aliyun.ViewPointModelOutResponseQuery(ctx, traceID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		node.EnterTime = summaryInfo.CreateTime.Format(consts.DateTimeTemplate)
+		if len(apiLogsInput) > 0 {
+			node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+		}
+		node.FinishTime = summaryInfo.UpdateTime.Format(consts.DateTimeTemplate)
+		if len(apiLogsOuput) > 0 {
+			node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
+		}
+		node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		node.TraceID = traceID
+		return node, nil
+	case empyrean_lens.LinkNodeTypeEnum_OUTLINE_RETRY_FINISH:
+		node := makeEmptyNode(processType)
+		// 获取summary记录
+		summaryInfo, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(empyrean_lens.EntryTypeEnum_OUTLINE), entryInfo.EntryID)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[QueryByTypeAndID] get summary info failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		// 获取traceID
+		logs, err := aliyun.TraceIDQuery(ctx, entryInfo.EntryID, start, end)
+		if err != nil || len(logs) == 0 {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get traceID failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		traceID := logs[0].TraceId
+		node.TraceID = traceID
+		if summaryInfo == nil || summaryInfo.Content == "" {
+			node.Status = empyrean_lens.ActionStatusEnum_FAIL
+			return node, nil
+		}
+		// 查输入输出
+		apiLogsInput, err := aliyun.OutlineModelOutRequestQueryByTraceID(ctx, traceID, entryInfo.UserID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		apiLogsOuput, err := aliyun.OutlineModelOutResponseQuery(ctx, traceID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		node.EnterTime = summaryInfo.CreateTime.Format(consts.DateTimeTemplate)
+		if len(apiLogsInput) > 0 {
+			node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+		}
+		node.FinishTime = summaryInfo.UpdateTime.Format(consts.DateTimeTemplate)
+		if len(apiLogsOuput) > 0 {
+			node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
+		}
+		node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		node.TraceID = traceID
+		return node, nil
+	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_RETRY_FINISH:
+		node := makeEmptyNode(processType)
+		// 获取traceID
+		logs, err := aliyun.TraceIDQuery(ctx, entryInfo.EntryID, start, end)
+		if err != nil || len(logs) == 0 {
+			hlog.CtxErrorf(ctx, "[NodeApiLogs] get traceID failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		traceID := logs[0].TraceId
+		apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, traceID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[MultiOutlineModelOutRequestQuery] get process logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, traceID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[MultiOutlineModelOutResponseQuery] get process logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		node.EnterTime = logs[0].Asctime.Format(consts.DateTimeTemplate)
+		if len(apiLogsInput) > 0 {
+			node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+		}
+		node.FinishTime = logs[0].Asctime.Format(consts.DateTimeTemplate)
+		if len(apiLogsOuput) > 0 {
+			node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
+		}
+		node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		node.TraceID = traceID
+		return node, nil
+	case empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH:
+		apiLogsInput, err := aliyun.NovelFormOutRequestQuery(ctx, entryInfo.EntryID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NovelFormOutRequestQuery] get process logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		apiLogsOuput, err := aliyun.NovelFormOutResponseQuery(ctx, entryInfo.EntryID, start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[NovelFormOutResponseQuery] get process logs failed, err: %v", err)
+			return nil, &consts.QueryRecordError
+		}
+		return processLogsToNode(processType, append(apiLogsInput, apiLogsOuput...)), nil
 	}
 	return makeEmptyNode(processType), nil
 }
@@ -852,26 +1679,6 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliyun.FileProcessLog) *empyrean_lens.GraphNode {
 	if len(processLogs) == 0 {
 		return makeEmptyNode(nodeType)
-	}
-	if utils.InSlice(consts.LinkNodeTypeName[nodeType], []string{"概述生成", "关键信息生成", "大纲生成"}) && len(processLogs) != 0 {
-		length := len(processLogs)
-		enterTime := processLogs[0].Asctime
-		processLog := processLogs[length-1]
-		for _, log := range processLogs {
-			if log.Cost != 0 && log.Asctime.Before(enterTime) {
-				processLog = log
-				break
-			}
-		}
-		return &empyrean_lens.GraphNode{
-			ID:         empyrean_lens.NodeId(primitive.NewObjectID().Hex()),
-			Type:       nodeType,
-			Name:       consts.LinkNodeTypeName[nodeType],
-			EnterTime:  enterTime.Format(consts.DateTimeTemplate),
-			FinishTime: processLog.Asctime.Format(consts.DateTimeTemplate),
-			Status:     getActionStatus(nodeType, []aliyun.FileProcessLog{processLog}),
-			TraceID:    processLog.TraceId,
-		}
 	}
 	enterTime := processLogs[0].Asctime.Add(-time.Millisecond * time.Duration(processLogs[0].Cost*1000))
 	return &empyrean_lens.GraphNode{
@@ -895,7 +1702,9 @@ func mergeLinkTraceGraph(headers []*empyrean_lens.TraceLinkGraph, tail *empyrean
 				edges[node.ID] = header.Edges[node.ID]
 			} else {
 				edges[node.ID] = make([]empyrean_lens.NodeId, 0)
-				edges[node.ID] = append(edges[node.ID], tail.Nodes[0].ID)
+				if len(tail.Nodes) > 0 {
+					edges[node.ID] = append(edges[node.ID], tail.Nodes[0].ID)
+				}
 			}
 		}
 	}
@@ -916,21 +1725,6 @@ func mergeLinkTraceGraph(headers []*empyrean_lens.TraceLinkGraph, tail *empyrean
 		Nodes: nodes,
 		Edges: edges,
 	}
-}
-
-func getLinkTraceCost(nodes []*empyrean_lens.GraphNode) float64 {
-	startAt, endAt := "", ""
-	for _, node := range nodes {
-		if startAt == "" || strings.Compare(startAt, node.EnterTime) > 0 {
-			startAt = node.EnterTime
-		}
-		if endAt == "" || strings.Compare(endAt, node.FinishTime) < 0 {
-			endAt = node.FinishTime
-		}
-	}
-	startAtT, _ := time.Parse(consts.DateTimeTemplate, startAt)
-	endAtT, _ := time.Parse(consts.DateTimeTemplate, endAt)
-	return endAtT.Sub(startAtT).Seconds()
 }
 
 func makeEmptyNode(nodeType empyrean_lens.LinkNodeTypeEnum) *empyrean_lens.GraphNode {
@@ -1049,63 +1843,91 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 	}
 	switch nodeType {
 	case empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:
+		// 正排判断是否成功
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
 		if strings.Contains(processLogs[0].Message, "成功") {
 			return empyrean_lens.ActionStatusEnum_SUCCESS
 		}
 		return empyrean_lens.ActionStatusEnum_FAIL
 	case empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:
-		if strings.Contains(processLogs[0].Message, "wcd text nil") || strings.Contains(processLogs[0].Message, "wcd worthless") {
-			return empyrean_lens.ActionStatusEnum_WORTHLESS
-		}
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.After(processLogs[j].Asctime)
+		})
 		for _, processLog := range processLogs {
 			if strings.Contains(processLog.Message, "WcdRaw do req error") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
+			if strings.Contains(processLog.Message, "wcd text nil") || strings.Contains(processLog.Message, "wcd worthless") {
+				return empyrean_lens.ActionStatusEnum_WORTHLESS
+			}
 		}
 	case empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.After(processLogs[j].Asctime)
+		})
 		for _, processLog := range processLogs {
 			if strings.Contains(processLog.Message, "苏秦解析异常") || strings.Contains(processLog.Message, "pdf解析异常") || strings.Contains(processLog.Message, "parsing file failed") || strings.Contains(processLog.Message, "请求异常") || strings.Contains(processLog.Message, "read pdf fail") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}
 	case empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.After(processLogs[j].Asctime)
+		})
 		for _, processLog := range processLogs {
 			if (strings.Contains(processLog.Message, "parse_edu") && strings.Contains(processLog.Message, "error")) || strings.Contains(processLog.Message, "ParseEdu error") || strings.Contains(processLog.Message, "edu parse error") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}
 	case empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.After(processLogs[j].Asctime)
+		})
 		for _, processLog := range processLogs {
-			if (strings.Contains(processLog.Message, "parse_edu") && strings.Contains(processLog.Message, "error")) || strings.Contains(processLog.Message, "ParseEdu error") || strings.Contains(processLog.Message, "edu parse error") {
+			if strings.Contains(processLog.Message, "edu parse error") || strings.Contains(processLog.Message, "edu parse fail") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}
-	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:
+	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
+		empyrean_lens.LinkNodeTypeEnum_SUMMARY_RETRY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_RETRY_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_RETRY_FINISH:
+		// 正排判断是否成功
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
 		for _, processLog := range processLogs {
-			if !strings.Contains(processLog.Message, "OutRequest") && (strings.Contains(processLog.Message, "error") || strings.Contains(processLog.Message, "fail")) {
-				return empyrean_lens.ActionStatusEnum_FAIL
-			}
 			if strings.Contains(processLog.Message, "OutRequest") && strings.Contains(processLog.Message, "resp:") {
 				// 解码
 				msg := GetReqRespFromMsg(processLog.Message, "resp:")
-				if !strings.Contains(msg, "\\\"code\\\": 0") && !strings.Contains(msg, "data too long") {
-					return empyrean_lens.ActionStatusEnum_FAIL
-				}
-				if strings.Contains(msg, "data too long") {
+				if strings.Contains(msg, "data too long") || strings.Contains(msg, "\\\"code\\\": 0") {
 					return empyrean_lens.ActionStatusEnum_SUCCESS
 				}
 			} else if strings.Contains(processLog.Message, "core core_name:") {
 				return empyrean_lens.ActionStatusEnum_SUCCESS
-			} else {
-				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}
-	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:
+		return empyrean_lens.ActionStatusEnum_FAIL
+	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH, empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_RETRY_FINISH:
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.After(processLogs[j].Asctime)
+		})
 		for _, processLog := range processLogs {
 			if strings.Contains(processLog.Message, "不安全") || strings.Contains(processLog.Message, "core error") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}
+	case empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH:
+		// 正排判断是否成功
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "status Ready") {
+				return empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
+		return empyrean_lens.ActionStatusEnum_FAIL
 	}
 	return empyrean_lens.ActionStatusEnum_SUCCESS
 }

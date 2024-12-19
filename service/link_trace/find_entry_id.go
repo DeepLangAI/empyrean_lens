@@ -105,6 +105,9 @@ func getEntryIdFromLog(log aliyun.EndToEndLog) []string {
 	if entryIds = extractEntryIds(log.Message, "\"resource_ids\":"); len(entryIds) != 0 {
 		return entryIds
 	}
+	if entryIds = extractEntryIds(log.Message, "\"entry_id\":"); len(entryIds) != 0 {
+		return entryIds
+	}
 	return []string{}
 }
 

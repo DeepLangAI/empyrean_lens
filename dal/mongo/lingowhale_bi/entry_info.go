@@ -24,6 +24,13 @@ type MultiArticles struct {
 	EntryType int    `json:"entry_type" bson:"entry_type"`
 }
 
+type SourceEntryInfo struct {
+	EntryID       string          `json:"entry_id" bson:"entry_id"`
+	EntryType     int             `json:"entry_type" bson:"entry_type"`
+	MultiID       string          `json:"multi_id" bson:"multi_id"`
+	MultiArticles []MultiArticles `json:"multi_articles" bson:"multi_articles"`
+}
+
 type EntryInfo struct {
 	ID              primitive.ObjectID `bson:"_id" json:"_id"`
 	EntryID         string             `json:"entry_id" bson:"entry_id"`
@@ -33,11 +40,16 @@ type EntryInfo struct {
 	DataType        int                `json:"data_type" bson:"data_type"`
 	MultiID         string             `json:"multi_id" bson:"multi_id"`
 	MultiArticles   []MultiArticles    `json:"multi_articles" bson:"multi_articles"`
+	SourceEntryInfo SourceEntryInfo    `json:"source_entry_info" bson:"source_entry_info"`
+	Summaries       []MultiArticles    `json:"summaries" bson:"summaries"`
+	Language        string             `json:"language" bson:"language"`
 	UserID          string             `json:"user_id" bson:"user_id"`
 	UserType        int                `json:"user_type" bson:"user_type"`
 	Title           string             `json:"title" bson:"title"`
 	ChannelType     int                `json:"channel_type" bson:"channel_type"`
+	OutlineType     int                `json:"outline_type" bson:"outline_type"`
 	ParentEntryID   string             `json:"parent_entry_id" bson:"parent_entry_id"`
+	ParentEntryType int                `json:"parent_entry_type" bson:"parent_entry_type"`
 	EntryURL        string             `json:"entry_url" bson:"entry_url"`
 	Status          int                `json:"status" bson:"status"`
 	LinkStatus      int                `json:"link_status" bson:"link_status"`
@@ -84,7 +96,7 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 	// 存在，upload
 	if info != nil {
 		filter := bson.M{"entry_id": entryInfo.EntryID, "entry_type": entryInfo.EntryType}
-		update := bson.M{"title": entryInfo.Title, "multi_id": entryInfo.MultiID, "status": entryInfo.Status, "link_status": entryInfo.LinkStatus, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles, "parent_entry_id": entryInfo.ParentEntryID}
+		update := bson.M{"title": entryInfo.Title, "multi_id": entryInfo.MultiID, "status": entryInfo.Status, "outline_type": entryInfo.OutlineType, "link_status": entryInfo.LinkStatus, "entry_url": entryInfo.EntryURL, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles, "summaries": entryInfo.Summaries, "parent_entry_id": entryInfo.ParentEntryID, "source_entry_info": entryInfo.SourceEntryInfo, "entry_create_time": entryInfo.EntryCreateTime}
 		_, err := biCollection.Collection(TableNameEntryInfo()).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)
@@ -123,7 +135,6 @@ func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, only
 	var entryInfos []*EntryInfo
 	filter := bson.M{
 		"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime},
-		"parent_entry_id":   "",
 		"multi_id":          "",
 	}
 	if len(status) > 0 {
@@ -151,11 +162,10 @@ func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, only
 
 func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
 	var entryInfos []*EntryInfo
-	queryFilter := bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"entry_url": query}, {"multi_articles.entry_id": query}, {"entry_id": query}}}
+	queryFilter := bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"entry_url": query}, {"multi_articles.entry_id": query}, {"entry_id": query}, {"source_entry_info.entry_id": query}}}
 	filter := bson.M{"$and": []bson.M{
 		queryFilter,
 		{"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime}},
-		{"parent_entry_id": ""},
 	}}
 	if len(status) > 0 {
 		filter["link_status"] = bson.M{"$in": status}
@@ -216,12 +226,32 @@ func (d *EntryInfoDao) FindByEntryIDAndEntryType(ctx context.Context, entryID st
 	return entryInfo, nil
 }
 
+func (d *EntryInfoDao) FindBySummaryID(ctx context.Context, summaryID string) (*EntryInfo, error) {
+	entryInfo := &EntryInfo{}
+	err := biCollection.Collection(TableNameEntryInfo()).FindOne(ctx, bson.M{"summaries.entry_id": summaryID}).Decode(entryInfo)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		hlog.CtxErrorf(ctx, "db error, method:FindBySummaryID, err:%+v", err)
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "FindBySummaryID, entryInfo exist entryId:%s", summaryID)
+	return entryInfo, nil
+}
+
 func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 	resources := []*empyrean_lens.ResourceInfo{}
 	for _, v := range d.MultiArticles {
 		resources = append(resources, &empyrean_lens.ResourceInfo{
 			EntryID:   v.EntryId,
 			EntryType: empyrean_lens.EntryTypeEnum(v.EntryType),
+		})
+	}
+	if d.SourceEntryInfo.EntryID != "" {
+		resources = append(resources, &empyrean_lens.ResourceInfo{
+			EntryID:   d.SourceEntryInfo.EntryID,
+			EntryType: empyrean_lens.EntryTypeEnum(d.SourceEntryInfo.EntryType),
 		})
 	}
 	if len(resources) == 0 {
@@ -235,6 +265,10 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 	if status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
 		status = empyrean_lens.ActionStatusEnum_FAIL
 	}
+	// user id
+	if d.UserID == "" {
+		d.UserID = "resource_server"
+	}
 	return &empyrean_lens.UserActionRespRow{
 		UserID:     d.UserID,
 		EntryID:    d.EntryID,
@@ -244,7 +278,7 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 		Resources:  resources,
 		Cost:       float64(d.Cost) / 1000,
 		Status:     empyrean_lens.ActionStatusEnum(d.LinkStatus),
-		ActionName: utils.GetActionName(d.EntryType, d.MultiID),
+		ActionName: utils.GetActionName(d.EntryType, d.MultiID, d.ParentEntryID, d.Language, d.OutlineType),
 		CreateTime: d.EntryCreateTime.Local().Format(consts.DateTimeTemplate),
 	}
 }

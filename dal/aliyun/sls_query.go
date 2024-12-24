@@ -3204,7 +3204,7 @@ func MultiTraceIDErrorQuery(ctx context.Context, traceID string, timeBegin, time
 }
 
 func MultiOutlineErrorTraceQuery(ctx context.Context, multiID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `"update multiple success" and "{'summary_status': 3}" and "%s"`
+	query := `message: "OutRequest multi_outline req" and "%s"`
 	query = fmt.Sprintf(query, multiID)
 	hlog.CtxDebugf(ctx, "MultiOutlineErrorTraceQuery query: %s", query)
 

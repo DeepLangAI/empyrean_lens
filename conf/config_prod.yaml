@@ -15,7 +15,7 @@ mongo_plugin:
   maxPoolSize: 1000
 
 mongo_bi:
-  addr: "mongodb://svr_liuyong:KSsCNS0SLpHY#S9Oro@dds-8vb43194a1bfeef41943-pub.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef42299-pub.mongodb.zhangbei.rds.aliyuncs.com:3717/lingowhale_bi?replicaSet=mgset-518525368"
+  addr: "mongodb://svr_lingowhale_bi:C1xvc_Umk81c8a@dds-8vb43194a1bfeef42.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef41.mongodb.zhangbei.rds.aliyuncs.com:3717/lingowhale_bi?replicaSet=mgset-518525368"
   databaseName: lingowhale_bi
   maxPoolSize: 1000
 

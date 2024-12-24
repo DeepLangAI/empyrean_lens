@@ -14,6 +14,7 @@ import (
 	"empyrean_lens/dal/aliyun"
 	bi "empyrean_lens/dal/mongo/lingowhale_bi"
 	"empyrean_lens/dal/mongo/plugin"
+	"empyrean_lens/tools"
 	"empyrean_lens/utils"
 
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
@@ -854,6 +855,35 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 			Input:      inputStr,
 			Output:     outputStr,
 			TraceID:    input.TraceId,
+		}
+		// wcd 记录 oss链接
+		if node.Type == empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH {
+			outputJson := map[string]interface{}{}
+			resp := strings.Split(output.Message, "resp:")[1]
+			err := json.Unmarshal([]byte(resp), &outputJson)
+			if err == nil {
+				// 获取oss列表
+				key, bucket := "", ""
+				if _, ok := outputJson["oss_info"]; ok {
+					ossInfo := outputJson["oss_info"].(map[string]interface{})
+					if value, ok := ossInfo["key"]; ok {
+						key = value.(string)
+					}
+					if value, ok := ossInfo["bucket"]; ok {
+						bucket = value.(string)
+					}
+				}
+				// 获取oss文件
+				ossOp := tools.GetOssOperator(ctx)
+				file, err := ossOp.DownloadWcdOssFile(bucket, key)
+				if err == nil {
+					// 更新输出
+					outputJson["raw_html"] = file.RawHtml
+					outputJson["parsed_html"] = file.ParsedHtml
+					outputStr, _ := json.Marshal(outputJson)
+					apiLog.Output = string(outputStr)
+				}
+			}
 		}
 		// edu 解析输出特殊处理，asicII 转 字符串
 		if node.Type == empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH {

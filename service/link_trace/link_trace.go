@@ -1880,6 +1880,14 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		return empyrean_lens.ActionStatusEnum_FAIL
 	case empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:
 		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "ParseEduNode wcd label") {
+				return empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
+		sort.Slice(processLogs, func(i, j int) bool {
 			return processLogs[i].Asctime.After(processLogs[j].Asctime)
 		})
 		for _, processLog := range processLogs {
@@ -1892,6 +1900,14 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		}
 	case empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:
 		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "苏秦解析完成") || strings.Contains(processLog.Message, "PDF解析完成") {
+				return empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
+		sort.Slice(processLogs, func(i, j int) bool {
 			return processLogs[i].Asctime.After(processLogs[j].Asctime)
 		})
 		for _, processLog := range processLogs {
@@ -1900,6 +1916,14 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 			}
 		}
 	case empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "OutRequest text_parser resp") {
+				return empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
 		sort.Slice(processLogs, func(i, j int) bool {
 			return processLogs[i].Asctime.After(processLogs[j].Asctime)
 		})
@@ -1910,10 +1934,18 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		}
 	case empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH:
 		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "OutRequest edu_parser") && strings.Contains(processLog.Message, "resp") {
+				return empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
+		sort.Slice(processLogs, func(i, j int) bool {
 			return processLogs[i].Asctime.After(processLogs[j].Asctime)
 		})
 		for _, processLog := range processLogs {
-			if strings.Contains(processLog.Message, "edu parse error") || strings.Contains(processLog.Message, "edu parse fail") {
+			if strings.Contains(processLog.Message, "edu parse error") || strings.Contains(processLog.Message, "edu parse fail") || strings.Contains(processLog.Message, "ParseEdu error") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}

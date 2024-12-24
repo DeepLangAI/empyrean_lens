@@ -1494,7 +1494,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			return nil, &consts.QueryRecordError
 		}
 		// 订阅来源，需要查询traceID
-		if len(processLogs) == 0 || utils.IsSubscribe(int(entryInfo.EntryType)) {
+		if len(processLogs) == 0 && utils.IsSubscribe(int(entryInfo.EntryType)) {
 			traceLogs, err := aliyun.ResourceTraceIDQuery(ctx, entryInfo.EntryID, start, end)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[ResourceTraceIDQuery] get trace logs failed, err: %v", err)
@@ -1968,6 +1968,14 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		}
 		return empyrean_lens.ActionStatusEnum_FAIL
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH, empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_RETRY_FINISH:
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "multi core node node_name:THEME_ALL_SUMMARY") {
+				return empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
 		sort.Slice(processLogs, func(i, j int) bool {
 			return processLogs[i].Asctime.After(processLogs[j].Asctime)
 		})

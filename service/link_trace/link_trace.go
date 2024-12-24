@@ -581,34 +581,6 @@ func SummaryArticleTrace(ctx context.Context, summaryInfo *plugin.Summary, refre
 
 func IsRetrySummary(ctx context.Context, summaryInfo *plugin.Summary, multiID, copyFromResource string) bool {
 	// 判断是否是重试summary
-	// 记录文章时已经记录
-	evnetInfo, err := bi.NewEntryInfoDao().FindBySummaryID(ctx, summaryInfo.ID.Hex())
-	if err != nil {
-		hlog.CtxErrorf(ctx, "get event info failed, err: %v", err)
-		return true
-	}
-	if evnetInfo != nil {
-		hlog.CtxInfof(ctx, "not need save, summaryInfo: %v", summaryInfo)
-		return false
-	}
-	// 根据文章来源判断
-	// 订阅、多文档、插件、app端、小程序（关键观点）、小助手（关键观点）都是重新生成
-	if len(copyFromResource) != 0 || len(multiID) != 0 { //订阅
-		return true
-	}
-	channelName := utils.ChannelIntToString(summaryInfo.ChannelType)
-	if channelName == "语鲸插件" { //插件
-		return true
-	}
-	if channelName == "语鲸app" || channelName == "语鲸h5" { //app端
-		return true
-	}
-	if channelName == "语鲸小程序" && summaryInfo.EntryType == consts.EntryTypeWEB { //小程序
-		return true
-	}
-	if channelName == "语鲸小助手" && summaryInfo.EntryType == consts.EntryTypeWEB { //小助手
-		return true
-	}
 	// 根据生成时间判断
 	firstSummary, err := plugin.NewSummaryDao().QueryFirstSummary(ctx, summaryInfo.EntryType, summaryInfo.OutlineType, summaryInfo.UserID, summaryInfo.Url)
 	if err != nil || firstSummary == nil {

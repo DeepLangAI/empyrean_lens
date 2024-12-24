@@ -874,14 +874,16 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 					}
 				}
 				// 获取oss文件
-				ossOp := tools.GetOssOperator(ctx)
-				file, err := ossOp.DownloadWcdOssFile(bucket, key)
-				if err == nil {
-					// 更新输出
-					outputJson["raw_html"] = file.RawHtml
-					outputJson["parsed_html"] = file.ParsedHtml
-					outputStr, _ := json.Marshal(outputJson)
-					apiLog.Output = string(outputStr)
+				if key != "" && bucket != "" {
+					ossOp := tools.GetOssOperator(ctx)
+					file, err := ossOp.DownloadWcdOssFile(bucket, key)
+					if err == nil {
+						// 更新输出
+						outputJson["raw_html"] = file.RawHtml
+						outputJson["parsed_html"] = file.ParsedHtml
+						outputStr, _ := json.Marshal(outputJson)
+						apiLog.Output = string(outputStr)
+					}
 				}
 			}
 		}

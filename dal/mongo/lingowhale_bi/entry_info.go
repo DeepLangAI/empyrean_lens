@@ -226,20 +226,6 @@ func (d *EntryInfoDao) FindByEntryIDAndEntryType(ctx context.Context, entryID st
 	return entryInfo, nil
 }
 
-func (d *EntryInfoDao) FindBySummaryID(ctx context.Context, summaryID string) (*EntryInfo, error) {
-	entryInfo := &EntryInfo{}
-	err := biCollection.Collection(TableNameEntryInfo()).FindOne(ctx, bson.M{"summaries.entry_id": summaryID}).Decode(entryInfo)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, nil
-		}
-		hlog.CtxErrorf(ctx, "db error, method:FindBySummaryID, err:%+v", err)
-		return nil, err
-	}
-	hlog.CtxInfof(ctx, "FindBySummaryID, entryInfo exist entryId:%s", summaryID)
-	return entryInfo, nil
-}
-
 func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 	resources := []*empyrean_lens.ResourceInfo{}
 	for _, v := range d.MultiArticles {

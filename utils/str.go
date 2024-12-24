@@ -3,9 +3,10 @@ package utils
 import (
 	"empyrean_lens/consts"
 	"encoding/base64"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"log"
 	"strings"
+
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 
 	"github.com/bytedance/sonic"
 )
@@ -58,7 +59,7 @@ func DecodeMIME(encodedStr string) string {
 	return string(data)
 }
 
-func TranslateJsonIO(data string) string {
+func TranslateJsonIO(data string, needProcess bool) string {
 	var jsonData any
 	if err := sonic.Unmarshal([]byte(data), &jsonData); err != nil {
 		hlog.Errorf("Error parsing JSON: %v", err)
@@ -68,7 +69,12 @@ func TranslateJsonIO(data string) string {
 		return data
 	}
 	// 处理 JSON
-	processedData := processJSON(jsonData)
+	var processedData any
+	if needProcess {
+		processedData = processJSON(jsonData)
+	} else {
+		processedData = jsonData
+	}
 
 	// 转换回 JSON 字符串
 	result, err := sonic.Marshal(processedData)

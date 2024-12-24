@@ -232,13 +232,23 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 	if newInput, err := utillib.DeStrGzip(input); err == nil {
 		input = newInput
 	}
-	input = utils.TranslateJsonIO(input)
+	if utils.Contains([]int{int(empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH),
+		int(empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH)}, actionType) {
+		input = utils.TranslateJsonIO(input, false)
+	} else {
+		input = utils.TranslateJsonIO(input, true)
+	}
 
 	output := d.ActionOutput.(string)
 	if newOutput, err := utillib.DeStrGzip(output); err == nil {
 		output = newOutput
 	}
-	output = utils.TranslateJsonIO(output)
+	if utils.Contains([]int{int(empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH),
+		int(empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH)}, actionType) {
+		output = utils.TranslateJsonIO(output, false)
+	} else {
+		output = utils.TranslateJsonIO(output, true)
+	}
 
 	if input != "" && output != "" {
 		logs = append(logs, &empyrean_lens.ApiLog{

@@ -111,6 +111,11 @@ func SaveFile(ctx context.Context, entryID, multiID string) *consts.BizCode {
 	entryInfo := fileInfo.TranslateEntryInfo()
 	if entryInfo.ParentEntryID != "" {
 		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID)
+		fileInfo, linkTrace, bizCode = FileLinkTrace(ctx, entryID, multiID, true, false)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
+			return bizCode
+		}
 	}
 	// 获取node日志
 	nodeLogMapping := map[string]*empyrean_lens.LinkNodeLogRespData{}

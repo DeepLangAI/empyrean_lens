@@ -603,7 +603,7 @@ func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plug
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH)
 		}
 	}
-	// copy来源不需要，不需要上传节点
+	// copy来源，不需要上传节点
 	if webReaderInfo.CopyFromUrlID != "" {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
 	}
@@ -637,7 +637,7 @@ func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File, w
 		pracessMapping = consts.SubscribeFileProcessMapping
 	}
 	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
-	// copy来源不需要，不需要上传节点
+	// copy来源，不需要上传节点
 	if fileInfo.CopyFromResourceID != "" {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
 		// 有没有新内容形态

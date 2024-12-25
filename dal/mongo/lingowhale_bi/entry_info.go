@@ -41,7 +41,6 @@ type EntryInfo struct {
 	MultiID         string             `json:"multi_id" bson:"multi_id"`
 	MultiArticles   []MultiArticles    `json:"multi_articles" bson:"multi_articles"`
 	SourceEntryInfo SourceEntryInfo    `json:"source_entry_info" bson:"source_entry_info"`
-	Summaries       []MultiArticles    `json:"summaries" bson:"summaries"`
 	Language        string             `json:"language" bson:"language"`
 	UserID          string             `json:"user_id" bson:"user_id"`
 	UserType        int                `json:"user_type" bson:"user_type"`
@@ -81,7 +80,7 @@ func TableNameEntryInfo() string {
 		env = "test"
 	}
 	if env == "test" {
-		return "entry_info_timi"
+		return "entry_info_test"
 	}
 	return "entry_info"
 }
@@ -96,7 +95,7 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 	// 存在，upload
 	if info != nil {
 		filter := bson.M{"entry_id": entryInfo.EntryID, "entry_type": entryInfo.EntryType}
-		update := bson.M{"title": entryInfo.Title, "multi_id": entryInfo.MultiID, "status": entryInfo.Status, "outline_type": entryInfo.OutlineType, "link_status": entryInfo.LinkStatus, "entry_url": entryInfo.EntryURL, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles, "summaries": entryInfo.Summaries, "parent_entry_id": entryInfo.ParentEntryID, "source_entry_info": entryInfo.SourceEntryInfo, "entry_create_time": entryInfo.EntryCreateTime}
+		update := bson.M{"title": entryInfo.Title, "multi_id": entryInfo.MultiID, "status": entryInfo.Status, "outline_type": entryInfo.OutlineType, "link_status": entryInfo.LinkStatus, "entry_url": entryInfo.EntryURL, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles, "parent_entry_id": entryInfo.ParentEntryID, "source_entry_info": entryInfo.SourceEntryInfo, "entry_create_time": entryInfo.EntryCreateTime}
 		_, err := biCollection.Collection(TableNameEntryInfo()).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)

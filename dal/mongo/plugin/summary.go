@@ -54,6 +54,52 @@ func NewSummaryDao() *SummaryDao {
 	return summaryDao
 }
 
+func (d *SummaryDao) FindBySummaryID(ctx context.Context, summaryID string) (*Summary, error) {
+	var res *Summary
+	_id, _ := primitive.ObjectIDFromHex(summaryID)
+	filter := bson.M{"$and": []bson.M{
+		//{"is_delete": false},
+		{"_id": _id},
+	}}
+	err := pluginCollection.Collection(TableNameSummary).FindOne(ctx, filter).Decode(&res)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindBySummaryID] mongo find error:%+v", err)
+		return nil, err
+	}
+	return res, nil
+}
+
+func (d *SummaryDao) FindByUserIDAndTypeAndPairID(ctx context.Context, userID string, entryType, outlineType int, pairID string) (*Summary, error) {
+	var res *Summary
+	filter := bson.M{}
+	if outlineType != 0 {
+		filter = bson.M{"$and": []bson.M{
+			//{"is_delete": false},
+			{"user_id": userID},
+			{"entry_type": entryType},
+			{"outline_type": outlineType},
+			{"pair_id": pairID},
+		}}
+	} else {
+		filter = bson.M{"$and": []bson.M{
+			//{"is_delete": false},
+			{"user_id": userID},
+			{"entry_type": entryType},
+			{"pair_id": pairID},
+			{"$or": []bson.M{
+				{"outline_type": bson.M{"$exists": false}},
+				{"outline_type": 0},
+			}},
+		}}
+	}
+	err := pluginCollection.Collection(TableNameSummary).FindOne(ctx, filter).Decode(&res)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindByUserIDAndTypeAndPairID] mongo find error:%+v", err)
+		return nil, err
+	}
+	return res, nil
+}
+
 func (d *SummaryDao) CountByUserIDAndUrl(ctx context.Context, userID, url string, entryType int) (int64, error) {
 	filter := bson.M{"$and": []bson.M{
 		//{"is_delete": false},
@@ -69,6 +115,43 @@ func (d *SummaryDao) CountByUserIDAndUrl(ctx context.Context, userID, url string
 	return count, nil
 }
 
+func (d *SummaryDao) FindByUserIDAndUrlAndType(ctx context.Context, userID, url string, entryType int, outLineType int) (*Summary, error) {
+	var res *Summary
+	filter := bson.M{}
+	if outLineType != 0 {
+		filter = bson.M{"$and": []bson.M{
+			//{"is_delete": false},
+			{"user_id": userID},
+			{"url": url},
+			{"entry_type": entryType},
+			{"outline_type": outLineType},
+		}}
+	} else {
+		filter = bson.M{"$and": []bson.M{
+			//{"is_delete": false},
+			{"user_id": userID},
+			{"url": url},
+			{"entry_type": entryType},
+			{"$or": []bson.M{
+				{"outline_type": bson.M{"$exists": false}},
+				{"outline_type": 0},
+			}},
+		}}
+	}
+	options := options.FindOne().SetSort(bson.D{{Key: "create_time", Value: 1}})
+	err := pluginCollection.Collection(TableNameSummary).FindOne(ctx, filter, options).Decode(&res)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindByUserIDAndUrlAndType] mongo find error:%+v", err)
+		return nil, err
+	}
+	if res == nil {
+		return nil, nil
+	}
+	res.CreateTime = res.CreateTime.Local()
+	res.UpdateTime = res.UpdateTime.Local()
+	return res, nil
+}
+
 func (d *SummaryDao) FindByUserIDAndUrl(ctx context.Context, userID, url string) ([]*Summary, error) {
 	var res []*Summary
 	filter := bson.M{"$and": []bson.M{
@@ -76,7 +159,8 @@ func (d *SummaryDao) FindByUserIDAndUrl(ctx context.Context, userID, url string)
 		{"user_id": userID},
 		{"url": url},
 	}}
-	cur, err := pluginCollection.Collection(TableNameSummary).Find(ctx, filter)
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}})
+	cur, err := pluginCollection.Collection(TableNameSummary).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[QueryByTypeAndID] mongo find error:%+v", err)
 		return nil, err
@@ -155,7 +239,7 @@ func (d *SummaryDao) FindSummaryByTimeRangeForSave(ctx context.Context, entryTyp
 	return res, nil
 }
 
-func (d *SummaryDao) QueryFirstSummary(ctx context.Context, entryType, outlineType int, userID, url string) (*Summary, error) {
+func (d *SummaryDao) QueryFirstSummary(ctx context.Context, entryType int, userID, url string) (*Summary, error) {
 	var res []*Summary
 
 	filter := bson.M{
@@ -163,9 +247,6 @@ func (d *SummaryDao) QueryFirstSummary(ctx context.Context, entryType, outlineTy
 		"entry_type": entryType,
 		"user_id":    userID,
 		"url":        url,
-	}
-	if outlineType != 0 {
-		filter["outline_type"] = outlineType
 	}
 
 	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "url": 1, "entry_type": 1, "channel_type": 1, "file_id": 1, "pair_id": 1, "outline_type": 1, "copy_from_summary_id": 1, "copy_from_resource_id": 1, "is_delete": 1, "create_time": 1, "update_time": 1}).

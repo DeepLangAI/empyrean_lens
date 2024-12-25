@@ -26,6 +26,7 @@ type ActionIO struct {
 	InputAt      string `json:"input_at" bson:"input_at"`
 	OutputAt     string `json:"output_at" bson:"output_at"`
 	ActionError  []any  `json:"action_error" bson:"action_error"`
+	OperationID  string `json:"operation_id" bson:"operation_id"`
 }
 
 type EntryAction struct {
@@ -62,7 +63,7 @@ func TableNameEntryAction() string {
 		env = "test"
 	}
 	if env == "test" {
-		return "entry_action_timi"
+		return "entry_action_test"
 	}
 	return "entry_action"
 }
@@ -208,10 +209,14 @@ func (d *EntryAction) TranslateGraphNode() *empyrean_lens.GraphNode {
 		FinishTime: d.ActionEndTime.Format(consts.DateTimeTemplate),
 		Status:     empyrean_lens.ActionStatusEnum(d.ActionStatus),
 	}
-	if node.EnterTime == "0001-01-01 00:00:00" {
+	if node.EnterTime == "0001-01-01 00:00:00" || node.FinishTime == "0001-01-01 00:00:00" {
 		node.EnterTime = ""
+		node.FinishTime = ""
 	}
-	if node.Status == empyrean_lens.ActionStatusEnum_FAIL || node.FinishTime == "0001-01-01 00:00:00" {
+	if !(node.Status == empyrean_lens.ActionStatusEnum_SUCCESS ||
+		node.Status == empyrean_lens.ActionStatusEnum_WORTHLESS ||
+		node.Status == empyrean_lens.ActionStatusEnum_NO_LOG) {
+		node.EnterTime = ""
 		node.FinishTime = ""
 	}
 	return node
@@ -221,11 +226,12 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 	logs := []*empyrean_lens.ApiLog{}
 	for _, log := range d.ActionError {
 		logs = append(logs, &empyrean_lens.ApiLog{
-			TraceID:    d.TraceID,
-			ErrorMsg:   log.(string),
-			HTTPCode:   500,
-			EnterTime:  d.InputAt,
-			FinishTime: d.OutputAt,
+			TraceID:     d.TraceID,
+			ErrorMsg:    log.(string),
+			HTTPCode:    500,
+			EnterTime:   d.InputAt,
+			FinishTime:  d.OutputAt,
+			OperationID: d.OperationID,
 		})
 	}
 	input := d.ActionInput.(string)
@@ -252,12 +258,13 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 
 	if input != "" && output != "" {
 		logs = append(logs, &empyrean_lens.ApiLog{
-			TraceID:    d.TraceID,
-			Input:      input,
-			Output:     output,
-			EnterTime:  d.InputAt,
-			FinishTime: d.OutputAt,
-			HTTPCode:   200,
+			TraceID:     d.TraceID,
+			Input:       input,
+			Output:      output,
+			EnterTime:   d.InputAt,
+			FinishTime:  d.OutputAt,
+			HTTPCode:    200,
+			OperationID: d.OperationID,
 		})
 	}
 	return logs

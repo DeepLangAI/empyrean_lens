@@ -1138,6 +1138,7 @@
         UNREACHED : 4, // 未执行
         WORTHLESS: 5, // 无意义
         LENGTH_ERROR: 6, // 长度不匹配
+        NO_LOG: 7 // 文章上传太早，没有日志
     }
     const COLORS = {}
     // COLORS[ActionStatusEnum.SUCCESS] = '#87e578'
@@ -1153,6 +1154,7 @@
     COLORS[ActionStatusEnum.UNREACHED] = 'rgba(185, 185, 185, 0.6)'; // 80% 不透明度
     COLORS[ActionStatusEnum.WORTHLESS] = 'rgba(43,92,255,0.8)'; // 80% 不透明度
     COLORS[ActionStatusEnum.LENGTH_ERROR] = 'rgba(103,43,255,0.8)'; // 80% 不透明度
+    COLORS[ActionStatusEnum.NO_LOG] = 'rgba(200, 0, 200, 0.8)'; // 80% 不透明度
 
     function statusToString(status){
         if (status == ActionStatusEnum.SUCCESS){
@@ -1169,6 +1171,8 @@
             return "无意义"
         }else if (status == ActionStatusEnum.LENGTH_ERROR){
             return "长度不匹配"
+        }else if (status == ActionStatusEnum.NO_LOG){
+            return "文章上传太早，无日志信息"
         }else{
             return "未知"
         }
@@ -2036,7 +2040,7 @@
             }
 
             const data = buildHierarchy(graphData, rootName);
-            let nonClickableStatus = [ActionStatusEnum.UNREACHED, ActionStatusEnum.LENGTH_ERROR, undefined, null]
+            let nonClickableStatus = [ActionStatusEnum.UNREACHED, ActionStatusEnum.LENGTH_ERROR, ActionStatusEnum.NO_LOG, undefined, null]
 
             // 设置图表尺寸
             const margin = { top: 20, right: 20, bottom: 30, left: 20 };
@@ -3044,6 +3048,10 @@
                     .text('✅ ' + statusToString(ActionStatusEnum.LENGTH_ERROR))
                     .attr('status', ActionStatusEnum.LENGTH_ERROR)
                     .css({'background': COLORS[ActionStatusEnum.LENGTH_ERROR]}),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + statusToString(ActionStatusEnum.NO_LOG))
+                    .attr('status', ActionStatusEnum.NO_LOG)
+                    .css({'background': COLORS[ActionStatusEnum.NO_LOG]}),
             ]
             // 批量添加点击事件
             for (let i = 0; i < $statusSelectDropdownContents.length; i++) {

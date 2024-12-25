@@ -82,29 +82,29 @@ func HandleBatchSaveLinkTraceEvent(ctx context.Context) error {
 		return err
 	}
 
-	// 订阅网页
-	event.EntryType = 71
-	err = doBatchSave(ctx, event)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "batch save link trace error:%v, event:%v", err, event)
-		return err
-	}
+	// // 订阅网页
+	// event.EntryType = 71
+	// err = doBatchSave(ctx, event)
+	// if err != nil {
+	// 	hlog.CtxErrorf(ctx, "batch save link trace error:%v, event:%v", err, event)
+	// 	return err
+	// }
 
-	// 订阅pdf
-	event.EntryType = 101
-	err = doBatchSave(ctx, event)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "batch save link trace error:%v, event:%v", err, event)
-		return err
-	}
+	// // 订阅pdf
+	// event.EntryType = 101
+	// err = doBatchSave(ctx, event)
+	// if err != nil {
+	// 	hlog.CtxErrorf(ctx, "batch save link trace error:%v, event:%v", err, event)
+	// 	return err
+	// }
 
-	// 订阅多文档
-	event.EntryType = 121
-	err = doBatchSave(ctx, event)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "batch save link trace error:%v, event:%v", err, event)
-		return err
-	}
+	// // 订阅多文档
+	// event.EntryType = 121
+	// err = doBatchSave(ctx, event)
+	// if err != nil {
+	// 	hlog.CtxErrorf(ctx, "batch save link trace error:%v, event:%v", err, event)
+	// 	return err
+	// }
 
 	hlog.CtxInfof(ctx, "batch save link trace success, event:%v", event)
 	return nil
@@ -117,7 +117,7 @@ func doBatchSave(ctx context.Context, event *BatchSaveLinkTraceEventEvent) error
 		"end_at":     event.EndAt,
 	}
 	hlog.CtxInfof(ctx, "batch save link trace begin, req:%v", req)
-	_, err := utils.HttpPost(ctx, conf.GetConfig().Api.BatchSaveLinkTrace, map[string]string{"Channel": "local", "env": "master-summary"}, req)
+	_, err := utils.HttpPost(ctx, conf.GetConfig().Api.BatchSaveLinkTrace, map[string]string{"Channel": "local", "env": "master-qa"}, req)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "do batch save error:%v", err)
 	}

@@ -145,11 +145,15 @@ func (d *MultiAigc) TranslateEntryInfo() *bi.EntryInfo {
 		})
 	}
 	return &bi.EntryInfo{
-		ID:              primitive.NewObjectID(),
-		EntryID:         d.ID.Hex(),
-		EntryType:       int(empyrean_lens.EntryTypeEnum_MULTI_OUTLINE),
-		EntrySource:     consts.EntryInfoEntrySourceSummary,
-		SourceTable:     TableNameMultiAigc,
+		ID:          primitive.NewObjectID(),
+		EntryID:     d.ID.Hex(),
+		EntryType:   int(empyrean_lens.EntryTypeEnum_MULTI_OUTLINE),
+		EntrySource: consts.EntryInfoEntrySourceSummary,
+		SourceTable: TableNameMultiAigc,
+		SourceEntryInfo: bi.SourceEntryInfo{
+			EntryType: int(empyrean_lens.EntryTypeEnum_MULTI),
+			EntryID:   d.MultiID,
+		},
 		MultiArticles:   multiArticles,
 		DataType:        consts.EntryInfoDataTypeSummary,
 		UserID:          d.UserID,

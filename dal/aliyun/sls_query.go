@@ -2081,6 +2081,7 @@ type FileProcessLog struct {
 	Cost    float64   `json:"cost"`
 
 	ContainerName string `json:"container_name"`
+	OperationID   string `json:"operation_id"`
 }
 
 const KeyContainerName = "__tag__:_container_name_"
@@ -2117,6 +2118,7 @@ func ConvertFileProcessLog(ctx context.Context, logs []map[string]string) ([]Fil
 			UserId:        uid,
 			Cost:          c,
 			ContainerName: logs[i][KeyContainerName],
+			OperationID:   strings.TrimSpace(logs[i]["operation_id"]),
 		}
 	}
 	return res, nil
@@ -2362,7 +2364,7 @@ func SingleEduParseQuery(ctx context.Context, resourceId string, timeBegin, time
 	}
 
 	query := `
-	message: "%s" and (message: "ParseEduNode end" or message: "parse_edu error," or message: "edu parse error" or message: "ParseEdu error") and not message: "edu_tree_empty"
+	message: "%s" and (message: "ParseEduNode end" or message: "parse_edu error," or message: "edu parse error" or message: "ParseEdu error" or message: "ParseEdu error," or message: "OutRequest edu_parser resp") and not message: "edu_tree_empty"
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "TextParserQuery query: %s", query)
@@ -2382,7 +2384,7 @@ func MultiEduParseQuery(ctx context.Context, resourceId string, timeBegin, timeE
 	}
 
 	query := `
-	message: "%s" and (message: "ParseEduNode end" or message: "parse_edu error," or message: "edu parse error" or message: "ParseEdu error")
+	message: "%s" and (message: "ParseEduNode end" or message: "parse_edu error," or message: "edu parse error" or message: "ParseEdu error" or message: "OutRequest edu_parser resp")
 	`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "TextParserQuery query: %s", query)
@@ -2844,7 +2846,7 @@ func EduParserOutResponseQuery(ctx context.Context, resourceId string, timeBegin
 }
 
 func AbstractModelOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest abstract_model req" and message: "%s"`
+	query := `message: "OutRequest abstract_model req" and "%s"`
 	query = fmt.Sprintf(query, resourceId)
 	hlog.CtxDebugf(ctx, "AbstractModelOutRequestQuery query: %s", query)
 
@@ -2970,8 +2972,14 @@ func OutlineModelOutRequestQuery(ctx context.Context, resourceId, userID string,
 }
 
 func OutlineModelOutRequestQueryByTraceID(ctx context.Context, traceID, userID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest outline_model req" and (trace_id: "%s" and message: "%s")`
-	query = fmt.Sprintf(query, traceID, userID)
+	query := ""
+	if userID != "" {
+		queryFormat := `message: "OutRequest outline_model req" and (trace_id: "%s" and "%s")`
+		query = fmt.Sprintf(queryFormat, traceID, userID)
+	} else {
+		queryFormat := `message: "OutRequest outline_model req" and (trace_id: "%s")`
+		query = fmt.Sprintf(queryFormat, traceID)
+	}
 	hlog.CtxDebugf(ctx, "OutlineModelOutRequestQueryByTraceID query: %s", query)
 
 	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
@@ -3006,7 +3014,7 @@ func OutlineModelOutResponseQuery(ctx context.Context, resourceId string, timeBe
 }
 
 func OutlineModelOutResponseQueryByTraceID(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "OutRequest outline_model resp" and message: "%s"`
+	query := `message: "OutRequest outline_model resp" and "%s"`
 	query = fmt.Sprintf(query, traceID)
 	hlog.CtxDebugf(ctx, "OutlineModelOutResponseQueryByTraceID query: %s", query)
 
@@ -3318,7 +3326,7 @@ func TraceIDSafeQuery(ctx context.Context, traceID string, timeBegin, timeEnd ti
 }
 
 func TraceIDQuery(ctx context.Context, query string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	queryFormat := `message: "%s" | select * from log limit 10`
+	queryFormat := `message: "%s" and not "lock" | select * from log limit 10`
 	query = fmt.Sprintf(queryFormat, query)
 	hlog.CtxDebugf(ctx, "TraceIDQuery query: %s", query)
 

@@ -503,6 +503,7 @@ enum ActionStatusEnum {
     UNREACHEAD = 4 // 未执行
     WORTHLESS = 5 // 无意义
     LENGTH_ERROR = 6 // 长度错误
+    NO_LOG = 7 // 无日志
 }
 
 enum LinkNodeTypeEnum{
@@ -514,7 +515,7 @@ enum LinkNodeTypeEnum{
     EDU_PARSE_FINISH = 6  // edu-parse完成
     SUMMARY_FINISH = 7  // 概述生成
     KEY_INFO_FINISH = 8  // 关键信息生成
-    OUTLINE_FINISH = 9  // 大纲生成
+    OUTLINE_FINISH = 9  // 默认大纲生成
     MULTI_ANALYSIS_FINISH = 10  // 单文档解析
     MULTI_TOPIC_FINISH = 11  // 主题生成
     MULTI_OUTLINE_FINISH = 12  // 多文档大纲生成
@@ -523,6 +524,10 @@ enum LinkNodeTypeEnum{
     OUTLINE_RETRY_FINISH = 15  // 大纲重新生成
     MULTI_OUTLINE_RETRY_FINISH = 16  // 多文档大纲重新生成
     SUBSCRIBE_NOVEL_FORM_FINISH = 17  // 订阅内容新形态
+    SIMPLE_OUTLINE_FINISH = 18  // 简单大纲
+    DETAIL_OUTLINE_FINISH = 19  // 详细大纲
+    SIMPLE_OUTLINE_RETRY_FINISH = 20  // 简单大纲重新生成
+    DETAIL_OUTLINE_RETRY_FINISH = 21  // 详细大纲重新生成
 }
 
 // 用户行为查询
@@ -582,6 +587,7 @@ struct GraphNode {
     5: string finish_time // 节点处理完成的时间戳。DateHourMinSecTemplate
     6: ActionStatusEnum status // 节点状态，如成功、失败、超时等
     7: string trace_id // trace id
+    8: map<string, string> extra // 额外信息
 }
 
 // 单文档链路查询
@@ -646,6 +652,7 @@ struct LinkNodeLogReq {
     1: string entry_id
     2: EntryTypeEnum entry_type
     3: LinkNodeTypeEnum node_type
+    4: bool need_group // 是否需要按重试分组
 }
 
 struct LinkNodeLogResp {
@@ -664,6 +671,12 @@ struct LinkNodeLogRespData {
     7: string node_name 
     8: ActionStatusEnum status
     9: string time_at
+    10: list<ApiLogGroup> groups
+}
+
+struct ApiLogGroup {
+    1: i32 idx // 重试次数
+    2: list<ApiLog> logs
 }
 
 struct ApiLog {
@@ -680,6 +693,7 @@ struct ApiLog {
     11: string error_msg // 错误响应信息
     12: string trace_id // trace id
     13: string container_name // 如webcrawler-python-prod
+    14: string operation_id // 行为ID
 }
 
 // 保存链路信息到数据库

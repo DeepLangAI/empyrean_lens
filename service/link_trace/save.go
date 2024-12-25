@@ -71,6 +71,16 @@ func SaveWebReader(ctx context.Context, entryID, multiID string) *consts.BizCode
 		hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
 		return bizCode
 	}
+	// 保存parent
+	entryInfo := webReaderInfo.TranslateEntryInfo()
+	if entryInfo.ParentEntryID != "" {
+		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID)
+		webReaderInfo, linkTrace, bizCode = WebReaderLinkTrace(ctx, entryID, multiID, true, false)
+		if bizCode != nil {
+			hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
+			return bizCode
+		}
+	}
 	// 获取node日志
 	nodeLogMapping := map[string]*empyrean_lens.LinkNodeLogRespData{}
 	for _, node := range linkTrace.LinkGraph.Nodes {
@@ -96,6 +106,11 @@ func SaveFile(ctx context.Context, entryID, multiID string) *consts.BizCode {
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
 		return bizCode
+	}
+	// 保存parent
+	entryInfo := fileInfo.TranslateEntryInfo()
+	if entryInfo.ParentEntryID != "" {
+		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID)
 	}
 	// 获取node日志
 	nodeLogMapping := map[string]*empyrean_lens.LinkNodeLogRespData{}
@@ -149,6 +164,11 @@ func SaveMulti(ctx context.Context, entryID string) *consts.BizCode {
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
 		return bizCode
+	}
+	// 保存parent
+	entryInfo := multiInfo.TranslateEntryInfo()
+	if entryInfo.ParentEntryID != "" {
+		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID)
 	}
 	// 获取multi node日志
 	nodeLogMapping := map[string]*empyrean_lens.LinkNodeLogRespData{}
@@ -218,6 +238,10 @@ func SaveSummary(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, ent
 	if linkTrace == nil || len(linkTrace.LinkGraph.Nodes) == 0 {
 		return nil
 	}
+	// 保存parent
+	if summaryInfo.SourceEntryID != "" {
+		Save(ctx, empyrean_lens.EntryTypeEnum(summaryInfo.SourceEntryType), summaryInfo.SourceEntryID)
+	}
 	// 去除非summary节点
 	lenNodes := len(linkTrace.LinkGraph.Nodes)
 	linkTrace.LinkGraph.Nodes = linkTrace.LinkGraph.Nodes[lenNodes-1:]
@@ -249,6 +273,10 @@ func SaveMultiOutline(ctx context.Context, entryType empyrean_lens.EntryTypeEnum
 	}
 	if aigcInfo == nil || linkTrace == nil {
 		return nil
+	}
+	// 保存parent
+	if aigcInfo.MultiID != "" {
+		Save(ctx, empyrean_lens.EntryTypeEnum_MULTI, aigcInfo.MultiID)
 	}
 	// 去除非summary节点
 	lenNodes := len(linkTrace.Graph.Nodes)
@@ -433,21 +461,6 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 			entryInfo.UserType = int(userInfo.UserType)
 		}
 	}
-	// summary记录
-	if utils.ChannelIntToString(entryInfo.ChannelType) == "语鲸插件" {
-		sumaries, err := plugin.NewSummaryDao().FindByUserIDAndUrl(ctx, entryInfo.UserID, entryInfo.EntryURL)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[makeEntryInfo] faind summary error: %+v", err)
-		}
-		for _, summary := range sumaries {
-			if summary.CreateTime.Before(entryInfo.EntryCreateTime.Add(1 * time.Minute)) {
-				entryInfo.Summaries = append(entryInfo.Summaries, bi.MultiArticles{
-					EntryId:   summary.ID.Hex(),
-					EntryType: int(summary.EntryType),
-				})
-			}
-		}
-	}
 	// 计数耗时
 	entryInfo.Cost = utils.GetCostFromNodes(nodes)
 	// 获取状态，失败原因
@@ -491,6 +504,7 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 			// 节点日志
 			actionIOs := []*bi.ActionIO{}
 			traceIDMapping := map[string]struct{}{}
+			// 输入输出
 			for _, nodeLog := range nodeLogMapping[node.ID].Logs {
 				if nodeLog.ErrorMsg != "" {
 					continue
@@ -505,14 +519,9 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 					ActionOutput: output,
 					ActionError:  []any{},
 				}
-				for _, errNodeLog := range nodeLogMapping[node.ID].Logs {
-					if errNodeLog.ErrorMsg != "" && errNodeLog.TraceID == nodeLog.TraceID {
-						actionIO.ActionError = append(actionIO.ActionError, errNodeLog.ErrorMsg)
-						traceIDMapping[errNodeLog.TraceID] = struct{}{}
-					}
-				}
 				actionIOs = append(actionIOs, actionIO)
 			}
+			// 错误日志
 			for _, errNodeLog := range nodeLogMapping[node.ID].Logs {
 				if _, ok := traceIDMapping[errNodeLog.TraceID]; !ok && errNodeLog.ErrorMsg != "" {
 					errorMsgList := []any{errNodeLog.ErrorMsg}
@@ -528,6 +537,7 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 						ActionError:  errorMsgList,
 						InputAt:      errNodeLog.EnterTime,
 						OutputAt:     errNodeLog.FinishTime,
+						OperationID:  errNodeLog.OperationID,
 					})
 					traceIDMapping[errNodeLog.TraceID] = struct{}{}
 				}

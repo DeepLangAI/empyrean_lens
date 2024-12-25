@@ -54,7 +54,7 @@ func ChannelIntToString(channel int) string {
 	return fmt.Sprintf("%v", channel)
 }
 
-func GetActionName(entryType int, multiID string, resourceID string, language string, outlineType int) string {
+func GetActionName(entryType int, multiID string, resourceID string, language string, outlineType int) (name string) {
 	// 前缀
 	var prefix string
 	if resourceID != "" {
@@ -114,6 +114,11 @@ func GetStatusFromNode(nodes []*empyrean_lens.GraphNode) (string, empyrean_lens.
 		if node.Status == empyrean_lens.ActionStatusEnum_FAIL {
 			fileAction = node.Name
 			linkStatus = empyrean_lens.ActionStatusEnum_FAIL
+			break
+		}
+		if node.Status == empyrean_lens.ActionStatusEnum_NO_LOG {
+			fileAction = node.Name
+			linkStatus = empyrean_lens.ActionStatusEnum_NO_LOG
 			break
 		}
 		if node.Status == empyrean_lens.ActionStatusEnum_WORTHLESS {
@@ -197,19 +202,9 @@ func IsCopyNodeType(parentEntryType int, nodeType int) bool {
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH) ||
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH) ||
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH) ||
+		nodeType == int(empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH) ||
+		nodeType == int(empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH) ||
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH) ||
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH) ||
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH)
-}
-
-func EntryTypeToNodeType(entryType empyrean_lens.EntryTypeEnum) empyrean_lens.LinkNodeTypeEnum {
-	switch entryType {
-	case empyrean_lens.EntryTypeEnum_SUMMARY:
-		return empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH
-	case empyrean_lens.EntryTypeEnum_OUTLINE:
-		return empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH
-	case empyrean_lens.EntryTypeEnum_VIEWPOINT:
-		return empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH
-	}
-	return 0
 }

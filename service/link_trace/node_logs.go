@@ -859,30 +859,32 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 		// wcd 记录 oss链接
 		if node.Type == empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH {
 			outputJson := map[string]interface{}{}
-			resp := strings.Split(output.Message, "resp:")[1]
-			err := json.Unmarshal([]byte(resp), &outputJson)
-			if err == nil {
-				// 获取oss列表
-				key, bucket := "", ""
-				if _, ok := outputJson["oss_info"]; ok {
-					ossInfo := outputJson["oss_info"].(map[string]interface{})
-					if value, ok := ossInfo["key"]; ok {
-						key = value.(string)
+			if splitList := strings.Split(output.Message, "resp:"); len(splitList) > 1 {
+				resp := strings.Split(output.Message, "resp:")[1]
+				err := json.Unmarshal([]byte(resp), &outputJson)
+				if err == nil {
+					// 获取oss列表
+					key, bucket := "", ""
+					if _, ok := outputJson["oss_info"]; ok {
+						ossInfo := outputJson["oss_info"].(map[string]interface{})
+						if value, ok := ossInfo["key"]; ok {
+							key = value.(string)
+						}
+						if value, ok := ossInfo["bucket"]; ok {
+							bucket = value.(string)
+						}
 					}
-					if value, ok := ossInfo["bucket"]; ok {
-						bucket = value.(string)
-					}
-				}
-				// 获取oss文件
-				if key != "" && bucket != "" {
-					ossOp := tools.GetOssOperator(ctx)
-					file, err := ossOp.DownloadWcdOssFile(bucket, key)
-					if err == nil {
-						// 更新输出
-						outputJson["raw_html"] = file.RawHtml
-						outputJson["parsed_html"] = file.ParsedHtml
-						outputStr, _ := json.Marshal(outputJson)
-						apiLog.Output = string(outputStr)
+					// 获取oss文件
+					if key != "" && bucket != "" {
+						ossOp := tools.GetOssOperator(ctx)
+						file, err := ossOp.DownloadWcdOssFile(bucket, key)
+						if err == nil {
+							// 更新输出
+							outputJson["raw_html"] = file.RawHtml
+							outputJson["parsed_html"] = file.ParsedHtml
+							outputStr, _ := json.Marshal(outputJson)
+							apiLog.Output = string(outputStr)
+						}
 					}
 				}
 			}

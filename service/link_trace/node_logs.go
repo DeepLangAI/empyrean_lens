@@ -704,12 +704,17 @@ func doNodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 			}
 			newApiLogsInput := []aliyun.FileProcessLog{}
 			for _, log := range apiLogsInput {
+				// 解压缩
+				inputStr := GetReqRespFromMsg(log.Message, "req:")
+				if inputStr == "" {
+					inputStr = log.Message
+				}
 				if node.Type == empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH {
-					if strings.Contains(log.Message, "\"verbose\":true") {
+					if strings.Contains(inputStr, "\"verbose\":true") {
 						newApiLogsInput = append(newApiLogsInput, log)
 					}
 				} else {
-					if strings.Contains(log.Message, "\"verbose\":false") {
+					if strings.Contains(inputStr, "\"verbose\":false") {
 						newApiLogsInput = append(newApiLogsInput, log)
 					}
 				}
@@ -808,12 +813,17 @@ func doNodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 		}
 		newApiLogsInput := []aliyun.FileProcessLog{}
 		for _, log := range apiLogsInput {
+			// 解压缩
+			inputStr := GetReqRespFromMsg(log.Message, "req:")
+			if inputStr == "" {
+				inputStr = log.Message
+			}
 			if node.Type == empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_RETRY_FINISH {
-				if strings.Contains(log.Message, "\"verbose\":true") {
+				if strings.Contains(inputStr, "\"verbose\":true") {
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			} else {
-				if strings.Contains(log.Message, "\"verbose\":false") {
+				if strings.Contains(inputStr, "\"verbose\":false") {
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}

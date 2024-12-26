@@ -1367,12 +1367,17 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			}
 			newApiLogsInput := []aliyun.FileProcessLog{}
 			for _, log := range apiLogsInput {
+				// 解压缩
+				inputStr := GetReqRespFromMsg(log.Message, "req:")
+				if inputStr == "" {
+					inputStr = log.Message
+				}
 				if processType == empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH {
-					if strings.Contains(log.Message, "\"verbose\":true") {
+					if strings.Contains(inputStr, "\"verbose\":true") {
 						newApiLogsInput = append(newApiLogsInput, log)
 					}
 				} else {
-					if strings.Contains(log.Message, "\"verbose\":false") {
+					if strings.Contains(inputStr, "\"verbose\":false") {
 						newApiLogsInput = append(newApiLogsInput, log)
 					}
 				}
@@ -1535,15 +1540,20 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			})
 			newApiLogsInput := []aliyun.FileProcessLog{}
 			for _, log := range apiLogsInput {
+				// 解压缩
+				inputStr := GetReqRespFromMsg(log.Message, "req:")
+				if inputStr == "" {
+					inputStr = log.Message
+				}
 				// 语言判断
-				if summaryInfo.SummaryLangType == "en" && !strings.Contains(log.Message, "\"en_mode\":true") {
+				if summaryInfo.SummaryLangType == "en" && !strings.Contains(inputStr, "\"en_mode\":true") {
 					continue
 				}
-				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(log.Message, "\"en_mode\":false") {
+				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
 					continue
 				}
 				// entryID 判断
-				if strings.Contains(log.Message, entryInfo.EntryID) {
+				if strings.Contains(inputStr, entryInfo.EntryID) {
 					continue
 				}
 				// 时间判断
@@ -1608,15 +1618,20 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			})
 			newApiLogsInput := []aliyun.FileProcessLog{}
 			for _, log := range apiLogsInput {
+				// 解压缩
+				inputStr := GetReqRespFromMsg(log.Message, "req:")
+				if inputStr == "" {
+					inputStr = log.Message
+				}
 				// 语言判断
-				if summaryInfo.SummaryLangType == "en" && !strings.Contains(log.Message, "\"en_mode\":true") {
+				if summaryInfo.SummaryLangType == "en" && !strings.Contains(inputStr, "\"en_mode\":true") {
 					continue
 				}
-				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(log.Message, "\"en_mode\":false") {
+				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
 					continue
 				}
 				// entryID 判断
-				if strings.Contains(log.Message, entryInfo.EntryID) {
+				if strings.Contains(inputStr, entryInfo.EntryID) {
 					continue
 				}
 				// 时间判断
@@ -1683,22 +1698,27 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			})
 			newApiLogsInput := []aliyun.FileProcessLog{}
 			for _, log := range apiLogsInput {
+				// 解压缩
+				inputStr := GetReqRespFromMsg(log.Message, "req:")
+				if inputStr == "" {
+					inputStr = log.Message
+				}
 				// 语言判断
-				if summaryInfo.SummaryLangType == "en" && !strings.Contains(log.Message, "\"en_mode\":true") {
+				if summaryInfo.SummaryLangType == "en" && !strings.Contains(inputStr, "\"en_mode\":true") {
 					continue
 				}
-				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(log.Message, "\"en_mode\":false") {
+				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
 					continue
 				}
 				// 简单详细判断
-				if summaryInfo.OutlineType == 1 && strings.Contains(log.Message, "\"verbose\":false") {
+				if summaryInfo.OutlineType == 1 && strings.Contains(inputStr, "\"verbose\":false") {
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
-				if summaryInfo.OutlineType == 2 && strings.Contains(log.Message, "\"verbose\":true") {
+				if summaryInfo.OutlineType == 2 && strings.Contains(inputStr, "\"verbose\":true") {
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 				// entryID 判断
-				if strings.Contains(log.Message, entryInfo.EntryID) {
+				if strings.Contains(inputStr, entryInfo.EntryID) {
 					continue
 				}
 				// 时间判断

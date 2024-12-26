@@ -1690,6 +1690,13 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(log.Message, "\"en_mode\":false") {
 					continue
 				}
+				// 简单详细判断
+				if summaryInfo.OutlineType == 1 && strings.Contains(log.Message, "\"verbose\":false") {
+					newApiLogsInput = append(newApiLogsInput, log)
+				}
+				if summaryInfo.OutlineType == 2 && strings.Contains(log.Message, "\"verbose\":true") {
+					newApiLogsInput = append(newApiLogsInput, log)
+				}
 				// entryID 判断
 				if strings.Contains(log.Message, entryInfo.EntryID) {
 					continue

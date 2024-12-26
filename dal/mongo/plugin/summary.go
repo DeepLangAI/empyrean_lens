@@ -66,6 +66,8 @@ func (d *SummaryDao) FindBySummaryID(ctx context.Context, summaryID string) (*Su
 		hlog.CtxErrorf(ctx, "[FindBySummaryID] mongo find error:%+v", err)
 		return nil, err
 	}
+	res.CreateTime = res.CreateTime.Local()
+	res.UpdateTime = res.UpdateTime.Local()
 	return res, nil
 }
 
@@ -97,6 +99,8 @@ func (d *SummaryDao) FindByUserIDAndTypeAndPairID(ctx context.Context, userID st
 		hlog.CtxErrorf(ctx, "[FindByUserIDAndTypeAndPairID] mongo find error:%+v", err)
 		return nil, err
 	}
+	res.CreateTime = res.CreateTime.Local()
+	res.UpdateTime = res.UpdateTime.Local()
 	return res, nil
 }
 

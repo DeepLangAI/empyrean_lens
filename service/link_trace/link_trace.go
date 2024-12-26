@@ -1529,13 +1529,35 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQueryByTraceID] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
-				node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
-				node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
+			// apiLogsInput 倒序排序
+			sort.Slice(apiLogsInput, func(i, j int) bool {
+				return apiLogsInput[i].Asctime.After(apiLogsInput[j].Asctime)
+			})
+			newApiLogsInput := []aliyun.FileProcessLog{}
+			for _, log := range apiLogsInput {
+				// 语言判断
+				if summaryInfo.SummaryLangType == "en" && !strings.Contains(log.Message, "\"en_mode\":true") {
+					continue
+				}
+				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(log.Message, "\"en_mode\":false") {
+					continue
+				}
+				// entryID 判断
+				if strings.Contains(log.Message, entryInfo.EntryID) {
+					continue
+				}
+				// 时间判断
+				if summaryInfo.CreateTime.Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
+					newApiLogsInput = append(newApiLogsInput, log)
+				}
+			}
+			if len(newApiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+				node.EnterTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+				node.FinishTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
 				node.TraceID = traceID
 				return node, nil
 			}
-			if len(apiLogsInput) > 0 {
+			if len(newApiLogsInput) > 0 {
 				node.TraceID = traceID
 			}
 		}
@@ -1580,13 +1602,35 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[ViewPointModelOutResponseQuery] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
-				node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
-				node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
+			// apiLogsInput 倒序排序
+			sort.Slice(apiLogsInput, func(i, j int) bool {
+				return apiLogsInput[i].Asctime.After(apiLogsInput[j].Asctime)
+			})
+			newApiLogsInput := []aliyun.FileProcessLog{}
+			for _, log := range apiLogsInput {
+				// 语言判断
+				if summaryInfo.SummaryLangType == "en" && !strings.Contains(log.Message, "\"en_mode\":true") {
+					continue
+				}
+				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(log.Message, "\"en_mode\":false") {
+					continue
+				}
+				// entryID 判断
+				if strings.Contains(log.Message, entryInfo.EntryID) {
+					continue
+				}
+				// 时间判断
+				if summaryInfo.CreateTime.Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
+					newApiLogsInput = append(newApiLogsInput, log)
+				}
+			}
+			if len(newApiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+				node.EnterTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+				node.FinishTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
 				node.TraceID = traceID
 				return node, nil
 			}
-			if len(apiLogsInput) > 0 {
+			if len(newApiLogsInput) > 0 {
 				node.TraceID = traceID
 			}
 		}
@@ -1633,13 +1677,35 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[OutlineModelOutResponseQuery] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
-				node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
-				node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
+			// apiLogsInput 倒序排序
+			sort.Slice(apiLogsInput, func(i, j int) bool {
+				return apiLogsInput[i].Asctime.After(apiLogsInput[j].Asctime)
+			})
+			newApiLogsInput := []aliyun.FileProcessLog{}
+			for _, log := range apiLogsInput {
+				// 语言判断
+				if summaryInfo.SummaryLangType == "en" && !strings.Contains(log.Message, "\"en_mode\":true") {
+					continue
+				}
+				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(log.Message, "\"en_mode\":false") {
+					continue
+				}
+				// entryID 判断
+				if strings.Contains(log.Message, entryInfo.EntryID) {
+					continue
+				}
+				// 时间判断
+				if summaryInfo.CreateTime.Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
+					newApiLogsInput = append(newApiLogsInput, log)
+				}
+			}
+			if len(newApiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+				node.EnterTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+				node.FinishTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
 				node.TraceID = traceID
 				return node, nil
 			}
-			if len(apiLogsInput) > 0 {
+			if len(newApiLogsInput) > 0 {
 				node.TraceID = traceID
 			}
 		}

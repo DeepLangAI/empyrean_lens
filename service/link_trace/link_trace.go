@@ -753,11 +753,11 @@ func getLinkTraceSummaryPracessConfig(ctx context.Context, channelType int, user
 	if firstOutlineLanguage == "zh" || firstOutlineLanguage == "" {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH)
 		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_OUTLINE]; !ok {
-			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH)
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH)
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH)
 		}
 	} else {
-		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH)
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH)
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH)
 	}
 	// 过滤不需要的节点

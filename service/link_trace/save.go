@@ -2,6 +2,7 @@ package link_trace
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -531,8 +532,9 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 				if _, ok := traceIDMapping[errNodeLog.TraceID]; !ok && errNodeLog.ErrorMsg != "" {
 					errorMsgList := []any{errNodeLog.ErrorMsg}
 					for _, errNodeLog2 := range nodeLogMapping[node.ID].Logs {
-						if errNodeLog2.TraceID == errNodeLog.TraceID {
-							errorMsgList = append(errorMsgList, errNodeLog2.ErrorMsg)
+						if errNodeLog2.TraceID == errNodeLog.TraceID && errNodeLog2.ErrorMsg != "" {
+							logStr, _ := json.Marshal(errNodeLog2)
+							errorMsgList = append(errorMsgList, string(logStr))
 						}
 					}
 					actionIOs = append(actionIOs, &bi.ActionIO{

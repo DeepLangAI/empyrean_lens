@@ -2,6 +2,7 @@ package bi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"sync"
@@ -225,14 +226,19 @@ func (d *EntryAction) TranslateGraphNode() *empyrean_lens.GraphNode {
 func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 	logs := []*empyrean_lens.ApiLog{}
 	for _, log := range d.ActionError {
-		logs = append(logs, &empyrean_lens.ApiLog{
-			TraceID:     d.TraceID,
-			ErrorMsg:    log.(string),
-			HTTPCode:    500,
-			EnterTime:   d.InputAt,
-			FinishTime:  d.OutputAt,
-			OperationID: d.OperationID,
-		})
+		var logJson *empyrean_lens.ApiLog
+		if err := json.Unmarshal([]byte(log.(string)), &logJson); err == nil {
+			logs = append(logs, logJson)
+		} else {
+			logs = append(logs, &empyrean_lens.ApiLog{
+				TraceID:     d.TraceID,
+				ErrorMsg:    log.(string),
+				HTTPCode:    500,
+				EnterTime:   d.InputAt,
+				FinishTime:  d.OutputAt,
+				OperationID: d.OperationID,
+			})
+		}
 	}
 	input := d.ActionInput.(string)
 	if newInput, err := utillib.DeStrGzip(input); err == nil {

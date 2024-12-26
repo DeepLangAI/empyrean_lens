@@ -4,8 +4,6 @@ package empyrean_lens
 
 import (
 	"context"
-	"sort"
-	"time"
 
 	"empyrean_lens/biz/handler"
 	"empyrean_lens/biz/model/empyrean_lens"
@@ -139,24 +137,8 @@ func LinkNodeLogs(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	// 判断是否需要分组
-	if req.NeedGroup && data.Status != empyrean_lens.ActionStatusEnum_FAIL {
-		// 按照输入输出分组
-		sort.Slice(data.Logs, func(i, j int) bool {
-			enterTime1, _ := time.Parse(consts2.DateTimeTemplate, data.Logs[i].EnterTime)
-			enterTime2, _ := time.Parse(consts2.DateTimeTemplate, data.Logs[j].EnterTime)
-			return enterTime1.Before(enterTime2)
-		})
-		// 分组
-		groups := []*empyrean_lens.ApiLogGroup{}
-		for idx, log := range data.Logs {
-			groups = append(groups, &empyrean_lens.ApiLogGroup{
-				Idx:  int32(idx + 1),
-				Logs: []*empyrean_lens.ApiLog{log},
-			})
-		}
-		data.Groups = groups
-		data.Logs = nil
-	}
+	data.Groups = link_trace.GroupLogsByRetry(data.Logs)
+	data.Logs = nil
 	c.JSON(consts.StatusOK, &empyrean_lens.LinkNodeLogResp{
 		Code: 0,
 		Msg:  "success",

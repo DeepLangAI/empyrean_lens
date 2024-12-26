@@ -885,6 +885,13 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 	if node.Status == empyrean_lens.ActionStatusEnum_FAIL {
 		errLogs, safeLogs = getErrorAndSafeLogs(ctx, entryInfo.MultiID, entryInfo.EntryID, node, apiLogsInput)
 	}
+	// 排序
+	sort.Slice(apiLogsInput, func(i, j int) bool {
+		return apiLogsInput[i].Asctime.Before(apiLogsInput[j].Asctime)
+	})
+	sort.Slice(apiLogsOuput, func(i, j int) bool {
+		return apiLogsOuput[i].Asctime.Before(apiLogsOuput[j].Asctime)
+	})
 	// 遍历
 	for _, input := range apiLogsInput {
 		output := aliyun.FileProcessLog{
@@ -893,6 +900,10 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 		for _, apiLogOuput := range apiLogsOuput {
 			if apiLogOuput.TraceId == input.TraceId && apiLogOuput.Asctime.After(input.Asctime) && apiLogOuput.OperationID == input.OperationID {
 				output = apiLogOuput
+				if node.EnterTime == node.FinishTime {
+					node.EnterTime = input.Asctime.Format(consts.DateTimeTemplate)
+					node.FinishTime = output.Asctime.Format(consts.DateTimeTemplate)
+				}
 				break
 			}
 		}
@@ -1145,4 +1156,58 @@ func eduOutputTranslate(output string) string {
 	// json编码
 	data, _ := json.Marshal(translateList)
 	return string(data)
+}
+
+// 日志按照重试分组
+func GroupLogsByRetry(logs []*empyrean_lens.ApiLog) []*empyrean_lens.ApiLogGroup {
+	// 过滤输入输出
+	inputLogs := []*empyrean_lens.ApiLog{}
+	for _, log := range logs {
+		if log.Input != "" {
+			inputLogs = append(inputLogs, log)
+		}
+	}
+	// 输入输出按照时间排序
+	sort.Slice(inputLogs, func(i, j int) bool {
+		return inputLogs[i].EnterTime < inputLogs[j].EnterTime
+	})
+	// 按照重试将错误日志分组
+	groups := []*empyrean_lens.ApiLogGroup{}
+	for i := 0; i < len(inputLogs); i++ {
+		groupLogs := []*empyrean_lens.ApiLog{inputLogs[i]}
+		start, end := inputLogs[i].EnterTime, time.Now().Format(consts.DateTimeTemplate)
+		if i < len(inputLogs)-1 {
+			end = inputLogs[i+1].EnterTime
+		}
+		for _, log := range logs {
+			if log.ErrorMsg != "" && log.EnterTime >= start && log.EnterTime < end {
+				groupLogs = append(groupLogs, log)
+			}
+		}
+		sort.Slice(groupLogs, func(i, j int) bool {
+			return groupLogs[i].EnterTime > groupLogs[j].EnterTime
+		})
+		groups = append(groups, &empyrean_lens.ApiLogGroup{
+			Idx:  int32(i + 1),
+			Logs: groupLogs,
+		})
+	}
+	// group 为空，说明没有输入输出，按照trace_id分组
+	if len(groups) == 0 {
+		traceIDs := []string{}
+		traceMapping := map[string][]*empyrean_lens.ApiLog{}
+		for _, log := range logs {
+			if _, ok := traceMapping[log.TraceID]; !ok {
+				traceIDs = append(traceIDs, log.TraceID)
+			}
+			traceMapping[log.TraceID] = append(traceMapping[log.TraceID], log)
+		}
+		for idx, traceID := range traceIDs {
+			groups = append(groups, &empyrean_lens.ApiLogGroup{
+				Idx:  int32(idx + 1),
+				Logs: traceMapping[traceID],
+			})
+		}
+	}
+	return groups
 }

@@ -898,7 +898,7 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 			Asctime: input.Asctime,
 		}
 		for _, apiLogOuput := range apiLogsOuput {
-			if apiLogOuput.TraceId == input.TraceId && apiLogOuput.Asctime.After(input.Asctime) && apiLogOuput.OperationID == input.OperationID {
+			if apiLogOuput.TraceId == input.TraceId && !apiLogOuput.Asctime.Before(input.Asctime) && apiLogOuput.OperationID == input.OperationID {
 				output = apiLogOuput
 				if node.EnterTime == node.FinishTime {
 					node.EnterTime = input.Asctime.Format(consts.DateTimeTemplate)

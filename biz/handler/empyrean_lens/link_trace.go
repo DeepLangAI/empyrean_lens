@@ -137,8 +137,10 @@ func LinkNodeLogs(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	// 判断是否需要分组
-	data.Groups = link_trace.GroupLogsByRetry(data.Logs)
-	data.Logs = nil
+	if req.NeedGroup {
+		data.Groups = link_trace.GroupLogsByRetry(data.Logs)
+		data.Logs = nil
+	}
 	c.JSON(consts.StatusOK, &empyrean_lens.LinkNodeLogResp{
 		Code: 0,
 		Msg:  "success",

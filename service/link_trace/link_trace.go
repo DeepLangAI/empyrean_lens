@@ -702,6 +702,10 @@ func getLinkTraceSummaryPracessConfig(ctx context.Context, channelType int, user
 				empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH,
 			}...)
 		}
+		// 没有概述，不需要概述节点
+		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_SUMMARY]; !ok {
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH)
+		}
 		// 没有关键观点，不需要关键观点节点
 		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_VIEWPOINT]; !ok {
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH)
@@ -722,20 +726,36 @@ func getLinkTraceSummaryPracessConfig(ctx context.Context, channelType int, user
 		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_SUMMARY]; !ok {
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH)
 		}
+		// 没有关键观点，不需要关键观点节点
+		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_VIEWPOINT]; !ok {
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH)
+		}
 	case "语鲸小助手", "语鲸小程序":
+		// 小助手，小程序没有概述，不需要概述节点
+		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_SUMMARY]; !ok {
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH)
+		}
 		// 小助手，小程序没有生成关键信息，不需要关键信息节点
 		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_VIEWPOINT]; !ok {
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH)
 		}
 	case "语鲸app", "语鲸h5":
 		// app，h5没有生成概述，不需要概述节点
-		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_VIEWPOINT]; !ok {
+		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_SUMMARY]; !ok {
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH)
+		}
+		// app，h5没有生成关键信息，不需要关键信息节点
+		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_VIEWPOINT]; !ok {
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH)
 		}
 	}
 	// 生成英文大纲，不需要默认、详细大纲节点，否则不需要默认大纲节点
 	if firstOutlineLanguage == "zh" || firstOutlineLanguage == "" {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH)
+		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_OUTLINE]; !ok {
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH)
+			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH)
+		}
 	} else {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH)
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH)

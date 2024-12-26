@@ -249,8 +249,7 @@ func (d *SummaryDao) QueryFirstSummary(ctx context.Context, entryType int, userI
 		"url":        url,
 	}
 
-	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "url": 1, "entry_type": 1, "channel_type": 1, "file_id": 1, "pair_id": 1, "outline_type": 1, "copy_from_summary_id": 1, "copy_from_resource_id": 1, "is_delete": 1, "create_time": 1, "update_time": 1}).
-		SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(1)
+	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: 1}}).SetLimit(1)
 	cur, err := pluginCollection.Collection(TableNameSummary).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[QueryFirstSummary] mongo find error:%+v", err)

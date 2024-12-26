@@ -2974,10 +2974,10 @@ func OutlineModelOutRequestQuery(ctx context.Context, resourceId, userID string,
 func OutlineModelOutRequestQueryByTraceID(ctx context.Context, traceID, userID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	query := ""
 	if userID != "" {
-		queryFormat := `message: "OutRequest outline_model req" and (trace_id: "%s" and "%s")`
+		queryFormat := `message: "OutRequest outline_model req" and ("%s" and "%s")`
 		query = fmt.Sprintf(queryFormat, traceID, userID)
 	} else {
-		queryFormat := `message: "OutRequest outline_model req" and (trace_id: "%s")`
+		queryFormat := `message: "OutRequest outline_model req" and ("%s")`
 		query = fmt.Sprintf(queryFormat, traceID)
 	}
 	hlog.CtxDebugf(ctx, "OutlineModelOutRequestQueryByTraceID query: %s", query)

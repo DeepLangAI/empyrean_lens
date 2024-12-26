@@ -874,6 +874,9 @@ func doNodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 
 func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_lens.GraphNode, apiLogsInput, apiLogsOuput []aliyun.FileProcessLog) (string, []*empyrean_lens.ApiLog, *consts.BizCode) {
 	apiLogs := []*empyrean_lens.ApiLog{}
+	if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
+		return "", []*empyrean_lens.ApiLog{}, nil
+	}
 	if len(apiLogsInput) == 0 && len(apiLogsOuput) == 0 && node.TraceID == "" {
 		return "", []*empyrean_lens.ApiLog{}, nil
 	}
@@ -963,14 +966,6 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 	for _, safeLog := range safeLogs {
 		if safeLog.EnterTime >= node.EnterTime {
 			apiLogs = append(apiLogs, safeLog)
-		}
-	}
-	if node.Type == empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH ||
-		node.Type == empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH {
-		for _, errLog := range errLogs {
-			if node.FinishTime == "" || errLog.EnterTime <= node.FinishTime {
-				apiLogs = append(apiLogs, errLog)
-			}
 		}
 	}
 	// 日志排序

@@ -3343,6 +3343,24 @@ func TraceIDQuery(ctx context.Context, query string, timeBegin, timeEnd time.Tim
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
+func TraceIDQueryByUserID(ctx context.Context, userID, query string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	queryFormat := `user_id: "%s" and message: "%s" and not "lock" | select * from log limit 10`
+	query = fmt.Sprintf(queryFormat, userID, query)
+	hlog.CtxDebugf(ctx, "TraceIDQueryByUserID query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "TraceIDQueryByUserID query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
 func ResourceTraceIDQuery(ctx context.Context, query string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	queryFormat := `message: "%s" and (__tag__:_container_name_: resource-go-prod or __tag__:_container_name_: resource-go-pre) | select * from log limit 10`
 	query = fmt.Sprintf(queryFormat, query)

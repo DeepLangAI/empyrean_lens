@@ -696,55 +696,58 @@ func doNodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 		if node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
 			return node.TraceID, []*empyrean_lens.ApiLog{}, nil
 		}
+		var err error
+		var apiLogsInput []aliyun.FileProcessLog
+		var apiLogsOuput []aliyun.FileProcessLog
 		if node.TraceID != "" {
-			apiLogsInput, err := aliyun.OutlineModelOutRequestQueryByTraceID(ctx, node.TraceID, "", start, end)
+			apiLogsInput, err = aliyun.OutlineModelOutRequestQueryByTraceID(ctx, node.TraceID, "", start, end)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[OutlineModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
 				return "", nil, &consts.QueryRecordError
 			}
-			newApiLogsInput := []aliyun.FileProcessLog{}
-			for _, log := range apiLogsInput {
-				// 解压缩
-				inputStr := GetReqRespFromMsg(log.Message, "req:")
-				if inputStr == "" {
-					inputStr = log.Message
-				}
-				if node.Type == empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH {
-					if strings.Contains(inputStr, "\"verbose\":true") {
-						newApiLogsInput = append(newApiLogsInput, log)
-					}
-				} else {
-					if strings.Contains(inputStr, "\"verbose\":false") {
-						newApiLogsInput = append(newApiLogsInput, log)
-					}
-				}
-			}
-			apiLogsOuput, err := aliyun.OutlineModelOutResponseQueryByTraceID(ctx, node.TraceID, start, end)
+			apiLogsOuput, err = aliyun.OutlineModelOutResponseQueryByTraceID(ctx, node.TraceID, start, end)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQueryByTraceID] get api logs failed, err: %v", err)
 				return "", nil, &consts.QueryRecordError
 			}
-			newApiLogsOuput := []aliyun.FileProcessLog{}
-			if len(newApiLogsInput) > 0 {
-				for _, log := range apiLogsOuput {
-					if log.OperationID == newApiLogsInput[0].OperationID {
-						newApiLogsOuput = append(newApiLogsOuput, log)
-					}
+		} else {
+			apiLogsInput, err = aliyun.OutlineModelOutRequestQuery(ctx, entryInfo.EntryID, entryInfo.UserID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+				return "", nil, &consts.QueryRecordError
+			}
+			apiLogsOuput, err = aliyun.OutlineModelOutResponseQuery(ctx, entryInfo.EntryID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+				return "", nil, &consts.QueryRecordError
+			}
+		}
+		newApiLogsInput := []aliyun.FileProcessLog{}
+		for _, log := range apiLogsInput {
+			// 解压缩
+			inputStr := GetReqRespFromMsg(log.Message, "req:")
+			if inputStr == "" {
+				inputStr = log.Message
+			}
+			if node.Type == empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH {
+				if strings.Contains(inputStr, "\"verbose\":true") {
+					newApiLogsInput = append(newApiLogsInput, log)
+				}
+			} else {
+				if strings.Contains(inputStr, "\"verbose\":false") {
+					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}
-			return getReqAndResp(ctx, entryInfo, node, newApiLogsInput, newApiLogsOuput)
 		}
-		apiLogsInput, err := aliyun.OutlineModelOutRequestQuery(ctx, entryInfo.EntryID, entryInfo.UserID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
-			return "", nil, &consts.QueryRecordError
+		newApiLogsOuput := []aliyun.FileProcessLog{}
+		if len(newApiLogsInput) > 0 {
+			for _, log := range apiLogsOuput {
+				if log.OperationID == newApiLogsInput[0].OperationID {
+					newApiLogsOuput = append(newApiLogsOuput, log)
+				}
+			}
 		}
-		apiLogsOuput, err := aliyun.OutlineModelOutResponseQuery(ctx, entryInfo.EntryID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
-			return "", nil, &consts.QueryRecordError
-		}
-		return getReqAndResp(ctx, entryInfo, node, apiLogsInput, apiLogsOuput)
+		return getReqAndResp(ctx, entryInfo, node, newApiLogsInput, newApiLogsOuput)
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH:
 		apiLogsInput, err := aliyun.MultiSingleAnalysisModelOutRequestQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {

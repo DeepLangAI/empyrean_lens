@@ -121,7 +121,7 @@ func (d *SummaryDao) CountByUserIDAndUrl(ctx context.Context, userID, url string
 
 func (d *SummaryDao) FindByUserIDAndUrlAndType(ctx context.Context, userID, url string, entryType int, outLineType int) (*Summary, error) {
 	var res *Summary
-	filter := bson.M{}
+	var filter bson.M
 	if outLineType != 0 {
 		filter = bson.M{"$and": []bson.M{
 			//{"is_delete": false},
@@ -138,7 +138,7 @@ func (d *SummaryDao) FindByUserIDAndUrlAndType(ctx context.Context, userID, url 
 			{"entry_type": entryType},
 			{"$or": []bson.M{
 				{"outline_type": bson.M{"$exists": false}},
-				{"outline_type": 0},
+				{"outline_type": bson.M{"$in": []int{0, 1}}},
 			}},
 		}}
 	}

@@ -607,6 +607,10 @@ func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plug
 	if webReaderInfo.CopyFromUrlID != "" {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
 	}
+	// 插件来源，不需要crawler节点
+	if utils.ChannelIntToString(webReaderInfo.ChannelType) == "语鲸插件" {
+		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
+	}
 	// 是否需要模型生成
 	if withoutSummary {
 		noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
@@ -690,8 +694,6 @@ func getLinkTraceSummaryPracessConfig(ctx context.Context, channelType int, user
 	}
 	switch utils.ChannelIntToString(channelType) {
 	case "语鲸插件":
-		// 插件来源，不需要crawler节点
-		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
 		// 插件来源，没有生成，不需要显示生成节点
 		if len(summaryNodeTypeMapping) == 0 {
 			noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
@@ -901,18 +903,18 @@ func findLinkTraceFromMongo(ctx context.Context, entryType int, entryID string,
 	nodeMappingNew := map[empyrean_lens.LinkNodeTypeEnum]*empyrean_lens.GraphNode{}
 	for _, action := range entryActions {
 		actionType := empyrean_lens.LinkNodeTypeEnum(action.ActionType)
-		if _, ok := nodeMappingNew[actionType]; !ok {
-			if utils.Contains(pracessList, empyrean_lens.LinkNodeTypeEnum(action.ActionType)) {
-				nodeMappingNew[actionType] = action.TranslateGraphNode()
-				nodes = append(nodes, nodeMappingNew[actionType])
-			} else {
-				if action.ActionType == int(empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH) {
-					if utils.Contains(pracessList, empyrean_lens.LinkNodeTypeEnum(empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH)) {
-						node := action.TranslateGraphNode()
-						node.Type = empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH
-						nodeMappingNew[empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH] = node
-						nodes = append(nodes, node)
-					}
+		if utils.Contains(pracessList, empyrean_lens.LinkNodeTypeEnum(action.ActionType)) {
+			nodeMappingNew[actionType] = action.TranslateGraphNode()
+			nodes = append(nodes, nodeMappingNew[actionType])
+		} else {
+			if action.ActionType == int(empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH) {
+				if _, ok := nodeMappingNew[empyrean_lens.LinkNodeTypeEnum(empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH)]; !ok &&
+					utils.Contains(pracessList, empyrean_lens.LinkNodeTypeEnum(empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH)) {
+					node := action.TranslateGraphNode()
+					node.Type = empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH
+					node.Name = consts.LinkNodeTypeName[empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH]
+					nodeMappingNew[empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH] = node
+					nodes = append(nodes, node)
 				}
 			}
 		}
@@ -1510,19 +1512,23 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
 		// 获取traceID
-		logs, err := aliyun.TraceIDQuery(ctx, summaryInfo.PairID, start, end)
-		if err != nil || len(logs) == 0 {
+		logs1, err := aliyun.TraceIDQuery(ctx, summaryInfo.PairID, start, end)
+		if err != nil {
 			hlog.CtxErrorf(ctx, "[TraceIDQuery] get traceID failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		traceIDs, queryMapping := []string{}, map[string]struct{}{}
-		for _, log := range logs {
-			if _, ok := queryMapping[log.TraceId]; !ok {
-				queryMapping[log.TraceId] = struct{}{}
-				traceIDs = append(traceIDs, log.TraceId)
-			}
+		logs2, err := aliyun.TraceIDQueryByUserID(ctx, summaryInfo.UserID, "abstract", start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[TraceIDQueryByUserID] get traceID failed, err: %v", err)
+			return nil, &consts.QueryRecordError
 		}
-		for _, traceID := range traceIDs {
+		queryMapping := map[string]struct{}{}
+		for _, log := range append(logs1, logs2...) {
+			traceID := log.TraceId
+			if _, ok := queryMapping[traceID]; ok {
+				continue
+			}
+			queryMapping[traceID] = struct{}{}
 			// 查输入输出
 			apiLogsInput, err := aliyun.AbstractModelOutRequestQueryByTraceID(ctx, traceID, start, end)
 			if err != nil {
@@ -1552,12 +1558,8 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
 					continue
 				}
-				// entryID 判断
-				if strings.Contains(inputStr, entryInfo.EntryID) {
-					continue
-				}
 				// 时间判断
-				if summaryInfo.CreateTime.Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
+				if summaryInfo.CreateTime.Add(5*time.Second).Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}
@@ -1588,20 +1590,23 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
 		// 获取traceID
-		logs, err := aliyun.TraceIDQuery(ctx, summaryInfo.PairID, start, end)
-		if err != nil || len(logs) == 0 {
+		logs1, err := aliyun.TraceIDQuery(ctx, summaryInfo.PairID, start, end)
+		if err != nil {
 			hlog.CtxErrorf(ctx, "[TraceIDQuery] get traceID failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		traceIDs, queryMapping := []string{}, map[string]struct{}{}
-		for _, log := range logs {
-			if _, ok := queryMapping[log.TraceId]; !ok {
-				queryMapping[log.TraceId] = struct{}{}
-				traceIDs = append(traceIDs, log.TraceId)
-			}
+		logs2, err := aliyun.TraceIDQueryByUserID(ctx, summaryInfo.UserID, "viewpoint", start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[TraceIDQueryByUserID] get traceID failed, err: %v", err)
+			return nil, &consts.QueryRecordError
 		}
-		// 查输入输出
-		for _, traceID := range traceIDs {
+		queryMapping := map[string]struct{}{}
+		for _, log := range append(logs1, logs2...) {
+			traceID := log.TraceId
+			if _, ok := queryMapping[traceID]; ok {
+				continue
+			}
+			queryMapping[traceID] = struct{}{}
 			apiLogsInput, err := aliyun.ViewPointModelOutRequestQuery(ctx, traceID, start, end)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[ViewPointModelOutRequestQuery] get api logs failed, err: %v", err)
@@ -1630,12 +1635,8 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
 					continue
 				}
-				// entryID 判断
-				if strings.Contains(inputStr, entryInfo.EntryID) {
-					continue
-				}
 				// 时间判断
-				if summaryInfo.CreateTime.Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
+				if summaryInfo.CreateTime.Add(5*time.Second).Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}
@@ -1668,20 +1669,23 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
 		// 获取traceID
-		logs, err := aliyun.TraceIDQuery(ctx, summaryInfo.PairID, start, end)
-		if err != nil || len(logs) == 0 {
+		logs1, err := aliyun.TraceIDQuery(ctx, summaryInfo.PairID, start, end)
+		if err != nil {
 			hlog.CtxErrorf(ctx, "[TraceIDQuery] get traceID failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		traceIDs, queryMapping := []string{}, map[string]struct{}{}
-		for _, log := range logs {
-			if _, ok := queryMapping[log.TraceId]; !ok {
-				queryMapping[log.TraceId] = struct{}{}
-				traceIDs = append(traceIDs, log.TraceId)
-			}
+		logs2, err := aliyun.TraceIDQueryByUserID(ctx, summaryInfo.UserID, "outline", start, end)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[TraceIDQueryByUserID] get traceID failed, err: %v", err)
+			return nil, &consts.QueryRecordError
 		}
-		// 查输入输出
-		for _, traceID := range traceIDs {
+		queryMapping := map[string]struct{}{}
+		for _, log := range append(logs1, logs2...) {
+			traceID := log.TraceId
+			if _, ok := queryMapping[traceID]; ok {
+				continue
+			}
+			queryMapping[traceID] = struct{}{}
 			apiLogsInput, err := aliyun.OutlineModelOutRequestQueryByTraceID(ctx, traceID, entryInfo.UserID, start, end)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[OutlineModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
@@ -1711,18 +1715,14 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					continue
 				}
 				// 简单详细判断
-				if summaryInfo.OutlineType == 1 && strings.Contains(inputStr, "\"verbose\":false") {
-					newApiLogsInput = append(newApiLogsInput, log)
+				if summaryInfo.OutlineType == 1 && !strings.Contains(inputStr, "\"verbose\":false") {
+					continue
 				}
-				if summaryInfo.OutlineType == 2 && strings.Contains(inputStr, "\"verbose\":true") {
-					newApiLogsInput = append(newApiLogsInput, log)
-				}
-				// entryID 判断
-				if strings.Contains(inputStr, entryInfo.EntryID) {
+				if summaryInfo.OutlineType == 2 && !strings.Contains(inputStr, "\"verbose\":true") {
 					continue
 				}
 				// 时间判断
-				if summaryInfo.CreateTime.Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
+				if summaryInfo.CreateTime.Add(5*time.Second).Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}
@@ -1770,6 +1770,8 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 		node.TraceID = traceID
 		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH:
+		// 新内容形态可能间隔很久
+		end := time.Now()
 		apiLogsInput, err := aliyun.NovelFormOutRequestQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NovelFormOutRequestQuery] get process logs failed, err: %v", err)
@@ -1828,7 +1830,7 @@ func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType e
 			hlog.CtxErrorf(ctx, "[FindByUserIDAndUrlAndType] get summary info failed, err: %v", err)
 			return "", "", nil, &consts.QueryRecordError
 		}
-		if articleInfo.ParentEntryID != "" {
+		if summaryInfo.CopyFromSummaryID != "" || utils.IsSubscribe(articleInfo.ParentEntryType) {
 			return FindSummaryIDByCopyID(ctx, entryType, outlineType, summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, articleInfo.ParentEntryType, articleInfo.ParentEntryID)
 		}
 		if summaryInfo == nil {
@@ -2103,7 +2105,7 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
 		})
 		for _, processLog := range processLogs {
-			if strings.Contains(processLog.Message, "ParseEduNode parse end entryId") || (strings.Contains(processLog.Message, "OutRequest edu_parser") && strings.Contains(processLog.Message, "resp")) {
+			if strings.Contains(processLog.Message, "ParseEduNode parse end entryId") || (strings.Contains(processLog.Message, "OutRequest edu_parser") && strings.Contains(processLog.Message, "resp") && !strings.Contains(processLog.Message, "edu input filter without sentence.")) {
 				return empyrean_lens.ActionStatusEnum_SUCCESS
 			}
 		}
@@ -2111,7 +2113,7 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 			return processLogs[i].Asctime.After(processLogs[j].Asctime)
 		})
 		for _, processLog := range processLogs {
-			if strings.Contains(processLog.Message, "edu parse error") || strings.Contains(processLog.Message, "edu parse fail") || strings.Contains(processLog.Message, "ParseEdu error") {
+			if strings.Contains(processLog.Message, "edu parse error") || strings.Contains(processLog.Message, "edu parse fail") || strings.Contains(processLog.Message, "ParseEdu error") || strings.Contains(processLog.Message, "edu input filter without sentence.") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 		}

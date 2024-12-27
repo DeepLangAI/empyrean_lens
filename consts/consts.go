@@ -675,7 +675,7 @@ var LinkNodeTypeName = map[empyrean_lens.LinkNodeTypeEnum]string{
 	empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH:              "大纲生成",
 	empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH:       "单文档分析",
 	empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH:          "主题生成",
-	empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:        "大纲生成",
+	empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:        "多文档大纲生成",
 	empyrean_lens.LinkNodeTypeEnum_SUMMARY_RETRY_FINISH:        "概述重新生成",
 	empyrean_lens.LinkNodeTypeEnum_OUTLINE_RETRY_FINISH:        "大纲重新生成",
 	empyrean_lens.LinkNodeTypeEnum_KEY_INFO_RETRY_FINISH:       "关键观点重新生成",

@@ -530,7 +530,7 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 			// 错误日志
 			for _, errNodeLog := range nodeLogMapping[node.ID].Logs {
 				if _, ok := traceIDMapping[errNodeLog.TraceID]; !ok && errNodeLog.ErrorMsg != "" {
-					errorMsgList := []any{errNodeLog.ErrorMsg}
+					errorMsgList := []any{}
 					for _, errNodeLog2 := range nodeLogMapping[node.ID].Logs {
 						if errNodeLog2.TraceID == errNodeLog.TraceID && errNodeLog2.ErrorMsg != "" {
 							logStr, _ := json.Marshal(errNodeLog2)

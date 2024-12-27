@@ -169,15 +169,22 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 		if err != nil {
 			return nil, err
 		}
-		var result map[string]interface{}
-		err = json.Unmarshal([]byte(decodedMsg), &result)
-		if err != nil {
-			return nil, err
+		var bizMsg string
+		if json.Valid([]byte(decodedMsg)) {
+			var result map[string]interface{}
+			err = json.Unmarshal([]byte(decodedMsg), &result)
+			if err != nil {
+				return nil, err
+			}
+			decodedBizMsg, err := json.Marshal(result)
+			if err != nil {
+				return nil, err
+			}
+			bizMsg = string(decodedBizMsg)
+		} else {
+			bizMsg = log.BizMsg
 		}
-		bizMsg, err := json.Marshal(result)
-		if err != nil {
-			return nil, err
-		}
+
 		data = append(data, &empyrean_lens.ApiFailureDetailRespData{
 			Time:     log.Time.Format(consts.DateHourMinSecTemplate),
 			APIName:  log.CleanUrl,
@@ -188,7 +195,7 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 			TraceID:  log.TraceId,
 			ClientIP: log.ClientIp,
 			BizCode:  int32(log.BizCode),
-			BizMsg:   string(bizMsg),
+			BizMsg:   bizMsg,
 		})
 	}
 	return data, nil

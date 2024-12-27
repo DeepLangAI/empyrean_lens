@@ -7,6 +7,7 @@ import (
 	"empyrean_lens/dal/aliyun"
 	empyrean_lens2 "empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -164,6 +165,19 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 		return api[i].Time.After(api[j].Time)
 	})
 	for _, log := range api {
+		decodedMsg, err := strconv.Unquote(`"` + log.BizMsg + `"`)
+		if err != nil {
+			return nil, err
+		}
+		var result map[string]interface{}
+		err = json.Unmarshal([]byte(decodedMsg), &result)
+		if err != nil {
+			return nil, err
+		}
+		bizMsg, err := json.Marshal(result)
+		if err != nil {
+			return nil, err
+		}
 		data = append(data, &empyrean_lens.ApiFailureDetailRespData{
 			Time:     log.Time.Format(consts.DateHourMinSecTemplate),
 			APIName:  log.CleanUrl,
@@ -174,7 +188,7 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 			TraceID:  log.TraceId,
 			ClientIP: log.ClientIp,
 			BizCode:  int32(log.BizCode),
-			BizMsg:   log.BizMsg,
+			BizMsg:   string(bizMsg),
 		})
 	}
 	return data, nil

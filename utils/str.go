@@ -3,7 +3,10 @@ package utils
 import (
 	"empyrean_lens/consts"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -33,12 +36,34 @@ func Contains[S ~[]E, E comparable](s S, v E) bool {
 	return Index(s, v) != -1
 }
 
+func UnMarshalJson(asciiJsonStr string) string {
+	// 解码JSON字符串，将ASCII码转换为实际字符，如果失败则返回原字符串
+	decodedMsg, err := strconv.Unquote(fmt.Sprintf("\"%v\"", asciiJsonStr))
+	if err != nil {
+		return asciiJsonStr
+	}
+	if json.Valid([]byte(decodedMsg)) {
+		var result map[string]interface{}
+		err = json.Unmarshal([]byte(decodedMsg), &result)
+		if err != nil {
+			return asciiJsonStr
+		}
+		decodedBizMsg, err := json.Marshal(result)
+		if err != nil {
+			return asciiJsonStr
+		}
+		return string(decodedBizMsg)
+	}
+	return asciiJsonStr
+}
+
 func DecodeMIME(encodedStr string) string {
 	// 解析MIME编码的字符串
 	//_, _, err := mime.ParseMediaType(encodedStr)
 	//if err != nil {
 	//	return encodedStr
 	//}
+	encodedStr = UnMarshalJson(encodedStr)
 
 	// 去掉前面的头信息
 	parts := strings.Split(encodedStr, "?")

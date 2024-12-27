@@ -132,3 +132,9 @@ func TestActionIO_TranslateJsonIO1(t *testing.T) {
 		fmt.Println(result[:10])
 	})
 }
+
+func TestUnMarshalJson(t *testing.T) {
+	s := "{\\x22code\\x22:600101,\\x22msg\\x22:\\x22\\x22,\\x22status\\x22:\\x22error\\x22,\\x22entry_id\\x22:\\x22\\x22,\\x22edu_tree_nodes\\x22:null,\\x22to_segment\\x22:null}\t"
+	output := UnMarshalJson(s)
+	fmt.Println(output)
+}

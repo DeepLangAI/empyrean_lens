@@ -1123,6 +1123,15 @@
         MULTI_ANALYSIS_FINISH: 10,  // 单文档解析
         MULTI_TOPIC_FINISH: 11,  // 主题生成
         MULTI_OUTLINE_FINISH: 12,  // 大纲生成
+        SUMMARY_RETRY_FINISH: 13,  // 概述重新生成
+        KEY_INFO_RETRY_FINISH: 14,  // 关键信息重新生成
+        OUTLINE_RETRY_FINISH: 15,  // 大纲重新生成
+        MULTI_OUTLINE_RETRY_FINISH: 16,  // 多文档大纲重新生成
+        SUBSCRIBE_NOVEL_FORM_FINISH: 17,  // 订阅内容新形态
+        SIMPLE_OUTLINE_FINISH: 18,  // 简单大纲
+        DETAIL_OUTLINE_FINISH: 19,  // 详细大纲
+        SIMPLE_OUTLINE_RETRY_FINISH: 20,  // 简单大纲重新生成
+        DETAIL_OUTLINE_RETRY_FINISH: 21,  // 详细大纲重新生成
     }
 
     const SystemChoiceEnum = {
@@ -2468,7 +2477,12 @@
                             let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId, ossInfo)
                             logDetailsBody.prepend(wcdExpanders)
                         }
-                    } else if (nodeType == NodeTypeEnum.OUTLINE_FINISH){
+                    } else if ( [
+                            NodeTypeEnum.OUTLINE_FINISH, NodeTypeEnum.OUTLINE_RETRY_FINISH,
+                            NodeTypeEnum.SIMPLE_OUTLINE_FINISH, NodeTypeEnum.DETAIL_OUTLINE_FINISH,
+                            NodeTypeEnum.SIMPLE_OUTLINE_RETRY_FINISH, NodeTypeEnum.DETAIL_OUTLINE_RETRY_FINISH
+                        ].includes(nodeType)
+                    ){
                         if (log['output']){
                             let output = JSON.parse(log['output'])
                             let input = JSON.parse(log['input'])
@@ -2486,7 +2500,9 @@
                             let expanders = createOutlineFinshExpanders(title, output)
                             logDetailsBody.prepend(expanders)
                         }
-                    } else if (nodeType == NodeTypeEnum.MULTI_OUTLINE_FINISH){
+                    } else if (
+                        [NodeTypeEnum.MULTI_OUTLINE_FINISH, NodeTypeEnum.MULTI_OUTLINE_RETRY_FINISH].includes(nodeType)
+                    ){
                         let output = JSON.parse(log['output'])
                         let title = '多文档大纲结果'
                         try{
@@ -2496,7 +2512,9 @@
                         }
                         let expanders = createMultiOutlineFinshExpanders(title, output)
                         logDetailsBody.prepend(expanders)
-                    } else if (nodeType == NodeTypeEnum.KEY_INFO_FINISH){
+                    } else if (
+                        [NodeTypeEnum.KEY_INFO_FINISH, NodeTypeEnum.KEY_INFO_RETRY_FINISH].includes(nodeType)
+                    ){
                         let output = JSON.parse(log['output'])
                         let title = '关键信息结果'
                         try{
@@ -2509,7 +2527,9 @@
                         }
                         let expanders = createViewpointFinshExpanders(title, output)
                         logDetailsBody.prepend(expanders)
-                    } else if (nodeType == NodeTypeEnum.SUMMARY_FINISH){
+                    } else if (
+                        [NodeTypeEnum.SUMMARY_FINISH, NodeTypeEnum.SUMMARY_RETRY_FINISH].includes(nodeType)
+                    ){
                         let output = JSON.parse(log['output'])
                         let title = '概述结果'
                         try{

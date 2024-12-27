@@ -79,7 +79,7 @@ func (d *EntryActionDao) SaveEntryAction(ctx context.Context, entryAction *Entry
 	// 存在，upload
 	if info != nil {
 		filter := bson.M{"entry_id": entryAction.EntryID, "action_channel": entryAction.ActionChannel, "action_type": entryAction.ActionType}
-		update := bson.M{"action_ios": entryAction.ActionIOs, "action_status": entryAction.ActionStatus, "cost": entryAction.Cost, "action_start_time": entryAction.ActionStartTime, "action_end_time": entryAction.ActionEndTime}
+		update := bson.M{"action_type": entryAction.ActionType, "action_ios": entryAction.ActionIOs, "action_status": entryAction.ActionStatus, "cost": entryAction.Cost, "action_start_time": entryAction.ActionStartTime, "action_end_time": entryAction.ActionEndTime}
 		res, err := biCollection.Collection(TableNameEntryAction()).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryAction, err:%+v", err)

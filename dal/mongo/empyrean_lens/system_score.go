@@ -21,7 +21,8 @@ type SystemScoreModel struct {
 	ScoreWeekOverWeek float64   `bson:"score_week_over_week"`
 	TotalReq          int32     `bson:"total_req"`
 	FailReq           int32     `bson:"fail_req"`
-	SlowReq           int32     `bson:"slow_req"`
+	SceneSlowReq      int32     `bson:"slow_req"`
+	SceneTotalReq     int32     `bson:"scene_total_req"`
 	FailRate          float64   `bson:"fail_rate"`
 	SlowRate          float64   `bson:"slow_rate"`
 	ProbeFailReq      int32     `bson:"probe_fail_req"`

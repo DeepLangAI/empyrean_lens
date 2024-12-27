@@ -329,7 +329,7 @@ func TestSummaryGeneralOfDay(t *testing.T) {
 	ov, _ := SceneGeneralOfDay(ctx, 0)
 	for _, o := range ov.Overviews {
 		//if len(o.SlowDetails) > 0 {
-		//	fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SlowReq, o.SlowDetails)
+		//	fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SceneSlowReq, o.SlowDetails)
 		//}
 		fmt.Println(o.Name, o.TotalReq, o.FailReq, o.SlowReq, o.FailReason)
 	}
@@ -358,9 +358,9 @@ func TestMultiTotalRequestQuery(t *testing.T) {
 	} else {
 		fmt.Println(ov.MultiMergeOverview.FailDetails)
 		//fmt.Println(ov.MultiEteOverview.SlowDetails)
-		//fmt.Println(ov_ete.TotalReq, ov_ete.FailReq, ov_ete.SlowReq, ov_ete.FailRate, ov_ete.SlowRate)
-		//fmt.Println(ov_analysis.TotalReq, ov_analysis.FailReq, ov_analysis.SlowReq, ov_analysis.FailRate, ov_analysis.SlowRate)
-		//fmt.Println(ov_merge.TotalReq, ov_merge.FailReq, ov_merge.SlowReq, ov_merge.FailRate, ov_merge.SlowRate)
+		//fmt.Println(ov_ete.TotalReq, ov_ete.FailReq, ov_ete.SceneSlowReq, ov_ete.FailRate, ov_ete.SlowRate)
+		//fmt.Println(ov_analysis.TotalReq, ov_analysis.FailReq, ov_analysis.SceneSlowReq, ov_analysis.FailRate, ov_analysis.SlowRate)
+		//fmt.Println(ov_merge.TotalReq, ov_merge.FailReq, ov_merge.SceneSlowReq, ov_merge.FailRate, ov_merge.SlowRate)
 	}
 }
 

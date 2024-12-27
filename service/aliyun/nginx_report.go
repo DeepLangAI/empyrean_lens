@@ -164,6 +164,7 @@ func NginxApiFailureDetail(ctx context.Context, req empyrean_lens.DailyApiFailur
 		return api[i].Time.After(api[j].Time)
 	})
 	for _, log := range api {
+
 		data = append(data, &empyrean_lens.ApiFailureDetailRespData{
 			Time:     log.Time.Format(consts.DateHourMinSecTemplate),
 			APIName:  log.CleanUrl,
@@ -412,6 +413,11 @@ func RequestTrend(ctx context.Context, req empyrean_lens.RequestTrendReq) (*empy
 
 type TrendCache struct {
 	ReqCounts       int32
+	FailReqs        int32
+	SlowReqs        int32
+	SceneTotalReqs  int32
+	ProbeFailReqs   int32
+	ProbeTotalReqs  int32
 	Scores          []float64
 	FailRates       []float64
 	SlowRates       []float64
@@ -439,14 +445,21 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 			}
 
 			trendCache := map[string]TrendCache{}
-
+			// let timestamps be a set
+			timestampSet := map[string]int{}
 			for _, log := range scoreLogs {
 				log.Time = log.Time.Local()
 				timestamp := log.Time.Format(consts.DateHourTemplate)
 				timestamp = fmt.Sprintf("%v:%02d:00", timestamp[:len(timestamp)-6], log.Time.Minute()-(log.Time.Minute()%15))
+				timestampSet[timestamp] = 1
 				if _, ok := trendCache[timestamp]; !ok {
 					trendCache[timestamp] = TrendCache{
 						ReqCounts:       0,
+						FailReqs:        0,
+						SlowReqs:        0,
+						ProbeFailReqs:   0,
+						ProbeTotalReqs:  0,
+						SceneTotalReqs:  0,
 						Scores:          make([]float64, 0),
 						FailRates:       make([]float64, 0),
 						SlowRates:       make([]float64, 0),
@@ -456,7 +469,13 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 					}
 				}
 				cache := trendCache[timestamp]
-				cache.ReqCounts = utils.Max(cache.ReqCounts, log.TotalReq)
+				cache.ReqCounts = utils.Max(cache.ReqCounts, log.TotalReq) // 总请求量累计值，保险取 Max
+				cache.FailReqs = utils.Max(cache.FailReqs, log.FailReq)
+				cache.SlowReqs = utils.Max(cache.SlowReqs, log.SceneSlowReq)
+				cache.SceneTotalReqs = utils.Max(cache.SceneTotalReqs, log.SceneTotalReq)
+				//fmt.Println(cache.FailReqs, cache.SlowReqs)
+				cache.ProbeFailReqs = utils.Max(cache.ProbeFailReqs, log.ProbeFailReq)
+				cache.ProbeTotalReqs = utils.Max(cache.ProbeTotalReqs, log.ProbeTotalReq)
 				cache.Scores = append(cache.Scores, log.Score)
 				cache.FailRates = append(cache.FailRates, log.FailRate)
 				cache.SlowRates = append(cache.SlowRates, log.SlowRate)
@@ -464,15 +483,57 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 				cache.ProbeFailCounts = append(cache.ProbeFailCounts, float64(log.ProbeFailReq))
 				trendCache[timestamp] = cache
 			}
+			timestamps := utils.KeysOfMap(timestampSet)
+			sort.Slice(timestamps, func(i, j int) bool {
+				return timestamps[i] < timestamps[j]
+			})
+			for i := len(timestamps) - 1; i > 0; i-- {
+				cache := trendCache[timestamps[i]]
+				//fmt.Println(timestamps[i], cache.ReqCounts, trendCache[timestamps[i-1]].ReqCounts)
+				//fmt.Println(cache.SlowReqs, trendCache[timestamps[i-1]].SlowReqs)
+				//fmt.Println(cache.FailReqs, trendCache[timestamps[i-1]].FailReqs)
+				cache.ReqCounts = cache.ReqCounts - trendCache[timestamps[i-1]].ReqCounts
+				if cache.ReqCounts < 0 || cache.ReqCounts >= 10000 {
+					cache.ReqCounts = 0
+				}
+				cache.FailReqs = cache.FailReqs - trendCache[timestamps[i-1]].FailReqs
+				cache.SlowReqs = cache.SlowReqs - trendCache[timestamps[i-1]].SlowReqs
+				cache.ProbeFailReqs = cache.ProbeFailReqs - trendCache[timestamps[i-1]].ProbeFailReqs
+				cache.ProbeTotalReqs = cache.ProbeTotalReqs - trendCache[timestamps[i-1]].ProbeTotalReqs
+				cache.SceneTotalReqs = cache.SceneTotalReqs - trendCache[timestamps[i-1]].SceneTotalReqs
+				//fmt.Println(timestamps[i], cache)
+				trendCache[timestamps[i]] = cache
+			}
 			trendItems := []*empyrean_lens.RequestTrendRespDataItem{}
 			for timestamp, cache := range trendCache {
+				var failRate float64
+				var slowRate float64
+				var probeFailRate float64
+				if cache.ReqCounts != 0 {
+					failRate = float64(cache.FailReqs) / float64(cache.ReqCounts) * 100
+				} else {
+					failRate = 0
+				}
+				if cache.SceneTotalReqs != 0 {
+					slowRate = float64(cache.SlowReqs) / float64(cache.SceneTotalReqs) * 100
+				} else {
+					slowRate = 0
+				}
+				if cache.ProbeTotalReqs != 0 {
+					probeFailRate = float64(cache.ProbeFailReqs) / float64(cache.ProbeTotalReqs) * 100
+				} else {
+					probeFailRate = 0
+				}
 				trendItems = append(trendItems, &empyrean_lens.RequestTrendRespDataItem{
-					Time:           timestamp,
-					ReqCount:       cache.ReqCounts,
-					Score:          int32(utils.AvgSimple(cache.Scores, true) + 0.5),
-					FailRate:       utils.AvgSimple(cache.FailRates, false),
-					SlowRate:       utils.AvgSimple(cache.SlowRates, false),
-					ProbeFailRate:  utils.AvgSimple(cache.ProbeFailRates, false),
+					Time:          timestamp,
+					ReqCount:      cache.ReqCounts,
+					Score:         int32(utils.AvgSimple(cache.Scores, true) + 0.5),
+					FailRate:      failRate,
+					SlowRate:      slowRate,
+					ProbeFailRate: probeFailRate,
+					// FailRate:       utils.AvgSimple(cache.FailRates, false),
+					//SlowRate:       utils.AvgSimple(cache.SlowRates, false),
+					//ProbeFailRate:  utils.AvgSimple(cache.ProbeFailRates, false),
 					ProbeFailCount: utils.AvgSimple(cache.ProbeFailCounts, false),
 				})
 			}
@@ -480,12 +541,12 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 				return trendItems[i].Time < trendItems[j].Time
 			})
 			// 对请求量进行差分，计算每个时间戳的请求数量
-			for i := len(trendItems) - 1; i > 0; i-- {
-				trendItems[i].ReqCount = trendItems[i].ReqCount - trendItems[i-1].ReqCount
-				if trendItems[i].ReqCount < 0 || trendItems[i].ReqCount >= 10000 {
-					trendItems[i].ReqCount = 0
-				}
-			}
+			//for i := len(trendItems) - 1; i > 0; i-- {
+			//	//trendItems[i].ReqCount = trendItems[i].ReqCount - trendItems[i-1].ReqCount
+			//	if trendItems[i].ReqCount < 0 || trendItems[i].ReqCount >= 10000 {
+			//		trendItems[i].ReqCount = 0
+			//	}
+			//}
 			if len(trendItems) > 0 {
 				trendItems[0].ReqCount = 0
 			}
@@ -500,5 +561,6 @@ func RequestTrendV2(ctx context.Context, req empyrean_lens.RequestTrendReq) (*em
 		}(daysLookback)
 	}
 	wg.Wait()
+	//fmt.Println(data)
 	return data, err
 }

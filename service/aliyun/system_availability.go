@@ -25,7 +25,7 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]empyrean_l
 		return nil, err
 	}
 
-	slowqueryRates, err := SlowQueryRate(ctx, timespan)
+	slowqueryRates, sceneTotalReqs, err := SlowQueryRate(ctx, timespan)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +59,9 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]empyrean_l
 			TotalReq:      int32(log.TotalCount),
 			FailReq:       int32(log.FailCount + log.BizCodeFailCount),
 
+			SceneSlowReq:  int32(float64(sceneTotalReqs[log.Date]) * factor.SlowQueryRate),
+			SceneTotalReq: sceneTotalReqs[log.Date],
+
 			Status:     consts.StatusValid,
 			CreateTime: time.Now(),
 			UpdateTime: time.Now(),
@@ -73,7 +76,7 @@ func SystemTimespanAvailability(ctx context.Context, timespan int) ([]empyrean_l
 }
 
 func RealtimeSlowqueryLoganlz(ctx context.Context) (*MetricFloat, error) {
-	slowRates, err := SlowQueryRate(ctx, consts.TIMESPAN_WEEK)
+	slowRates, _, err := SlowQueryRate(ctx, consts.TIMESPAN_WEEK)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +94,7 @@ func RealtimeSlowqueryLoganlz(ctx context.Context) (*MetricFloat, error) {
 	return metric, nil
 }
 
-func SlowQueryRate(ctx context.Context, timespan int) (map[string]float64, error) {
+func SlowQueryRate(ctx context.Context, timespan int) (map[string]float64, map[string]int32, error) {
 	timeBegin := time.Now()
 	timeEnd := time.Date(timeBegin.Year(), timeBegin.Month(), timeBegin.Day(), 23, 59, 59, 0, timeBegin.Location())
 
@@ -107,7 +110,7 @@ func SlowQueryRate(ctx context.Context, timespan int) (map[string]float64, error
 	dao := empyrean_lens.NewSceneModelDao()
 	sceneLogs, err := dao.FindTimespanScene(ctx, timeBegin, timeEnd)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	totalCnts := map[string]int32{}
 	slowCnts := map[string]int32{}
@@ -128,7 +131,7 @@ func SlowQueryRate(ctx context.Context, timespan int) (map[string]float64, error
 			result[date] = float64(slowCnt) / float64(totalCnt) * 100
 		}
 	}
-	return result, nil
+	return result, totalCnts, nil
 }
 
 type Metric struct {

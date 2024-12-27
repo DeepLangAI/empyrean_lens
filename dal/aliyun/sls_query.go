@@ -1055,7 +1055,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
     select 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 1) count, 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 2) cost, 
-    trace_id, time, 'U-Id' user_id, "__tag__:_container_name_" env
+    trace_id, time, "U-Id" user_id, "__tag__:_container_name_" env
     from log  order by time desc
 ) limit %v
 `

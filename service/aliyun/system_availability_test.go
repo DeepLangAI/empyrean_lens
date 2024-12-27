@@ -58,7 +58,7 @@ func TestSlowQueryRate(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	dal.Init()
-	rates, err := SlowQueryRate(ctx, consts.TIMESPAN_TODAY)
+	rates, _, err := SlowQueryRate(ctx, consts.TIMESPAN_TODAY)
 	if err != nil {
 		t.Error(err)
 	} else {

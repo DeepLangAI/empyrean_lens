@@ -107,9 +107,11 @@ func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, b
 	}
 	for _, resource := range resources {
 		key := fmt.Sprintf("%d_%s", resource.EntryType, resource.EntryID)
+		entryType := plugin.TranslateSubscribeEntryType(int(resource.EntryType))
 		if _, ok := resourceMapping[key]; ok {
 			resource.Title = resourceMapping[key].Title
 			resource.URL = resourceMapping[key].URL
+			resource.EntryType = empyrean_lens.EntryTypeEnum(entryType)
 		}
 	}
 	// 过滤多文档生成失败后跳过的子文档
@@ -151,9 +153,11 @@ func getUserActionFromTraceID(ctx context.Context, req empyrean_lens.UserActionR
 	}
 	for _, resource := range resources {
 		key := fmt.Sprintf("%d_%s", resource.EntryType, resource.EntryID)
+		entryType := plugin.TranslateSubscribeEntryType(int(resource.EntryType))
 		if _, ok := resourceMapping[key]; ok {
 			resource.Title = resourceMapping[key].Title
 			resource.URL = resourceMapping[key].URL
+			resource.EntryType = empyrean_lens.EntryTypeEnum(entryType)
 		}
 	}
 	return rows, nil
@@ -180,6 +184,46 @@ func GetResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInf
 		}
 	}
 	return resourceMapping, nil
+}
+
+func GetEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID string) (*bi.EntryInfo, *consts.BizCode) {
+	switch entryType {
+	case empyrean_lens.EntryTypeEnum_FILE:
+		file, err := plugin.NewFileDao().FindFileById(ctx, entryID)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		return file.TranslateEntryInfo(), nil
+	case empyrean_lens.EntryTypeEnum_MULTI:
+		multi, err := plugin.NewMultiDao().FindMultiById(ctx, entryID)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		return multi.TranslateEntryInfo(), nil
+	case empyrean_lens.EntryTypeEnum_WEB:
+		article, err := plugin.NewWebReaderDao().FindWebReaderById(ctx, entryID)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		return article.TranslateEntryInfo(), nil
+	case empyrean_lens.EntryTypeEnum_SUMMARY,
+		empyrean_lens.EntryTypeEnum_OUTLINE,
+		empyrean_lens.EntryTypeEnum_VIEWPOINT:
+		summary, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(entryType), entryID)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		return summary.TranslateEntryInfo(), nil
+	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE,
+		empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI,
+		empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB:
+		video, err := plugin.NewResourceDao().FindResourceById(ctx, entryID)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		return video.TranslateEntryInfo(), nil
+	}
+	return nil, nil
 }
 
 func filterMultiResourceInfo(ctx context.Context, multiEntryInfo []*empyrean_lens.UserActionRespRow) *consts.BizCode {

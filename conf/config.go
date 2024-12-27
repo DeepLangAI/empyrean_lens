@@ -20,6 +20,7 @@ type Config struct {
 	MongoEmpyreanlens Mongo                 `yaml:"mongo_empyreanlens"`
 	MongoLingo        Mongo                 `yaml:"mongo_lingo"`
 	MongoPlugin       Mongo                 `yaml:"mongo_plugin"`
+	MongoCollection   Mongo                 `yaml:"mongo_collection"`
 	MongoBi           Mongo                 `yaml:"mongo_bi"`
 	Redis             *redis.ClusterOptions `yaml:"redis"`
 	Logger            conflib.Logger        `yaml:"logger"`

@@ -50,31 +50,39 @@ func NewWebReaderDao() *WebReaderDao {
 }
 
 func (d *WebReaderDao) FindWebReaderById(ctx context.Context, id string) (*WebReader, error) {
-	var res []*WebReader
-
+	var res *WebReader
 	_id, _ := primitive.ObjectIDFromHex(id)
 	filter := bson.M{"$and": []bson.M{
 		//{"is_deleted": false},
 		{"_id": _id},
 	}}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
-	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
+	options := options.FindOne().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
+	err := pluginCollection.Collection(TableNameWebReader).FindOne(ctx, filter, options).Decode(&res)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo find error:%+v", err)
 		return nil, err
 	}
-	defer cur.Close(ctx)
+	res.CreateTime = res.CreateTime.Local()
+	res.UpdateTime = res.UpdateTime.Local()
+	return res, nil
+}
 
-	if err = cur.All(ctx, &res); err != nil {
-		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo all error:%+v", err)
+func (d *WebReaderDao) FindWebReaderByUserIDAndUrl(ctx context.Context, userID, url string) (*WebReader, error) {
+	var res *WebReader
+	filter := bson.M{"$and": []bson.M{
+		//{"is_deleted": false},
+		{"user_id": userID},
+		{"url": url},
+	}}
+	options := options.FindOne().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
+	err := pluginCollection.Collection(TableNameWebReader).FindOne(ctx, filter, options).Decode(&res)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindWebReaderByUserIDAndUrl] mongo find error:%+v", err)
 		return nil, err
 	}
-	if len(res) == 0 {
-		return nil, nil
-	}
-	res[0].CreateTime = res[0].CreateTime.Local()
-	res[0].UpdateTime = res[0].UpdateTime.Local()
-	return res[0], nil
+	res.CreateTime = res.CreateTime.Local()
+	res.UpdateTime = res.UpdateTime.Local()
+	return res, nil
 }
 
 func (d *WebReaderDao) FindWebReaderByIds(ctx context.Context, ids []string) (map[string]*WebReader, error) {
@@ -208,10 +216,36 @@ func (d *WebReaderDao) FindWebReaderByQueryAndTimeRange(ctx context.Context, que
 	return res, nil
 }
 
+func (d *WebReaderDao) FindByUserIDAndUrl(ctx context.Context, userID, url string) (*WebReader, error) {
+	res := &WebReader{}
+	filter := bson.M{
+		"user_id": userID,
+		"url":     url,
+	}
+	err := pluginCollection.Collection(TableNameWebReader).FindOne(ctx, filter).Decode(&res)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[FindByUserIDAndUrl] mongo find error:%+v", err)
+		return nil, err
+	}
+	res.CreateTime = res.CreateTime.Local()
+	res.UpdateTime = res.UpdateTime.Local()
+	return res, nil
+}
+
 func (d *WebReader) TranslateEntryInfo() *bi.EntryInfo {
 	parentEntryID := d.CopyFromUrlID
+	parentEntryType := int(empyrean_lens.EntryTypeEnum_WEB)
+	if d.CopyParseResultFrom != "" {
+		parentEntryID = d.CopyParseResultFrom
+		parentEntryType = int(empyrean_lens.EntryTypeEnum_WEB)
+	}
+	if d.CopyFromUrlID != "" {
+		parentEntryID = d.CopyFromUrlID
+		parentEntryType = int(empyrean_lens.EntryTypeEnum_WEB)
+	}
 	if d.CopyFromResourceID != "" {
 		parentEntryID = d.CopyFromResourceID
+		parentEntryType = int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB)
 	}
 	if d.RealChannelType >= int(empyrean_lens.ChannelType_IosUrl) {
 		d.ChannelType = d.RealChannelType
@@ -228,6 +262,7 @@ func (d *WebReader) TranslateEntryInfo() *bi.EntryInfo {
 		ChannelType:     d.ChannelType,
 		MultiID:         d.MultiId,
 		ParentEntryID:   parentEntryID,
+		ParentEntryType: parentEntryType,
 		EntryURL:        d.URL,
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum_WEB, d.Status, 0, 0)),
 		Cost:            0, // TODO

@@ -5,12 +5,13 @@ import (
 	"bytes"
 	"context"
 	"empyrean_lens/conf"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"io"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 type OssOperator struct {
@@ -70,7 +71,7 @@ func (o *OssOperator) getWcdZipReader(bucketName, objectKey string) (io.ReadClos
 	//bucketName := "wcd-html-bucket-prod" // 请替换为实际的Bucket名称
 	bucket, err := o.ossClient.Bucket(bucketName)
 	if err != nil {
-		log.Fatalf("Failed to get bucket: %v", err)
+		hlog.CtxErrorf(o.ctx, "Failed to get bucket: %v", err)
 		return nil, err
 	}
 
@@ -79,7 +80,7 @@ func (o *OssOperator) getWcdZipReader(bucketName, objectKey string) (io.ReadClos
 	//err = bucket.GetObjectToFile(objectKey, localFilePath)
 	reader, err := bucket.GetObject(objectKey)
 	if err != nil {
-		log.Fatalf("Failed to put object from file: %v", err)
+		hlog.CtxErrorf(o.ctx, "Failed to put object from file: %v", err)
 		return nil, err
 	}
 	return reader, nil

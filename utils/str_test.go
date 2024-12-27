@@ -89,7 +89,7 @@ func TestActionIO_TranslateJsonIO1(t *testing.T) {
 		}
 		jsonStr = fmt.Sprintf(jsonStr, string(longStr), string(longStr), string(longStr))
 
-		result := TranslateJsonIO(jsonStr)
+		result := TranslateJsonIO(jsonStr, true)
 		fmt.Println(result)
 	})
 	t.Run("解析失败", func(t *testing.T) {
@@ -113,7 +113,7 @@ func TestActionIO_TranslateJsonIO1(t *testing.T) {
 		}
 		jsonStr = fmt.Sprintf(jsonStr, string(longStr), string(longStr), string(longStr))
 
-		result := TranslateJsonIO(jsonStr)
+		result := TranslateJsonIO(jsonStr, true)
 		assert.True(t, result == "数据解析异常")
 	})
 	t.Run("成功", func(t *testing.T) {
@@ -126,7 +126,7 @@ func TestActionIO_TranslateJsonIO1(t *testing.T) {
 		fmt.Println(len(longStr))
 
 		t0 := time.Now()
-		result := TranslateJsonIO(string(longStr))
+		result := TranslateJsonIO(string(longStr), true)
 		t1 := time.Since(t0)
 		fmt.Println(t1)
 		fmt.Println(result[:10])

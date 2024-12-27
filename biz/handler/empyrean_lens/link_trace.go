@@ -98,7 +98,7 @@ func MultiDocLinkTrace(ctx context.Context, c *app.RequestContext) {
 		})
 		return
 	}
-	_, data, bizCode := link_trace.LinkTrace(ctx, empyrean_lens.EntryTypeEnum_MULTI, req.MultiID)
+	_, data, bizCode := link_trace.LinkTrace(ctx, req.EntryType, req.EntryID)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[LinkTrace] error: %+v", bizCode)
 		c.JSON(consts.StatusOK, &empyrean_lens.MultiDocLinkTraceResp{
@@ -135,6 +135,11 @@ func LinkNodeLogs(ctx context.Context, c *app.RequestContext) {
 			Msg:  bizCode.Msg,
 		})
 		return
+	}
+	// 判断是否需要分组
+	if req.NeedGroup {
+		data.Groups = link_trace.GroupLogsByRetry(data.Logs)
+		data.Logs = nil
 	}
 	c.JSON(consts.StatusOK, &empyrean_lens.LinkNodeLogResp{
 		Code: 0,

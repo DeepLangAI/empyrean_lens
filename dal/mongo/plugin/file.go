@@ -209,8 +209,18 @@ func (d *FileDao) FindFileByQueryAndTimeRange(ctx context.Context, query string,
 
 func (d *File) TranslateEntryInfo() *bi.EntryInfo {
 	parentEntryID := d.CopyFromFildID
+	parentEntryType := int(empyrean_lens.EntryTypeEnum_FILE)
+	if d.CopyParseResultFrom != "" {
+		parentEntryID = d.CopyParseResultFrom
+		parentEntryType = int(empyrean_lens.EntryTypeEnum_FILE)
+	}
+	if d.CopyFromFildID != "" {
+		parentEntryID = d.CopyFromFildID
+		parentEntryType = int(empyrean_lens.EntryTypeEnum_FILE)
+	}
 	if d.CopyFromResourceID != "" {
 		parentEntryID = d.CopyFromResourceID
+		parentEntryType = int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE)
 	}
 	if d.RealChannelType >= int(empyrean_lens.ChannelType_IosUrl) {
 		d.ChannelType = d.RealChannelType
@@ -227,6 +237,7 @@ func (d *File) TranslateEntryInfo() *bi.EntryInfo {
 		ChannelType:     d.ChannelType,
 		MultiID:         d.MultiId,
 		ParentEntryID:   parentEntryID,
+		ParentEntryType: parentEntryType,
 		EntryURL:        d.FileURL,
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum_FILE, d.Status, 0, 0)),
 		Cost:            0, //TODO

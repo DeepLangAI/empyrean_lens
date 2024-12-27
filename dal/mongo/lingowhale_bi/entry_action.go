@@ -2,6 +2,7 @@ package bi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"sync"
@@ -26,6 +27,7 @@ type ActionIO struct {
 	InputAt      string `json:"input_at" bson:"input_at"`
 	OutputAt     string `json:"output_at" bson:"output_at"`
 	ActionError  []any  `json:"action_error" bson:"action_error"`
+	OperationID  string `json:"operation_id" bson:"operation_id"`
 }
 
 type EntryAction struct {
@@ -62,7 +64,7 @@ func TableNameEntryAction() string {
 		env = "test"
 	}
 	if env == "test" {
-		return "entry_action_timi"
+		return "entry_action_test"
 	}
 	return "entry_action"
 }
@@ -108,6 +110,24 @@ func (d *EntryActionDao) SaveBatchEntryAction(ctx context.Context, entryActions 
 func (d *EntryActionDao) FindByEntryTypeEntryID(ctx context.Context, entryType int, entryID string) ([]*EntryAction, error) {
 	var entryActions []*EntryAction
 	cur, err := biCollection.Collection(TableNameEntryAction()).Find(ctx, bson.M{"entry_id": entryID, "action_channel": entryType})
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		hlog.CtxErrorf(ctx, "db error, method:FindByEntryTypeEntryID, err:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if err = cur.All(ctx, &entryActions); err != nil {
+		hlog.CtxErrorf(ctx, "[FindByEntryTypeEntryID] mongo all error:%+v", err)
+		return nil, err
+	}
+	return entryActions, nil
+}
+
+func (d *EntryActionDao) FindByEntryTypeEntryIDNodeType(ctx context.Context, entryType, nodeType int, entryID string) ([]*EntryAction, error) {
+	var entryActions []*EntryAction
+	cur, err := biCollection.Collection(TableNameEntryAction()).Find(ctx, bson.M{"entry_id": entryID, "action_channel": entryType, "action_type": nodeType})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -190,10 +210,14 @@ func (d *EntryAction) TranslateGraphNode() *empyrean_lens.GraphNode {
 		FinishTime: d.ActionEndTime.Format(consts.DateTimeTemplate),
 		Status:     empyrean_lens.ActionStatusEnum(d.ActionStatus),
 	}
-	if node.EnterTime == "0001-01-01 00:00:00" {
+	if node.EnterTime == "0001-01-01 00:00:00" || node.FinishTime == "0001-01-01 00:00:00" {
 		node.EnterTime = ""
+		node.FinishTime = ""
 	}
-	if node.Status == empyrean_lens.ActionStatusEnum_FAIL || node.FinishTime == "0001-01-01 00:00:00" {
+	if !(node.Status == empyrean_lens.ActionStatusEnum_SUCCESS ||
+		node.Status == empyrean_lens.ActionStatusEnum_WORTHLESS ||
+		node.Status == empyrean_lens.ActionStatusEnum_NO_LOG) {
+		node.EnterTime = ""
 		node.FinishTime = ""
 	}
 	return node
@@ -202,34 +226,51 @@ func (d *EntryAction) TranslateGraphNode() *empyrean_lens.GraphNode {
 func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 	logs := []*empyrean_lens.ApiLog{}
 	for _, log := range d.ActionError {
-		logs = append(logs, &empyrean_lens.ApiLog{
-			TraceID:    d.TraceID,
-			ErrorMsg:   log.(string),
-			HTTPCode:   500,
-			EnterTime:  d.InputAt,
-			FinishTime: d.OutputAt,
-		})
+		var logJson *empyrean_lens.ApiLog
+		if err := json.Unmarshal([]byte(log.(string)), &logJson); err == nil {
+			logs = append(logs, logJson)
+		} else {
+			logs = append(logs, &empyrean_lens.ApiLog{
+				TraceID:     d.TraceID,
+				ErrorMsg:    log.(string),
+				HTTPCode:    500,
+				EnterTime:   d.InputAt,
+				FinishTime:  d.OutputAt,
+				OperationID: d.OperationID,
+			})
+		}
 	}
 	input := d.ActionInput.(string)
 	if newInput, err := utillib.DeStrGzip(input); err == nil {
 		input = newInput
 	}
-	input = utils.TranslateJsonIO(input)
+	if utils.Contains([]int{int(empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH),
+		int(empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH)}, actionType) {
+		input = utils.TranslateJsonIO(input, false)
+	} else {
+		input = utils.TranslateJsonIO(input, true)
+	}
 
 	output := d.ActionOutput.(string)
 	if newOutput, err := utillib.DeStrGzip(output); err == nil {
 		output = newOutput
 	}
-	output = utils.TranslateJsonIO(output)
+	if utils.Contains([]int{int(empyrean_lens.LinkNodeTypeEnum_EDU_PARSE_FINISH),
+		int(empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH)}, actionType) {
+		output = utils.TranslateJsonIO(output, false)
+	} else {
+		output = utils.TranslateJsonIO(output, true)
+	}
 
 	if input != "" && output != "" {
 		logs = append(logs, &empyrean_lens.ApiLog{
-			TraceID:    d.TraceID,
-			Input:      input,
-			Output:     output,
-			EnterTime:  d.InputAt,
-			FinishTime: d.OutputAt,
-			HTTPCode:   200,
+			TraceID:     d.TraceID,
+			Input:       input,
+			Output:      output,
+			EnterTime:   d.InputAt,
+			FinishTime:  d.OutputAt,
+			HTTPCode:    200,
+			OperationID: d.OperationID,
 		})
 	}
 	return logs

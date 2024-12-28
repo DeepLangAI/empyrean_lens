@@ -124,6 +124,96 @@ class Tree {
         }
         return tree
     }
+    static parseEduOutput(log){
+        function tireTree(node){
+            while (node.children.length == 1){
+                node.children = node.children[0].children
+            }
+            for (let i = 0; i < node.children.length; i++){
+                tireTree(node.children[i])
+            }
+            if (node.value == '虚拟节点'){
+                if (node.children.length > 0){
+                    node.value = node.children[0].value.slice(0, 20)
+                }
+            }
+            let children = []
+            for (let i = 0; i < node.children.length; i++){
+                if (node.children[i].value != '虚拟节点'){
+                    children.push(node.children[i])
+                }
+            }
+            node.children = children
+        }
+        let tree = new Tree('root');
+        let nodes = {}
+        let links = {}
+        let inDegree = {};
+
+        for (let i = 0; i < log.length; i++) {
+            let subLog = log[i];
+            if (subLog == "data too long") {
+                continue
+            }
+            // if type is string
+            if (typeof subLog === 'string') {
+                subLog = JSON.parse(subLog)
+            }
+            if (!(subLog['edu_tree_nodes'])){
+                continue
+            }
+            for (let j = 0; j < subLog['edu_tree_nodes'].length; j++) {
+                let node = subLog['edu_tree_nodes'][j]
+                let content = node['content']
+                if (content == 'figure'){
+                    content = node['meta']['url']
+                }
+                let treeNode = new TreeNode(content)
+                let nodeId = node['node_id']
+                let parentId = node['parent_id']
+                if (!(nodeId in nodes)){
+                    nodes[nodeId] = treeNode
+                }
+                if (!(parentId in links)){
+                    links[parentId] = []
+                }
+                links[parentId].push(nodeId)
+                if (!(nodeId in inDegree)){
+                    inDegree[nodeId] = 0
+                }
+                inDegree[nodeId] += 1
+                if (!(parentId in inDegree)){
+                    inDegree[parentId] = 0
+                }
+            }
+        }
+        // console.log(inDegree)
+        // 遍历links，将节点添加到树中
+        for (let parentId in links) {
+            if (inDegree[parentId] == 0){
+                let parentNode = nodes[parentId]
+                if (!parentNode){
+                    nodes[parentId] = new TreeNode('虚拟节点')
+                }
+                tree.root.addChild(nodes[parentId])
+            }
+            let children = links[parentId]
+            for (let i = 0; i < children.length; i++) {
+                let childId = children[i]
+                let childNode = nodes[childId]
+                let parentNode = nodes[parentId]
+                if (!parentNode){
+                } else{
+                    parentNode.addChild(childNode)
+                }
+            }
+        }
+        if (tree.root.children.length == 1){
+            tree.root = tree.root.children[0]
+        }
+        tireTree(tree.root)
+        return tree
+    }
     toDOM(node = this.root) {
         function helper(node, level=0){
             let li = $('<li>').addClass('node');

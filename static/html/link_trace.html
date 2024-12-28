@@ -2240,7 +2240,21 @@
             let $expanders = $('<div>')
             let tree = Tree.parseMultiDoc_OutlineOutput(log)
             let $treeDom = tree.toDOM()
-            tree.print()
+            // tree.print()
+
+            let $treeExpander = createExpander(title, $treeDom,
+                ()=>{
+                    return log
+                })
+            $expanders.append($treeExpander)
+            return $expanders
+        }
+
+        function createEduFinishExpanders(title, log){
+            let $expanders = $('<div>')
+            let tree = Tree.parseEduOutput(log)
+            let $treeDom = tree.toDOM()
+            // tree.print()
 
             let $treeExpander = createExpander(title, $treeDom,
                 ()=>{
@@ -2254,7 +2268,7 @@
             let $expanders = $('<div>')
             let tree = Tree.parseSingleDoc_AbstractOutput(log)
             let $treeDom = tree.toDOM()
-            tree.print()
+            // tree.print()
 
             let $treeExpander = createExpander(title, $treeDom,
                 ()=>{
@@ -2268,7 +2282,7 @@
             let $expanders = $('<div>')
             let tree = Tree.parseSingleDoc_ViewpointOutput(log)
             let $treeDom = tree.toDOM()
-            tree.print()
+            // tree.print()
 
             let $treeExpander = createExpander(title, $treeDom,
                 ()=>{
@@ -2282,7 +2296,7 @@
             let $expanders = $('<div>')
             let tree = Tree.parseSingleDoc_OutlineOutput(log)
             let $treeDom = tree.toDOM()
-            tree.print()
+            // tree.print()
 
             let $treeExpander = createExpander(title, $treeDom,
                 ()=>{
@@ -2541,6 +2555,13 @@
 
                         }
                         let expanders = createAbstractFinishExpanders(title, output)
+                        logDetailsBody.prepend(expanders)
+                    } else if (
+                        [NodeTypeEnum.EDU_PARSE_FINISH].includes(nodeType)
+                    ){
+                        let output = JSON.parse(log['output'])
+                        let title = '最小信息单元树'
+                        let expanders = createEduFinishExpanders(title, output)
                         logDetailsBody.prepend(expanders)
                     }
                 }

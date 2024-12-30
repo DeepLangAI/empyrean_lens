@@ -117,7 +117,7 @@ func doBatchSave(ctx context.Context, event *BatchSaveLinkTraceEventEvent) error
 		"end_at":     event.EndAt,
 	}
 	hlog.CtxInfof(ctx, "batch save link trace begin, req:%v", req)
-	_, err := utils.HttpPost(ctx, conf.GetConfig().Api.BatchSaveLinkTrace, map[string]string{"Channel": "local", "env": "master-qa"}, req)
+	_, err := utils.HttpPost(ctx, conf.GetConfig().Api.BatchSaveLinkTrace, map[string]string{"Channel": "local"}, req)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "do batch save error:%v", err)
 	}

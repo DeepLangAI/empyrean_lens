@@ -10,6 +10,68 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 )
 
+const (
+	WebSiteLingowhalePlugin = "语鲸插件"
+
+	WebSiteLingowhaleWeb = "语鲸web"
+
+	WebSiteLingowhaleMini = "语鲸小程序"
+
+	WebSiteLingowhaleHelper = "语鲸小助手"
+
+	WebSiteLingowhaleAndroid = "语鲸app-android"
+
+	WebSiteLingowhaleIos = "语鲸app-ios"
+
+	WebSiteLingowhaleH5 = "语鲸h5"
+
+	WebSiteLingowhaleDesktopWin = "桌面端-win"
+
+	WebSiteLingowhaleDesktopMac = "桌面端-mac"
+
+	WebSiteLingowhaleSubscribe = "订阅"
+
+	ActionNameSingleWeb = "单文档web"
+
+	ActionNameSinglePdf = "单文档pdf"
+
+	ActionNameMulti = "多文档"
+
+	ActionNameMultiWeb = "多文档-子文档web"
+
+	ActionNameMultiPdf = "多文档-子文档pdf"
+
+	ActionNameSummaryCH = "中文-概述重新生成"
+
+	ActionNameSimpleOutlineCH = "中文-简单大纲重新生成"
+
+	ActionNameDetailOutlineCH = "中文-详细大纲重新生成"
+
+	ActionNameKeyInfoCH = "中文-关键观点重新生成"
+
+	ActionNameSummaryEN = "英文-概述重新生成"
+
+	ActionNameSimpleOutlineEN = "英文-简单大纲重新生成"
+
+	ActionNameDetailOutlineEN = "英文-详细大纲重新生成"
+
+	ActionNameKeyInfoEN = "英文-关键观点重新生成"
+
+	ActionNameMultiOutline = "多文档-大纲重新生成"
+
+	ActionNameSubscribeWeb = "订阅web"
+
+	ActionNameSubscribePdf = "订阅pdf"
+
+	ActionNameSubscribeMulti = "订阅多文档"
+
+	ActionNameSubscribeCopyWeb = "订阅拷贝-单文档web"
+
+	ActionNameSubscribeCopyPdf = "订阅拷贝-单文档pdf"
+
+	ActionNameSubscribeCopyMulti = "订阅拷贝-多文档"
+)
+
 // ========================================================
 //
 //	链路追踪相关接口定义
@@ -668,6 +730,12 @@ func (p *LinkNodeTypeEnum) Value() (driver.Value, error) {
 	}
 	return int64(*p), nil
 }
+
+// 用户行为来源
+type WebSite = string
+
+// 用户行为类型
+type ActionName = string
 
 // 节点链路图
 type NodeId = string
@@ -17827,6 +17895,12 @@ type UserActionReq struct {
 	Limit int64 `thrift:"limit,6" form:"limit" json:"limit" query:"limit"`
 	// 仅外部用户
 	OnlyExternal bool `thrift:"only_external,7" form:"only_external" json:"only_external" query:"only_external"`
+	// 用户行为来源
+	WebSites []WebSite `thrift:"web_sites,8" form:"web_sites" json:"web_sites" query:"web_sites"`
+	// 用户行为类型
+	ActionNames []ActionName `thrift:"action_names,9" form:"action_names" json:"action_names" query:"action_names"`
+	// 是否来自旧版前端
+	IsOldWeb bool `thrift:"is_old_web,10" form:"is_old_web" json:"is_old_web" query:"is_old_web"`
 }
 
 func NewUserActionReq() *UserActionReq {
@@ -17864,14 +17938,29 @@ func (p *UserActionReq) GetOnlyExternal() (v bool) {
 	return p.OnlyExternal
 }
 
+func (p *UserActionReq) GetWebSites() (v []WebSite) {
+	return p.WebSites
+}
+
+func (p *UserActionReq) GetActionNames() (v []ActionName) {
+	return p.ActionNames
+}
+
+func (p *UserActionReq) GetIsOldWeb() (v bool) {
+	return p.IsOldWeb
+}
+
 var fieldIDToName_UserActionReq = map[int16]string{
-	1: "query",
-	2: "start_time",
-	3: "end_time",
-	4: "status",
-	5: "skip",
-	6: "limit",
-	7: "only_external",
+	1:  "query",
+	2:  "start_time",
+	3:  "end_time",
+	4:  "status",
+	5:  "skip",
+	6:  "limit",
+	7:  "only_external",
+	8:  "web_sites",
+	9:  "action_names",
+	10: "is_old_web",
 }
 
 func (p *UserActionReq) Read(iprot thrift.TProtocol) (err error) {
@@ -17944,6 +18033,30 @@ func (p *UserActionReq) Read(iprot thrift.TProtocol) (err error) {
 		case 7:
 			if fieldTypeId == thrift.BOOL {
 				if err = p.ReadField7(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 8:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField8(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 9:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField9(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 10:
+			if fieldTypeId == thrift.BOOL {
+				if err = p.ReadField10(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -18067,6 +18180,63 @@ func (p *UserActionReq) ReadField7(iprot thrift.TProtocol) error {
 	p.OnlyExternal = _field
 	return nil
 }
+func (p *UserActionReq) ReadField8(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]WebSite, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem WebSite
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_elem = v
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.WebSites = _field
+	return nil
+}
+func (p *UserActionReq) ReadField9(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]ActionName, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem ActionName
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_elem = v
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.ActionNames = _field
+	return nil
+}
+func (p *UserActionReq) ReadField10(iprot thrift.TProtocol) error {
+
+	var _field bool
+	if v, err := iprot.ReadBool(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.IsOldWeb = _field
+	return nil
+}
 
 func (p *UserActionReq) Write(oprot thrift.TProtocol) (err error) {
 
@@ -18101,6 +18271,18 @@ func (p *UserActionReq) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField7(oprot); err != nil {
 			fieldId = 7
+			goto WriteFieldError
+		}
+		if err = p.writeField8(oprot); err != nil {
+			fieldId = 8
+			goto WriteFieldError
+		}
+		if err = p.writeField9(oprot); err != nil {
+			fieldId = 9
+			goto WriteFieldError
+		}
+		if err = p.writeField10(oprot); err != nil {
+			fieldId = 10
 			goto WriteFieldError
 		}
 	}
@@ -18246,6 +18428,73 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 7 end error: ", p), err)
+}
+
+func (p *UserActionReq) writeField8(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("web_sites", thrift.LIST, 8); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.STRING, len(p.WebSites)); err != nil {
+		return err
+	}
+	for _, v := range p.WebSites {
+		if err := oprot.WriteString(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
+func (p *UserActionReq) writeField9(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("action_names", thrift.LIST, 9); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.STRING, len(p.ActionNames)); err != nil {
+		return err
+	}
+	for _, v := range p.ActionNames {
+		if err := oprot.WriteString(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
+}
+
+func (p *UserActionReq) writeField10(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("is_old_web", thrift.BOOL, 10); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteBool(p.IsOldWeb); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 10 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 10 end error: ", p), err)
 }
 
 func (p *UserActionReq) String() string {
@@ -18987,8 +19236,8 @@ type UserActionRespRow struct {
 	UserID string `thrift:"user_id,1" form:"user_id" json:"user_id" query:"user_id"`
 	// DateHourMinSecTemplate
 	CreateTime string          `thrift:"create_time,2" form:"create_time" json:"create_time" query:"create_time"`
-	Channel    string          `thrift:"channel,3" form:"channel" json:"channel" query:"channel"`
-	ActionName string          `thrift:"action_name,4" form:"action_name" json:"action_name" query:"action_name"`
+	Channel    WebSite         `thrift:"channel,3" form:"channel" json:"channel" query:"channel"`
+	ActionName ActionName      `thrift:"action_name,4" form:"action_name" json:"action_name" query:"action_name"`
 	Title      string          `thrift:"title,5" form:"title" json:"title" query:"title"`
 	Resources  []*ResourceInfo `thrift:"resources,6" form:"resources" json:"resources" query:"resources"`
 	// seconds
@@ -19013,11 +19262,11 @@ func (p *UserActionRespRow) GetCreateTime() (v string) {
 	return p.CreateTime
 }
 
-func (p *UserActionRespRow) GetChannel() (v string) {
+func (p *UserActionRespRow) GetChannel() (v WebSite) {
 	return p.Channel
 }
 
-func (p *UserActionRespRow) GetActionName() (v string) {
+func (p *UserActionRespRow) GetActionName() (v ActionName) {
 	return p.ActionName
 }
 
@@ -19210,7 +19459,7 @@ func (p *UserActionRespRow) ReadField2(iprot thrift.TProtocol) error {
 }
 func (p *UserActionRespRow) ReadField3(iprot thrift.TProtocol) error {
 
-	var _field string
+	var _field WebSite
 	if v, err := iprot.ReadString(); err != nil {
 		return err
 	} else {
@@ -19221,7 +19470,7 @@ func (p *UserActionRespRow) ReadField3(iprot thrift.TProtocol) error {
 }
 func (p *UserActionRespRow) ReadField4(iprot thrift.TProtocol) error {
 
-	var _field string
+	var _field ActionName
 	if v, err := iprot.ReadString(); err != nil {
 		return err
 	} else {

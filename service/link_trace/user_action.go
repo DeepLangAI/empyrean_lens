@@ -75,14 +75,14 @@ func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, b
 	// 查询数据库
 	if req.Query == "" {
 		// 没有query，直接查询
-		res, err := bi.NewEntryInfoDao().FindByTimeRange(ctx, status, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		res, err := bi.NewEntryInfoDao().FindByTimeRange(ctx, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
 		if err != nil {
 			return nil, &consts.QueryRecordError
 		}
 		entryInfos = res
 	} else {
 		// 有query，先查宽表，再查最近上传未入宽表的
-		res, err := bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		res, err := bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
 		if err != nil {
 			return nil, &consts.QueryRecordError
 		}

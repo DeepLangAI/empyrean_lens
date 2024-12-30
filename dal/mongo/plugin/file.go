@@ -242,6 +242,8 @@ func (d *File) TranslateEntryInfo() *bi.EntryInfo {
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum_FILE, d.Status, 0, 0)),
 		Cost:            0, //TODO
 		ContentSize:     d.ContentSize,
+		WebSite:         utils.ChannelIntToString(int(d.ChannelType)),
+		ActionName:      utils.GetActionName(int(empyrean_lens.EntryTypeEnum_FILE), d.MultiId, d.CopyFromResourceID, "", 0),
 		EntryCreateTime: d.CreateTime,
 		EntryUpdateTime: d.UpdateTime,
 		CreateTime:      time.Now(),

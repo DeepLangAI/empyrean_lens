@@ -10,6 +10,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 
     <script src="/public/js/jquery-3.6.0.min.js"></script>
+    <script src="/public/js/qs.min.js"></script>
     <script src="/public/js/axios.min.js"></script>
     <script src="/public/js/echarts.min.js"></script>
     <script src="/public/js/moment.min.js"></script>
@@ -518,6 +519,32 @@
             background-color: #f0f0f0; /* 鼠标悬停颜色 */
         }
 
+        .params-area .website-btn {
+            cursor: pointer;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            transition: background-color 0.3s;
+        }
+
+        .params-area .website-btn:hover {
+            background-color: #f0f0f0; /* 鼠标悬停颜色 */
+        }
+
+        .params-area .action-name-btn {
+            cursor: pointer;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            transition: background-color 0.3s;
+        }
+
+        .params-area .action-name-btn:hover {
+            background-color: #f0f0f0; /* 鼠标悬停颜色 */
+        }
+
         .params-area .status-select {
             display: flex;
         }
@@ -543,6 +570,55 @@
             background-color: #ddd; /* 下拉内容悬停效果 */
         }
 
+        .params-area .website-select {
+            display: flex;
+        }
+        .params-area .website-select .dropdown {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 3;
+            top: 60px; /* 根据需要调整 */
+            left: 800px;   /* 根据需要调整 */
+        }
+        .params-area .website-select .dropdown .dropdown-content {
+            color: black;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .params-area .website-select .dropdown .dropdown-content:hover {
+            background-color: #ddd; /* 下拉内容悬停效果 */
+        }
+
+        .params-area .action-name-select {
+            display: flex;
+        }
+        .params-area .action-name-select .dropdown {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 3;
+            top: 60px; /* 根据需要调整 */
+            left: 800px;   /* 根据需要调整 */
+        }
+        .params-area .action-name-select .dropdown .dropdown-content {
+            color: black;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .params-area .action-name-select .dropdown .dropdown-content:hover {
+            background-color: #ddd; /* 下拉内容悬停效果 */
+        }
 
         .params-area .time-select {
             display: flex;
@@ -1149,6 +1225,39 @@
         LENGTH_ERROR: 6, // 长度不匹配
         NO_LOG: 7 // 文章上传太早，没有日志
     }
+    // website
+    const WebSiteLingowhalePlugin = "语鲸插件"
+    const WebSiteLingowhaleWeb = "语鲸web"
+    const WebSiteLingowhaleMini = "语鲸小程序"
+    const WebSiteLingowhaleHelper = "语鲸小助手"
+    const WebSiteLingowhaleAndroid = "语鲸app-android"
+    const WebSiteLingowhaleIos = "语鲸app-ios"
+    const WebSiteLingowhaleH5 = "语鲸h5"
+    const WebSiteLingowhaleDesktopWin = "桌面端-win"
+    const WebSiteLingowhaleDesktopMac = "桌面端-mac"
+    const WebSiteLingowhaleSubscribe = "订阅"
+    // action name
+    const ActionNameSingleWeb = "单文档web"
+    const ActionNameSinglePdf = "单文档pdf"
+    const ActionNameMulti = "多文档"
+    const ActionNameMultiWeb = "多文档-子文档web"
+    const ActionNameMultiPdf = "多文档-子文档pdf"
+    const ActionNameSummaryCH = "中文-概述重新生成"
+    const ActionNameSimpleOutlineCH = "中文-简单大纲重新生成"
+    const ActionNameDetailOutlineCH = "中文-详细大纲重新生成"
+    const ActionNameKeyInfoCH = "中文-关键观点重新生成"
+    const ActionNameSummaryEN = "英文-概述重新生成"
+    const ActionNameSimpleOutlineEN = "英文-简单大纲重新生成"
+    const ActionNameDetailOutlineEN = "英文-详细大纲重新生成"
+    const ActionNameKeyInfoEN = "英文-关键观点重新生成"
+    const ActionNameMultiOutline = "多文档-大纲重新生成"
+    const ActionNameSubscribeWeb = "订阅web"
+    const ActionNameSubscribePdf = "订阅pdf"
+    const ActionNameSubscribeMulti = "订阅多文档"
+    const ActionNameSubscribeCopyWeb = "订阅拷贝-单文档web"
+    const ActionNameSubscribeCopyPdf = "订阅拷贝-单文档pdf"
+    const ActionNameSubscribeCopyMulti = "订阅拷贝-多文档"
+    // 颜色
     const COLORS = {}
     // COLORS[ActionStatusEnum.SUCCESS] = '#87e578'
     // COLORS[ActionStatusEnum.SLOW_SUCCESS] = '#fff81c'
@@ -1164,6 +1273,7 @@
     COLORS[ActionStatusEnum.WORTHLESS] = 'rgba(43,92,255,0.8)'; // 80% 不透明度
     COLORS[ActionStatusEnum.LENGTH_ERROR] = 'rgba(103,43,255,0.8)'; // 80% 不透明度
     COLORS[ActionStatusEnum.NO_LOG] = 'rgba(200, 0, 200, 0.8)'; // 80% 不透明度
+    COLORS['全选/全不选'] = 'rgba(185, 185, 185, 0.6)'; // 80% 不透明度
 
     function statusToString(status){
         if (status == ActionStatusEnum.SUCCESS){
@@ -3106,6 +3216,186 @@
                     $(this).text(text)
                 })
             }
+            let $websiteSelectDropdownContents = [
+                $('<div>').addClass('dropdown-content')
+                    .text(' 全不选')
+                    .css({'background': COLORS['全选/全不选']}),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhalePlugin)
+                    .attr('website', WebSiteLingowhalePlugin),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhaleWeb)
+                    .attr('website', WebSiteLingowhaleWeb),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhaleMini)
+                    .attr('website', WebSiteLingowhaleMini),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhaleHelper)
+                    .attr('website', WebSiteLingowhaleHelper),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhaleAndroid)
+                    .attr('website', WebSiteLingowhaleAndroid),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhaleIos)
+                    .attr('website', WebSiteLingowhaleIos),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhaleH5)
+                    .attr('website', WebSiteLingowhaleH5),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhaleDesktopWin)
+                    .attr('website', WebSiteLingowhaleDesktopWin),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhaleDesktopMac)
+                    .attr('website', WebSiteLingowhaleDesktopMac),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + WebSiteLingowhaleSubscribe)
+                    .attr('website', WebSiteLingowhaleSubscribe),
+            ]
+            // 批量添加点击事件
+            for (let i = 0; i < $websiteSelectDropdownContents.length; i++) {
+                $websiteSelectDropdownContents[i].on('click', function () {
+                    let text = $(this).text()
+                    if (i === 0) {
+                        if (text === ' 全选') {
+                            text = ' ' + "全不选"
+                        } else{
+                            text = ' ' + "全选"
+                        } 
+                    } else{
+                        if (text[0] === '✅') {
+                            text = ' ' + text.slice(1)
+                        } else{
+                            text = '✅' + text.slice(1)
+                        }
+                    }
+                    $(this).text(text)
+                    // 是否是全选
+                    if (i === 0 && text === ' 全不选') {
+                        for (let i = 1; i < $websiteSelectDropdownContents.length; i++) {
+                            let text1 = $websiteSelectDropdownContents[i].text()
+                            if (text1[0] != '✅') {
+                                text1 = '✅' + text1.slice(1)
+                            }
+                            $websiteSelectDropdownContents[i].text(text1)
+                        }
+                    }
+                    // 是否是全不选
+                    if (text === ' 全选') {
+                        for (let i = 1; i < $websiteSelectDropdownContents.length; i++) {
+                            let text1 = $websiteSelectDropdownContents[i].text()
+                            if (text1[0] === '✅') {
+                                text1 = ' ' + text1.slice(1)
+                            }
+                            $websiteSelectDropdownContents[i].text(text1)
+                        }
+                    }
+                })
+            }
+            let $actionNameSelectDropdownContents = [
+                $('<div>').addClass('dropdown-content')
+                    .text(' 全不选')
+                    .css({'background': COLORS['全选/全不选']}),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSingleWeb)
+                    .attr('action_name', ActionNameSingleWeb),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSinglePdf)
+                    .attr('action_name', ActionNameSinglePdf),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameMulti)
+                    .attr('action_name', ActionNameMulti),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameMultiWeb)
+                    .attr('action_name', ActionNameMultiWeb),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameMultiPdf)
+                    .attr('action_name', ActionNameMultiPdf),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSummaryCH)
+                    .attr('action_name', ActionNameSummaryCH),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSimpleOutlineCH)
+                    .attr('action_name', ActionNameSimpleOutlineCH),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameDetailOutlineCH)
+                    .attr('action_name', ActionNameDetailOutlineCH),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameKeyInfoCH)
+                    .attr('action_name', ActionNameKeyInfoCH),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSummaryEN)
+                    .attr('action_name', ActionNameSummaryEN),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSimpleOutlineEN)
+                    .attr('action_name', ActionNameSimpleOutlineEN),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameDetailOutlineEN)
+                    .attr('action_name', ActionNameDetailOutlineEN),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameKeyInfoEN)
+                    .attr('action_name', ActionNameKeyInfoEN),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameMultiOutline)
+                    .attr('action_name', ActionNameMultiOutline),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSubscribeWeb)
+                    .attr('action_name', ActionNameSubscribeWeb),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSubscribePdf)
+                    .attr('action_name', ActionNameSubscribePdf),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSubscribeMulti)
+                    .attr('action_name', ActionNameSubscribeMulti),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSubscribeCopyWeb)
+                    .attr('action_name', ActionNameSubscribeCopyWeb),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSubscribeCopyPdf)
+                    .attr('action_name', ActionNameSubscribeCopyPdf),
+                $('<div>').addClass('dropdown-content')
+                    .text('✅ ' + ActionNameSubscribeCopyMulti)
+                    .attr('action_name', ActionNameSubscribeCopyMulti),
+            ]
+            // 批量添加点击事件
+            for (let i = 0; i < $actionNameSelectDropdownContents.length; i++) {
+                $actionNameSelectDropdownContents[i].on('click', function () {
+                    let text = $(this).text()
+                    if (i === 0) {
+                        if (text === ' 全选') {
+                            text = ' ' + "全不选"
+                        } else{
+                            text = ' ' + "全选"
+                        } 
+                    } else{
+                        if (text[0] === '✅') {
+                            text = ' ' + text.slice(1)
+                        } else{
+                            text = '✅' + text.slice(1)
+                        }
+                    }
+                    $(this).text(text)
+                    // 是否是全选
+                    if (i === 0 && text === ' 全不选') {
+                        for (let i = 1; i < $actionNameSelectDropdownContents.length; i++) {
+                            let text1 = $actionNameSelectDropdownContents[i].text()
+                            if (text1[0] != '✅') {
+                                text1 = '✅' + text1.slice(1)
+                            }
+                            $actionNameSelectDropdownContents[i].text(text1)
+                        }
+                    }
+                    // 是否是全不选
+                    if (text === ' 全选') {
+                        for (let i = 1; i < $actionNameSelectDropdownContents.length; i++) {
+                            let text1 = $actionNameSelectDropdownContents[i].text()
+                            if (text1[0] === '✅') {
+                                text1 = ' ' + text1.slice(1)
+                            }
+                            $actionNameSelectDropdownContents[i].text(text1)
+                        }
+                    }
+                })
+            }
             let $externalSelect = $('<div>')
                 .addClass('status-btn')
                 .text('✅ 仅外部用户')
@@ -3196,6 +3486,68 @@
 
                         $('<div>').addClass('dropdown').append(
                             ...$statusSelectDropdownContents
+                        ).hover(function () {
+                            $(this).show()
+                        }).mouseleave(function () {
+                            let $this = $(this)
+                            setTimeout(function () {
+                                // 如果光标还没有hover到div上，则隐藏
+                                if (!$this.prev().is(":hover")) {
+                                    $this.hide()
+                                }
+                            }, 300)
+
+                        }),
+                    ),
+                    $('<div>').addClass('website-select').append(
+                        $('<div>').addClass('website-btn')
+                            .text('产品端')
+                            .hover(function () {
+                                    $(this).next().show();
+                                })
+                            .mouseleave(function () {
+                                let $this = $(this)
+                                setTimeout(function () {
+                                    // 如果光标还没有hover到div上，则隐藏
+                                    if (!$this.next().is(":hover")) {
+                                        $this.next().hide();
+                                    }
+                                }, 300)
+                            }),
+
+                        $('<div>').addClass('dropdown').append(
+                            ...$websiteSelectDropdownContents
+                        ).hover(function () {
+                            $(this).show()
+                        }).mouseleave(function () {
+                            let $this = $(this)
+                            setTimeout(function () {
+                                // 如果光标还没有hover到div上，则隐藏
+                                if (!$this.prev().is(":hover")) {
+                                    $this.hide()
+                                }
+                            }, 300)
+
+                        }),
+                    ),
+                    $('<div>').addClass('action-name-select').append(
+                        $('<div>').addClass('action-name-btn')
+                            .text('行为')
+                            .hover(function () {
+                                    $(this).next().show();
+                                })
+                            .mouseleave(function () {
+                                let $this = $(this)
+                                setTimeout(function () {
+                                    // 如果光标还没有hover到div上，则隐藏
+                                    if (!$this.next().is(":hover")) {
+                                        $this.next().hide();
+                                    }
+                                }, 300)
+                            }),
+
+                        $('<div>').addClass('dropdown').append(
+                            ...$actionNameSelectDropdownContents
                         ).hover(function () {
                             $(this).show()
                         }).mouseleave(function () {
@@ -3481,6 +3833,26 @@
                     }
                 }
                 status = `[${status.join(',')}]`
+                // 遍历$websiteSelectDropdownContents
+                let websites = []
+                for (let i = 1; i < $websiteSelectDropdownContents.length; i++) {
+                    let text = $websiteSelectDropdownContents[i].text()
+                    if (text[0] === '✅'){
+                        // 获取节点的website属性
+                        websites.push($websiteSelectDropdownContents[i].attr('website'))
+                    }
+                }
+                
+                // 遍历$actionNameSelectDropdownContents
+                let actionNames = []
+                for (let i = 1; i < $actionNameSelectDropdownContents.length; i++) {
+                    let text = $actionNameSelectDropdownContents[i].text()
+                    if (text[0] === '✅'){
+                        // 获取节点的website属性
+                        actionNames.push($actionNameSelectDropdownContents[i].attr('action_name'))
+                    }
+                }
+
                 let onlyExternal = false
                 if ($externalSelect.text()[0] === '✅'){
                     onlyExternal = true
@@ -3494,6 +3866,12 @@
                         skip: currentPage * pageSize,
                         limit: pageSize,
                         only_external: onlyExternal,
+                        web_sites: websites,
+                        action_names: actionNames,
+                        is_old_web: true
+                    },
+                    paramsSerializer: params => {
+                        return Qs.stringify(params, { indices: false })
                     }
                 }).then(response => {
                     if (!checkResponse(response.data)){

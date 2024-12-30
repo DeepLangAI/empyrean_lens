@@ -267,6 +267,8 @@ func (d *WebReader) TranslateEntryInfo() *bi.EntryInfo {
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum_WEB, d.Status, 0, 0)),
 		Cost:            0, // TODO
 		ContentSize:     d.ContentSize,
+		WebSite:         utils.ChannelIntToString(d.ChannelType),
+		ActionName:      utils.GetActionName(int(empyrean_lens.EntryTypeEnum_WEB), d.MultiId, d.CopyFromResourceID, "", 0),
 		EntryCreateTime: d.CreateTime,
 		EntryUpdateTime: d.UpdateTime,
 		CreateTime:      time.Now(),

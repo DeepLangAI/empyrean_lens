@@ -608,7 +608,7 @@ func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plug
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
 	}
 	// 插件来源，不需要crawler节点
-	if utils.ChannelIntToString(webReaderInfo.ChannelType) == "语鲸插件" {
+	if utils.ChannelIntToString(webReaderInfo.ChannelType) == empyrean_lens.WebSiteLingowhalePlugin {
 		noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
 	}
 	// 是否需要模型生成
@@ -693,7 +693,7 @@ func getLinkTraceSummaryPracessConfig(ctx context.Context, channelType int, user
 		}
 	}
 	switch utils.ChannelIntToString(channelType) {
-	case "语鲸插件":
+	case empyrean_lens.WebSiteLingowhalePlugin:
 		// 插件来源，没有生成，不需要显示生成节点
 		if len(summaryNodeTypeMapping) == 0 {
 			noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
@@ -712,7 +712,7 @@ func getLinkTraceSummaryPracessConfig(ctx context.Context, channelType int, user
 		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_VIEWPOINT]; !ok {
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH)
 		}
-	case "语鲸web":
+	case empyrean_lens.WebSiteLingowhaleWeb:
 		// 语鲸web端，没有生成，不需要显示生成节点
 		if len(summaryNodeTypeMapping) == 0 {
 			noNeedNodeType = append(noNeedNodeType, []empyrean_lens.LinkNodeTypeEnum{
@@ -732,7 +732,7 @@ func getLinkTraceSummaryPracessConfig(ctx context.Context, channelType int, user
 		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_VIEWPOINT]; !ok {
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH)
 		}
-	case "语鲸小助手", "语鲸小程序":
+	case empyrean_lens.WebSiteLingowhaleHelper, empyrean_lens.WebSiteLingowhaleMini:
 		// 小助手，小程序没有概述，不需要概述节点
 		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_SUMMARY]; !ok {
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH)
@@ -741,7 +741,7 @@ func getLinkTraceSummaryPracessConfig(ctx context.Context, channelType int, user
 		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_VIEWPOINT]; !ok {
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH)
 		}
-	case "语鲸app", "语鲸h5":
+	case empyrean_lens.WebSiteLingowhaleAndroid, empyrean_lens.WebSiteLingowhaleIos, empyrean_lens.WebSiteLingowhaleH5:
 		// app，h5没有生成概述，不需要概述节点
 		if _, ok := summaryNodeTypeMapping[empyrean_lens.EntryTypeEnum_SUMMARY]; !ok {
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH)

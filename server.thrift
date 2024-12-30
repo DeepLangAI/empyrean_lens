@@ -539,6 +539,9 @@ struct UserActionReq {
     5: i64 skip // 分页查询，跳过多少条数据，0起
     6: i64 limit // 分页查询，每页多少条数据
     7: bool only_external // 仅外部用户
+    8: list<WebSite> web_sites // 用户行为来源
+    9: list<ActionName> action_names // 用户行为类型
+    10: bool is_old_web // 是否来自旧版前端
 }
 
 struct UserActionResp {
@@ -559,11 +562,47 @@ struct ResourceInfo{
     4: string url
 }
 
+// 用户行为来源
+typedef string WebSite
+const WebSite WebSiteLingowhalePlugin = "语鲸插件"
+const WebSite WebSiteLingowhaleWeb = "语鲸web"
+const WebSite WebSiteLingowhaleMini = "语鲸小程序"
+const WebSite WebSiteLingowhaleHelper = "语鲸小助手"
+const WebSite WebSiteLingowhaleAndroid = "语鲸app-android"
+const WebSite WebSiteLingowhaleIos = "语鲸app-ios"
+const WebSite WebSiteLingowhaleH5 = "语鲸h5"
+const WebSite WebSiteLingowhaleDesktopWin = "桌面端-win"
+const WebSite WebSiteLingowhaleDesktopMac = "桌面端-mac"
+const WebSite WebSiteLingowhaleSubscribe = "订阅"
+
+// 用户行为类型
+typedef string ActionName
+const ActionName ActionNameSingleWeb = "单文档web"
+const ActionName ActionNameSinglePdf = "单文档pdf"
+const ActionName ActionNameMulti = "多文档"
+const ActionName ActionNameMultiWeb = "多文档-子文档web"
+const ActionName ActionNameMultiPdf = "多文档-子文档pdf"
+const ActionName ActionNameSummaryCH = "中文-概述重新生成"
+const ActionName ActionNameSimpleOutlineCH = "中文-简单大纲重新生成"
+const ActionName ActionNameDetailOutlineCH = "中文-详细大纲重新生成"
+const ActionName ActionNameKeyInfoCH = "中文-关键观点重新生成"
+const ActionName ActionNameSummaryEN = "英文-概述重新生成"
+const ActionName ActionNameSimpleOutlineEN = "英文-简单大纲重新生成"
+const ActionName ActionNameDetailOutlineEN = "英文-详细大纲重新生成"
+const ActionName ActionNameKeyInfoEN = "英文-关键观点重新生成"
+const ActionName ActionNameMultiOutline = "多文档-大纲重新生成"
+const ActionName ActionNameSubscribeWeb = "订阅web"
+const ActionName ActionNameSubscribePdf = "订阅pdf"
+const ActionName ActionNameSubscribeMulti = "订阅多文档"
+const ActionName ActionNameSubscribeCopyWeb = "订阅拷贝-单文档web"
+const ActionName ActionNameSubscribeCopyPdf = "订阅拷贝-单文档pdf"
+const ActionName ActionNameSubscribeCopyMulti = "订阅拷贝-多文档"
+
 struct UserActionRespRow {
     1: string user_id
     2: string create_time // DateHourMinSecTemplate
-    3: string channel
-    4: string action_name
+    3: WebSite channel
+    4: ActionName action_name
     5: string title
     6: list<ResourceInfo> resources
     7: double cost // seconds

@@ -41,6 +41,8 @@ type EntryInfo struct {
 	MultiID         string             `json:"multi_id" bson:"multi_id"`
 	MultiArticles   []MultiArticles    `json:"multi_articles" bson:"multi_articles"`
 	SourceEntryInfo SourceEntryInfo    `json:"source_entry_info" bson:"source_entry_info"`
+	WebSite         string             `json:"web_site" bson:"web_site"`
+	ActionName      string             `json:"action_name" bson:"action_name"`
 	Language        string             `json:"language" bson:"language"`
 	UserID          string             `json:"user_id" bson:"user_id"`
 	UserType        int                `json:"user_type" bson:"user_type"`
@@ -95,7 +97,7 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 	// 存在，upload
 	if info != nil {
 		filter := bson.M{"entry_id": entryInfo.EntryID, "entry_type": entryInfo.EntryType}
-		update := bson.M{"title": entryInfo.Title, "multi_id": entryInfo.MultiID, "status": entryInfo.Status, "outline_type": entryInfo.OutlineType, "link_status": entryInfo.LinkStatus, "entry_url": entryInfo.EntryURL, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles, "parent_entry_id": entryInfo.ParentEntryID, "source_entry_info": entryInfo.SourceEntryInfo, "entry_create_time": entryInfo.EntryCreateTime}
+		update := bson.M{"action_name": entryInfo.ActionName, "web_site": entryInfo.WebSite, "title": entryInfo.Title, "multi_id": entryInfo.MultiID, "status": entryInfo.Status, "outline_type": entryInfo.OutlineType, "link_status": entryInfo.LinkStatus, "entry_url": entryInfo.EntryURL, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles, "parent_entry_id": entryInfo.ParentEntryID, "source_entry_info": entryInfo.SourceEntryInfo, "entry_create_time": entryInfo.EntryCreateTime}
 		_, err := biCollection.Collection(TableNameEntryInfo()).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)
@@ -130,14 +132,19 @@ func (d *EntryInfoDao) FindByEntryIDs(ctx context.Context, entryIDs []string) ([
 	return entryInfos, nil
 }
 
-func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
+func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
 	var entryInfos []*EntryInfo
 	filter := bson.M{
 		"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime},
-		"multi_id":          "",
 	}
 	if len(status) > 0 {
 		filter["link_status"] = bson.M{"$in": status}
+	}
+	if len(webSites) > 0 {
+		filter["web_site"] = bson.M{"$in": webSites}
+	}
+	if len(actionNames) > 0 {
+		filter["action_name"] = bson.M{"$in": actionNames}
 	}
 	if onlyOuter {
 		filter["user_type"] = 1
@@ -159,7 +166,7 @@ func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, only
 	return entryInfos, nil
 }
 
-func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
+func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
 	var entryInfos []*EntryInfo
 	queryFilter := bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"entry_url": query}, {"multi_articles.entry_id": query}, {"entry_id": query}, {"source_entry_info.entry_id": query}}}
 	filter := bson.M{"$and": []bson.M{
@@ -168,6 +175,12 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 	}}
 	if len(status) > 0 {
 		filter["link_status"] = bson.M{"$in": status}
+	}
+	if len(webSites) > 0 {
+		filter["web_site"] = bson.M{"$in": webSites}
+	}
+	if len(actionNames) > 0 {
+		filter["action_name"] = bson.M{"$in": actionNames}
 	}
 	if onlyOuter {
 		filter["user_type"] = 1
@@ -254,6 +267,11 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 	if d.UserID == "" {
 		d.UserID = "resource_server"
 	}
+	// 订阅ID
+	copyFromResourceID := ""
+	if d.ParentEntryID != "" && utils.IsSubscribe(d.ParentEntryType) {
+		copyFromResourceID = d.ParentEntryID
+	}
 	return &empyrean_lens.UserActionRespRow{
 		UserID:     d.UserID,
 		EntryID:    d.EntryID,
@@ -263,7 +281,7 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 		Resources:  resources,
 		Cost:       float64(d.Cost) / 1000,
 		Status:     empyrean_lens.ActionStatusEnum(d.LinkStatus),
-		ActionName: utils.GetActionName(d.EntryType, d.MultiID, d.ParentEntryID, d.Language, d.OutlineType),
+		ActionName: utils.GetActionName(d.EntryType, d.MultiID, copyFromResourceID, d.Language, d.OutlineType),
 		CreateTime: d.EntryCreateTime.Local().Format(consts.DateTimeTemplate),
 	}
 }

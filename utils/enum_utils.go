@@ -12,11 +12,11 @@ import (
 func ChannelIntToString(channel int) string {
 	switch empyrean_lens.ChannelType(channel) {
 	case empyrean_lens.ChannelType_All:
-		return "订阅"
+		return empyrean_lens.WebSiteLingowhaleSubscribe
 	case empyrean_lens.ChannelType_PdfPlugin,
 		empyrean_lens.ChannelType_UrlPlugin,
 		empyrean_lens.ChannelType_UrlPluginMenu:
-		return "语鲸插件"
+		return empyrean_lens.WebSiteLingowhalePlugin
 	case empyrean_lens.ChannelType_PdfPc,
 		empyrean_lens.ChannelType_PdfReader,
 		empyrean_lens.ChannelType_PdfPcDb,
@@ -24,84 +24,124 @@ func ChannelIntToString(channel int) string {
 		empyrean_lens.ChannelType_UrlPc,
 		empyrean_lens.ChannelType_UrlPcDb,
 		empyrean_lens.ChannelType_UrlReader:
-		return "语鲸web"
+		return empyrean_lens.WebSiteLingowhaleWeb
 	case empyrean_lens.ChannelType_WechatUrl,
 		empyrean_lens.ChannelType_WechatPdf:
-		return "语鲸小助手"
+		return empyrean_lens.WebSiteLingowhaleHelper
 	case empyrean_lens.ChannelType_MiniUrl,
 		empyrean_lens.ChannelType_MiniPdf:
-		return "语鲸小程序"
+		return empyrean_lens.WebSiteLingowhaleMini
 	case empyrean_lens.ChannelType_DesktopUrl,
 		empyrean_lens.ChannelType_DesktopPdf:
-		return "语鲸小程序"
+		return empyrean_lens.WebSiteLingowhaleMini
 	case empyrean_lens.ChannelType_WebLingoUrl,
 		empyrean_lens.ChannelType_WebLingoPdf,
 		empyrean_lens.ChannelType_WebLingoMulti:
 		// 原本是灵狗，但由于前端传参没改回来，只能在这里改成语鲸
-		return "语鲸web"
+		return empyrean_lens.WebSiteLingowhaleWeb
 	case empyrean_lens.ChannelType_IosUrl,
 		empyrean_lens.ChannelType_IosPdf,
 		empyrean_lens.ChannelType_IosMulti,
-		empyrean_lens.ChannelType_AndroidUrl,
+		empyrean_lens.ChannelType_IosFeedback:
+		return empyrean_lens.WebSiteLingowhaleIos
+	case empyrean_lens.ChannelType_AndroidUrl,
 		empyrean_lens.ChannelType_AndroidPdf,
 		empyrean_lens.ChannelType_AndroidMulti,
-		empyrean_lens.ChannelType_IosFeedback,
 		empyrean_lens.ChannelType_AndroidFeedback:
-		return "语鲸app"
+		return empyrean_lens.WebSiteLingowhaleAndroid
 	case empyrean_lens.ChannelType_H5Page:
-		return "语鲸h5"
+		return empyrean_lens.WebSiteLingowhaleH5
 	}
 	return fmt.Sprintf("%v", channel)
 }
 
 func GetActionName(entryType int, multiID string, resourceID string, language string, outlineType int) (name string) {
 	// 前缀
-	var prefix string
-	if resourceID != "" {
-		prefix += "订阅-"
-	}
+	isMulti := false
+	isSubscribe := false
 	if multiID != "" && entryType != int(empyrean_lens.EntryTypeEnum_MULTI) {
-		prefix += "多文档-"
+		isMulti = true
 	}
-	if language != "" {
-		if language == "zh" {
-			prefix += "中文-"
-		} else {
-			prefix += "英文-"
-		}
+	if resourceID != "" {
+		isSubscribe = true
 	}
-	if entryType == int(empyrean_lens.EntryTypeEnum_MULTI) {
-		return prefix + "多文档"
-	}
+	// web类型
 	if entryType == int(empyrean_lens.EntryTypeEnum_WEB) {
-		return prefix + "单文档web"
-	}
-	if entryType == int(empyrean_lens.EntryTypeEnum_FILE) {
-		return prefix + "单文档pdf"
-	}
-	if entryType == int(empyrean_lens.EntryTypeEnum_SUMMARY) {
-		return prefix + "概述重新生成"
-	}
-	if entryType == int(empyrean_lens.EntryTypeEnum_OUTLINE) {
-		if outlineType == 2 {
-			return prefix + "详细大纲重新生成"
+		if isMulti {
+			return empyrean_lens.ActionNameMultiWeb
 		}
-		return prefix + "简单大纲重新生成"
+		if isSubscribe {
+			return empyrean_lens.ActionNameSubscribeCopyWeb
+		}
+		return empyrean_lens.ActionNameSingleWeb
 	}
-	if entryType == int(empyrean_lens.EntryTypeEnum_VIEWPOINT) {
-		return prefix + "关键观点重新生成"
-	}
-	if entryType == int(empyrean_lens.EntryTypeEnum_MULTI_OUTLINE) {
-		return prefix + "大纲重新生成"
-	}
+	// 订阅web类型
 	if entryType == int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB) {
-		return prefix + "订阅web"
+		return empyrean_lens.ActionNameSubscribeWeb
 	}
+	// pdf类型
+	if entryType == int(empyrean_lens.EntryTypeEnum_FILE) {
+		if isMulti {
+			return empyrean_lens.ActionNameMultiPdf
+		}
+		if isSubscribe {
+			return empyrean_lens.ActionNameSubscribeCopyPdf
+		}
+		return empyrean_lens.ActionNameSinglePdf
+	}
+	// 订阅pdf类型
 	if entryType == int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE) {
-		return prefix + "订阅pdf"
+		return empyrean_lens.ActionNameSubscribePdf
 	}
+	// 多文档类型
+	if entryType == int(empyrean_lens.EntryTypeEnum_MULTI) {
+		if isSubscribe {
+			return empyrean_lens.ActionNameSubscribeCopyMulti
+		}
+		return empyrean_lens.ActionNameMulti
+	}
+	// 订阅多文档类型
 	if entryType == int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI) {
-		return prefix + "订阅多文档"
+		return empyrean_lens.ActionNameSubscribeMulti
+	}
+	// 概述类型
+	if entryType == int(empyrean_lens.EntryTypeEnum_SUMMARY) {
+		if language == "zh" {
+			return empyrean_lens.ActionNameSummaryCH
+		}
+		if language == "en" {
+			return empyrean_lens.ActionNameSummaryEN
+		}
+	}
+	// 关键观点类型
+	if entryType == int(empyrean_lens.EntryTypeEnum_VIEWPOINT) {
+		if language == "zh" {
+			return empyrean_lens.ActionNameKeyInfoCH
+		}
+		if language == "en" {
+			return empyrean_lens.ActionNameKeyInfoEN
+		}
+	}
+	// 大纲类型
+	if entryType == int(empyrean_lens.EntryTypeEnum_OUTLINE) {
+		if isMulti {
+			return empyrean_lens.ActionNameMultiOutline
+		}
+		if outlineType == 2 {
+			if language == "zh" {
+				return empyrean_lens.ActionNameDetailOutlineCH
+			}
+			if language == "en" {
+				return empyrean_lens.ActionNameDetailOutlineEN
+			}
+		} else {
+			if language == "zh" {
+				return empyrean_lens.ActionNameSimpleOutlineCH
+			}
+			if language == "en" {
+				return empyrean_lens.ActionNameSimpleOutlineEN
+			}
+		}
 	}
 	return ""
 }

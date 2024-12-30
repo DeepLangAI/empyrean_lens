@@ -269,6 +269,8 @@ func (d *MultiModel) TranslateEntryInfo() *bi.EntryInfo {
 		ParentEntryType: parentEntryType,
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum_MULTI, d.AnalysisStatus, d.SummaryStatus, d.MergeStatus)),
 		Cost:            0, // TODO
+		WebSite:         utils.ChannelIntToString(int(d.ChannelType)),
+		ActionName:      utils.GetActionName(int(empyrean_lens.EntryTypeEnum_MULTI), "", d.CopyFromResourceID, "", 0),
 		EntryCreateTime: d.CreateTime,
 		EntryUpdateTime: d.UpdateTime,
 		CreateTime:      time.Now(),

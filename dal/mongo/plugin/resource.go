@@ -192,6 +192,8 @@ func (d *Resource) TranslateEntryInfo() *bi.EntryInfo {
 		Title:           d.Title,
 		EntryURL:        d.OrigUrl,
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum(d.EntryType), d.Status, 0, 0)),
+		WebSite:         utils.ChannelIntToString(0),
+		ActionName:      utils.GetActionName(d.EntryType, "", "", "", 0),
 		EntryCreateTime: d.CreateTime,
 		EntryUpdateTime: d.UpdateTime,
 		CreateTime:      time.Now(),

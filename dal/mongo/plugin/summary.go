@@ -7,6 +7,7 @@ import (
 
 	"empyrean_lens/consts"
 	bi "empyrean_lens/dal/mongo/lingowhale_bi"
+	"empyrean_lens/utils"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
@@ -293,6 +294,8 @@ func (d *Summary) TranslateEntryInfo() *bi.EntryInfo {
 		EntryURL:        d.Url,
 		ChannelType:     d.ChannelType,
 		OutlineType:     d.OutlineType,
+		WebSite:         utils.ChannelIntToString(int(d.ChannelType)),
+		ActionName:      utils.GetActionName(int(d.EntryType), "", "", d.SummaryLangType, d.OutlineType),
 		EntryCreateTime: d.CreateTime,
 		EntryUpdateTime: d.UpdateTime,
 		CreateTime:      time.Now(),

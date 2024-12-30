@@ -20,7 +20,7 @@ import (
 func UserActions(ctx context.Context, c *app.RequestContext) {
 	var err error
 	var req empyrean_lens.UserActionReq
-	err = c.BindAndValidate(&req)
+	err = c.BindQuery(&req)
 	if err != nil {
 		c.JSON(consts.StatusOK, &empyrean_lens.UserActionResp{
 			Code: int64(consts2.ParamBindJsonError.Code),
@@ -29,7 +29,7 @@ func UserActions(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	// 未传status 返回空
-	if len(req.Status) == 0 {
+	if len(req.Status) == 0 || (req.IsOldWeb && (len(req.WebSites) == 0 || len(req.ActionNames) == 0)) {
 		c.JSON(consts.StatusOK, &empyrean_lens.UserActionResp{
 			Code: 0,
 			Msg:  "success",

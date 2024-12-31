@@ -479,6 +479,9 @@ func MultiOutlineLinkTrace(ctx context.Context, entryType empyrean_lens.EntryTyp
 	multiAgicInfo.CopyFromResourceID = multiInfo.CopyFromResourceID
 	multiAgicInfo.Title = multiInfo.Title
 	// 整理数据
+	if len(multiLinkTraceGroup.Graph.Nodes) < 2 {
+		return nil, nil, &consts.QueryRecordError
+	}
 	multiLinkTraceGroup.Graph.Nodes[1] = linkTraceGraph.Nodes[0]
 	themeNodeID := multiLinkTraceGroup.Graph.Nodes[0].ID
 	multiLinkTraceGroup.GetGraph().Edges[themeNodeID] = []string{linkTraceGraph.Nodes[0].ID}
@@ -1248,7 +1251,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[ViewPointModelOutResponseQuery] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+			if len(apiLogsInput) > 0 {
 				processLogs = append(apiLogsInput, apiLogsOuput...)
 				extra["summary_id"] = summaryID
 				break
@@ -1303,7 +1306,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQuery] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+			if len(apiLogsInput) > 0 {
 				processLogs = append(apiLogsInput, apiLogsOuput...)
 				break
 			}
@@ -1397,7 +1400,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					}
 				}
 			}
-			if len(newApiLogsInput) > 0 && len(newApiLogsOuput) > 0 {
+			if len(newApiLogsInput) > 0 {
 				processLogs = append(newApiLogsInput, newApiLogsOuput...)
 				extra["summary_id"] = summaryID
 				break
@@ -1535,11 +1538,6 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[AbstractModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			apiLogsOuput, err := aliyun.AbstractModelOutResponseQueryByTraceID(ctx, traceID, start, end)
-			if err != nil {
-				hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQueryByTraceID] get api logs failed, err: %v", err)
-				return nil, &consts.QueryRecordError
-			}
 			// apiLogsInput 倒序排序
 			sort.Slice(apiLogsInput, func(i, j int) bool {
 				return apiLogsInput[i].Asctime.After(apiLogsInput[j].Asctime)
@@ -1563,7 +1561,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}
-			if len(newApiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+			if len(newApiLogsInput) > 0 {
 				node.EnterTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
 				node.FinishTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
 				node.TraceID = traceID
@@ -1612,11 +1610,6 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[ViewPointModelOutRequestQuery] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			apiLogsOuput, err := aliyun.ViewPointModelOutResponseQuery(ctx, traceID, start, end)
-			if err != nil {
-				hlog.CtxErrorf(ctx, "[ViewPointModelOutResponseQuery] get api logs failed, err: %v", err)
-				return nil, &consts.QueryRecordError
-			}
 			// apiLogsInput 倒序排序
 			sort.Slice(apiLogsInput, func(i, j int) bool {
 				return apiLogsInput[i].Asctime.After(apiLogsInput[j].Asctime)
@@ -1640,7 +1633,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}
-			if len(newApiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+			if len(newApiLogsInput) > 0 {
 				node.EnterTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
 				node.FinishTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
 				node.TraceID = traceID
@@ -1691,11 +1684,6 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[OutlineModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			apiLogsOuput, err := aliyun.OutlineModelOutResponseQuery(ctx, traceID, start, end)
-			if err != nil {
-				hlog.CtxErrorf(ctx, "[OutlineModelOutResponseQuery] get api logs failed, err: %v", err)
-				return nil, &consts.QueryRecordError
-			}
 			// apiLogsInput 倒序排序
 			sort.Slice(apiLogsInput, func(i, j int) bool {
 				return apiLogsInput[i].Asctime.After(apiLogsInput[j].Asctime)
@@ -1726,7 +1714,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}
-			if len(newApiLogsInput) > 0 && len(apiLogsOuput) > 0 {
+			if len(newApiLogsInput) > 0 {
 				node.EnterTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
 				node.FinishTime = newApiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
 				node.TraceID = traceID

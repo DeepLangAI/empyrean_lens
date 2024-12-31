@@ -138,6 +138,38 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Api:   "/api/feed/v1/subscription/upsert",
 			Alias: "【订阅】【后端】添加订阅源",
 		},
+		{
+			Api:   "/api/feed/v1/feed/subscription",
+			Alias: "【订阅】【后端】用户订阅feed流",
+		},
+		{
+			Api:   "/api/feed/v1/resource/get",
+			Alias: "【订阅】【后端】获取资源详情",
+		},
+		{
+			Api:   "/api/feed/v1/behavior/report",
+			Alias: "【订阅】【后端】用户行为上报",
+		},
+		{
+			Api:   "/api/feed/v1/subscription/user_list",
+			Alias: "【订阅】【后端】获取用户已订阅数据源信息",
+		},
+		{
+			Api:   "/api/feed/v1/info_source/search",
+			Alias: "【订阅】【后端】获取信源分类列表",
+		},
+		{
+			Api:   "/api/feed/v1/subscription/delete",
+			Alias: "【订阅】【后端】删除用户订阅",
+		},
+		{
+			Api:   "/api/feed/v1/search/list",
+			Alias: "【订阅】【后端】展示搜索记录",
+		},
+		{
+			Api:   "/api/feed/v1/search_history/delete",
+			Alias: "【订阅】【后端】删除搜索记录",
+		},
 	},
 	//HOST_LINGO_PRE_PUBLIC_BACKEND: {
 	//	{

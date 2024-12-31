@@ -557,7 +557,7 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
             z-index: 3;
             top: 60px; /* 根据需要调整 */
-            left: 800px;   /* 根据需要调整 */
+            left: 790px;   /* 根据需要调整 */
         }
         .params-area .status-select .dropdown .dropdown-content {
             color: black;
@@ -582,7 +582,7 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
             z-index: 3;
             top: 60px; /* 根据需要调整 */
-            left: 800px;   /* 根据需要调整 */
+            left: 870px;   /* 根据需要调整 */
         }
         .params-area .website-select .dropdown .dropdown-content {
             color: black;
@@ -607,7 +607,7 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
             z-index: 3;
             top: 60px; /* 根据需要调整 */
-            left: 800px;   /* 根据需要调整 */
+            left: 935px;   /* 根据需要调整 */
         }
         .params-area .action-name-select .dropdown .dropdown-content {
             color: black;
@@ -3220,182 +3220,169 @@
                 $('<div>').addClass('dropdown-content')
                     .text(' 全不选')
                     .css({'background': COLORS['全选/全不选']}),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhalePlugin)
-                    .attr('website', WebSiteLingowhalePlugin),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhaleWeb)
-                    .attr('website', WebSiteLingowhaleWeb),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhaleMini)
-                    .attr('website', WebSiteLingowhaleMini),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhaleHelper)
-                    .attr('website', WebSiteLingowhaleHelper),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhaleAndroid)
-                    .attr('website', WebSiteLingowhaleAndroid),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhaleIos)
-                    .attr('website', WebSiteLingowhaleIos),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhaleH5)
-                    .attr('website', WebSiteLingowhaleH5),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhaleDesktopWin)
-                    .attr('website', WebSiteLingowhaleDesktopWin),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhaleDesktopMac)
-                    .attr('website', WebSiteLingowhaleDesktopMac),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + WebSiteLingowhaleSubscribe)
-                    .attr('website', WebSiteLingowhaleSubscribe),
+                $('<div>').append(
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhalePlugin)
+                        .attr('website', WebSiteLingowhalePlugin),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhaleWeb)
+                        .attr('website', WebSiteLingowhaleWeb),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhaleMini)
+                        .attr('website', WebSiteLingowhaleMini),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhaleHelper)
+                        .attr('website', WebSiteLingowhaleHelper),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhaleAndroid)
+                        .attr('website', WebSiteLingowhaleAndroid),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhaleIos)
+                        .attr('website', WebSiteLingowhaleIos),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhaleH5)
+                        .attr('website', WebSiteLingowhaleH5),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhaleDesktopWin)
+                        .attr('website', WebSiteLingowhaleDesktopWin),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhaleDesktopMac)
+                        .attr('website', WebSiteLingowhaleDesktopMac),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + WebSiteLingowhaleSubscribe)
+                        .attr('website', WebSiteLingowhaleSubscribe),
+                ).css({
+                    'overflow': 'scroll',
+                    'max-height': '400px',
+                })
             ]
             // 批量添加点击事件
-            for (let i = 0; i < $websiteSelectDropdownContents.length; i++) {
-                $websiteSelectDropdownContents[i].on('click', function () {
-                    let text = $(this).text()
-                    if (i === 0) {
-                        if (text === ' 全选') {
-                            text = ' ' + "全不选"
-                        } else{
-                            text = ' ' + "全选"
-                        } 
+            // 为每个.dropdown-content元素批量添加点击事件
+            $websiteSelectDropdownContents[0].click(function (){
+                let text = $(this).text()
+                if (text.trim() === '全不选'){
+                    text = '全选'
+                } else{
+                    text = '全不选'
+                }
+                $(this).text(text)
+                $websiteSelectDropdownContents[1].find('.dropdown-content').each(function (){
+                    let itemText = $(this).text()
+                    if (text.trim() === '全不选'){
+                        $(this).text('✅ ' + itemText.replace(/^\s?✅?/, ''))
                     } else{
-                        if (text[0] === '✅') {
-                            text = ' ' + text.slice(1)
-                        } else{
-                            text = '✅' + text.slice(1)
-                        }
-                    }
-                    $(this).text(text)
-                    // 是否是全选
-                    if (i === 0 && text === ' 全不选') {
-                        for (let i = 1; i < $websiteSelectDropdownContents.length; i++) {
-                            let text1 = $websiteSelectDropdownContents[i].text()
-                            if (text1[0] != '✅') {
-                                text1 = '✅' + text1.slice(1)
-                            }
-                            $websiteSelectDropdownContents[i].text(text1)
-                        }
-                    }
-                    // 是否是全不选
-                    if (text === ' 全选') {
-                        for (let i = 1; i < $websiteSelectDropdownContents.length; i++) {
-                            let text1 = $websiteSelectDropdownContents[i].text()
-                            if (text1[0] === '✅') {
-                                text1 = ' ' + text1.slice(1)
-                            }
-                            $websiteSelectDropdownContents[i].text(text1)
-                        }
+                        $(this).text(itemText.replace(/^\s?✅?/, ''))
                     }
                 })
-            }
+            })
+            $websiteSelectDropdownContents[1].find('.dropdown-content').click(function (){
+                let text = $(this).text()
+                if (text[0] == '✅'){
+                    text = ' ' + text.slice(1)
+                } else{
+                    text = '✅' + text.slice(1)
+                }
+                $(this).text(text)
+            })
+
             let $actionNameSelectDropdownContents = [
                 $('<div>').addClass('dropdown-content')
                     .text(' 全不选')
                     .css({'background': COLORS['全选/全不选']}),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSingleWeb)
-                    .attr('action_name', ActionNameSingleWeb),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSinglePdf)
-                    .attr('action_name', ActionNameSinglePdf),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameMulti)
-                    .attr('action_name', ActionNameMulti),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameMultiWeb)
-                    .attr('action_name', ActionNameMultiWeb),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameMultiPdf)
-                    .attr('action_name', ActionNameMultiPdf),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSummaryCH)
-                    .attr('action_name', ActionNameSummaryCH),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSimpleOutlineCH)
-                    .attr('action_name', ActionNameSimpleOutlineCH),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameDetailOutlineCH)
-                    .attr('action_name', ActionNameDetailOutlineCH),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameKeyInfoCH)
-                    .attr('action_name', ActionNameKeyInfoCH),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSummaryEN)
-                    .attr('action_name', ActionNameSummaryEN),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSimpleOutlineEN)
-                    .attr('action_name', ActionNameSimpleOutlineEN),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameDetailOutlineEN)
-                    .attr('action_name', ActionNameDetailOutlineEN),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameKeyInfoEN)
-                    .attr('action_name', ActionNameKeyInfoEN),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameMultiOutline)
-                    .attr('action_name', ActionNameMultiOutline),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSubscribeWeb)
-                    .attr('action_name', ActionNameSubscribeWeb),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSubscribePdf)
-                    .attr('action_name', ActionNameSubscribePdf),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSubscribeMulti)
-                    .attr('action_name', ActionNameSubscribeMulti),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSubscribeCopyWeb)
-                    .attr('action_name', ActionNameSubscribeCopyWeb),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSubscribeCopyPdf)
-                    .attr('action_name', ActionNameSubscribeCopyPdf),
-                $('<div>').addClass('dropdown-content')
-                    .text('✅ ' + ActionNameSubscribeCopyMulti)
-                    .attr('action_name', ActionNameSubscribeCopyMulti),
+                $('<div>').append(
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSingleWeb)
+                        .attr('action_name', ActionNameSingleWeb),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSinglePdf)
+                        .attr('action_name', ActionNameSinglePdf),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameMulti)
+                        .attr('action_name', ActionNameMulti),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameMultiWeb)
+                        .attr('action_name', ActionNameMultiWeb),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameMultiPdf)
+                        .attr('action_name', ActionNameMultiPdf),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSummaryCH)
+                        .attr('action_name', ActionNameSummaryCH),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSimpleOutlineCH)
+                        .attr('action_name', ActionNameSimpleOutlineCH),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameDetailOutlineCH)
+                        .attr('action_name', ActionNameDetailOutlineCH),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameKeyInfoCH)
+                        .attr('action_name', ActionNameKeyInfoCH),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSummaryEN)
+                        .attr('action_name', ActionNameSummaryEN),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSimpleOutlineEN)
+                        .attr('action_name', ActionNameSimpleOutlineEN),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameDetailOutlineEN)
+                        .attr('action_name', ActionNameDetailOutlineEN),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameKeyInfoEN)
+                        .attr('action_name', ActionNameKeyInfoEN),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameMultiOutline)
+                        .attr('action_name', ActionNameMultiOutline),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSubscribeWeb)
+                        .attr('action_name', ActionNameSubscribeWeb),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSubscribePdf)
+                        .attr('action_name', ActionNameSubscribePdf),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSubscribeMulti)
+                        .attr('action_name', ActionNameSubscribeMulti),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSubscribeCopyWeb)
+                        .attr('action_name', ActionNameSubscribeCopyWeb),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSubscribeCopyPdf)
+                        .attr('action_name', ActionNameSubscribeCopyPdf),
+                    $('<div>').addClass('dropdown-content')
+                        .text('✅ ' + ActionNameSubscribeCopyMulti)
+                        .attr('action_name', ActionNameSubscribeCopyMulti),
+                ).css({
+                    'overflow': 'scroll',
+                    'max-height': '400px',
+                }),
             ]
             // 批量添加点击事件
-            for (let i = 0; i < $actionNameSelectDropdownContents.length; i++) {
-                $actionNameSelectDropdownContents[i].on('click', function () {
-                    let text = $(this).text()
-                    if (i === 0) {
-                        if (text === ' 全选') {
-                            text = ' ' + "全不选"
-                        } else{
-                            text = ' ' + "全选"
-                        } 
+            // 为每个.dropdown-content元素批量添加点击事件
+            $actionNameSelectDropdownContents[0].click(function (){
+                let text = $(this).text()
+                if (text.trim() === '全不选'){
+                    text = '全选'
+                } else{
+                    text = '全不选'
+                }
+                $(this).text(text)
+                $actionNameSelectDropdownContents[1].find('.dropdown-content').each(function (){
+                    let itemText = $(this).text()
+                    if (text.trim() === '全不选'){
+                        $(this).text('✅ ' + itemText.replace(/^\s?✅?/, ''))
                     } else{
-                        if (text[0] === '✅') {
-                            text = ' ' + text.slice(1)
-                        } else{
-                            text = '✅' + text.slice(1)
-                        }
-                    }
-                    $(this).text(text)
-                    // 是否是全选
-                    if (i === 0 && text === ' 全不选') {
-                        for (let i = 1; i < $actionNameSelectDropdownContents.length; i++) {
-                            let text1 = $actionNameSelectDropdownContents[i].text()
-                            if (text1[0] != '✅') {
-                                text1 = '✅' + text1.slice(1)
-                            }
-                            $actionNameSelectDropdownContents[i].text(text1)
-                        }
-                    }
-                    // 是否是全不选
-                    if (text === ' 全选') {
-                        for (let i = 1; i < $actionNameSelectDropdownContents.length; i++) {
-                            let text1 = $actionNameSelectDropdownContents[i].text()
-                            if (text1[0] === '✅') {
-                                text1 = ' ' + text1.slice(1)
-                            }
-                            $actionNameSelectDropdownContents[i].text(text1)
-                        }
+                        $(this).text(itemText.replace(/^\s?✅?/, ''))
                     }
                 })
-            }
+            })
+            $actionNameSelectDropdownContents[1].find('.dropdown-content').click(function (){
+                let text = $(this).text()
+                if (text[0] == '✅'){
+                    text = ' ' + text.slice(1)
+                } else{
+                    text = '✅' + text.slice(1)
+                }
+                $(this).text(text)
+            })
             let $externalSelect = $('<div>')
                 .addClass('status-btn')
                 .text('✅ 仅外部用户')
@@ -3835,23 +3822,23 @@
                 status = `[${status.join(',')}]`
                 // 遍历$websiteSelectDropdownContents
                 let websites = []
-                for (let i = 1; i < $websiteSelectDropdownContents.length; i++) {
-                    let text = $websiteSelectDropdownContents[i].text()
+                $websiteSelectDropdownContents[1].find('.dropdown-content').each(function (){
+                    let text = $(this).text()
                     if (text[0] === '✅'){
                         // 获取节点的website属性
-                        websites.push($websiteSelectDropdownContents[i].attr('website'))
+                        websites.push($(this).attr('website'))
                     }
-                }
+                })
                 
                 // 遍历$actionNameSelectDropdownContents
                 let actionNames = []
-                for (let i = 1; i < $actionNameSelectDropdownContents.length; i++) {
-                    let text = $actionNameSelectDropdownContents[i].text()
+                $actionNameSelectDropdownContents[1].find('.dropdown-content').each(function (){
+                    let text = $(this).text()
                     if (text[0] === '✅'){
                         // 获取节点的website属性
-                        actionNames.push($actionNameSelectDropdownContents[i].attr('action_name'))
+                        actionNames.push($(this).attr('action_name'))
                     }
-                }
+                })
 
                 let onlyExternal = false
                 if ($externalSelect.text()[0] === '✅'){

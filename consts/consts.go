@@ -138,6 +138,42 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Api:   "/api/feed/v1/subscription/upsert",
 			Alias: "【订阅】【后端】添加订阅源",
 		},
+		{
+			Api:   "/api/feed/v1/feed/subscription",
+			Alias: "【订阅】【后端】用户订阅feed流",
+		},
+		{
+			Api:   "/api/feed/v1/resource/get",
+			Alias: "【订阅】【后端】获取资源详情",
+		},
+		{
+			Api:   "/api/feed/v1/behavior/report",
+			Alias: "【订阅】【后端】用户行为上报",
+		},
+		{
+			Api:   "/api/feed/v1/subscription/user_list",
+			Alias: "【订阅】【后端】获取用户已订阅数据源信息",
+		},
+		{
+			Api:   "/api/feed/v1/info_source/search",
+			Alias: "【订阅】【后端】获取信源分类列表",
+		},
+		{
+			Api:   "/api/feed/v1/subscription/delete",
+			Alias: "【订阅】【后端】删除用户订阅",
+		},
+		{
+			Api:   "/api/feed/v1/search/list",
+			Alias: "【订阅】【后端】展示搜索记录",
+		},
+		{
+			Api:   "/api/feed/v1/search_history/delete",
+			Alias: "【订阅】【后端】删除搜索记录",
+		},
+		{
+			Api:   "/api/feed/v1/subscription/get",
+			Alias: "【订阅】【后端】获取订阅信息",
+		},
 	},
 	//HOST_LINGO_PRE_PUBLIC_BACKEND: {
 	//	{
@@ -185,6 +221,18 @@ var NGINX_INGRESS_APIS = map[string][]API{
 		{
 			Api:   "/api/plugin/articles/summary/list_v2",
 			Alias: "【单文档】【后端】刷新模型生成内容(list_v2)",
+		},
+		{
+			Api:   "/api/novel_form/get",
+			Alias: "【新形态内容】【后端】新形态内容获取",
+		},
+		{
+			Api:   "/api/novel_form/resource/get",
+			Alias: "【新形态内容】【后端】获取新形态绑定资源详情",
+		},
+		{
+			Api:   "/api/novel_form/feed/recommend",
+			Alias: "【新形态内容】【后端】读后推荐",
 		},
 	},
 	//HOST_LINGO_PRE_BACKEND: {

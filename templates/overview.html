@@ -1986,7 +1986,7 @@
                 tr.append($('<td>').text(response.data.data[i].host))
                 tr.append($('<td>').text(response.data.data[i].path))
                 tr.append($('<td>').text(response.data.data[i].http_code))
-                var td = $('<td>').text(response.data.data[i].trace_id)
+                let td = $('<td>').text(response.data.data[i].trace_id)
                 if (traceIdLegal(response.data.data[i].trace_id)){
                     td.addClass('clickable')
                         .click(function(){

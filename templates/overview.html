@@ -1981,7 +1981,7 @@
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
-                var tr = $('<tr>')
+                let tr = $('<tr>')
                 tr.append($('<td>').text(response.data.data[i].time))
                 tr.append($('<td>').text(response.data.data[i].host))
                 tr.append($('<td>').text(response.data.data[i].path))

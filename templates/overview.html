@@ -1981,12 +1981,12 @@
 
             // 循环写入数据，以表格展示数据
             for (let i = 0; i < response.data.data.length; i++) {
-                var tr = $('<tr>')
+                let tr = $('<tr>')
                 tr.append($('<td>').text(response.data.data[i].time))
                 tr.append($('<td>').text(response.data.data[i].host))
                 tr.append($('<td>').text(response.data.data[i].path))
                 tr.append($('<td>').text(response.data.data[i].http_code))
-                var td = $('<td>').text(response.data.data[i].trace_id)
+                let td = $('<td>').text(response.data.data[i].trace_id)
                 if (traceIdLegal(response.data.data[i].trace_id)){
                     td.addClass('clickable')
                         .click(function(){

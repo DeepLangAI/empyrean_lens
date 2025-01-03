@@ -1116,17 +1116,31 @@ func NginxBizErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxE
 
 	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
-	query := ` %s
-| 
-select user_id, trace_id, time, status, host, url, request_time cost,client_ip,"lw-code", "lw-msg", channel, "http_user_agent" ua
+	//	query := ` %s
+	//|
+	//select user_id, trace_id, time, status, host, REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, request_time cost,client_ip,"lw-code", "lw-msg", channel, "http_user_agent" ua
+	//from log where
+	//%v clean_url = '%v' and
+	//%v host = '%v' and
+	//
+	//method in ('GET', 'POST') and
+	//"lw-code" != 0
+	//order by time desc
+	//limit %v
+	//`
+	query := `%s
+|
+select * from (
+select user_id, trace_id, time, status, host, REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, request_time cost,client_ip,"lw-code", "lw-msg", channel, "http_user_agent" ua
 from log where
-%v url = '%v' and 
 %v host = '%v' and 
 
 method in ('GET', 'POST') and
 "lw-code" != 0
 order by time desc
 limit %v
+)
+%v where clean_url = '%v'
 `
 	urlMute := ""
 	if url == "" {
@@ -1136,7 +1150,7 @@ limit %v
 	if host == "" {
 		hostMute = "--"
 	}
-	query = fmt.Sprintf(query, consts.FilterProbeUser, urlMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, hostMute, host, consts.LOG_QUERY_LIMIT, urlMute, url)
 	hlog.CtxDebugf(ctx, "date: %v, nginx bizErrlogs query: %v", date, query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -1183,7 +1197,7 @@ limit %v
 		bizMsg = renameBizMessage(int(bizCode), host, bizMsg)
 		result := NginxErrorLog{
 			NginxLog: NginxLog{
-				CleanUrl: log["url"],
+				CleanUrl: log["clean_url"],
 				Time:     t,
 				Method:   log["method"],
 				Status:   log["status"],
@@ -1212,17 +1226,31 @@ func NginxErrlogsQuery(ctx context.Context, host, url, date string) ([]NginxErro
 
 	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location()).Add(-8 * time.Hour).Unix()
 	to := time.Date(day.Year(), day.Month(), day.Day(), 23, 59, 59, 999999999, day.Location()).Add(-8 * time.Hour).Unix()
+	//	query := `%s
+	//|
+	//select user_id, trace_id, time, status, host, REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, request_time cost,client_ip, channel, "http_user_agent" ua
+	//from log where
+	//%v clean_url = '%v' and
+	//%v host = '%v' and
+	//
+	//method in ('GET', 'POST') and
+	//status != 200
+	//order by time desc
+	//limit %v
+	//`
 	query := `%s
 | 
-select user_id, trace_id, time, status, host, url, request_time cost,client_ip, channel, "http_user_agent" ua
+select * from (
+select user_id, trace_id, time, status, host, REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, request_time cost,client_ip, channel, "http_user_agent" ua
 from log where
-%v url = '%v' and 
 %v host = '%v' and 
 
 method in ('GET', 'POST') and
 status != 200
 order by time desc
 limit %v
+)
+%v where clean_url = '%v'
 `
 	urlMute := ""
 	if url == "" {
@@ -1232,7 +1260,7 @@ limit %v
 	if host == "" {
 		hostMute = "--"
 	}
-	query = fmt.Sprintf(query, consts.FilterProbeUser, urlMute, url, hostMute, host, consts.LOG_QUERY_LIMIT)
+	query = fmt.Sprintf(query, consts.FilterProbeUser, hostMute, host, consts.LOG_QUERY_LIMIT, urlMute, url)
 	hlog.CtxDebugf(ctx, "date: %v, nginx errlogs query: %v", date, query)
 	//resp, err := logstore.GetLogs("", from, to, query, 100000, 0, false)
 	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
@@ -1261,7 +1289,7 @@ limit %v
 		}
 		result := NginxErrorLog{
 			NginxLog: NginxLog{
-				CleanUrl: log["url"],
+				CleanUrl: log["clean_url"],
 				Time:     t,
 				Method:   log["method"],
 				Status:   log["status"],

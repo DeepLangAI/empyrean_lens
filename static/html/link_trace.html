@@ -646,6 +646,18 @@
         .params-area .time-select .dropdown .dropdown-content:hover {
             background-color: #ddd; /* 下拉内容悬停效果 */
         }
+        .status-btn.active{
+            background-color: rgba(239, 239, 239);
+        }
+        .timerange-btn.active{
+            background-color: rgba(239, 239, 239);
+        }
+        .website-btn.active{
+            background-color: rgba(239, 239, 239);
+        }
+        .action-name-btn.active{
+            background-color: rgba(239, 239, 239);
+        }
 
         .search-bar button {
             padding: 10px 15px;
@@ -1144,6 +1156,17 @@
             60% {
                 transform: translateY(-4px);
             }
+        }
+        .shake {
+            animation: shake 0.2s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-1px); }
+            50% { transform: translateX(1px); }
+            75% { transform: translateX(-1px); }
+            100% { transform: translateX(0); }
         }
 
 
@@ -3131,6 +3154,12 @@
             function setTimeRange(startTime, endTime) {
                 $startDatetime.val(formatDateTime(startTime));
                 $endDatetime.val(formatDateTime(endTime));
+                $startDatetime.addClass('shake')
+                $endDatetime.addClass('shake')
+                setTimeout(() => {
+                    $startDatetime.removeClass('shake')
+                    $endDatetime.removeClass('shake')
+                }, 300);
             }
 
             let currentPage = 0;
@@ -3444,11 +3473,13 @@
                             }),
                         ).hover(function () {
                             $(this).show()
+                            $(this).prev().addClass('active')
                         }).mouseleave(function () {
                             let $this = $(this)
                             setTimeout(function () {
                                 // 如果光标还没有hover到div上，则隐藏
                                 if (!$this.prev().is(":hover")) {
+                                    $this.prev().removeClass('active')
                                     $this.hide()
                                 }
                             }, 300)
@@ -3475,11 +3506,13 @@
                             ...$statusSelectDropdownContents
                         ).hover(function () {
                             $(this).show()
+                            $(this).prev().addClass('active')
                         }).mouseleave(function () {
                             let $this = $(this)
                             setTimeout(function () {
                                 // 如果光标还没有hover到div上，则隐藏
                                 if (!$this.prev().is(":hover")) {
+                                    $this.prev().removeClass('active')
                                     $this.hide()
                                 }
                             }, 300)
@@ -3506,11 +3539,13 @@
                             ...$websiteSelectDropdownContents
                         ).hover(function () {
                             $(this).show()
+                            $(this).prev().addClass('active')
                         }).mouseleave(function () {
                             let $this = $(this)
                             setTimeout(function () {
                                 // 如果光标还没有hover到div上，则隐藏
                                 if (!$this.prev().is(":hover")) {
+                                    $this.prev().removeClass('active')
                                     $this.hide()
                                 }
                             }, 300)
@@ -3537,11 +3572,13 @@
                             ...$actionNameSelectDropdownContents
                         ).hover(function () {
                             $(this).show()
+                            $(this).prev().addClass('active')
                         }).mouseleave(function () {
                             let $this = $(this)
                             setTimeout(function () {
                                 // 如果光标还没有hover到div上，则隐藏
                                 if (!$this.prev().is(":hover")) {
+                                    $this.prev().removeClass('active')
                                     $this.hide()
                                 }
                             }, 300)
@@ -3663,7 +3700,7 @@
                         $tbody.append($row);
                     });
 
-                    $table.find('.table-title').text(`每日用户行为总结 (第 ${currentPage + 1} 页)`);
+                    $table.find('.table-title').text(`用户行为 (第 ${currentPage + 1} 页)`);
                 }
             }
 

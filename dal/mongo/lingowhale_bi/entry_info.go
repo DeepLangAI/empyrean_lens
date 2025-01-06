@@ -118,7 +118,10 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 }
 
 func (d *EntryInfoDao) DeleteContentByTimeRange(ctx context.Context, startAt, endAt time.Time) error {
-	filter := bson.M{"entry_create_time": bson.M{"$gte": startAt, "$lt": endAt}}
+	filter := bson.M{"$and": []bson.M{
+		{"content_index": bson.M{"$exists": true, "$ne": ""}},
+		{"entry_create_time": bson.M{"$gte": startAt, "$lt": endAt}},
+	}}
 	update := bson.M{"$set": bson.M{"content_index": ""}}
 	_, err := biCollection.Collection(TableNameEntryInfo()).UpdateMany(ctx, filter, update)
 	if err != nil {

@@ -112,6 +112,7 @@ func GetActionName(entryType int, multiID string, resourceID string, language st
 		if language == "en" {
 			return empyrean_lens.ActionNameSummaryEN
 		}
+		return empyrean_lens.ActionNameSummaryCH
 	}
 	// 关键观点类型
 	if entryType == int(empyrean_lens.EntryTypeEnum_VIEWPOINT) {
@@ -121,6 +122,7 @@ func GetActionName(entryType int, multiID string, resourceID string, language st
 		if language == "en" {
 			return empyrean_lens.ActionNameKeyInfoEN
 		}
+		return empyrean_lens.ActionNameKeyInfoCH
 	}
 	// 大纲类型
 	if entryType == int(empyrean_lens.EntryTypeEnum_OUTLINE) {
@@ -134,6 +136,7 @@ func GetActionName(entryType int, multiID string, resourceID string, language st
 			if language == "en" {
 				return empyrean_lens.ActionNameDetailOutlineEN
 			}
+			return empyrean_lens.ActionNameDetailOutlineCH
 		} else {
 			if language == "zh" {
 				return empyrean_lens.ActionNameSimpleOutlineCH
@@ -141,6 +144,7 @@ func GetActionName(entryType int, multiID string, resourceID string, language st
 			if language == "en" {
 				return empyrean_lens.ActionNameSimpleOutlineEN
 			}
+			return empyrean_lens.ActionNameSimpleOutlineCH
 		}
 	}
 	return ""

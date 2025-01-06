@@ -121,7 +121,7 @@ func (d *FileDao) FindFileByTimeRange(ctx context.Context, status []int32, start
 		//"is_delete": false,
 		"create_time":           bson.M{"$gte": startTime, "$lt": endTime},
 		"copy_from_resource_id": "",
-		"channel_type":          bson.M{"$nin": []int32{72, 82, 85}},
+		"channel_type":          bson.M{"$nin": []int32{71, 72, 82, 85}},
 	}
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
@@ -153,6 +153,7 @@ func (d *FileDao) FindFileByTimeRangeForSave(ctx context.Context, startTime, end
 		//"is_delete": false,
 		"create_time":           bson.M{"$gte": startTime, "$lt": endTime},
 		"copy_from_resource_id": "",
+		"channel_type":          bson.M{"$nin": []int32{71}},
 	}
 	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "parsing_result": 1, "file_url": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1}).
 		SetSort(bson.D{{Key: "create_time", Value: -1}})

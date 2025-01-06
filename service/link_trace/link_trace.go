@@ -507,12 +507,12 @@ func SummaryArticleTrace(ctx context.Context, summaryInfo *plugin.Summary, refre
 		// 判断是否是重新生成
 		if !IsRetrySummary(ctx, summaryInfo, fileInfo.MultiId, fileInfo.CopyFromResourceID) {
 			// 重新更新文章链路
-			Save(ctx, empyrean_lens.EntryTypeEnum_FILE, fileInfo.ID.Hex())
+			Save(ctx, empyrean_lens.EntryTypeEnum_FILE, fileInfo.ID.Hex(), true)
 			hlog.CtxInfof(ctx, "is not retry summary, entryType: %v, entryID: %v", summaryInfo.EntryType, summaryInfo.ID)
 			return nil, nil, nil
 		}
 		// save file
-		Save(ctx, empyrean_lens.EntryTypeEnum_FILE, fileInfo.ID.Hex())
+		Save(ctx, empyrean_lens.EntryTypeEnum_FILE, fileInfo.ID.Hex(), false)
 		info, articleGraph, bizCode := FileLinkTrace(ctx, fileInfo.ID.Hex(), "", false, true)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[FileLinkTrace] get article graph failed, err: %v", bizCode)
@@ -528,12 +528,12 @@ func SummaryArticleTrace(ctx context.Context, summaryInfo *plugin.Summary, refre
 		// 判断是否是重新生成
 		if !IsRetrySummary(ctx, summaryInfo, webReaderInfo.MultiId, webReaderInfo.CopyFromResourceID) {
 			// 重新更新文章链路
-			Save(ctx, empyrean_lens.EntryTypeEnum_WEB, webReaderInfo.ID.Hex())
+			Save(ctx, empyrean_lens.EntryTypeEnum_WEB, webReaderInfo.ID.Hex(), true)
 			hlog.CtxInfof(ctx, "is not retry summary, entryType: %v, entryID: %v", summaryInfo.EntryType, summaryInfo.ID)
 			return nil, nil, nil
 		}
 		// save web reader
-		Save(ctx, empyrean_lens.EntryTypeEnum_WEB, webReaderInfo.ID.Hex())
+		Save(ctx, empyrean_lens.EntryTypeEnum_WEB, webReaderInfo.ID.Hex(), false)
 		info, articleGraph, bizCode := WebReaderLinkTrace(ctx, webReaderInfo.ID.Hex(), "", false, true)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[WebReaderLinkTrace] get article graph failed, err: %v", bizCode)

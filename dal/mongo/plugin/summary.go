@@ -288,7 +288,7 @@ func (d *Summary) TranslateEntryInfo() *bi.EntryInfo {
 			EntryID:   d.SourceEntryID,
 		},
 		DataType:        consts.EntryInfoDataTypeSummary,
-		Language:        d.SummaryLangType,
+		SummaryLanguage: d.SummaryLangType,
 		UserID:          d.UserID,
 		Title:           d.SourceTitle,
 		EntryURL:        d.Url,

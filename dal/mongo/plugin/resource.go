@@ -20,6 +20,7 @@ type Resource struct {
 	ID          primitive.ObjectID `bson:"_id" json:"_id"`
 	EntryType   int                `bson:"entry_type" json:"entry_type"`
 	Title       string             `bson:"title" json:"title"`
+	Content     string             `bson:"content" json:"content"`
 	Description string             `bson:"description" json:"description"`
 	AuthorName  string             `bson:"author_name" json:"author_name"`
 	UserID      string             `bson:"user_id" json:"user_id"`

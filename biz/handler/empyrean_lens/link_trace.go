@@ -161,7 +161,7 @@ func SaveLinkTrace(ctx context.Context, c *app.RequestContext) {
 		})
 		return
 	}
-	bizCode := link_trace.Save(ctx, req.EntryType, req.EntryID)
+	bizCode := link_trace.Save(ctx, req.EntryType, req.EntryID, false)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[Save] error: %+v", bizCode)
 		c.JSON(consts.StatusOK, &empyrean_lens.SaveLinkTraceResp{

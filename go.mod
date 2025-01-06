@@ -13,6 +13,7 @@ require (
 	github.com/bytedance/sonic v1.8.1
 	github.com/cloudwego/hertz v0.8.1
 	github.com/go-co-op/gocron v1.37.0
+	github.com/go-ego/gse v0.80.3
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/larksuite/oapi-sdk-go/v3 v3.3.3
 	github.com/pkg/errors v0.9.1
@@ -38,6 +39,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.52.0 // indirect
+	github.com/vcaesar/cedar v0.20.2 // indirect
 	golang.org/x/image v0.20.0 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 )

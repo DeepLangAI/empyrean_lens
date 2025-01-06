@@ -19,6 +19,7 @@ type File struct {
 	ID                  primitive.ObjectID `bson:"_id" json:"_id"`
 	UserID              string             `bson:"user_id" json:"user_id"`
 	Name                string             `bson:"name" json:"name"`
+	Content             string             `bson:"parsing_result" json:"parsing_result"`
 	FileURL             string             `bson:"file_url" json:"file_url"`
 	Status              int                `bson:"status" json:"status"`
 	ChannelType         int                `bson:"channel_type" json:"channel_type"`
@@ -57,7 +58,7 @@ func (d *FileDao) FindFileById(ctx context.Context, id string) (*File, error) {
 		//{"is_delete": false},
 		{"_id": _id},
 	}}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1})
+	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "parsing_result": 1, "file_url": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1})
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindFileById] mongo find error:%+v", err)
@@ -89,7 +90,7 @@ func (d *FileDao) FindFileByIds(ctx context.Context, ids []string) (map[string]*
 		//{"is_delete": false},
 		{"_id": bson.M{"$in": _ids}},
 	}}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1})
+	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "parsing_result": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1})
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindFileById] mongo find error:%+v", err)
@@ -125,7 +126,7 @@ func (d *FileDao) FindFileByTimeRange(ctx context.Context, status []int32, start
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
 	}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1}).
+	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "parsing_result": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1}).
 		SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {
@@ -153,7 +154,7 @@ func (d *FileDao) FindFileByTimeRangeForSave(ctx context.Context, startTime, end
 		"create_time":           bson.M{"$gte": startTime, "$lt": endTime},
 		"copy_from_resource_id": "",
 	}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1}).
+	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "parsing_result": 1, "file_url": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1}).
 		SetSort(bson.D{{Key: "create_time", Value: -1}})
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {
@@ -187,7 +188,7 @@ func (d *FileDao) FindFileByQueryAndTimeRange(ctx context.Context, query string,
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
 	}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1}).
+	options := options.Find().SetProjection(bson.M{"_id": 1, "user_id": 1, "name": 1, "parsing_result": 1, "file_url": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_file_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$parsing_result"}, "is_delete": 1, "create_time": 1, "update_time": 1}).
 		SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameFile).Find(ctx, filter, options)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"empyrean_lens/biz/model/empyrean_lens"
@@ -20,7 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func Save(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID string) *consts.BizCode {
+func Save(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID string, refresh bool) *consts.BizCode {
 	// 加锁，防止并发
 	lockKey := fmt.Sprintf("link_trace:save:%s", entryID)
 	err := redis.KeySetNx(ctx, lockKey, redis.Stop, time.Duration(3)*time.Minute)
@@ -35,7 +36,7 @@ func Save(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, entryID st
 		return &consts.QueryRecordError
 	}
 	// 已经保存过，并且状态为成功，直接返回
-	if entryInfo != nil && (entryInfo.LinkStatus == int(empyrean_lens.ActionStatusEnum_SUCCESS)) {
+	if !refresh && entryInfo != nil && (entryInfo.LinkStatus == int(empyrean_lens.ActionStatusEnum_SUCCESS)) {
 		return &consts.ResSuccess
 	}
 	// 根据类型保存数据库
@@ -75,7 +76,7 @@ func SaveWebReader(ctx context.Context, entryID, multiID string) *consts.BizCode
 	// 保存parent
 	entryInfo := webReaderInfo.TranslateEntryInfo()
 	if entryInfo.ParentEntryID != "" {
-		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID)
+		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID, false)
 		webReaderInfo, linkTrace, bizCode = WebReaderLinkTrace(ctx, entryID, multiID, true, false)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
@@ -111,7 +112,7 @@ func SaveFile(ctx context.Context, entryID, multiID string) *consts.BizCode {
 	// 保存parent
 	entryInfo := fileInfo.TranslateEntryInfo()
 	if entryInfo.ParentEntryID != "" {
-		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID)
+		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID, false)
 		fileInfo, linkTrace, bizCode = FileLinkTrace(ctx, entryID, multiID, true, false)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "get link trace failed, entry_id:%s, err: %v", entryID, bizCode)
@@ -174,7 +175,7 @@ func SaveMulti(ctx context.Context, entryID string) *consts.BizCode {
 	// 保存parent
 	entryInfo := multiInfo.TranslateEntryInfo()
 	if entryInfo.ParentEntryID != "" {
-		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID)
+		Save(ctx, empyrean_lens.EntryTypeEnum(entryInfo.ParentEntryType), entryInfo.ParentEntryID, false)
 	}
 	// 获取multi node日志
 	nodeLogMapping := map[string]*empyrean_lens.LinkNodeLogRespData{}
@@ -246,7 +247,7 @@ func SaveSummary(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, ent
 	}
 	// 保存parent
 	if summaryInfo.SourceEntryID != "" {
-		Save(ctx, empyrean_lens.EntryTypeEnum(summaryInfo.SourceEntryType), summaryInfo.SourceEntryID)
+		Save(ctx, empyrean_lens.EntryTypeEnum(summaryInfo.SourceEntryType), summaryInfo.SourceEntryID, false)
 	}
 	// 去除非summary节点
 	lenNodes := len(linkTrace.LinkGraph.Nodes)
@@ -282,7 +283,7 @@ func SaveMultiOutline(ctx context.Context, entryType empyrean_lens.EntryTypeEnum
 	}
 	// 保存parent
 	if aigcInfo.MultiID != "" {
-		Save(ctx, empyrean_lens.EntryTypeEnum_MULTI, aigcInfo.MultiID)
+		Save(ctx, empyrean_lens.EntryTypeEnum_MULTI, aigcInfo.MultiID, false)
 	}
 	// 去除非summary节点
 	lenNodes := len(linkTrace.Graph.Nodes)
@@ -415,12 +416,18 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 		linkTrace := linkTrace.(*empyrean_lens.DocLinkTraceRespData)
 		nodes = linkTrace.LinkGraph.Nodes
 		entryInfo = webReaderInfo.TranslateEntryInfo()
+		// 分词，用于全文匹配
+		tokens := utils.InitGse().CutTextV1(webReaderInfo.Content)
+		entryInfo.ContentIndex = strings.Join(tokens, " ")
 		copyFromEntryId = webReaderInfo.CopyFromUrlID
 	case empyrean_lens.EntryTypeEnum_FILE:
 		fileInfo := articleInfo.(*plugin.File)
 		linkTrace := linkTrace.(*empyrean_lens.DocLinkTraceRespData)
 		nodes = linkTrace.LinkGraph.Nodes
 		entryInfo = fileInfo.TranslateEntryInfo()
+		// 分词，用于全文匹配
+		tokens := utils.InitGse().CutTextV1(fileInfo.Content)
+		entryInfo.ContentIndex = strings.Join(tokens, " ")
 		copyFromEntryId = fileInfo.CopyFromFildID
 	case empyrean_lens.EntryTypeEnum_MULTI:
 		multiInfo := articleInfo.(*plugin.MultiModel)
@@ -449,6 +456,9 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 		linkTrace := linkTrace.(*empyrean_lens.DocLinkTraceRespData)
 		nodes = linkTrace.LinkGraph.Nodes
 		entryInfo = resourceInfo.TranslateEntryInfo()
+		// 分词，用于全文匹配
+		tokens := utils.InitGse().CutTextV1(resourceInfo.Content)
+		entryInfo.ContentIndex = strings.Join(tokens, " ")
 		copyFromEntryId = ""
 	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI:
 		resourceInfo := articleInfo.(*plugin.Resource)

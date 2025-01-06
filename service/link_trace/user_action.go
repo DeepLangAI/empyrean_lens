@@ -82,11 +82,31 @@ func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, b
 		entryInfos = res
 	} else {
 		// 有query，先查宽表，再查最近上传未入宽表的
-		res, err := bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		res1, err := bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
 		if err != nil {
 			return nil, &consts.QueryRecordError
 		}
-		entryInfos = res
+		// 有query，先查宽表，再查最近上传未入宽表的
+		res2, err := bi.NewEntryInfoDao().FindByTextQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		if err != nil {
+			return nil, &consts.QueryRecordError
+		}
+		// 合并，去重
+		entryInfos = append(res1, res2...)
+		sort.Slice(entryInfos, func(i, j int) bool {
+			return entryInfos[i].CreateTime.After(entryInfos[j].CreateTime)
+		})
+		if len(entryInfos) > 0 {
+			newRes := []*bi.EntryInfo{entryInfos[0]}
+			for idx := 1; idx < len(entryInfos); idx++ {
+				if entryInfos[idx].EntryID != entryInfos[idx-1].EntryID {
+					newRes = append(newRes, entryInfos[idx])
+				}
+			}
+			entryInfos = newRes
+		} else {
+			entryInfos = []*bi.EntryInfo{}
+		}
 	}
 	// 转换
 	resources := []*empyrean_lens.ResourceInfo{}

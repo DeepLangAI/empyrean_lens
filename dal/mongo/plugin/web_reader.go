@@ -20,6 +20,7 @@ type WebReader struct {
 	URL                 string             `bson:"url" json:"url" validate:"required"`
 	UserID              string             `bson:"user_id" json:"user_id" validate:"required,min=5,max=64"`
 	Title               string             `bson:"title" json:"title" default:""`
+	Content             string             `bson:"content" json:"content" default:""`
 	Status              int                `bson:"status" json:"status"`
 	ChannelType         int                `bson:"channel_type" json:"channel_type"`
 	RealChannelType     int                `bson:"real_channel_type" json:"real_channel_type"`
@@ -56,7 +57,7 @@ func (d *WebReaderDao) FindWebReaderById(ctx context.Context, id string) (*WebRe
 		//{"is_deleted": false},
 		{"_id": _id},
 	}}
-	options := options.FindOne().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
+	options := options.FindOne().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "content": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
 	err := pluginCollection.Collection(TableNameWebReader).FindOne(ctx, filter, options).Decode(&res)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo find error:%+v", err)
@@ -74,7 +75,7 @@ func (d *WebReaderDao) FindWebReaderByUserIDAndUrl(ctx context.Context, userID, 
 		{"user_id": userID},
 		{"url": url},
 	}}
-	options := options.FindOne().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
+	options := options.FindOne().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "content": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "copy_parse_result_from": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
 	err := pluginCollection.Collection(TableNameWebReader).FindOne(ctx, filter, options).Decode(&res)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindWebReaderByUserIDAndUrl] mongo find error:%+v", err)
@@ -97,7 +98,7 @@ func (d *WebReaderDao) FindWebReaderByIds(ctx context.Context, ids []string) (ma
 		//{"is_deleted": false},
 		{"_id": bson.M{"$in": _ids}},
 	}}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
+	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "content": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1})
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindWebReaderById] mongo find error:%+v", err)
@@ -133,7 +134,7 @@ func (d *WebReaderDao) FindWebReaderByTimeRange(ctx context.Context, status []in
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
 	}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1}).
+	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "content": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1}).
 		SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {
@@ -160,7 +161,7 @@ func (d *WebReaderDao) FindWebReaderByTimeRangeForSave(ctx context.Context, star
 		//"is_deleted": false,
 		"create_time": bson.M{"$gte": startTime, "$lt": endTime},
 	}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1}).
+	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "content": 1, "status": 1, "channel_type": 1, "real_channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1}).
 		SetSort(bson.D{{Key: "create_time", Value: -1}})
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {
@@ -196,7 +197,7 @@ func (d *WebReaderDao) FindWebReaderByQueryAndTimeRange(ctx context.Context, que
 	if len(status) > 0 {
 		filter["status"] = bson.M{"$in": status}
 	}
-	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1}).
+	options := options.Find().SetProjection(bson.M{"_id": 1, "url": 1, "user_id": 1, "title": 1, "content": 1, "status": 1, "channel_type": 1, "multi_id": 1, "copy_from_url_id": 1, "copy_from_resource_id": 1, "content_size": bson.M{"$strLenCP": "$content"}, "is_deleted": 1, "create_time": 1, "update_time": 1}).
 		SetSort(bson.D{{Key: "create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
 	cur, err := pluginCollection.Collection(TableNameWebReader).Find(ctx, filter, options)
 	if err != nil {

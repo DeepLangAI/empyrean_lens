@@ -35,6 +35,10 @@ func SceneResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]map[strin
 		if len(model.FailReason) > 0 {
 			failReason = model.FailReason
 		}
+		costs := ""
+		for _, cost := range model.Costs {
+			costs += fmt.Sprintf("%.2f", cost) + ","
+		}
 		result := map[string]string{
 			"Date":        model.Date.Format("2006-01-02"),
 			"Scene":       model.Scene,
@@ -46,6 +50,7 @@ func SceneResult(ctx context.Context, timeBegin, timeEnd time.Time) ([]map[strin
 			"SlowRate":    fmt.Sprintf("%.2f", slowRate),
 			"SlowDetails": utils.JSONMarshal(model.SlowDetails),
 			"FailDetails": utils.JSONMarshal(model.FailDetails),
+			"Costs":       costs,
 		}
 		results = append(results, result)
 	}

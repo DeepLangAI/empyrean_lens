@@ -5558,7 +5558,9 @@ type ApiSlowInfoRespData struct {
 	// list[map[str, any]]
 	SlowDetails []string `thrift:"slow_details,8" form:"slow_details" json:"slow_details" query:"slow_details"`
 	// list[map[str, any]]
-	FailDetails []string `thrift:"fail_details,9" form:"fail_details" json:"fail_details" query:"fail_details"`
+	FailDetails  []string `thrift:"fail_details,9" form:"fail_details" json:"fail_details" query:"fail_details"`
+	DayOverDay   float64  `thrift:"day_over_day,10" form:"day_over_day" json:"day_over_day" query:"day_over_day"`
+	WeekOverWeek float64  `thrift:"week_over_week,11" form:"week_over_week" json:"week_over_week" query:"week_over_week"`
 }
 
 func NewApiSlowInfoRespData() *ApiSlowInfoRespData {
@@ -5604,16 +5606,26 @@ func (p *ApiSlowInfoRespData) GetFailDetails() (v []string) {
 	return p.FailDetails
 }
 
+func (p *ApiSlowInfoRespData) GetDayOverDay() (v float64) {
+	return p.DayOverDay
+}
+
+func (p *ApiSlowInfoRespData) GetWeekOverWeek() (v float64) {
+	return p.WeekOverWeek
+}
+
 var fieldIDToName_ApiSlowInfoRespData = map[int16]string{
-	1: "date",
-	2: "num_total_req",
-	3: "num_slow_req",
-	4: "api_avg_cost",
-	5: "host",
-	6: "api_name",
-	7: "num_error_req",
-	8: "slow_details",
-	9: "fail_details",
+	1:  "date",
+	2:  "num_total_req",
+	3:  "num_slow_req",
+	4:  "api_avg_cost",
+	5:  "host",
+	6:  "api_name",
+	7:  "num_error_req",
+	8:  "slow_details",
+	9:  "fail_details",
+	10: "day_over_day",
+	11: "week_over_week",
 }
 
 func (p *ApiSlowInfoRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -5702,6 +5714,22 @@ func (p *ApiSlowInfoRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 9:
 			if fieldTypeId == thrift.LIST {
 				if err = p.ReadField9(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 10:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField10(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 11:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField11(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -5859,6 +5887,28 @@ func (p *ApiSlowInfoRespData) ReadField9(iprot thrift.TProtocol) error {
 	p.FailDetails = _field
 	return nil
 }
+func (p *ApiSlowInfoRespData) ReadField10(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.DayOverDay = _field
+	return nil
+}
+func (p *ApiSlowInfoRespData) ReadField11(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.WeekOverWeek = _field
+	return nil
+}
 
 func (p *ApiSlowInfoRespData) Write(oprot thrift.TProtocol) (err error) {
 
@@ -5901,6 +5951,14 @@ func (p *ApiSlowInfoRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField9(oprot); err != nil {
 			fieldId = 9
+			goto WriteFieldError
+		}
+		if err = p.writeField10(oprot); err != nil {
+			fieldId = 10
+			goto WriteFieldError
+		}
+		if err = p.writeField11(oprot); err != nil {
+			fieldId = 11
 			goto WriteFieldError
 		}
 	}
@@ -6088,6 +6146,40 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
+}
+
+func (p *ApiSlowInfoRespData) writeField10(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("day_over_day", thrift.DOUBLE, 10); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.DayOverDay); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 10 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 10 end error: ", p), err)
+}
+
+func (p *ApiSlowInfoRespData) writeField11(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("week_over_week", thrift.DOUBLE, 11); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.WeekOverWeek); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 11 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 11 end error: ", p), err)
 }
 
 func (p *ApiSlowInfoRespData) String() string {

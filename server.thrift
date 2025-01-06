@@ -130,6 +130,8 @@ struct ApiSlowInfoRespData{
     7: i32 num_error_req
     8: list<string> slow_details // list[map[str, any]]
     9: list<string> fail_details // list[map[str, any]]
+    10: double day_over_day
+    11: double week_over_week
 }
 
 # Api探针信息

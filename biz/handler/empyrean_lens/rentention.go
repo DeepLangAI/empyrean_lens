@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudwego/hertz/pkg/common/adaptor"
@@ -245,6 +246,10 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 	}
 	dateBegin, err := time.Parse("2006-01-02", req.DateBegin)
 	dateEnd := dateBegin.AddDate(0, 0, 1)
+	dateBegin1Day := dateBegin.AddDate(0, 0, -1)
+	dateEnd1Day := dateBegin1Day.AddDate(0, 0, 1)
+	dateBegin7Day := dateBegin.AddDate(0, 0, -7)
+	dateEnd7Day := dateBegin7Day.AddDate(0, 0, 1)
 	if req.DateEnd != "" {
 		dateEnd, err = time.Parse("2006-01-02", req.DateEnd)
 	}
@@ -255,10 +260,12 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 		}
 	}
 	result, err := empyrean_lens2.SceneResult(ctx, dateBegin, dateEnd)
+	result1Day, err := empyrean_lens2.SceneResult(ctx, dateBegin1Day, dateEnd1Day)
+	result7Day, err := empyrean_lens2.SceneResult(ctx, dateBegin7Day, dateEnd7Day)
 
 	resp := new(empyrean_lens.ApiSlowInfoResp)
 	data := []*empyrean_lens.ApiSlowInfoRespData{}
-	for _, r := range result {
+	for i, r := range result {
 		total, e := strconv.ParseInt(r["TotalCnt"], 10, 32)
 		slow, e := strconv.ParseInt(r["SlowCnt"], 10, 32)
 		errCnt, e := strconv.ParseInt(r["FailCnt"], 10, 32)
@@ -269,16 +276,45 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 		failDetails := []string{}
 		utils.JSONUnMarshal([]byte(r["SlowDetails"]), &slowDetails)
 		utils.JSONUnMarshal([]byte(r["FailDetails"]), &failDetails)
+		costs := make([][]string, 3)
+		costs[0] = strings.Split(r["Costs"], ",")
+		avg := make([]float64, 3)
+		costs[1], costs[2] = strings.Split(result1Day[i]["Costs"], ","), strings.Split(result7Day[i]["Costs"], ",")
+		for j, cost := range costs {
+			for _, v := range cost {
+				if v == "" {
+					continue
+				}
+				curCost, err := strconv.ParseFloat(v, 64)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "parse cost error: %v", err)
+					base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+					return
+				}
+				avg[j] += curCost
+			}
+			avg[j] /= float64(len(cost))
+
+		}
+		div1Day, div7Day := 1, 1
+		if avg[1] != 0 {
+			div1Day = int(avg[1])
+		}
+		if avg[2] != 0 {
+			div7Day = int(avg[2])
+		}
 		data = append(data, &empyrean_lens.ApiSlowInfoRespData{
-			Date:        r["Date"],
-			NumTotalReq: int32(total),
-			NumSlowReq:  int32(slow),
-			APIAvgCost:  0,
-			Host:        "",
-			APIName:     r["Scene"],
-			NumErrorReq: int32(errCnt),
-			SlowDetails: slowDetails,
-			FailDetails: failDetails,
+			Date:         r["Date"],
+			NumTotalReq:  int32(total),
+			NumSlowReq:   int32(slow),
+			APIAvgCost:   avg[0],
+			Host:         "",
+			APIName:      r["Scene"],
+			NumErrorReq:  int32(errCnt),
+			SlowDetails:  slowDetails,
+			FailDetails:  failDetails,
+			DayOverDay:   (avg[0] - avg[1]) / float64(div1Day),
+			WeekOverWeek: (avg[0] - avg[2]) / float64(div7Day),
 		})
 	}
 	resp.Data = data

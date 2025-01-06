@@ -691,5 +691,23 @@ func BatchSave(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, begin
 		hlog.CtxErrorf(ctx, "batch send msg failed, err: %v", err)
 		return &consts.WriteDbError
 	}
+	// 删除content idx索引
+	go func() {
+		ctx := context.Background()
+		// 加锁，防止并发
+		lockKey := "link_trace:delete_content_idx"
+		err := redis.KeySetNx(ctx, lockKey, redis.Stop, time.Duration(3)*time.Minute)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "batch send msg failed, err: %v", err)
+			return
+		}
+		defer redis.DelKey(ctx, lockKey)
+		beginTime := time.Now().Add(-consts.ContentIdxExpire * time.Second)
+		endTime := time.Now().Add((-consts.ContentIdxExpire + 3600) * time.Second)
+		err = bi.NewEntryInfoDao().DeleteContentByTimeRange(ctx, beginTime, endTime)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "delete content idx failed, err: %v", err)
+		}
+	}()
 	return nil
 }

@@ -542,6 +542,7 @@ const EntryInfoPreUserID = "lingowhale"
 const LingowhelaBiDataVersion = "v1"
 const DataTooLongUpper = 10000
 const DataTooLongUpperErrMsg = "data too long"
+const ContentIdxExpire = 86400 * 7 // content索引只保留7天
 
 const (
 	EntryInfoEntrySourceUserUpload    = iota // 用户上传

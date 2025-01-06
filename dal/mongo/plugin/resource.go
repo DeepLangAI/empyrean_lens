@@ -191,6 +191,7 @@ func (d *Resource) TranslateEntryInfo() *bi.EntryInfo {
 		DataType:        consts.EntryInfoDataTypeSubscribe,
 		MultiArticles:   multiArticles,
 		Title:           d.Title,
+		Content:         d.Content,
 		EntryURL:        d.OrigUrl,
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum(d.EntryType), d.Status, 0, 0)),
 		WebSite:         utils.ChannelIntToString(0),

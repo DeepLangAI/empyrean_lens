@@ -236,6 +236,7 @@ func (d *File) TranslateEntryInfo() *bi.EntryInfo {
 		DataType:        utils.GetDataType(d.MultiId, d.CopyFromResourceID, empyrean_lens.EntryTypeEnum_FILE),
 		UserID:          d.UserID,
 		Title:           d.Name,
+		Content:         d.Content,
 		ChannelType:     d.ChannelType,
 		MultiID:         d.MultiId,
 		ParentEntryID:   parentEntryID,

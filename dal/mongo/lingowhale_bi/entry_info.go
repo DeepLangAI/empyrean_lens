@@ -48,6 +48,7 @@ type EntryInfo struct {
 	UserID          string             `json:"user_id" bson:"user_id"`
 	UserType        int                `json:"user_type" bson:"user_type"`
 	Title           string             `json:"title" bson:"title"`
+	Content         string             `json:"content" bson:"content"`
 	ContentIndex    string             `json:"content_index" bson:"content_index"`
 	ChannelType     int                `json:"channel_type" bson:"channel_type"`
 	OutlineType     int                `json:"outline_type" bson:"outline_type"`
@@ -99,7 +100,7 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 	// 存在，upload
 	if info != nil {
 		filter := bson.M{"entry_id": entryInfo.EntryID, "entry_type": entryInfo.EntryType}
-		update := bson.M{"action_name": entryInfo.ActionName, "web_site": entryInfo.WebSite, "title": entryInfo.Title, "content_index": entryInfo.ContentIndex, "multi_id": entryInfo.MultiID, "status": entryInfo.Status, "outline_type": entryInfo.OutlineType, "link_status": entryInfo.LinkStatus, "entry_url": entryInfo.EntryURL, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles, "parent_entry_id": entryInfo.ParentEntryID, "source_entry_info": entryInfo.SourceEntryInfo, "entry_create_time": entryInfo.EntryCreateTime}
+		update := bson.M{"action_name": entryInfo.ActionName, "web_site": entryInfo.WebSite, "title": entryInfo.Title, "content": entryInfo.Content, "content_index": entryInfo.ContentIndex, "multi_id": entryInfo.MultiID, "status": entryInfo.Status, "outline_type": entryInfo.OutlineType, "link_status": entryInfo.LinkStatus, "entry_url": entryInfo.EntryURL, "failed_action": entryInfo.FailedAction, "cost": entryInfo.Cost, "multi_articles": entryInfo.MultiArticles, "parent_entry_id": entryInfo.ParentEntryID, "source_entry_info": entryInfo.SourceEntryInfo, "entry_create_time": entryInfo.EntryCreateTime}
 		_, err := biCollection.Collection(TableNameEntryInfo()).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryInfo, err:%+v", err)
@@ -114,6 +115,17 @@ func (d *EntryInfoDao) SaveEntryInfo(ctx context.Context, entryInfo *EntryInfo) 
 		return err
 	}
 	return err
+}
+
+func (d *EntryInfoDao) DeleteContentByTimeRange(ctx context.Context, startAt, endAt time.Time) error {
+	filter := bson.M{"entry_create_time": bson.M{"$gte": startAt, "$lt": endAt}}
+	update := bson.M{"$set": bson.M{"content_index": ""}}
+	_, err := biCollection.Collection(TableNameEntryInfo()).UpdateMany(ctx, filter, update)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:DeleteContentByTimeRange, err:%+v", err)
+		return err
+	}
+	return nil
 }
 
 func (d *EntryInfoDao) FindByEntryIDs(ctx context.Context, entryIDs []string) ([]*EntryInfo, error) {

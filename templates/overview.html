@@ -1593,6 +1593,9 @@
 <!--                    <th>异常请求率</th>-->
                     <th>慢查询数</th>
                     <th>慢查询率</th>
+                    <th>平均耗时</th>
+                    <th>耗时环比</th>
+                    <th>耗时同比</th>
                 </tr>
             `
             table.append(rowhead);
@@ -1637,8 +1640,15 @@
                 $row.append(slowReqTd);
 
                 const slowReqPercentage = ((item.num_slow_req / item.num_total_req) * 100).toFixed(2);
-                const color = getColor(slowReqPercentage);
+                let color = getColor(slowReqPercentage);
                 $row.append($('<td>').css('background', color).text(slowReqPercentage + '%'));
+                $row.append($('<td>').text(item.api_avg_cost.toFixed(2) + 's'));
+                const dayOverDay = item.day_over_day * 100;
+                color = getColor(dayOverDay);
+                $row.append($('<td>').css('background', color).text((item.day_over_day * 100).toFixed(2) + '%'));
+                const weekOverWeek = item.week_over_week * 100;
+                color = getColor(weekOverWeek);
+                $row.append($('<td>').css('background', color).text((item.week_over_week * 100).toFixed(2) + '%'));
 
                 table.append($row);
 
@@ -2628,11 +2638,20 @@
     function getColor(value) {
         let normalizedValue;
         normalizedValue = value / 100;
+        // console.log('normalizedValue', normalizedValue)
 
         // 确保 normalizedValue 在 0-1 之间
-        normalizedValue = Math.max(0, Math.min(1, normalizedValue));
-        normalizedValue = Math.ceil(normalizedValue * 10) / 10
-        return `rgb(255, 0, 0, ${normalizedValue})`
+        if(normalizedValue >= 0) {
+            normalizedValue = Math.max(0, Math.min(1, normalizedValue));
+            normalizedValue = Math.ceil(normalizedValue * 10) / 10
+            return `rgb(255, 0, 0, ${normalizedValue})`
+        } else {
+            normalizedValue = Math.abs(normalizedValue)
+            normalizedValue = Math.max(0, Math.min(1, normalizedValue));
+            normalizedValue = Math.ceil(normalizedValue * 10) / 10
+            return `rgb(0, 255, 0, ${normalizedValue})`
+        }
+        
     }
 
 

@@ -360,3 +360,14 @@ func GetIPLocation(ip string) string {
 	// 格式化返回值 country-region-city
 	return fmt.Sprintf("%s-%s-%s", info.Country, info.RegionName, info.City)
 }
+
+type DivType interface {
+	~float32 | ~float64
+}
+
+func Div[T DivType](a T, b T) T {
+	if b == 0 {
+		return 0
+	}
+	return a / b
+}

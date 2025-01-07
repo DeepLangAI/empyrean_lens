@@ -21,6 +21,7 @@ type SceneModel struct {
 	FailReason  string    `bson:"fail_reason"`
 	SlowDetails []string  `bson:"slow_details"`
 	FailDetails []string  `bson:"fail_details"`
+	Costs       []float64 `bson:"costs"`
 
 	Status     int32     `json:"status" bson:"status"`
 	CreateTime time.Time `bson:"create_time" json:"create_time"`

@@ -296,7 +296,7 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 			avg[j] /= float64(len(cost))
 
 		}
-		div1Day, div7Day := 1, 1
+		div1Day, div7Day := 0, 0
 		if avg[1] != 0 {
 			div1Day = int(avg[1])
 		}
@@ -313,8 +313,8 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 			NumErrorReq:  int32(errCnt),
 			SlowDetails:  slowDetails,
 			FailDetails:  failDetails,
-			DayOverDay:   (avg[0] - avg[1]) / float64(div1Day),
-			WeekOverWeek: (avg[0] - avg[2]) / float64(div7Day),
+			DayOverDay:   utils.Div(avg[0]-avg[1], float64(div1Day)),
+			WeekOverWeek: utils.Div(avg[0]-avg[2], float64(div7Day)),
 		})
 	}
 	resp.Data = data

@@ -1834,7 +1834,7 @@ func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType e
 		if articleInfo.ParentEntryID != "" {
 			summaryID, pairID, createAt, err := FindSummaryIDByCopyID(ctx, summaryType, outlineType, summaryInfo.PairID, articleInfo.ParentEntryType, articleInfo.ParentEntryID)
 			if err != nil {
-				return "", "", nil, err
+				return summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, nil
 			}
 			if summaryID != "" && pairID != "" {
 				return summaryID, pairID, createAt, err
@@ -2113,7 +2113,7 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
 		})
 		for _, processLog := range processLogs {
-			if strings.Contains(processLog.Message, "ParseEduNode parse end entryId") || (strings.Contains(processLog.Message, "OutRequest edu_parser") && strings.Contains(processLog.Message, "resp") && !strings.Contains(processLog.Message, "edu input filter without sentence.")) {
+			if strings.Contains(processLog.Message, "OutRequest edu_parser") && strings.Contains(processLog.Message, "resp") && !strings.Contains(processLog.Message, "edu input filter without sentence.") && !strings.Contains(processLog.Message, "resp:[]") {
 				return empyrean_lens.ActionStatusEnum_SUCCESS
 			}
 		}

@@ -189,18 +189,33 @@ func GetResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInf
 		entryIDs = append(entryIDs, resource.EntryID)
 	}
 	// 查找记录
-	webReaderEntryInfos, err := bi.NewEntryInfoDao().FindByEntryIDs(ctx, entryIDs)
+	entryInfos, err := bi.NewEntryInfoDao().FindByEntryIDs(ctx, entryIDs)
 	if err != nil {
 		return nil, &consts.QueryRecordError
 	}
+	// 订阅pdf
+	subscribePDFIDs := []string{}
+	for _, resource := range resources {
+		if resource.EntryType == empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE {
+			subscribePDFIDs = append(subscribePDFIDs, resource.EntryID)
+		}
+	}
+	subscribePDFInfos, err := plugin.NewResourceDao().FindResourceByIds(ctx, subscribePDFIDs)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[getUserActionFromTraceID] get entry from aliyun failed, err: %v", err)
+		return nil, &consts.QueryRecordError
+	}
 	resourceMapping := map[string]*empyrean_lens.ResourceInfo{}
-	for _, entryInfo := range webReaderEntryInfos {
+	for _, entryInfo := range entryInfos {
 		key := fmt.Sprintf("%d_%s", entryInfo.EntryType, entryInfo.EntryID)
 		resourceMapping[key] = &empyrean_lens.ResourceInfo{
 			EntryType: empyrean_lens.EntryTypeEnum(entryInfo.EntryType),
 			EntryID:   entryInfo.EntryID,
 			Title:     entryInfo.Title,
 			URL:       entryInfo.EntryURL,
+		}
+		if _, ok := subscribePDFInfos[entryInfo.EntryID]; ok {
+			resourceMapping[key].URL = subscribePDFInfos[entryInfo.EntryID].FileOssUrl
 		}
 	}
 	return resourceMapping, nil

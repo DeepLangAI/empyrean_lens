@@ -66,7 +66,7 @@ func getEntryIdFromMongo(ctx context.Context, traceID string) (string, *consts.B
 }
 
 func getEntryIdFromAliyun(ctx context.Context, userID, traceID string, beginAt, endAt time.Time) ([]string, *consts.BizCode) {
-	apiLogs, err := aliyun.BusinessLogQueryByTraceIdUserId(ctx, userID, traceID, beginAt, endAt)
+	apiLogs, err := aliyun.TraceIDLogQuery(ctx, userID, traceID, beginAt, endAt)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[getEntryIdFromAliyun] get api logs failed, err: %v", err)
 		return []string{}, &consts.QueryRecordError
@@ -88,7 +88,7 @@ func getEntryIdFromAliyun(ctx context.Context, userID, traceID string, beginAt, 
 	return newEntryIDs, nil
 }
 
-func getEntryIdFromLog(log aliyun.EndToEndLog) []string {
+func getEntryIdFromLog(log aliyun.FileProcessLog) []string {
 	var entryIds []string
 	if entryIds = extractEntryIds(log.Message, "summary lock pair_locker, resource_id:"); len(entryIds) != 0 {
 		return entryIds

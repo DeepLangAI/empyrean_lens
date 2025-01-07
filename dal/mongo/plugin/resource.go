@@ -25,6 +25,7 @@ type Resource struct {
 	AuthorName  string             `bson:"author_name" json:"author_name"`
 	UserID      string             `bson:"user_id" json:"user_id"`
 	OrigUrl     string             `bson:"orig_url" json:"orig_url"`
+	FileOssUrl  string             `bson:"file_oss_url" json:"file_oss_url"`
 	NovelFormID string             `bson:"novel_form_id" json:"novel_form_id"`
 	IsSafe      bool               `bson:"is_safe" json:"is_safe"`
 	Status      int                `bson:"status" json:"status"`
@@ -148,12 +149,15 @@ func (d *ResourceDao) FindResourceByTimeRange(ctx context.Context, startTime, en
 func (d *ResourceDao) FindResourceByTimeRangeForSave(ctx context.Context, entryType int, startTime, endTime time.Time) ([]*Resource, error) {
 	var res []*Resource
 
-	filter := bson.M{
-		//"is_delete": false,
-		"create_time": bson.M{"$gte": startTime, "$lt": endTime},
-		"entry_type":  TranslateSubscribeEntryType(entryType),
-		"status":      consts.SubscribeSuccessStatus,
-	}
+	filter := bson.M{"$and": []bson.M{
+		//{"is_delete": false},
+		{"create_time": bson.M{"$gte": startTime, "$lt": endTime}},
+		{"entry_type": TranslateSubscribeEntryType(entryType)},
+		{"$or": []bson.M{
+			{"status": consts.SubscribeSuccessStatus},
+			{"status": bson.M{"$lt": 0}},
+		}},
+	}}
 	options := options.Find().SetSort(bson.D{{Key: "create_time", Value: -1}})
 	cur, err := pluginCollection.Collection(TableNameResource).Find(ctx, filter, options)
 	if err != nil {
@@ -192,7 +196,7 @@ func (d *Resource) TranslateEntryInfo() *bi.EntryInfo {
 		MultiArticles:   multiArticles,
 		Title:           d.Title,
 		Content:         d.Content,
-		EntryURL:        d.OrigUrl,
+		EntryURL:        d.FileOssUrl,
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum(d.EntryType), d.Status, 0, 0)),
 		WebSite:         utils.ChannelIntToString(0),
 		ActionName:      utils.GetActionName(d.EntryType, "", "", "", 0),

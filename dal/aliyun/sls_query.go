@@ -3353,6 +3353,30 @@ func TraceIDSafeQuery(ctx context.Context, traceID string, timeBegin, timeEnd ti
 	return ConvertFileProcessLog(ctx, logs.Logs)
 }
 
+func TraceIDLogQuery(ctx context.Context, userID, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := ""
+	if userID != "" {
+		query = `trace_id: "%s" and user_id: "%s" | select * from log limit 100`
+		query = fmt.Sprintf(query, traceID, userID)
+	} else {
+		query = `trace_id: "%s" | select * from log limit 100`
+		query = fmt.Sprintf(query, traceID)
+	}
+	hlog.CtxDebugf(ctx, "TraceIDLogQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "TraceIDLogQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
 func TraceIDQuery(ctx context.Context, query string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	queryFormat := `message: "%s" and not "lock" | select * from log limit 10`
 	query = fmt.Sprintf(queryFormat, query)

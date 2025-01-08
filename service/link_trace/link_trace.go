@@ -491,6 +491,8 @@ func MultiOutlineLinkTrace(ctx context.Context, entryType empyrean_lens.EntryTyp
 		Articles:   multiLinkTraceGroup.Articles,
 		Title:      multiInfo.Title,
 		UserID:     multiInfo.UserID,
+		EntryID:    entryID,
+		EntryType:  entryType,
 		ActionName: utils.GetActionName(int(entryType), multiAgicInfo.MultiID, multiInfo.CopyFromResourceID, "", 0),
 		Status:     linkTraceGraph.Nodes[0].Status,
 		TimeAt:     linkTraceGraph.Nodes[0].EnterTime,

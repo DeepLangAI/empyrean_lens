@@ -38,7 +38,7 @@ func NodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyrean_
 		return SummaryNodeLogs(ctx, req.NodeType, req.EntryType, req.EntryID, nil, false)
 	case empyrean_lens.EntryTypeEnum_VIEWPOINT:
 		return SummaryNodeLogs(ctx, req.NodeType, req.EntryType, req.EntryID, nil, false)
-	case empyrean_lens.EntryTypeEnum_MULTI:
+	case empyrean_lens.EntryTypeEnum_MULTI, empyrean_lens.EntryTypeEnum_MULTI_OUTLINE:
 		if entryType, ok := consts.RetryProcessToEntryType[req.NodeType]; ok {
 			return MultiOutlineNodeLogs(ctx, req.NodeType, entryType, req.EntryID, nil, false)
 		}

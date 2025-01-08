@@ -301,10 +301,12 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 		})
 	}
 	if d.SourceEntryInfo.EntryID != "" {
-		resources = append(resources, &empyrean_lens.ResourceInfo{
-			EntryID:   d.SourceEntryInfo.EntryID,
-			EntryType: empyrean_lens.EntryTypeEnum(d.SourceEntryInfo.EntryType),
-		})
+		if d.SourceEntryInfo.EntryType != int(empyrean_lens.EntryTypeEnum_MULTI) {
+			resources = append(resources, &empyrean_lens.ResourceInfo{
+				EntryID:   d.SourceEntryInfo.EntryID,
+				EntryType: empyrean_lens.EntryTypeEnum(d.SourceEntryInfo.EntryType),
+			})
+		}
 	}
 	if len(resources) == 0 {
 		resources = append(resources, &empyrean_lens.ResourceInfo{

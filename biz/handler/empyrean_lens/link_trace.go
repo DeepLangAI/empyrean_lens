@@ -29,7 +29,7 @@ func UserActions(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	// 未传status 返回空
-	if len(req.Status) == 0 || (req.IsOldWeb && (len(req.WebSites) == 0 || len(req.ActionNames) == 0)) {
+	if len(req.Status) == 0 || len(req.WebSites) == 0 || len(req.ActionNames) == 0 {
 		c.JSON(consts.StatusOK, &empyrean_lens.UserActionResp{
 			Code: 0,
 			Msg:  "success",

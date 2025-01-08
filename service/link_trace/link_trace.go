@@ -1868,15 +1868,17 @@ func FindSummaryIDByCopyID(ctx context.Context, summartType, outlineType int, pa
 		return "", "", nil, &consts.QueryRecordError
 	}
 	if parentArticleInfo != nil {
-		if parentArticleInfo.ParentEntryID != "" {
-			return FindSummaryIDByCopyID(ctx, summartType, outlineType, pairID, parentArticleInfo.ParentEntryType, parentArticleInfo.ParentEntryID)
-		}
 		summaryInfo, err := plugin.NewSummaryDao().FindByUserIDAndTypeAndPairID(ctx, parentArticleInfo.UserID, summartType, outlineType, pairID)
-		if err != nil {
+		if err == nil {
 			hlog.CtxErrorf(ctx, "[FindByUserIDAndTypeAndPairID] get summary info failed, err: %v", err)
-			return "", "", nil, &consts.QueryRecordError
+			return summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, nil
 		}
-		return summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, nil
+		if parentArticleInfo.ParentEntryID != "" {
+			summaryID, pairID, createAt, err := FindSummaryIDByCopyID(ctx, summartType, outlineType, pairID, parentArticleInfo.ParentEntryType, parentArticleInfo.ParentEntryID)
+			if err == nil {
+				return summaryID, pairID, createAt, err
+			}
+		}
 	}
 	return "", "", nil, nil
 }
@@ -2056,6 +2058,17 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		return empyrean_lens.ActionStatusEnum_NO_LOG
 	}
 	switch nodeType {
+	case empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:
+		// 正排判断是否成功
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "core_link_print_cost") || strings.Contains(processLog.Message, "core link core_name") {
+				return empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
+		return empyrean_lens.ActionStatusEnum_FAIL
 	case empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:
 		// 正排判断是否成功
 		sort.Slice(processLogs, func(i, j int) bool {

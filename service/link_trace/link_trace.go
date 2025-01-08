@@ -1750,27 +1750,38 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get traceID failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		traceID := logs[0].TraceId
-		apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, traceID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[MultiOutlineModelOutRequestQuery] get process logs failed, err: %v", err)
-			return nil, &consts.QueryRecordError
+		// 获取api日志
+		traceIDMapping := map[string]struct{}{}
+		for _, log := range logs {
+			traceID := log.TraceId
+			if _, ok := traceIDMapping[traceID]; ok {
+				continue
+			}
+			traceIDMapping[traceID] = struct{}{}
+			apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, traceID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[MultiOutlineModelOutRequestQuery] get process logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, traceID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[MultiOutlineModelOutResponseQuery] get process logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			if len(apiLogsInput) == 0 && len(apiLogsOuput) == 0 {
+				continue
+			}
+			node.EnterTime = log.Asctime.Format(consts.DateTimeTemplate)
+			if len(apiLogsInput) > 0 {
+				node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+			}
+			node.FinishTime = log.Asctime.Format(consts.DateTimeTemplate)
+			if len(apiLogsOuput) > 0 {
+				node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
+			}
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+			node.TraceID = traceID
 		}
-		apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, traceID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[MultiOutlineModelOutResponseQuery] get process logs failed, err: %v", err)
-			return nil, &consts.QueryRecordError
-		}
-		node.EnterTime = logs[0].Asctime.Format(consts.DateTimeTemplate)
-		if len(apiLogsInput) > 0 {
-			node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
-		}
-		node.FinishTime = logs[0].Asctime.Format(consts.DateTimeTemplate)
-		if len(apiLogsOuput) > 0 {
-			node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
-		}
-		node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
-		node.TraceID = traceID
 		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH:
 		// 新内容形态可能间隔很久

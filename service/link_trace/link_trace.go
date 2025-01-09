@@ -491,6 +491,8 @@ func MultiOutlineLinkTrace(ctx context.Context, entryType empyrean_lens.EntryTyp
 		Articles:   multiLinkTraceGroup.Articles,
 		Title:      multiInfo.Title,
 		UserID:     multiInfo.UserID,
+		EntryID:    entryID,
+		EntryType:  entryType,
 		ActionName: utils.GetActionName(int(entryType), multiAgicInfo.MultiID, multiInfo.CopyFromResourceID, "", 0),
 		Status:     linkTraceGraph.Nodes[0].Status,
 		TimeAt:     linkTraceGraph.Nodes[0].EnterTime,
@@ -1748,27 +1750,38 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get traceID failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		traceID := logs[0].TraceId
-		apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, traceID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[MultiOutlineModelOutRequestQuery] get process logs failed, err: %v", err)
-			return nil, &consts.QueryRecordError
+		// 获取api日志
+		traceIDMapping := map[string]struct{}{}
+		for _, log := range logs {
+			traceID := log.TraceId
+			if _, ok := traceIDMapping[traceID]; ok {
+				continue
+			}
+			traceIDMapping[traceID] = struct{}{}
+			apiLogsInput, err := aliyun.MultiOutlineModelOutRequestQuery(ctx, traceID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[MultiOutlineModelOutRequestQuery] get process logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, traceID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[MultiOutlineModelOutResponseQuery] get process logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+			if len(apiLogsInput) == 0 && len(apiLogsOuput) == 0 {
+				continue
+			}
+			node.EnterTime = log.Asctime.Format(consts.DateTimeTemplate)
+			if len(apiLogsInput) > 0 {
+				node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+			}
+			node.FinishTime = log.Asctime.Format(consts.DateTimeTemplate)
+			if len(apiLogsOuput) > 0 {
+				node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
+			}
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+			node.TraceID = traceID
 		}
-		apiLogsOuput, err := aliyun.MultiOutlineModelOutResponseQuery(ctx, traceID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[MultiOutlineModelOutResponseQuery] get process logs failed, err: %v", err)
-			return nil, &consts.QueryRecordError
-		}
-		node.EnterTime = logs[0].Asctime.Format(consts.DateTimeTemplate)
-		if len(apiLogsInput) > 0 {
-			node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
-		}
-		node.FinishTime = logs[0].Asctime.Format(consts.DateTimeTemplate)
-		if len(apiLogsOuput) > 0 {
-			node.FinishTime = apiLogsOuput[0].Asctime.Format(consts.DateTimeTemplate)
-		}
-		node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
-		node.TraceID = traceID
 		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH:
 		// 新内容形态可能间隔很久
@@ -1855,15 +1868,17 @@ func FindSummaryIDByCopyID(ctx context.Context, summartType, outlineType int, pa
 		return "", "", nil, &consts.QueryRecordError
 	}
 	if parentArticleInfo != nil {
-		if parentArticleInfo.ParentEntryID != "" {
-			return FindSummaryIDByCopyID(ctx, summartType, outlineType, pairID, parentArticleInfo.ParentEntryType, parentArticleInfo.ParentEntryID)
-		}
 		summaryInfo, err := plugin.NewSummaryDao().FindByUserIDAndTypeAndPairID(ctx, parentArticleInfo.UserID, summartType, outlineType, pairID)
-		if err != nil {
+		if err == nil {
 			hlog.CtxErrorf(ctx, "[FindByUserIDAndTypeAndPairID] get summary info failed, err: %v", err)
-			return "", "", nil, &consts.QueryRecordError
+			return summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, nil
 		}
-		return summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, nil
+		if parentArticleInfo.ParentEntryID != "" {
+			summaryID, pairID, createAt, err := FindSummaryIDByCopyID(ctx, summartType, outlineType, pairID, parentArticleInfo.ParentEntryType, parentArticleInfo.ParentEntryID)
+			if err == nil {
+				return summaryID, pairID, createAt, err
+			}
+		}
 	}
 	return "", "", nil, nil
 }
@@ -2043,6 +2058,17 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		return empyrean_lens.ActionStatusEnum_NO_LOG
 	}
 	switch nodeType {
+	case empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:
+		// 正排判断是否成功
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.Before(processLogs[j].Asctime)
+		})
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "core_link_print_cost") || strings.Contains(processLog.Message, "core link core_name") {
+				return empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
+		return empyrean_lens.ActionStatusEnum_FAIL
 	case empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:
 		// 正排判断是否成功
 		sort.Slice(processLogs, func(i, j int) bool {

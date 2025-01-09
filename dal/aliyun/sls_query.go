@@ -2192,15 +2192,15 @@ func ResourceUploadQuery(ctx context.Context, resourceId, resourceType string, t
 	}
 
 	query := `
-	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s %s %s" and funcName: core_link_print_cost | select * from log limit %v
+	(message: "%s %s %s" and funcName: core_link_print_cost) or (message: "%s" and message: "convert to pdf failed.") | select * from log limit %v
 	`
 	query = FormatWithTemplate(query, nil)
 
 	switch resourceType {
 	case consts.PDF:
-		query = fmt.Sprintf(query, "PDFParser", "单文件上传完成", resourceId, consts.LOG_QUERY_LIMIT)
+		query = fmt.Sprintf(query, "PDFParser", "单文件上传完成", resourceId, resourceId, consts.LOG_QUERY_LIMIT)
 	case consts.URL:
-		query = fmt.Sprintf(query, "UrlParser", "网页上传完成", resourceId, consts.LOG_QUERY_LIMIT)
+		query = fmt.Sprintf(query, "UrlParser", "网页上传完成", resourceId, resourceId, consts.LOG_QUERY_LIMIT)
 	}
 	hlog.CtxDebugf(ctx, "ResourceUploadQuery query: %s", query)
 

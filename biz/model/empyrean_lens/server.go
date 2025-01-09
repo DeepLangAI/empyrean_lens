@@ -17991,8 +17991,6 @@ type UserActionReq struct {
 	WebSites []WebSite `thrift:"web_sites,8" form:"web_sites" json:"web_sites" query:"web_sites"`
 	// 用户行为类型
 	ActionNames []ActionName `thrift:"action_names,9" form:"action_names" json:"action_names" query:"action_names"`
-	// 是否来自旧版前端
-	IsOldWeb bool `thrift:"is_old_web,10" form:"is_old_web" json:"is_old_web" query:"is_old_web"`
 }
 
 func NewUserActionReq() *UserActionReq {
@@ -18038,21 +18036,16 @@ func (p *UserActionReq) GetActionNames() (v []ActionName) {
 	return p.ActionNames
 }
 
-func (p *UserActionReq) GetIsOldWeb() (v bool) {
-	return p.IsOldWeb
-}
-
 var fieldIDToName_UserActionReq = map[int16]string{
-	1:  "query",
-	2:  "start_time",
-	3:  "end_time",
-	4:  "status",
-	5:  "skip",
-	6:  "limit",
-	7:  "only_external",
-	8:  "web_sites",
-	9:  "action_names",
-	10: "is_old_web",
+	1: "query",
+	2: "start_time",
+	3: "end_time",
+	4: "status",
+	5: "skip",
+	6: "limit",
+	7: "only_external",
+	8: "web_sites",
+	9: "action_names",
 }
 
 func (p *UserActionReq) Read(iprot thrift.TProtocol) (err error) {
@@ -18141,14 +18134,6 @@ func (p *UserActionReq) Read(iprot thrift.TProtocol) (err error) {
 		case 9:
 			if fieldTypeId == thrift.LIST {
 				if err = p.ReadField9(iprot); err != nil {
-					goto ReadFieldError
-				}
-			} else if err = iprot.Skip(fieldTypeId); err != nil {
-				goto SkipFieldError
-			}
-		case 10:
-			if fieldTypeId == thrift.BOOL {
-				if err = p.ReadField10(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -18318,17 +18303,6 @@ func (p *UserActionReq) ReadField9(iprot thrift.TProtocol) error {
 	p.ActionNames = _field
 	return nil
 }
-func (p *UserActionReq) ReadField10(iprot thrift.TProtocol) error {
-
-	var _field bool
-	if v, err := iprot.ReadBool(); err != nil {
-		return err
-	} else {
-		_field = v
-	}
-	p.IsOldWeb = _field
-	return nil
-}
 
 func (p *UserActionReq) Write(oprot thrift.TProtocol) (err error) {
 
@@ -18371,10 +18345,6 @@ func (p *UserActionReq) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField9(oprot); err != nil {
 			fieldId = 9
-			goto WriteFieldError
-		}
-		if err = p.writeField10(oprot); err != nil {
-			fieldId = 10
 			goto WriteFieldError
 		}
 	}
@@ -18570,23 +18540,6 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
-}
-
-func (p *UserActionReq) writeField10(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("is_old_web", thrift.BOOL, 10); err != nil {
-		goto WriteFieldBeginError
-	}
-	if err := oprot.WriteBool(p.IsOldWeb); err != nil {
-		return err
-	}
-	if err = oprot.WriteFieldEnd(); err != nil {
-		goto WriteFieldEndError
-	}
-	return nil
-WriteFieldBeginError:
-	return thrift.PrependError(fmt.Sprintf("%T write field 10 begin error: ", p), err)
-WriteFieldEndError:
-	return thrift.PrependError(fmt.Sprintf("%T write field 10 end error: ", p), err)
 }
 
 func (p *UserActionReq) String() string {

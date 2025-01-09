@@ -38,7 +38,7 @@ func NodeLogs(ctx context.Context, req empyrean_lens.LinkNodeLogReq) (*empyrean_
 		return SummaryNodeLogs(ctx, req.NodeType, req.EntryType, req.EntryID, nil, false)
 	case empyrean_lens.EntryTypeEnum_VIEWPOINT:
 		return SummaryNodeLogs(ctx, req.NodeType, req.EntryType, req.EntryID, nil, false)
-	case empyrean_lens.EntryTypeEnum_MULTI:
+	case empyrean_lens.EntryTypeEnum_MULTI, empyrean_lens.EntryTypeEnum_MULTI_OUTLINE:
 		if entryType, ok := consts.RetryProcessToEntryType[req.NodeType]; ok {
 			return MultiOutlineNodeLogs(ctx, req.NodeType, entryType, req.EntryID, nil, false)
 		}
@@ -999,7 +999,7 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 	}
 	// 错误日志
 	for _, errLog := range errLogs {
-		if errLog.EnterTime >= node.EnterTime {
+		if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && (node.Type == empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH || errLog.EnterTime >= node.EnterTime) {
 			apiLogs = append(apiLogs, errLog)
 		}
 	}
@@ -1028,7 +1028,7 @@ func getErrorAndSafeLogs(ctx context.Context, multiID, entryID string, node *emp
 	// trace id
 	traceIDMapping := map[string]struct{}{}
 	for _, apiLog := range apiLogsInput {
-		if apiLog.Message != "" {
+		if apiLog.TraceId != "" {
 			traceIDMapping[apiLog.TraceId] = struct{}{}
 		}
 	}

@@ -126,9 +126,6 @@ func GetActionName(entryType int, multiID string, resourceID string, language st
 	}
 	// 大纲类型
 	if entryType == int(empyrean_lens.EntryTypeEnum_OUTLINE) {
-		if isMulti {
-			return empyrean_lens.ActionNameMultiOutline
-		}
 		if outlineType == 2 {
 			if language == "zh" {
 				return empyrean_lens.ActionNameDetailOutlineCH
@@ -146,6 +143,10 @@ func GetActionName(entryType int, multiID string, resourceID string, language st
 			}
 			return empyrean_lens.ActionNameSimpleOutlineCH
 		}
+	}
+	// 多文档大纲
+	if entryType == int(empyrean_lens.EntryTypeEnum_MULTI_OUTLINE) {
+		return empyrean_lens.ActionNameMultiOutline
 	}
 	return ""
 }

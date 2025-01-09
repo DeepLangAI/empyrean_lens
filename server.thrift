@@ -543,7 +543,6 @@ struct UserActionReq {
     7: bool only_external // 仅外部用户
     8: list<WebSite> web_sites // 用户行为来源
     9: list<ActionName> action_names // 用户行为类型
-    10: bool is_old_web // 是否来自旧版前端
 }
 
 struct UserActionResp {

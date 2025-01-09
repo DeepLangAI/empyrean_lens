@@ -8,6 +8,7 @@ import (
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	bi "empyrean_lens/dal/mongo/lingowhale_bi"
+	"empyrean_lens/utils"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
@@ -159,6 +160,8 @@ func (d *MultiAigc) TranslateEntryInfo() *bi.EntryInfo {
 		UserID:          d.UserID,
 		Title:           d.Title,
 		ChannelType:     d.ChannelType,
+		WebSite:         utils.ChannelIntToString(int(d.ChannelType)),
+		ActionName:      utils.GetActionName(int(empyrean_lens.EntryTypeEnum_MULTI_OUTLINE), d.MultiID, d.CopyFromResourceID, "", 0),
 		EntryCreateTime: d.CreateTime,
 		EntryUpdateTime: d.UpdateTime,
 		CreateTime:      time.Now(),

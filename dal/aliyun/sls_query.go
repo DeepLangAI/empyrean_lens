@@ -948,9 +948,9 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 
 	query := `(__tag__:_container_name_ : {{.BaseContainerName}}-python-prod ) and  message : "summary core core_name:%s" %s |
 	select
-	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 1) as core_name,
-	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 2) as node,
-	regexp_extract(message, '^summary core core_name:(.*?),\s+node:(.*?),\s+cost:(.*?)$', 3) as cost,
+	regexp_extract(message, '^summary core.*?core_name:(.*?)(,|\s+|$)', 1) as core_name,
+    regexp_extract(message, '^summary core.*?node:(.*?)(,|\s+|$)', 1) as node,
+    regexp_extract(message, '^summary core.*?cost:(.*?)(,|\s+|$)', 1) as cost,
 	trace_id, asctime, user_id, "__tag__:_container_name_" env
 	from log  order by asctime desc , trace_id desc limit %v
 `

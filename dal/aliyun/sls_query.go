@@ -412,6 +412,8 @@ type CoreLog struct {
 	UserId   string
 	Status   int
 	Env      string
+	EntryId  string
+	EntryLen int
 }
 
 func MultiCoreLogQuery(ctx context.Context, daysLookback int, coreName string) ([]CoreLog, error) {
@@ -951,6 +953,8 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 	regexp_extract(message, '^summary core.*?core_name:(.*?)(,|\s+|$)', 1) as core_name,
     regexp_extract(message, '^summary core.*?node:(.*?)(,|\s+|$)', 1) as node,
     regexp_extract(message, '^summary core.*?cost:(.*?)(,|\s+|$)', 1) as cost,
+    regexp_extract(message, '^summary core.*?entry_len:(.*?)(,|\s+|$)', 1) as entry_len,
+    regexp_extract(message, '^summary core.*?entry_id:(.*?)(,|\s+|$)', 1) as entry_id,
 	trace_id, asctime, user_id, "__tag__:_container_name_" env
 	from log  order by asctime desc , trace_id desc limit %v
 `
@@ -981,6 +985,16 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 			hlog.CtxErrorf(ctx, "parse time error: %v", e)
 			continue
 		}
+		var entryLen int
+		if log["entry_len"] == "null" {
+			entryLen = 0
+		} else {
+			entryLen, e = strconv.Atoi(log["entry_len"])
+		}
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse entry_len error: %v", e)
+			continue
+		}
 		clog := CoreLog{
 			CoreName: log["core_name"],
 			Node:     log["node"],
@@ -989,6 +1003,8 @@ func SummaryCoreLogQuery(ctx context.Context, daysLookback int, coreName string)
 			Time:     t,
 			UserId:   log["user_id"],
 			Env:      log["env"],
+			EntryLen: entryLen,
+			EntryId:  log["entry_id"],
 		}
 		coreLogs = append(coreLogs, clog)
 	}

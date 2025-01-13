@@ -416,18 +416,12 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 		linkTrace := linkTrace.(*empyrean_lens.DocLinkTraceRespData)
 		nodes = linkTrace.LinkGraph.Nodes
 		entryInfo = webReaderInfo.TranslateEntryInfo()
-		// 分词，用于全文匹配
-		tokens := utils.InitGse().CutTextV1(webReaderInfo.Content)
-		entryInfo.ContentIndex = strings.Join(tokens, " ")
 		copyFromEntryId = webReaderInfo.CopyFromUrlID
 	case empyrean_lens.EntryTypeEnum_FILE:
 		fileInfo := articleInfo.(*plugin.File)
 		linkTrace := linkTrace.(*empyrean_lens.DocLinkTraceRespData)
 		nodes = linkTrace.LinkGraph.Nodes
 		entryInfo = fileInfo.TranslateEntryInfo()
-		// 分词，用于全文匹配
-		tokens := utils.InitGse().CutTextV1(fileInfo.Content)
-		entryInfo.ContentIndex = strings.Join(tokens, " ")
 		copyFromEntryId = fileInfo.CopyFromFildID
 	case empyrean_lens.EntryTypeEnum_MULTI:
 		multiInfo := articleInfo.(*plugin.MultiModel)
@@ -456,9 +450,6 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 		linkTrace := linkTrace.(*empyrean_lens.DocLinkTraceRespData)
 		nodes = linkTrace.LinkGraph.Nodes
 		entryInfo = resourceInfo.TranslateEntryInfo()
-		// 分词，用于全文匹配
-		tokens := utils.InitGse().CutTextV1(resourceInfo.Content)
-		entryInfo.ContentIndex = strings.Join(tokens, " ")
 		copyFromEntryId = ""
 	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI:
 		resourceInfo := articleInfo.(*plugin.Resource)
@@ -495,6 +486,17 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 			entryInfo.ParentEntryID = copyFromEntryId
 		}
 	}
+	// content index
+	contentList := []string{}
+	contentList = append(contentList, entryInfo.UserID)
+	contentList = append(contentList, entryInfo.Title)
+	contentList = append(contentList, entryInfo.EntryID)
+	contentList = append(contentList, entryInfo.EntryURL)
+	for _, article := range entryInfo.MultiArticles {
+		contentList = append(contentList, article.EntryId)
+	}
+	tokens := utils.InitGse().CutTextV1(strings.Join(contentList, "\n"))
+	entryInfo.ContentIndex = strings.Join(tokens, " ")
 	return entryInfo
 }
 
@@ -515,6 +517,10 @@ func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode,
 				continue
 			}
 			nodeID, _ := primitive.ObjectIDFromHex(node.ID)
+			if node.Status == empyrean_lens.ActionStatusEnum_FAIL {
+				node.EnterTime = ""
+				node.FinishTime = ""
+			}
 			startTime, _ := time.Parse(consts.DateTimeTemplate, node.EnterTime)
 			endTime, _ := time.Parse(consts.DateTimeTemplate, node.FinishTime)
 			// 节点日志
@@ -675,9 +681,9 @@ func BatchSave(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, begin
 		}
 	}
 	// 上报消息队列
-	msgList := []plugin.ArticleEntry{}
+	msgList := []bi.ArticleEntry{}
 	for _, event := range eventList {
-		msgList = append(msgList, plugin.ArticleEntry{
+		msgList = append(msgList, bi.ArticleEntry{
 			EntryId:   event.EntryID,
 			EntryType: consts.EntryType(event.EntryType),
 		})

@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/bytedance/sonic"
 	"log"
+
+	"github.com/bytedance/sonic"
 )
 
 func JSONMarshal(v interface{}) string {

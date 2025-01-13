@@ -705,23 +705,6 @@ func doNodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 				hlog.CtxErrorf(ctx, "[OutlineModelOutRequestQueryByTraceID] get api logs failed, err: %v", err)
 				return "", nil, &consts.QueryRecordError
 			}
-			newApiLogsInput := []aliyun.FileProcessLog{}
-			for _, log := range apiLogsInput {
-				// 解压缩
-				inputStr := GetReqRespFromMsg(log.Message, "req:")
-				if inputStr == "" {
-					inputStr = log.Message
-				}
-				if node.Type == empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH {
-					if strings.Contains(inputStr, "\"verbose\":true") {
-						newApiLogsInput = append(newApiLogsInput, log)
-					}
-				} else {
-					if strings.Contains(inputStr, "\"verbose\":false") {
-						newApiLogsInput = append(newApiLogsInput, log)
-					}
-				}
-			}
 			apiLogsOuput, err = aliyun.OutlineModelOutResponseQueryByTraceID(ctx, node.TraceID, start, end)
 			if err != nil {
 				hlog.CtxErrorf(ctx, "[AbstractModelOutResponseQueryByTraceID] get api logs failed, err: %v", err)

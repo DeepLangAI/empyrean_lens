@@ -33,7 +33,7 @@ func ChannelIntToString(channel int) string {
 		return empyrean_lens.WebSiteLingowhaleMini
 	case empyrean_lens.ChannelType_DesktopUrl,
 		empyrean_lens.ChannelType_DesktopPdf:
-		return empyrean_lens.WebSiteLingowhaleMini
+		return empyrean_lens.WebSiteLingowhaleDesktopMac
 	case empyrean_lens.ChannelType_WebLingoUrl,
 		empyrean_lens.ChannelType_WebLingoPdf,
 		empyrean_lens.ChannelType_WebLingoMulti:
@@ -252,4 +252,30 @@ func IsCopyNodeType(parentEntryType int, nodeType int) bool {
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH) ||
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH) ||
 		nodeType == int(empyrean_lens.LinkNodeTypeEnum_SUBSCRIBE_NOVEL_FORM_FINISH)
+}
+
+// 转换 基础类型 到 订阅类型
+func TranslateEntryType(entryType int) int {
+	switch entryType {
+	case int(empyrean_lens.EntryTypeEnum_WEB):
+		return int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB)
+	case int(empyrean_lens.EntryTypeEnum_FILE):
+		return int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE)
+	case int(empyrean_lens.EntryTypeEnum_MULTI):
+		return int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI)
+	}
+	return entryType
+}
+
+// 转换 订阅类型 到 基础类型
+func TranslateSubscribeEntryType(entryType int) int {
+	switch entryType {
+	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB):
+		return int(empyrean_lens.EntryTypeEnum_WEB)
+	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE):
+		return int(empyrean_lens.EntryTypeEnum_FILE)
+	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI):
+		return int(empyrean_lens.EntryTypeEnum_MULTI)
+	}
+	return entryType
 }

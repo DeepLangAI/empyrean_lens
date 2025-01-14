@@ -276,11 +276,12 @@ func CoreReportLongTime(ctx context.Context, coreName string) ([]CoreLog, error)
 }
 
 type SceneOverview struct {
-	Name     string
-	Costs    []float64
-	TotalReq int64
-	FailReq  int64
-	SlowReq  int64
+	Name      string
+	Costs     []float64
+	EntryLens []int
+	TotalReq  int64
+	FailReq   int64
+	SlowReq   int64
 
 	FailRate    float64
 	SlowRate    float64
@@ -303,7 +304,22 @@ type SceneOverviews struct {
 	//QaRecommendOverview   SceneOverview
 }
 
-func aigcCostAnlz(report SceneOverview, slowQueryThreshold int, autoModify bool) SceneOverview {
+func calcSlowQuery(entryLen int) float64 {
+	if entryLen >= 50000 {
+		return float64(360)
+	}
+	return consts.SLOWQUERY_THRESHOLD_OUTLINE
+}
+
+func calcQASlowQuery(entryLen int) float64 {
+	//if entryLen == 0 {
+	//	return consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND
+	//}
+	//return float64(entryLen) * consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND / 1000
+	return consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND
+}
+
+func aigcCostAnlz(report SceneOverview, slowQueryThreshold int, autoModify bool, reportType int) SceneOverview {
 	if autoModify {
 		if report.FailReq == 0 {
 			report.FailReq = report.TotalReq - int64(len(report.Costs))
@@ -316,9 +332,20 @@ func aigcCostAnlz(report SceneOverview, slowQueryThreshold int, autoModify bool)
 		report.FailRate = float64(report.FailReq) / float64(report.TotalReq) * 100
 	}
 
-	for _, cost := range report.Costs {
-		if cost > float64(slowQueryThreshold) {
-			report.SlowReq++
+	for i, cost := range report.Costs {
+		switch reportType {
+		case 0:
+			if cost > float64(slowQueryThreshold) {
+				report.SlowReq++
+			}
+		case 1:
+			if cost > calcSlowQuery(report.EntryLens[i]) {
+				report.SlowReq++
+			}
+		case 2:
+			if cost > calcQASlowQuery(report.EntryLens[i]) {
+				report.SlowReq++
+			}
 		}
 	}
 	// 慢查询率，即成功的响应中，慢查询的比例
@@ -397,7 +424,8 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	for _, log := range outlineLogs {
 		if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST {
 			outlineOverview.Costs = append(outlineOverview.Costs, log.Cost)
-			if log.Cost > consts.SLOWQUERY_THRESHOLD_OUTLINE {
+			outlineOverview.EntryLens = append(outlineOverview.EntryLens, log.EntryLen)
+			if log.Cost > calcSlowQuery(log.EntryLen) {
 				outlineOverview.SlowDetails = append(outlineOverview.SlowDetails, utils.JSONMarshal(log))
 			}
 		}
@@ -418,7 +446,8 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	for _, log := range recommendLogs {
 		if log.Status == consts.StatusSuccess {
 			qaRecommendOverview.Costs = append(qaRecommendOverview.Costs, log.Cost)
-			if log.Cost > consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND {
+			qaRecommendOverview.EntryLens = append(qaRecommendOverview.EntryLens, log.EntryLen)
+			if log.Cost > calcQASlowQuery(log.EntryLen) {
 				qaRecommendOverview.SlowDetails = append(qaRecommendOverview.SlowDetails, utils.JSONMarshal(log))
 			}
 		}
@@ -443,11 +472,11 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		}
 	}
 
-	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT, false)
-	outlineOverview = aigcCostAnlz(outlineOverview, consts.SLOWQUERY_THRESHOLD_OUTLINE, false)
-	viewpointOverview = aigcCostAnlz(viewpointOverview, consts.SLOWQUERY_THRESHOLD_VIEWPOINT, false)
-	qaOverview = aigcCostAnlz(qaOverview, consts.SLOWQUERY_THRESHOLD_QA, false)
-	qaRecommendOverview = aigcCostAnlz(qaRecommendOverview, consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND, false)
+	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT, false, 0)
+	outlineOverview = aigcCostAnlz(outlineOverview, consts.SLOWQUERY_THRESHOLD_OUTLINE, false, 1)
+	viewpointOverview = aigcCostAnlz(viewpointOverview, consts.SLOWQUERY_THRESHOLD_VIEWPOINT, false, 0)
+	qaOverview = aigcCostAnlz(qaOverview, consts.SLOWQUERY_THRESHOLD_QA, false, 0)
+	qaRecommendOverview = aigcCostAnlz(qaRecommendOverview, consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND, false, 2)
 
 	overviews.Overviews = append(overviews.Overviews, abstractOverview)
 	overviews.Overviews = append(overviews.Overviews, outlineOverview)
@@ -531,11 +560,11 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, 
 	ov_multi_summary.TotalReq = int64(len(ov_multi_merge.Costs))
 	ov_multi_ete.TotalReq = ov_multi_upload.TotalReq
 
-	ete_anlz := aigcCostAnlz(ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTI_ETE, true)
-	summary_anlz := aigcCostAnlz(ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTI_SUMMARY, true)
-	analysis_anlz := aigcCostAnlz(ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_MULTI_ANALYSIS, true)
-	merge_anlz := aigcCostAnlz(ov_multi_merge, consts.SLOWQUERY_THRESHOLD_MULTI_MERGE, true)
-	upload_anlz := aigcCostAnlz(ov_multi_upload, consts.SLOWQUERY_THRESHOLD_FAST, false)
+	ete_anlz := aigcCostAnlz(ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTI_ETE, true, 0)
+	summary_anlz := aigcCostAnlz(ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTI_SUMMARY, true, 0)
+	analysis_anlz := aigcCostAnlz(ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_MULTI_ANALYSIS, true, 0)
+	merge_anlz := aigcCostAnlz(ov_multi_merge, consts.SLOWQUERY_THRESHOLD_MULTI_MERGE, true, 0)
+	upload_anlz := aigcCostAnlz(ov_multi_upload, consts.SLOWQUERY_THRESHOLD_FAST, false, 0)
 	//summary_anlz := aigcCostAnlz(*ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTI_ETE)
 
 	ov.MultiEteOverview = ete_anlz

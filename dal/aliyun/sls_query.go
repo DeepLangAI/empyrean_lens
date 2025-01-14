@@ -1071,6 +1071,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
     select 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 1) count, 
     regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s', 2) cost, 
+	regexp_extract(message, '推荐模型, 推荐结束, count:(.*?), cost:(.*?) s, entry_len:(\d+)', 3) entry_len,
     trace_id, time, "U-Id" user_id, "__tag__:_container_name_" env
     from log  order by time desc
 ) limit %v
@@ -1108,6 +1109,16 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 		//    hlog.CtxErrorf(ctx, "parse count error: %v", e)
 		//    continue
 		//}
+		var entryLen int
+		if log["entry_len"] == "null" {
+			entryLen = 0
+		} else {
+			entryLen, e = strconv.Atoi(log["entry_len"])
+		}
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse entry_len error: %v", e)
+			continue
+		}
 		result = append(result, CoreLog{
 			CoreName: "问题推荐",
 			Node:     "调用推荐模型结束",
@@ -1116,6 +1127,7 @@ func QaRecommendAllQuerry(ctx context.Context, daysLookback int) ([]CoreLog, err
 			Time:     t,
 			UserId:   log["user_id"],
 			Status:   consts.StatusSuccess,
+			EntryLen: entryLen,
 		})
 	}
 	return result, nil

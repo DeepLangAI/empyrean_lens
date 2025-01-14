@@ -229,9 +229,12 @@ func UpdateEntryInfoActionName(ctx context.Context, req empyrean_lens.UpdateEntr
 func UpdateEntryUrl(ctx context.Context, entryID string, entryType int) *consts.BizCode {
 	// 从mongo获取记录
 	entryInfo, err := bi.NewEntryInfoDao().FindByEntryIDAndEntryType(ctx, entryID, entryType)
-	if err != nil {
+	if err != nil || entryInfo == nil {
 		hlog.CtxErrorf(ctx, "[EntryAction] get entry action failed, err: %v", err)
 		return &consts.QueryRecordError
+	}
+	if entryInfo.UserID == "" {
+		entryInfo.UserID = "resource_server"
 	}
 	// 更新text索引
 	if entryInfo.ContentIndex != "" {
@@ -240,6 +243,7 @@ func UpdateEntryUrl(ctx context.Context, entryID string, entryType int) *consts.
 		contentList = append(contentList, entryInfo.Title)
 		contentList = append(contentList, entryInfo.EntryID)
 		contentList = append(contentList, entryInfo.EntryURL)
+		contentList = append(contentList, entryInfo.Content)
 		for _, article := range entryInfo.MultiArticles {
 			contentList = append(contentList, article.EntryId)
 		}

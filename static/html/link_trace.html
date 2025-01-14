@@ -1692,6 +1692,7 @@
             });
             return $row
         }
+
         function createTable(config) {
             const {
                 data,
@@ -1733,7 +1734,7 @@
                 // 如果title是字符串，则直接使用
                 if (typeof statisticInfo === 'string') {
                     const $countContainer = $('<div>').addClass('statistic-count');
-                    const $countText = $('<p>').text(statisticInfo);
+                    const $countText = $('<p>').addClass('statistic-count-p').text(statisticInfo);
                     $countContainer.append($countText);
                     $statisticContainer.append($countContainer);
                 }
@@ -3788,6 +3789,8 @@
                     });
 
                     $table.find('.table-title').text(`用户行为 (第 ${currentPage + 1} 页)`);
+
+                    $table.find('.statistic-count-p').text('总记录: ' + data.total_action + ' 总人数: ' + data.total_user);
                 }
             }
 

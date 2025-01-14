@@ -78,8 +78,8 @@ func DownloadUserActions(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	// 设置响应头
-	start := strings.Replace(strings.Replace(req.StartTime, "-", "", -1), " ", "", -1)
-	end := strings.Replace(strings.Replace(req.EndTime, "-", "", -1), " ", "", -1)
+	start := strings.Replace(strings.Replace(strings.Replace(req.StartTime, "-", "", -1), " ", "", -1), ":", "", -1)
+	end := strings.Replace(strings.Replace(strings.Replace(req.EndTime, "-", "", -1), " ", "", -1), ":", "", -1)
 	fileName := fmt.Sprintf("%s-%s", start, end) + ".xlsx"
 	c.Response.Header.Add("Content-Type", "text/html; charset=UTF-8")
 	c.Response.Header.Add("Content-Type", "application/octet-stream")

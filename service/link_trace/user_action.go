@@ -95,11 +95,6 @@ func getUserActionFromBi(ctx context.Context, req *empyrean_lens.UserActionReq, 
 		if err != nil {
 			return 0, 0, nil, &consts.QueryRecordError
 		}
-		if actionCount > 200 {
-			// 如果大于200，直接返回
-			hlog.CtxErrorf(ctx, "query too many action, query:%s, begin:%s, end:%s", req.Query, begin, end)
-			return 0, 0, nil, &consts.QueryRecordError
-		}
 		entryInfos, err = bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
 		if err != nil {
 			return 0, 0, nil, &consts.QueryRecordError
@@ -188,19 +183,19 @@ func GetEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, en
 	switch entryType {
 	case empyrean_lens.EntryTypeEnum_FILE:
 		file, err := plugin.NewFileDao().FindFileById(ctx, entryID)
-		if err != nil {
+		if err != nil || file == nil {
 			return nil, &consts.QueryRecordError
 		}
 		return file.TranslateEntryInfo(), nil
 	case empyrean_lens.EntryTypeEnum_MULTI:
 		multi, err := plugin.NewMultiDao().FindMultiById(ctx, entryID)
-		if err != nil {
+		if err != nil || multi == nil {
 			return nil, &consts.QueryRecordError
 		}
 		return multi.TranslateEntryInfo(), nil
 	case empyrean_lens.EntryTypeEnum_WEB:
 		article, err := plugin.NewWebReaderDao().FindWebReaderById(ctx, entryID)
-		if err != nil {
+		if err != nil || article == nil {
 			return nil, &consts.QueryRecordError
 		}
 		return article.TranslateEntryInfo(), nil
@@ -208,18 +203,18 @@ func GetEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, en
 		empyrean_lens.EntryTypeEnum_OUTLINE,
 		empyrean_lens.EntryTypeEnum_VIEWPOINT:
 		summary, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(entryType), entryID)
-		if err != nil {
+		if err != nil || summary == nil {
 			return nil, &consts.QueryRecordError
 		}
 		return summary.TranslateEntryInfo(), nil
 	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE,
 		empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI,
 		empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB:
-		video, err := plugin.NewResourceDao().FindResourceById(ctx, entryID)
-		if err != nil {
+		resource, err := plugin.NewResourceDao().FindResourceById(ctx, entryID)
+		if err != nil || resource == nil {
 			return nil, &consts.QueryRecordError
 		}
-		return video.TranslateEntryInfo(), nil
+		return resource.TranslateEntryInfo(), nil
 	}
 	return nil, nil
 }

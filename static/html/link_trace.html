@@ -789,9 +789,42 @@
         }
         .table-title {
             text-align: center;
+            margin-top: 20px;
             margin-bottom: 20px;
             font-size: 18px;
             color: #444; /* 深灰色的标题色 */
+        }
+
+        .statistic-container {
+            display: flex;
+            flex-direction: row;
+            padding: 0px 10px;
+            box-sizing: border-box;
+            justify-content: flex-end;
+            border-radius: 4px;
+        }
+
+        .statistic-count p {
+            text-align: right;
+            margin-right: 10px;
+            font-size: 14px;
+            color: #444; /* 深灰色的标题色 */
+        }
+
+        .download-button {
+            background-color: #5cd50a;
+            border-radius: 4px;
+            hight: 16px;
+        }
+
+        .download-button p {
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-left: 10px;
+            margin-right: 10px;
+            text-align: center;
         }
 
         .next-button {
@@ -1669,6 +1702,8 @@
                 titleClass = 'table-title',
                 titleChild,
                 parent,
+                statisticInfo,
+                params = {},
             } = config;
 
             // 创建一个居中的容器
@@ -1688,6 +1723,57 @@
             // 如果提供了titleChild，则添加到标题后
             if (titleChild) {
                 $centerContainer.append(titleChild);
+            }
+
+            // 创建统计信息和下载excel的容器（如果提供）
+            let $statisticContainer = $('<div>').addClass('statistic-container');
+            if (statisticInfo) {
+                // 创建统计信息和下载excel的容器
+                const $statisticContainer = $('<div>').addClass('statistic-container');
+                // 如果title是字符串，则直接使用
+                if (typeof statisticInfo === 'string') {
+                    const $countContainer = $('<div>').addClass('statistic-count');
+                    const $countText = $('<p>').text(statisticInfo);
+                    $countContainer.append($countText);
+                    $statisticContainer.append($countContainer);
+                }
+
+                // 下载按钮
+                let lock = false;
+                function downloadExcel(params) {
+                    if (lock) return;
+                    lock = true;
+                    axios.get('/api/v1/link_trace/download_user_actions', {
+                        params: params,
+                        responseType: 'blob',
+                        paramsSerializer: params => {
+                            return Qs.stringify(params, { indices: false })
+                        },
+                    }).then(response => {
+                        const fileName = response.headers['content-disposition'].split(';')[1].split('=')[1];
+                        const blob = new Blob([response.data]); 
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName; //设置下载的文件名
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                        lock = false;
+                    });
+                }
+
+                // 下载按钮
+                const $buttonContainer = $('<div>').addClass('download-button');
+                const $downloadButton = $('<p>')
+                    .text('下载')
+                    .click(() => {
+                        downloadExcel(params);
+                    });
+                $buttonContainer.append($downloadButton);
+                $statisticContainer.append($buttonContainer);
+                $centerContainer.append($statisticContainer);
             }
 
             // 创建一个可滚动的表格容器
@@ -3636,7 +3722,7 @@
                 $buttonContainer.append($prevButton, $nextButton);
             }
 
-            function updateTable(data) {
+            function updateTable(data, params) {
                 const columns = [
                     { header: '序号', value: row => row.index,
                         clickable: row=>true, click: row=> {
@@ -3684,13 +3770,14 @@
                         }
                     },
                 ];
-
                 if ($table.is(':empty')) {
                     $table = createTable({
                         data: data.rows,
                         columns: columns,
                         title: '用户行为',
-                        parent: $table
+                        parent: $table,
+                        statisticInfo: '总记录: ' + data.total_action + ' 总人数: ' + data.total_user,
+                        params: params,
                     });
                 } else {
                     const $tbody = $table.find('tbody');
@@ -3881,19 +3968,20 @@
                 if ($externalSelect.text()[0] === '✅'){
                     onlyExternal = true
                 }
+                let params = {
+                    query: query,
+                    start_time: startTime,
+                    end_time: endTime,
+                    status: status,
+                    skip: currentPage * pageSize,
+                    limit: pageSize,
+                    only_external: onlyExternal,
+                    web_sites: websites,
+                    action_names: actionNames,
+                    is_old_web: true
+                }
                 axios.get('/api/v1/link_trace/user_actions', {
-                    params: {
-                        query: query,
-                        start_time: startTime,
-                        end_time: endTime,
-                        status: status,
-                        skip: currentPage * pageSize,
-                        limit: pageSize,
-                        only_external: onlyExternal,
-                        web_sites: websites,
-                        action_names: actionNames,
-                        is_old_web: true
-                    },
+                    params: params,
                     paramsSerializer: params => {
                         return Qs.stringify(params, { indices: false })
                     }
@@ -3914,7 +4002,7 @@
                         item.index = index + 1 + currentPage * pageSize;
                     })
                     hasMoreData = data.has_next;
-                    updateTable(data);
+                    updateTable(data, params);
                     updatePagination();
 
                 }).catch(error => {

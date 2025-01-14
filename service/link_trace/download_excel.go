@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
+	bi "empyrean_lens/dal/mongo/lingowhale_bi"
 	"empyrean_lens/utils"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -243,8 +245,23 @@ func getGetExcelFromExcel(ctx context.Context, req *empyrean_lens.UserActionReq,
 
 // 记录某天的数据到excel
 func RecordExcel(ctx context.Context, startTime time.Time) *consts.BizCode {
-	// 读取记录
 	start := utils.StartDay(startTime)
+	filePath := fmt.Sprintf("excel/%s.xlsx", start.Format("20060102"))
+	// 从mongo获取记录
+	buffer, err := bi.NewExcelDao().GridfsDownload(ctx, filePath)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "download excel from mongo error, err:%v", err)
+	}
+	if buffer != nil {
+		// 写入本地
+		err = os.WriteFile(filePath, buffer, 0644)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "write file error, err:%v", err)
+			return &consts.QueryRecordError
+		}
+		return nil
+	}
+	// 读取记录
 	getReq := &empyrean_lens.UserActionReq{}
 	excelRows, bizCode := getGetExcelFromMongo(ctx, getReq, start, start.Add(time.Hour*24))
 	if bizCode != nil {
@@ -252,10 +269,15 @@ func RecordExcel(ctx context.Context, startTime time.Time) *consts.BizCode {
 		return &consts.QueryRecordError
 	}
 	// 写入excel
-	filePath := fmt.Sprintf("excel/%s.xlsx", start.Format("20060102"))
-	_, err := MakeExccel(ctx, excelRows, filePath)
+	excel, err := MakeExccel(ctx, excelRows, filePath)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "make excel error, err:%v", err)
+		return &consts.QueryRecordError
+	}
+	// 保存记录到mongo
+	err = bi.NewExcelDao().GridfsUpload(ctx, filePath, excel.Bytes())
+	if err != nil {
+		hlog.CtxErrorf(ctx, "upload excel from mongo error, err:%v", err)
 		return &consts.QueryRecordError
 	}
 	return nil

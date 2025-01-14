@@ -35,7 +35,7 @@ func SaveUserLogsOnce() {
 func InitExcelOnce() {
 	go func() {
 		ctx := context.Background()
-		timeStart := time.Now().Add(-31 * 24 * time.Hour)
+		timeStart := time.Now().Add(-30 * 24 * time.Hour)
 		for i := 0; i < 30; i++ {
 			link_trace.RecordExcel(ctx, timeStart.Add(time.Duration(i)*24*time.Hour))
 		}

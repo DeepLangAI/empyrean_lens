@@ -304,20 +304,26 @@ type SceneOverviews struct {
 	//QaRecommendOverview   SceneOverview
 }
 
-func calcSlowQuery(entryLen int) float64 {
+func calcOutlineSlowQuery(entryLen int) float64 {
 	if entryLen >= 50000 {
 		return float64(360)
 	}
 	return consts.SLOWQUERY_THRESHOLD_OUTLINE
 }
 
-func calcQASlowQuery(entryLen int) float64 {
+func calcQaRecommendSlowQuery(entryLen int) float64 {
 	//if entryLen == 0 {
 	//	return consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND
 	//}
 	//return float64(entryLen) * consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND / 1000
 	return consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND
 }
+
+const (
+	SCENE_REPORT_TYPE_GENERAL = iota
+	SCENE_REPORT_TYPE_OUTLINE
+	SCENE_REPORT_TYPE_QA_RECOMMEND
+)
 
 func aigcCostAnlz(report SceneOverview, slowQueryThreshold int, autoModify bool, reportType int) SceneOverview {
 	if autoModify {
@@ -334,16 +340,16 @@ func aigcCostAnlz(report SceneOverview, slowQueryThreshold int, autoModify bool,
 
 	for i, cost := range report.Costs {
 		switch reportType {
-		case 0:
+		case SCENE_REPORT_TYPE_GENERAL:
 			if cost > float64(slowQueryThreshold) {
 				report.SlowReq++
 			}
-		case 1:
-			if cost > calcSlowQuery(report.EntryLens[i]) {
+		case SCENE_REPORT_TYPE_OUTLINE:
+			if cost > calcOutlineSlowQuery(report.EntryLens[i]) {
 				report.SlowReq++
 			}
-		case 2:
-			if cost > calcQASlowQuery(report.EntryLens[i]) {
+		case SCENE_REPORT_TYPE_QA_RECOMMEND:
+			if cost > calcQaRecommendSlowQuery(report.EntryLens[i]) {
 				report.SlowReq++
 			}
 		}
@@ -425,7 +431,7 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		if log.Node == consts.ALIYUN_LOG_NODE_OUTLINE_ETOE_COST {
 			outlineOverview.Costs = append(outlineOverview.Costs, log.Cost)
 			outlineOverview.EntryLens = append(outlineOverview.EntryLens, log.EntryLen)
-			if log.Cost > calcSlowQuery(log.EntryLen) {
+			if log.Cost > calcOutlineSlowQuery(log.EntryLen) {
 				outlineOverview.SlowDetails = append(outlineOverview.SlowDetails, utils.JSONMarshal(log))
 			}
 		}
@@ -447,7 +453,7 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		if log.Status == consts.StatusSuccess {
 			qaRecommendOverview.Costs = append(qaRecommendOverview.Costs, log.Cost)
 			qaRecommendOverview.EntryLens = append(qaRecommendOverview.EntryLens, log.EntryLen)
-			if log.Cost > calcQASlowQuery(log.EntryLen) {
+			if log.Cost > calcQaRecommendSlowQuery(log.EntryLen) {
 				qaRecommendOverview.SlowDetails = append(qaRecommendOverview.SlowDetails, utils.JSONMarshal(log))
 			}
 		}
@@ -472,11 +478,11 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 		}
 	}
 
-	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT, false, 0)
-	outlineOverview = aigcCostAnlz(outlineOverview, consts.SLOWQUERY_THRESHOLD_OUTLINE, false, 1)
-	viewpointOverview = aigcCostAnlz(viewpointOverview, consts.SLOWQUERY_THRESHOLD_VIEWPOINT, false, 0)
-	qaOverview = aigcCostAnlz(qaOverview, consts.SLOWQUERY_THRESHOLD_QA, false, 0)
-	qaRecommendOverview = aigcCostAnlz(qaRecommendOverview, consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND, false, 2)
+	abstractOverview = aigcCostAnlz(abstractOverview, consts.SLOWQUERY_THRESHOLD_ABSTRACT, false, SCENE_REPORT_TYPE_GENERAL)
+	outlineOverview = aigcCostAnlz(outlineOverview, consts.SLOWQUERY_THRESHOLD_OUTLINE, false, SCENE_REPORT_TYPE_OUTLINE)
+	viewpointOverview = aigcCostAnlz(viewpointOverview, consts.SLOWQUERY_THRESHOLD_VIEWPOINT, false, SCENE_REPORT_TYPE_GENERAL)
+	qaOverview = aigcCostAnlz(qaOverview, consts.SLOWQUERY_THRESHOLD_QA, false, SCENE_REPORT_TYPE_GENERAL)
+	qaRecommendOverview = aigcCostAnlz(qaRecommendOverview, consts.SLOWQUERY_THRESHOLD_QA_RECOMMEND, false, SCENE_REPORT_TYPE_QA_RECOMMEND)
 
 	overviews.Overviews = append(overviews.Overviews, abstractOverview)
 	overviews.Overviews = append(overviews.Overviews, outlineOverview)
@@ -560,11 +566,11 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, 
 	ov_multi_summary.TotalReq = int64(len(ov_multi_merge.Costs))
 	ov_multi_ete.TotalReq = ov_multi_upload.TotalReq
 
-	ete_anlz := aigcCostAnlz(ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTI_ETE, true, 0)
-	summary_anlz := aigcCostAnlz(ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTI_SUMMARY, true, 0)
-	analysis_anlz := aigcCostAnlz(ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_MULTI_ANALYSIS, true, 0)
-	merge_anlz := aigcCostAnlz(ov_multi_merge, consts.SLOWQUERY_THRESHOLD_MULTI_MERGE, true, 0)
-	upload_anlz := aigcCostAnlz(ov_multi_upload, consts.SLOWQUERY_THRESHOLD_FAST, false, 0)
+	ete_anlz := aigcCostAnlz(ov_multi_ete, consts.SLOWQUERY_THRESHOLD_MULTI_ETE, true, SCENE_REPORT_TYPE_GENERAL)
+	summary_anlz := aigcCostAnlz(ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTI_SUMMARY, true, SCENE_REPORT_TYPE_GENERAL)
+	analysis_anlz := aigcCostAnlz(ov_multi_analysis, consts.SLOWQUERY_THRESHOLD_MULTI_ANALYSIS, true, SCENE_REPORT_TYPE_GENERAL)
+	merge_anlz := aigcCostAnlz(ov_multi_merge, consts.SLOWQUERY_THRESHOLD_MULTI_MERGE, true, SCENE_REPORT_TYPE_GENERAL)
+	upload_anlz := aigcCostAnlz(ov_multi_upload, consts.SLOWQUERY_THRESHOLD_FAST, false, SCENE_REPORT_TYPE_GENERAL)
 	//summary_anlz := aigcCostAnlz(*ov_multi_summary, consts.SLOWQUERY_THRESHOLD_MULTI_ETE)
 
 	ov.MultiEteOverview = ete_anlz

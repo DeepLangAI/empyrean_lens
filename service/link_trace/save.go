@@ -450,12 +450,14 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 		linkTrace := linkTrace.(*empyrean_lens.DocLinkTraceRespData)
 		nodes = linkTrace.LinkGraph.Nodes
 		entryInfo = resourceInfo.TranslateEntryInfo()
+		entryInfo.UserID = "resource_server"
 		copyFromEntryId = ""
 	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI:
 		resourceInfo := articleInfo.(*plugin.Resource)
 		linkTrace := linkTrace.(*empyrean_lens.MultiDocLinkTraceRespData)
 		nodes = linkTrace.Graph.Nodes
 		entryInfo = resourceInfo.TranslateEntryInfo()
+		entryInfo.UserID = "resource_server"
 		copyFromEntryId = ""
 	}
 	// 用户类型
@@ -492,6 +494,7 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 	contentList = append(contentList, entryInfo.Title)
 	contentList = append(contentList, entryInfo.EntryID)
 	contentList = append(contentList, entryInfo.EntryURL)
+	contentList = append(contentList, entryInfo.Content)
 	for _, article := range entryInfo.MultiArticles {
 		contentList = append(contentList, article.EntryId)
 	}

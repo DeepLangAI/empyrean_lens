@@ -246,7 +246,7 @@ func getGetExcelFromExcel(ctx context.Context, req *empyrean_lens.UserActionReq,
 // 记录某天的数据到excel
 func RecordExcel(ctx context.Context, startTime time.Time) *consts.BizCode {
 	start := utils.StartDay(startTime)
-	filePath := fmt.Sprintf("excel/%s.xlsx", start.Format("20060102"))
+	filePath := fmt.Sprintf("../excel/%s.xlsx", start.Format("20060102"))
 	// 从mongo获取记录
 	buffer, err := bi.NewExcelDao().GridfsDownload(ctx, filePath)
 	if err != nil {
@@ -331,7 +331,7 @@ func MakeExccel(ctx context.Context, excelRows []ExcelRow, path string) (*bytes.
 }
 
 func ReadExcel(ctx context.Context, excelName string) ([]ExcelRow, error) {
-	path := fmt.Sprintf("excel/%s", excelName)
+	path := fmt.Sprintf("../excel/%s", excelName)
 	f, err := excelize.OpenFile(path)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "read excel error, err:%v", err)

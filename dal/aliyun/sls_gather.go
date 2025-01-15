@@ -305,7 +305,7 @@ type SceneOverviews struct {
 }
 
 func calcOutlineSlowQuery(entryLen int) float64 {
-	if entryLen >= 50000 {
+	if entryLen >= 45000 {
 		return float64(360)
 	}
 	return consts.SLOWQUERY_THRESHOLD_OUTLINE

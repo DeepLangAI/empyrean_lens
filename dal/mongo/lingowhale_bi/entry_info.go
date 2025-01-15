@@ -168,6 +168,21 @@ func (d *EntryInfoDao) UpdateActionName(ctx context.Context, actionName string, 
 	return nil
 }
 
+func (d *EntryInfoDao) UpdateSubscriptionUserID(ctx context.Context) error {
+	filter := bson.M{"$and": []bson.M{
+		{"channel_type": 0},
+		{"$or": []bson.M{{"user_id": bson.M{"$exists": false}}, {"user_id": ""}}},
+	}}
+	update := bson.M{"$set": bson.M{"user_id": "resource_server"}}
+	res, err := biCollection.Collection(TableNameEntryInfo()).UpdateMany(ctx, filter, update)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:UpdateSubscriptionUserID, err:%+v", err)
+		return err
+	}
+	hlog.CtxInfof(ctx, "update count:%d", res.ModifiedCount)
+	return nil
+}
+
 func (d *EntryInfoDao) FindByEntryIDs(ctx context.Context, entryIDs []string) ([]*EntryInfo, error) {
 	var entryInfos []*EntryInfo
 	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"entry_id": bson.M{"$in": entryIDs}})
@@ -264,7 +279,7 @@ func (d *EntryInfoDao) CountByTimeRange(ctx context.Context, status []int32, web
 	return int64(countUser), int64(countAction), nil
 }
 
-func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
+func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64, textCount, unTextCount int64) ([]*EntryInfo, error) {
 	tokens := utils.InitGse().CutTextV1(query)
 	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
 	unTextFilter := bson.M{
@@ -296,35 +311,43 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 	}
 	// 先查询 text 索引
 	var textEntryInfos []*EntryInfo
-	options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}})
-	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": []bson.M{textFilter, otherFilter}}, options)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, nil
+	if textCount > skip {
+		options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+		cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": []bson.M{textFilter, otherFilter}}, options)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return nil, nil
+			}
+			hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+			return nil, err
 		}
-		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return nil, err
-	}
-	defer cur.Close(ctx)
-	if err = cur.All(ctx, &textEntryInfos); err != nil {
-		hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
-		return nil, err
+		defer cur.Close(ctx)
+		if err = cur.All(ctx, &textEntryInfos); err != nil {
+			hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
+			return nil, err
+		}
 	}
 	// 再查询非 text 索引
 	var unTextEntryInfos []*EntryInfo
-	options = options.SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(skip + limit)
-	cur, err = biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": []bson.M{unTextFilter, otherFilter}}, options)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, nil
+	if len(textEntryInfos) < int(limit) {
+		newSkip := int64(0)
+		if textCount < skip {
+			newSkip = skip - textCount
 		}
-		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return nil, err
-	}
-	defer cur.Close(ctx)
-	if err = cur.All(ctx, &unTextEntryInfos); err != nil {
-		hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
-		return nil, err
+		options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(newSkip)
+		cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": []bson.M{unTextFilter, otherFilter}}, options)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return nil, nil
+			}
+			hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+			return nil, err
+		}
+		defer cur.Close(ctx)
+		if err = cur.All(ctx, &unTextEntryInfos); err != nil {
+			hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
+			return nil, err
+		}
 	}
 	// 组合排序
 	entryInfos := []*EntryInfo{}
@@ -341,16 +364,13 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 	sort.Slice(entryInfos, func(i, j int) bool {
 		return entryInfos[i].EntryCreateTime.After(entryInfos[j].EntryCreateTime)
 	})
-	if len(entryInfos) < int(skip) {
-		return nil, nil
+	if len(entryInfos) < int(limit) {
+		return entryInfos, nil
 	}
-	if len(entryInfos) < int(skip+limit) {
-		return entryInfos[skip:], nil
-	}
-	return entryInfos[skip : skip+limit], nil
+	return entryInfos[:limit], nil
 }
 
-func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time) (int64, int64, error) {
+func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time) (int64, int64, int64, int64, error) {
 	tokens := utils.InitGse().CutTextV1(query)
 	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
 	unTextFilter := bson.M{
@@ -388,16 +408,16 @@ func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query strin
 	})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return 0, 0, nil
+			return 0, 0, 0, 0, nil
 		}
 		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 	defer cur.Close(ctx)
 	textResults := []GroupResult{}
 	if err = cur.All(ctx, &textResults); err != nil {
 		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 	// 统计用户数、行为数，非 text 索引
 	cur, err = biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
@@ -407,31 +427,34 @@ func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query strin
 	})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return 0, 0, nil
+			return 0, 0, 0, 0, nil
 		}
 		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 	defer cur.Close(ctx)
 	unTextResults := []GroupResult{}
 	if err = cur.All(ctx, &unTextResults); err != nil {
 		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 	// 整合
+	textCount, unTextCount := int64(0), int64(0)
 	userMapping := make(map[string]int32)
 	for _, result := range textResults {
 		userMapping[result.UserID] = int32(result.Count)
+		textCount += int64(result.Count)
 	}
 	for _, result := range unTextResults {
 		userMapping[result.UserID] += int32(result.Count)
+		unTextCount += int64(result.Count)
 	}
 	var countUser, countAction int32
 	for _, count := range userMapping {
 		countUser += 1
 		countAction += count
 	}
-	return int64(countUser), int64(countAction), nil
+	return int64(countUser), int64(countAction), textCount, unTextCount, nil
 }
 
 func (d *EntryInfoDao) FindByEntryIDsWithoutCopy(ctx context.Context, entryIDs []string) ([]*EntryInfo, error) {

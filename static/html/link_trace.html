@@ -1703,8 +1703,7 @@
                 titleClass = 'table-title',
                 titleChild,
                 parent,
-                statisticInfo,
-                params = {},
+                statisticInfo = '总记录: ' + 0 + ' 总人数: ' + 0,
             } = config;
 
             // 创建一个居中的容器
@@ -1740,38 +1739,8 @@
                 }
 
                 // 下载按钮
-                let lock = false;
-                function downloadExcel(params) {
-                    if (lock) return;
-                    lock = true;
-                    axios.get('/api/v1/link_trace/download_user_actions', {
-                        params: params,
-                        responseType: 'blob',
-                        paramsSerializer: params => {
-                            return Qs.stringify(params, { indices: false })
-                        },
-                    }).then(response => {
-                        const fileName = response.headers['content-disposition'].split(';')[1].split('=')[1];
-                        const blob = new Blob([response.data]); 
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = fileName; //设置下载的文件名
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        window.URL.revokeObjectURL(url);
-                        lock = false;
-                    });
-                }
-
-                // 下载按钮
                 const $buttonContainer = $('<div>').addClass('download-button');
-                const $downloadButton = $('<p>')
-                    .text('下载')
-                    .click(() => {
-                        downloadExcel(params);
-                    });
+                const $downloadButton = $('<p>').text('下载');
                 $buttonContainer.append($downloadButton);
                 $statisticContainer.append($buttonContainer);
                 $centerContainer.append($statisticContainer);
@@ -3777,8 +3746,6 @@
                         columns: columns,
                         title: '用户行为',
                         parent: $table,
-                        statisticInfo: '总记录: ' + data.total_action + ' 总人数: ' + data.total_user,
-                        params: params,
                     });
                 } else {
                     const $tbody = $table.find('tbody');
@@ -3792,6 +3759,51 @@
 
                     $table.find('.statistic-count-p').text('总记录: ' + data.total_action + ' 总人数: ' + data.total_user);
                 }
+
+                // 下载excel
+                let statisticInfo = '总记录: ' + data.total_action + ' 总人数: ' + data.total_user;
+                let $statisticContainer = $table.find('.statistic-container');
+                $statisticContainer.empty();
+                const $countContainer = $('<div>').addClass('statistic-count');
+                const $countText = $('<p>').addClass('statistic-count-p').text(statisticInfo);
+                $countContainer.append($countText);
+                $statisticContainer.append($countContainer);
+
+                // 下载按钮
+                let lock = false;
+                function downloadExcel(params) {
+                    if (lock) return;
+                    lock = true;
+                    axios.get('/api/v1/link_trace/download_user_actions', {
+                        params: params,
+                        responseType: 'blob',
+                        paramsSerializer: params => {
+                            return Qs.stringify(params, { indices: false })
+                        },
+                    }).then(response => {
+                        const fileName = response.headers['content-disposition'].split(';')[1].split('=')[1];
+                        const blob = new Blob([response.data]); 
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName; //设置下载的文件名
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                        lock = false;
+                    });
+                }
+
+                // 下载按钮
+                const $buttonContainer = $('<div>').addClass('download-button');
+                const $downloadButton = $('<p>')
+                    .text('下载')
+                    .click(() => {
+                        downloadExcel(params);
+                    });
+                $buttonContainer.append($downloadButton);
+                $statisticContainer.append($buttonContainer);
             }
 
             function updatePagination() {

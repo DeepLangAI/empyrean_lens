@@ -19,19 +19,23 @@ func UpdateEntryInfo(ctx context.Context, req empyrean_lens.UpdateEntryInfoReq) 
 			hlog.CtxErrorf(ctx, "UpdateEntryInfoWebSite err: %v", err)
 			return &consts.QueryRecordError
 		}
-	}
-	if req.ActionName != "" {
+	} else if req.ActionName != "" {
 		if err := UpdateEntryInfoActionName(ctx, req); err != nil {
 			hlog.CtxErrorf(ctx, "UpdateActionName err: %v", err)
 			return &consts.QueryRecordError
 		}
-	}
-	if req.EntryID != "" {
+	} else if req.EntryID != "" {
 		if err := UpdateEntryUrl(ctx, req.EntryID, int(req.EntryType)); err != nil {
 			hlog.CtxErrorf(ctx, "UpdateEntryUrl err: %v", err)
 			return &consts.QueryRecordError
 		}
+	} else {
+		if err := UpdateSubscriptionUserID(ctx); err != nil {
+			hlog.CtxErrorf(ctx, "UpdateSubscriptionUserID err: %v", err)
+			return &consts.QueryRecordError
+		}
 	}
+
 	return nil
 }
 
@@ -286,4 +290,8 @@ func UpdateEntryUrl(ctx context.Context, entryID string, entryType int) *consts.
 	// 更新记录
 	bi.NewEntryInfoDao().SaveEntryInfo(ctx, entryInfo)
 	return nil
+}
+
+func UpdateSubscriptionUserID(ctx context.Context) error {
+	return bi.NewEntryInfoDao().UpdateSubscriptionUserID(ctx)
 }

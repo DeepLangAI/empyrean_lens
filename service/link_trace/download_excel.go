@@ -20,8 +20,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var excelInitOnce sync.Once
-
 type ExcelRow struct {
 	Idx        string //序号
 	UserID     string //用户ID
@@ -135,6 +133,12 @@ func GetExcelRows(ctx context.Context, req *empyrean_lens.UserActionReq, begin, 
 			}(date)
 		}
 		wg.Wait()
+		// mongo中结果
+		mongoExcelRows, bizCode := getGetExcelFromMongo(ctx, req, endDate, end)
+		if bizCode != nil {
+			return nil, bizCode
+		}
+		excelRows = append(excelRows, mongoExcelRows...)
 	}
 	// 如果为空，并且query不为空，查询traceID
 	if len(excelRows) == 0 && req.Query != "" {
@@ -246,7 +250,7 @@ func getGetExcelFromExcel(ctx context.Context, req *empyrean_lens.UserActionReq,
 // 记录某天的数据到excel
 func RecordExcel(ctx context.Context, startTime time.Time) *consts.BizCode {
 	start := utils.StartDay(startTime)
-	filePath := fmt.Sprintf("../excel/%s.xlsx", start.Format("20060102"))
+	filePath := fmt.Sprintf("excel/%s.xlsx", start.Format("20060102"))
 	// 从mongo获取记录
 	buffer, err := bi.NewExcelDao().GridfsDownload(ctx, filePath)
 	if err != nil {
@@ -331,7 +335,7 @@ func MakeExccel(ctx context.Context, excelRows []ExcelRow, path string) (*bytes.
 }
 
 func ReadExcel(ctx context.Context, excelName string) ([]ExcelRow, error) {
-	path := fmt.Sprintf("../excel/%s", excelName)
+	path := fmt.Sprintf("excel/%s", excelName)
 	f, err := excelize.OpenFile(path)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "read excel error, err:%v", err)

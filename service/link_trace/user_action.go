@@ -91,11 +91,12 @@ func getUserActionFromBi(ctx context.Context, req *empyrean_lens.UserActionReq, 
 		}
 	} else {
 		// 有query，直接查询
-		userCount, actionCount, err = bi.NewEntryInfoDao().CountByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end)
+		textCount, unTextCount := int64(0), int64(0)
+		userCount, actionCount, textCount, unTextCount, err = bi.NewEntryInfoDao().CountByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end)
 		if err != nil {
 			return 0, 0, nil, &consts.QueryRecordError
 		}
-		entryInfos, err = bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		entryInfos, err = bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit, textCount, unTextCount)
 		if err != nil {
 			return 0, 0, nil, &consts.QueryRecordError
 		}

@@ -266,7 +266,15 @@ func MultiLinkTrace(ctx context.Context, multiID string, refresh bool) (*plugin.
 	if bizCode != nil {
 		return nil, nil, &consts.QueryRecordError
 	}
-	// 并发链路信息
+	// 补充子文档信息
+	for idx, article := range multiInfo.ArticleList {
+		key := fmt.Sprintf("%d_%s", article.EntryType, article.EntryId)
+		if _, ok := resourceMapping[key]; ok {
+			multiInfo.ArticleList[idx].Title = resourceMapping[key].Title
+			multiInfo.ArticleList[idx].URL = resourceMapping[key].URL
+		}
+	}
+	// 并发获取链路信息
 	wg, graphMapping, multiGrap := sync.WaitGroup{}, sync.Map{}, &empyrean_lens.TraceLinkGraph{}
 	wg.Add(len(multiInfo.ArticleList) + 1)
 	for idx := range multiInfo.ArticleList {
@@ -362,6 +370,26 @@ func SubscriMultibeLinkTrace(ctx context.Context, entryType empyrean_lens.EntryT
 		return nil, nil, &consts.QueryRecordError
 	}
 	resourceInfo.ArticleList = novelFormInfo.RelatedEntry
+	// 获取子文档信息
+	resources := []*empyrean_lens.ResourceInfo{}
+	for _, article := range novelFormInfo.RelatedEntry {
+		resources = append(resources, &empyrean_lens.ResourceInfo{
+			EntryType: empyrean_lens.EntryTypeEnum(article.EntryType),
+			EntryID:   article.EntryId,
+		})
+	}
+	resourceMapping, bizCode := GetResourceInfo(ctx, resources)
+	if bizCode != nil {
+		return nil, nil, &consts.QueryRecordError
+	}
+	// 补充子文档信息
+	for idx, article := range resourceInfo.ArticleList {
+		key := fmt.Sprintf("%d_%s", article.EntryType, article.EntryId)
+		if _, ok := resourceMapping[key]; ok {
+			resourceInfo.ArticleList[idx].Title = resourceMapping[key].Title
+			resourceInfo.ArticleList[idx].URL = resourceMapping[key].URL
+		}
+	}
 	// 并发链路信息
 	wg, graphMapping, multiGrap := sync.WaitGroup{}, sync.Map{}, &empyrean_lens.TraceLinkGraph{}
 	wg.Add(len(resourceInfo.ArticleList) + 1)
@@ -1029,15 +1057,11 @@ func LinkTraceGraph(ctx context.Context, entryInfo *bi.EntryInfo, start, end tim
 				isFatherSuccess(node, nodes, edges) && isChildAllUnReachead(node, nodes, edges) {
 				hasFailedNode = true
 				node.Status = empyrean_lens.ActionStatusEnum_FAIL
-				node.EnterTime = ""
-				node.FinishTime = ""
 			}
 			if node.Type == empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH && node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD &&
 				isFatherSuccess(node, nodes, edges) {
 				hasFailedNode = true
 				node.Status = empyrean_lens.ActionStatusEnum_FAIL
-				node.EnterTime = ""
-				node.FinishTime = ""
 			}
 		}
 	}
@@ -2140,7 +2164,7 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		})
 		for _, processLog := range processLogs {
 			if strings.Contains(processLog.Message, "OutRequest edu_parser") && strings.Contains(processLog.Message, "resp") && !strings.Contains(processLog.Message, "edu input filter without sentence.") && !strings.Contains(processLog.Message, "resp:[]") {
-				return empyrean_lens.ActionStatusEnum_SUCCESS
+				return empyrean_lens.ActionStatusEnum_UNREACHEAD
 			}
 		}
 		sort.Slice(processLogs, func(i, j int) bool {
@@ -2148,7 +2172,7 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		})
 		for _, processLog := range processLogs {
 			if strings.Contains(processLog.Message, "edu parse error") || strings.Contains(processLog.Message, "edu parse fail") || strings.Contains(processLog.Message, "ParseEdu error") || strings.Contains(processLog.Message, "edu input filter without sentence.") {
-				return empyrean_lens.ActionStatusEnum_FAIL
+				return empyrean_lens.ActionStatusEnum_UNREACHEAD
 			}
 		}
 	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH, empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH, empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH, empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH, empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH,

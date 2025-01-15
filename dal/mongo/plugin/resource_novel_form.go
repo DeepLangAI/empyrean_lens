@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"empyrean_lens/consts"
+	bi "empyrean_lens/dal/mongo/lingowhale_bi"
+	"empyrean_lens/utils"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,8 +20,8 @@ type ResourceNovelForm struct {
 	Title        string             `bson:"title" json:"title"`
 	Description  string             `bson:"description" json:"description"`
 	SurfaceImg   string             `bson:"surface_img" json:"surface_img"`
-	BindEntry    ArticleEntry       `bson:"bind_entry" json:"bind_entry"`
-	RelatedEntry []ArticleEntry     `bson:"related_entry" json:"related_entry"`
+	BindEntry    bi.ArticleEntry    `bson:"bind_entry" json:"bind_entry"`
+	RelatedEntry []bi.ArticleEntry  `bson:"related_entry" json:"related_entry"`
 	Status       int                `bson:"status" json:"status"`
 	CreateTime   time.Time          `bson:"create_time" json:"create_time"`
 	UpdateTime   time.Time          `bson:"update_time" json:"update_time"`
@@ -67,7 +69,7 @@ func (d *ResourceNovelFormDao) FindResourceNovelFormById(ctx context.Context, id
 	res[0].UpdateTime = res[0].UpdateTime.Local()
 	for idx := range res[0].RelatedEntry {
 		entryType := res[0].RelatedEntry[idx].EntryType
-		res[0].RelatedEntry[idx].EntryType = consts.EntryType(TranslateEntryType(int(entryType)))
+		res[0].RelatedEntry[idx].EntryType = consts.EntryType(utils.TranslateEntryType(int(entryType)))
 	}
 	return res[0], nil
 }

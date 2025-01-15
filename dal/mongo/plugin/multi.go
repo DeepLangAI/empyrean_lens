@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"empyrean_lens/biz/model/empyrean_lens"
-	"empyrean_lens/consts"
 	bi "empyrean_lens/dal/mongo/lingowhale_bi"
 	"empyrean_lens/utils"
 
@@ -18,16 +17,10 @@ import (
 
 const TableNameMulti = "multi"
 
-type ArticleEntry struct {
-	EntryId   string           `json:"entry_id" bson:"entry_id"`
-	EntryType consts.EntryType `json:"entry_type" bson:"entry_type"`
-	Title     string           `json:"title" bson:"title"`
-}
-
 type MultiModel struct {
 	ID                 primitive.ObjectID `bson:"_id" json:"id"`
 	UserID             string             `json:"user_id" bson:"user_id" validate:"required"`
-	ArticleList        []ArticleEntry     `json:"article_list" bson:"article_list"`
+	ArticleList        []bi.ArticleEntry  `json:"article_list" bson:"article_list"`
 	Title              string             `json:"title" bson:"title"`
 	CopyFromMultiID    string             `bson:"copy_from_multi_id" json:"copy_from_multi_id"`
 	CopyFromResourceID string             `bson:"copy_from_resource_id" json:"copy_from_resource_id"`
@@ -237,13 +230,6 @@ func (d *MultiDao) FindMultiByTimeRangeForSave(ctx context.Context, startTime, e
 }
 
 func (d *MultiModel) TranslateEntryInfo() *bi.EntryInfo {
-	multiArticles := []bi.MultiArticles{}
-	for _, article := range d.ArticleList {
-		multiArticles = append(multiArticles, bi.MultiArticles{
-			EntryId:   article.EntryId,
-			EntryType: int(article.EntryType),
-		})
-	}
 	parentEntryID := ""
 	parentEntryType := int(empyrean_lens.EntryTypeEnum_MULTI)
 	if d.CopyFromMultiID != "" {
@@ -261,7 +247,7 @@ func (d *MultiModel) TranslateEntryInfo() *bi.EntryInfo {
 		EntrySource:     utils.GetEntrySource(d.UserID, d.CopyFromResourceID, d.CopyFromMultiID),
 		SourceTable:     TableNameFile,
 		DataType:        utils.GetDataType("", d.CopyFromResourceID, empyrean_lens.EntryTypeEnum_FILE),
-		MultiArticles:   multiArticles,
+		MultiArticles:   d.ArticleList,
 		UserID:          d.UserID,
 		Title:           d.Title,
 		ChannelType:     d.ChannelType,

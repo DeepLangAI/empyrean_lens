@@ -15,7 +15,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
-func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
+func GetUserAction(ctx context.Context, req *empyrean_lens.UserActionReq) (*empyrean_lens.UserActionRespData, *consts.BizCode) {
 	// 确定时间范围
 	var err error
 	begin, err := time.ParseInLocation(consts.DateTimeTemplate, req.StartTime, time.Local)
@@ -37,7 +37,7 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 		return nil, &consts.RetParamError
 	}
 	// 直接从bi获取记录
-	rows, bizCode := getUserActionFromBi(ctx, req, begin, end)
+	userCount, actionCount, rows, bizCode := getUserActionFromBi(ctx, req, begin, end, true)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "get user action from bi error, err:%v", err)
 		return nil, bizCode
@@ -52,13 +52,15 @@ func GetUserAction(ctx context.Context, req empyrean_lens.UserActionReq) (*empyr
 	}
 	// 返回
 	return &empyrean_lens.UserActionRespData{
-		HasNext: len(rows) == int(req.Limit),
-		Rows:    rows,
+		HasNext:     len(rows) == int(req.Limit),
+		Rows:        rows,
+		TotalUser:   int32(userCount),
+		TotalAction: int32(actionCount),
 	}, nil
 }
 
 // 从宽表中获取
-func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) ([]*empyrean_lens.UserActionRespRow, *consts.BizCode) {
+func getUserActionFromBi(ctx context.Context, req *empyrean_lens.UserActionReq, begin, end time.Time, needCount bool) (int64, int64, []*empyrean_lens.UserActionRespRow, *consts.BizCode) {
 	status := []int32{}
 	for _, v := range req.Status {
 		status = append(status, int32(v))
@@ -71,78 +73,53 @@ func getUserActionFromBi(ctx context.Context, req empyrean_lens.UserActionReq, b
 	if utils.Contains(status, int32(empyrean_lens.ActionStatusEnum_FAIL)) {
 		status = append(status, int32(empyrean_lens.ActionStatusEnum_UNREACHEAD))
 	}
+	var err error
 	var entryInfos []*bi.EntryInfo
+	var userCount, actionCount int64
 	// 查询数据库
 	if req.Query == "" {
 		// 没有query，直接查询
-		res, err := bi.NewEntryInfoDao().FindByTimeRange(ctx, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
+		entryInfos, err = bi.NewEntryInfoDao().FindByTimeRange(ctx, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
 		if err != nil {
-			return nil, &consts.QueryRecordError
+			return 0, 0, nil, &consts.QueryRecordError
 		}
-		entryInfos = res
-	} else {
-		// 有query，先查宽表，再查最近上传未入宽表的
-		res1, err := bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
-		if err != nil {
-			return nil, &consts.QueryRecordError
-		}
-		// 有query，先查宽表，再查最近上传未入宽表的
-		res2, err := bi.NewEntryInfoDao().FindByTextQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit)
-		if err != nil {
-			return nil, &consts.QueryRecordError
-		}
-		// 合并，去重
-		entryInfos = append(res1, res2...)
-		sort.Slice(entryInfos, func(i, j int) bool {
-			return entryInfos[i].CreateTime.After(entryInfos[j].CreateTime)
-		})
-		if len(entryInfos) > 0 {
-			newRes := []*bi.EntryInfo{entryInfos[0]}
-			for idx := 1; idx < len(entryInfos); idx++ {
-				if entryInfos[idx].EntryID != entryInfos[idx-1].EntryID {
-					newRes = append(newRes, entryInfos[idx])
-				}
+		if needCount {
+			userCount, actionCount, err = bi.NewEntryInfoDao().CountByTimeRange(ctx, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end)
+			if err != nil {
+				return 0, 0, nil, &consts.QueryRecordError
 			}
-			entryInfos = newRes
-		} else {
-			entryInfos = []*bi.EntryInfo{}
+		}
+	} else {
+		// 有query，直接查询
+		textCount, unTextCount := int64(0), int64(0)
+		userCount, actionCount, textCount, unTextCount, err = bi.NewEntryInfoDao().CountByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end)
+		if err != nil {
+			return 0, 0, nil, &consts.QueryRecordError
+		}
+		entryInfos, err = bi.NewEntryInfoDao().FindByQueryAndTimeRange(ctx, req.Query, status, req.WebSites, req.ActionNames, req.OnlyExternal, begin, end, req.Skip, req.Limit, textCount, unTextCount)
+		if err != nil {
+			return 0, 0, nil, &consts.QueryRecordError
 		}
 	}
 	// 转换
-	resources := []*empyrean_lens.ResourceInfo{}
 	rows := []*empyrean_lens.UserActionRespRow{}
 	multiEntryInfo := []*empyrean_lens.UserActionRespRow{}
 	for _, entryInfo := range entryInfos {
 		actionRow := entryInfo.TranslateUserActionRow()
 		rows = append(rows, actionRow)
-		resources = append(resources, actionRow.Resources...)
 		if actionRow.EntryType == empyrean_lens.EntryTypeEnum_MULTI {
 			multiEntryInfo = append(multiEntryInfo, actionRow)
 		}
 	}
-	// 补充resources信息
-	resourceMapping, err := GetResourceInfo(ctx, resources)
-	if err != nil {
-		return nil, &consts.QueryRecordError
-	}
-	for _, resource := range resources {
-		key := fmt.Sprintf("%d_%s", resource.EntryType, resource.EntryID)
-		entryType := plugin.TranslateSubscribeEntryType(int(resource.EntryType))
-		if _, ok := resourceMapping[key]; ok {
-			resource.Title = resourceMapping[key].Title
-			resource.URL = resourceMapping[key].URL
-			resource.EntryType = empyrean_lens.EntryTypeEnum(entryType)
-		}
-	}
 	// 过滤多文档生成失败后跳过的子文档
-	err = filterMultiResourceInfo(ctx, multiEntryInfo)
-	if err != nil {
-		return nil, &consts.QueryRecordError
+	bizCode := filterMultiResourceInfo(ctx, multiEntryInfo)
+	if bizCode != nil {
+		return 0, 0, nil, &consts.QueryRecordError
 	}
-	return rows, nil
+	return userCount, actionCount, rows, nil
 }
 
-func getUserActionFromTraceID(ctx context.Context, req empyrean_lens.UserActionReq, begin, end time.Time) ([]*empyrean_lens.UserActionRespRow, *consts.BizCode) {
+func getUserActionFromTraceID(ctx context.Context, req *empyrean_lens.UserActionReq, begin, end time.Time) ([]*empyrean_lens.UserActionRespRow, *consts.BizCode) {
 	// 查找traceID
 	entryIDs, err := getEntryIdFromAliyun(ctx, "", req.Query, begin, end)
 	if err != nil {
@@ -150,7 +127,6 @@ func getUserActionFromTraceID(ctx context.Context, req empyrean_lens.UserActionR
 		return nil, &consts.QueryRecordError
 	}
 	// 判断是否存在
-	resources := []*empyrean_lens.ResourceInfo{}
 	rows := []*empyrean_lens.UserActionRespRow{}
 	if len(entryIDs) != 0 {
 		entryInfoList, err := searchEntryID(ctx, entryIDs)
@@ -163,21 +139,6 @@ func getUserActionFromTraceID(ctx context.Context, req empyrean_lens.UserActionR
 			if utils.Contains(req.Status, row.Status) {
 				rows = append(rows, row)
 			}
-			resources = append(resources, row.Resources...)
-		}
-	}
-	// 补充resources信息
-	resourceMapping, err := GetResourceInfo(ctx, resources)
-	if err != nil {
-		return nil, &consts.QueryRecordError
-	}
-	for _, resource := range resources {
-		key := fmt.Sprintf("%d_%s", resource.EntryType, resource.EntryID)
-		entryType := plugin.TranslateSubscribeEntryType(int(resource.EntryType))
-		if _, ok := resourceMapping[key]; ok {
-			resource.Title = resourceMapping[key].Title
-			resource.URL = resourceMapping[key].URL
-			resource.EntryType = empyrean_lens.EntryTypeEnum(entryType)
 		}
 	}
 	return rows, nil
@@ -193,7 +154,7 @@ func GetResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInf
 	if err != nil {
 		return nil, &consts.QueryRecordError
 	}
-	// 订阅
+	// 订阅记录
 	subscribeInfos, err := plugin.NewResourceDao().FindResourceByIds(ctx, entryIDs)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "[FindResourceByIds] get entry from mongo failed, err: %v", err)
@@ -223,19 +184,19 @@ func GetEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, en
 	switch entryType {
 	case empyrean_lens.EntryTypeEnum_FILE:
 		file, err := plugin.NewFileDao().FindFileById(ctx, entryID)
-		if err != nil {
+		if err != nil || file == nil {
 			return nil, &consts.QueryRecordError
 		}
 		return file.TranslateEntryInfo(), nil
 	case empyrean_lens.EntryTypeEnum_MULTI:
 		multi, err := plugin.NewMultiDao().FindMultiById(ctx, entryID)
-		if err != nil {
+		if err != nil || multi == nil {
 			return nil, &consts.QueryRecordError
 		}
 		return multi.TranslateEntryInfo(), nil
 	case empyrean_lens.EntryTypeEnum_WEB:
 		article, err := plugin.NewWebReaderDao().FindWebReaderById(ctx, entryID)
-		if err != nil {
+		if err != nil || article == nil {
 			return nil, &consts.QueryRecordError
 		}
 		return article.TranslateEntryInfo(), nil
@@ -243,18 +204,18 @@ func GetEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, en
 		empyrean_lens.EntryTypeEnum_OUTLINE,
 		empyrean_lens.EntryTypeEnum_VIEWPOINT:
 		summary, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(entryType), entryID)
-		if err != nil {
+		if err != nil || summary == nil {
 			return nil, &consts.QueryRecordError
 		}
 		return summary.TranslateEntryInfo(), nil
 	case empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE,
 		empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI,
 		empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB:
-		video, err := plugin.NewResourceDao().FindResourceById(ctx, entryID)
-		if err != nil {
+		resource, err := plugin.NewResourceDao().FindResourceById(ctx, entryID)
+		if err != nil || resource == nil {
 			return nil, &consts.QueryRecordError
 		}
-		return video.TranslateEntryInfo(), nil
+		return resource.TranslateEntryInfo(), nil
 	}
 	return nil, nil
 }

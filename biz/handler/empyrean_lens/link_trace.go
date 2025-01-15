@@ -4,6 +4,8 @@ package empyrean_lens
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"empyrean_lens/biz/handler"
 	"empyrean_lens/biz/model/empyrean_lens"
@@ -40,7 +42,7 @@ func UserActions(ctx context.Context, c *app.RequestContext) {
 		})
 		return
 	}
-	data, bizCode := link_trace.GetUserAction(ctx, req)
+	data, bizCode := link_trace.GetUserAction(ctx, &req)
 	if bizCode != nil {
 		hlog.CtxErrorf(ctx, "[GetUserAction] error: %+v", bizCode)
 		c.JSON(consts.StatusOK, &empyrean_lens.UserActionResp{
@@ -54,6 +56,37 @@ func UserActions(ctx context.Context, c *app.RequestContext) {
 		Msg:  "success",
 		Data: data,
 	})
+}
+
+// DownloadUserActions .
+// @router /api/v1/link_trace/download_user_actions [GET]
+func DownloadUserActions(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.DownloadUserActionReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+	buffer, bizCode := link_trace.MakeUserActionExcel(ctx, req)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[GetUserAction] error: %+v", bizCode)
+		c.JSON(consts.StatusOK, &empyrean_lens.UserActionResp{
+			Code: int64(bizCode.Code),
+			Msg:  bizCode.Msg,
+		})
+		return
+	}
+	// 设置响应头
+	start := strings.Replace(strings.Replace(strings.Replace(req.StartTime, "-", "", -1), " ", "", -1), ":", "", -1)
+	end := strings.Replace(strings.Replace(strings.Replace(req.EndTime, "-", "", -1), " ", "", -1), ":", "", -1)
+	fileName := fmt.Sprintf("%s-%s", start, end) + ".xlsx"
+	c.Response.Header.Add("Content-Type", "text/html; charset=UTF-8")
+	c.Response.Header.Add("Content-Type", "application/octet-stream")
+	c.Response.Header.Add("Content-Disposition", "attachment; filename="+fileName)
+	c.Response.Header.Add("Access-Control-Expose-Headers", "Content-Disposition")
+	// 文件写入body
+	c.Response.BodyWriter().Write(buffer.Bytes())
 }
 
 // DocLinkTrace .
@@ -276,5 +309,30 @@ func TraceIdToEntryId(ctx context.Context, c *app.RequestContext) {
 		Code: 0,
 		Msg:  "success",
 		Data: data,
+	})
+}
+
+// UpdateEntryInfo .
+// @router /api/v1/link_trace/update [POST]
+func UpdateEntryInfo(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.UpdateEntryInfoReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+	bizCode := link_trace.UpdateEntryInfo(ctx, req)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[UpdateEntryInfo] error: %+v", bizCode)
+		c.JSON(consts.StatusOK, &empyrean_lens.SaveLinkTraceResp{
+			Code: int64(bizCode.Code),
+			Msg:  bizCode.Msg,
+		})
+		return
+	}
+	c.JSON(consts.StatusOK, &empyrean_lens.SaveLinkTraceResp{
+		Code: 0,
+		Msg:  "success",
 	})
 }

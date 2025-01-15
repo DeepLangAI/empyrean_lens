@@ -1,4 +1,4 @@
-package utils
+package gse
 
 import (
 	"regexp"
@@ -8,6 +8,9 @@ import (
 
 	"github.com/go-ego/gse"
 )
+
+const chStopPath = "../utils/gse/ch_stopwords.txt"
+const enStopPath = "../utils/gse/en_stopwords.txt"
 
 var (
 	myGse   *Gse
@@ -20,8 +23,10 @@ type Gse struct {
 
 func InitGse() *Gse {
 	onceGse.Do(func() {
-		segmenter, _ := gse.New("zh,testdata/test_en_dict3.txt", "alpha")
+		segmenter, _ := gse.New()
 		segmenter.LoadDict()
+		segmenter.LoadStop(chStopPath)
+		segmenter.LoadStop(enStopPath)
 		myGse = &Gse{
 			segmenter: segmenter,
 		}
@@ -30,7 +35,7 @@ func InitGse() *Gse {
 }
 
 func (g *Gse) CutTextV1(text string) []string {
-	return g.segmenter.Cut(text, true)
+	return g.segmenter.Trim(g.segmenter.Cut(text, true))
 }
 
 func (g *Gse) CutTextV2(text string) []string {

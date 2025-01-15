@@ -554,6 +554,8 @@ struct UserActionResp {
 struct UserActionRespData {
     1: bool has_next // 是否有下一页
     2: list<UserActionRespRow> rows // 表中每行数据
+    3: i32 total_user // 总用户数
+    4: i32 total_action // 总行为数
 }
 
 struct ResourceInfo{
@@ -610,6 +612,18 @@ struct UserActionRespRow {
     8: ActionStatusEnum status
     9: EntryTypeEnum entry_type
     10: string entry_id
+    11: i32 user_type
+}
+
+// 用户行为下载
+struct DownloadUserActionReq {
+    1: string query // 关键词、url、uid、entry-id、multiid等。如果为空则表示不限制
+    2: string start_time // consts.DateHourMinSecTemplate
+    3: string end_time // consts.DateHourMinSecTemplate
+    4: list<ActionStatusEnum> status // 如果为UNK则表示所有状态
+    5: bool only_external // 仅外部用户
+    6: list<WebSite> web_sites // 用户行为来源
+    7: list<ActionName> action_names // 用户行为类型
 }
 
 // 节点链路图
@@ -965,10 +979,26 @@ service Rentention{
    )
 }
 
+// 更新entry info
+struct UpdateEntryInfoReq {
+    1: i32 entry_type
+    2: string entry_id
+    3: string action_name
+    4: string web_site
+}
+
 service LinkTrace{
     // 查用户行为列表
     UserActionResp UserActions(1: UserActionReq req) (
         api.get="/api/v1/link_trace/user_actions"
+    )
+    // 更新entry info
+    SaveLinkTraceResp UpdateEntryInfo(1: UpdateEntryInfoReq req) (
+        api.post="/api/v1/link_trace/update"
+    )
+    // 下载用户行为列表
+    UserActionResp DownloadUserActions(1: DownloadUserActionReq req) (
+        api.get="/api/v1/link_trace/download_user_actions"
     )
     // 查单文档链路
     DocLinkTraceResp DocLinkTrace(1: DocLinkTraceReq req) (

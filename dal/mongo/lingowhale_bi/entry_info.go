@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
+	"empyrean_lens/utils/gse"
 
 	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -20,16 +22,24 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MultiArticles struct {
-	EntryId   string `json:"entry_id" bson:"entry_id"`
-	EntryType int    `json:"entry_type" bson:"entry_type"`
+type GroupResult struct {
+	UserID string `json:"_id" bson:"_id"`
+	Count  int32  `json:"count" bson:"count"`
+}
+
+type ArticleEntry struct {
+	EntryId   string           `json:"entry_id" bson:"entry_id"`
+	EntryType consts.EntryType `json:"entry_type" bson:"entry_type"`
+	Title     string           `json:"title" bson:"title"`
+	URL       string           `json:"url" bson:"url"`
 }
 
 type SourceEntryInfo struct {
-	EntryID       string          `json:"entry_id" bson:"entry_id"`
-	EntryType     int             `json:"entry_type" bson:"entry_type"`
-	MultiID       string          `json:"multi_id" bson:"multi_id"`
-	MultiArticles []MultiArticles `json:"multi_articles" bson:"multi_articles"`
+	EntryID       string         `json:"entry_id" bson:"entry_id"`
+	EntryType     int            `json:"entry_type" bson:"entry_type"`
+	MultiID       string         `json:"multi_id" bson:"multi_id"`
+	MultiArticles []ArticleEntry `json:"multi_articles" bson:"multi_articles"`
+	URL           string         `json:"url" bson:"url"`
 }
 
 type EntryInfo struct {
@@ -40,7 +50,7 @@ type EntryInfo struct {
 	SourceTable     string             `json:"source_table" bson:"source_table"`
 	DataType        int                `json:"data_type" bson:"data_type"`
 	MultiID         string             `json:"multi_id" bson:"multi_id"`
-	MultiArticles   []MultiArticles    `json:"multi_articles" bson:"multi_articles"`
+	MultiArticles   []ArticleEntry     `json:"multi_articles" bson:"multi_articles"`
 	SourceEntryInfo SourceEntryInfo    `json:"source_entry_info" bson:"source_entry_info"`
 	WebSite         string             `json:"web_site" bson:"web_site"`
 	ActionName      string             `json:"action_name" bson:"action_name"`
@@ -131,6 +141,49 @@ func (d *EntryInfoDao) DeleteContentByTimeRange(ctx context.Context, startAt, en
 	return nil
 }
 
+func (d *EntryInfoDao) UpdateWebSite(ctx context.Context, webSite string, channels []int32) error {
+	filter := bson.M{"$and": []bson.M{
+		{"$or": []bson.M{{"web_site": bson.M{"$exists": false}}, {"web_site": ""}}},
+	}}
+	update := bson.M{"$set": bson.M{"web_site": webSite}}
+	_, err := biCollection.Collection(TableNameEntryInfo()).UpdateMany(ctx, filter, update)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:DeleteContentByTimeRange, err:%+v", err)
+		return err
+	}
+	return nil
+}
+
+func (d *EntryInfoDao) UpdateActionName(ctx context.Context, actionName string, filter bson.M) error {
+	filter = bson.M{"$and": []bson.M{
+		filter,
+		{"$or": []bson.M{{"action_name": bson.M{"$exists": false}}, {"action_name": ""}}},
+	}}
+	update := bson.M{"$set": bson.M{"action_name": actionName}}
+	res, err := biCollection.Collection(TableNameEntryInfo()).UpdateMany(ctx, filter, update)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:DeleteContentByTimeRange, err:%+v", err)
+		return err
+	}
+	hlog.CtxInfof(ctx, "update count:%d", res.ModifiedCount)
+	return nil
+}
+
+func (d *EntryInfoDao) UpdateSubscriptionUserID(ctx context.Context) error {
+	filter := bson.M{"$and": []bson.M{
+		{"channel_type": 0},
+		{"$or": []bson.M{{"user_id": bson.M{"$exists": false}}, {"user_id": ""}}},
+	}}
+	update := bson.M{"$set": bson.M{"user_id": "resource_server"}}
+	res, err := biCollection.Collection(TableNameEntryInfo()).UpdateMany(ctx, filter, update)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:UpdateSubscriptionUserID, err:%+v", err)
+		return err
+	}
+	hlog.CtxInfof(ctx, "update count:%d", res.ModifiedCount)
+	return nil
+}
+
 func (d *EntryInfoDao) FindByEntryIDs(ctx context.Context, entryIDs []string) ([]*EntryInfo, error) {
 	var entryInfos []*EntryInfo
 	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"entry_id": bson.M{"$in": entryIDs}})
@@ -183,13 +236,10 @@ func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, webS
 	return entryInfos, nil
 }
 
-func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
-	var entryInfos []*EntryInfo
-	queryFilter := bson.M{"$or": []bson.M{{"title": bson.M{"$regex": query, "$options": "i"}}, {"user_id": query}, {"entry_url": query}, {"multi_articles.entry_id": query}, {"entry_id": query}, {"source_entry_info.entry_id": query}}}
-	filter := bson.M{"$and": []bson.M{
-		queryFilter,
-		{"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime}},
-	}}
+func (d *EntryInfoDao) CountByTimeRange(ctx context.Context, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time) (int64, int64, error) {
+	filter := bson.M{
+		"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime},
+	}
 	if len(status) > 0 {
 		filter["link_status"] = bson.M{"$in": status}
 	}
@@ -202,58 +252,210 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 	if onlyOuter {
 		filter["user_type"] = 1
 	}
-	options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
-	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter, options)
+	// 统计用户数、行为数
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
+		bson.D{{Key: "$match", Value: filter}},
+		bson.D{{Key: "$project", Value: bson.D{{Key: "user_id", Value: 1}}}},
+		bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: "$user_id"}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
+	})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, nil
+			return 0, 0, nil
 		}
 		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return nil, err
+		return 0, 0, err
 	}
 	defer cur.Close(ctx)
-	if err = cur.All(ctx, &entryInfos); err != nil {
-		hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
-		return nil, err
+	// 计算结果
+	results := []GroupResult{}
+	if err = cur.All(ctx, &results); err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+		return 0, 0, err
 	}
-	return entryInfos, nil
+	var countUser, countAction int32
+	for _, result := range results {
+		countUser += 1
+		countAction += result.Count
+	}
+	return int64(countUser), int64(countAction), nil
 }
 
-func (d *EntryInfoDao) FindByTextQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64) ([]*EntryInfo, error) {
-	var entryInfos []*EntryInfo
-	// 分词
-	tokens := utils.InitGse().CutTextV1(query)
-	filter := bson.M{"$and": []bson.M{
-		{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}},
-		{"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime}},
-	}}
+func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64, textCount, unTextCount int64) ([]*EntryInfo, error) {
+	tokens := gse.InitGse().CutTextV1(query)
+	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
+	unTextFilter := bson.M{
+		"$or": []bson.M{
+			{"title": bson.M{"$regex": query}},    // 标题
+			{"user_id": query},                    // user id
+			{"entry_id": query},                   // entry id
+			{"entry_url": query},                  // url
+			{"multi_articles.entry_id": query},    // 子文档
+			{"source_entry_info.entry_id": query}, // 来源文档
+		},
+		"content_index": "",
+	}
+	// 其它过滤条件
+	otherFilter := bson.M{
+		"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime},
+	}
 	if len(status) > 0 {
-		filter["link_status"] = bson.M{"$in": status}
+		otherFilter["link_status"] = bson.M{"$in": status}
 	}
 	if len(webSites) > 0 {
-		filter["web_site"] = bson.M{"$in": webSites}
+		otherFilter["web_site"] = bson.M{"$in": webSites}
 	}
 	if len(actionNames) > 0 {
-		filter["action_name"] = bson.M{"$in": actionNames}
+		otherFilter["action_name"] = bson.M{"$in": actionNames}
 	}
 	if onlyOuter {
-		filter["user_type"] = 1
+		otherFilter["user_type"] = 1
 	}
-	options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
-	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter, options)
+	// 先查询 text 索引
+	var textEntryInfos []*EntryInfo
+	if textCount > skip {
+		options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+		cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": []bson.M{textFilter, otherFilter}}, options)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return nil, nil
+			}
+			hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+			return nil, err
+		}
+		defer cur.Close(ctx)
+		if err = cur.All(ctx, &textEntryInfos); err != nil {
+			hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
+			return nil, err
+		}
+	}
+	// 再查询非 text 索引
+	var unTextEntryInfos []*EntryInfo
+	if len(textEntryInfos) < int(limit) {
+		newSkip := int64(0)
+		if textCount < skip {
+			newSkip = skip - textCount
+		}
+		options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(newSkip)
+		cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": []bson.M{unTextFilter, otherFilter}}, options)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return nil, nil
+			}
+			hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+			return nil, err
+		}
+		defer cur.Close(ctx)
+		if err = cur.All(ctx, &unTextEntryInfos); err != nil {
+			hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
+			return nil, err
+		}
+	}
+	// 组合排序
+	entryInfos := []*EntryInfo{}
+	entryIDMapping := make(map[string]struct{})
+	for _, entryInfo := range textEntryInfos {
+		entryInfos = append(entryInfos, entryInfo)
+		entryIDMapping[entryInfo.EntryID] = struct{}{}
+	}
+	for _, entryInfo := range unTextEntryInfos {
+		if _, ok := entryIDMapping[entryInfo.EntryID]; !ok {
+			entryInfos = append(entryInfos, entryInfo)
+		}
+	}
+	sort.Slice(entryInfos, func(i, j int) bool {
+		return entryInfos[i].EntryCreateTime.After(entryInfos[j].EntryCreateTime)
+	})
+	if len(entryInfos) < int(limit) {
+		return entryInfos, nil
+	}
+	return entryInfos[:limit], nil
+}
+
+func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time) (int64, int64, int64, int64, error) {
+	tokens := gse.InitGse().CutTextV1(query)
+	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
+	unTextFilter := bson.M{
+		"$or": []bson.M{
+			{"title": bson.M{"$regex": query}},    // 标题
+			{"user_id": query},                    // user id
+			{"entry_id": query},                   // entry id
+			{"entry_url": query},                  // url
+			{"multi_articles.entry_id": query},    // 子文档
+			{"source_entry_info.entry_id": query}, // 来源文档
+		},
+		"content_index": "",
+	}
+	// 其它过滤条件
+	otherFilter := bson.M{
+		"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime},
+	}
+	if len(status) > 0 {
+		otherFilter["link_status"] = bson.M{"$in": status}
+	}
+	if len(webSites) > 0 {
+		otherFilter["web_site"] = bson.M{"$in": webSites}
+	}
+	if len(actionNames) > 0 {
+		otherFilter["action_name"] = bson.M{"$in": actionNames}
+	}
+	if onlyOuter {
+		otherFilter["user_type"] = 1
+	}
+	// 统计用户数、行为数，text 索引
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
+		bson.D{{Key: "$match", Value: bson.M{"$and": []bson.M{textFilter, otherFilter}}}},
+		bson.D{{Key: "$project", Value: bson.D{{Key: "user_id", Value: 1}}}},
+		bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: "$user_id"}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
+	})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, nil
+			return 0, 0, 0, 0, nil
 		}
 		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return nil, err
+		return 0, 0, 0, 0, err
 	}
 	defer cur.Close(ctx)
-	if err = cur.All(ctx, &entryInfos); err != nil {
-		hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
-		return nil, err
+	textResults := []GroupResult{}
+	if err = cur.All(ctx, &textResults); err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+		return 0, 0, 0, 0, err
 	}
-	return entryInfos, nil
+	// 统计用户数、行为数，非 text 索引
+	cur, err = biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
+		bson.D{{Key: "$match", Value: bson.M{"$and": []bson.M{unTextFilter, otherFilter}}}},
+		bson.D{{Key: "$project", Value: bson.D{{Key: "user_id", Value: 1}}}},
+		bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: "$user_id"}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
+	})
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return 0, 0, 0, 0, nil
+		}
+		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+		return 0, 0, 0, 0, err
+	}
+	defer cur.Close(ctx)
+	unTextResults := []GroupResult{}
+	if err = cur.All(ctx, &unTextResults); err != nil {
+		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+		return 0, 0, 0, 0, err
+	}
+	// 整合
+	textCount, unTextCount := int64(0), int64(0)
+	userMapping := make(map[string]int32)
+	for _, result := range textResults {
+		userMapping[result.UserID] = int32(result.Count)
+		textCount += int64(result.Count)
+	}
+	for _, result := range unTextResults {
+		userMapping[result.UserID] += int32(result.Count)
+		unTextCount += int64(result.Count)
+	}
+	var countUser, countAction int32
+	for _, count := range userMapping {
+		countUser += 1
+		countAction += count
+	}
+	return int64(countUser), int64(countAction), textCount, unTextCount, nil
 }
 
 func (d *EntryInfoDao) FindByEntryIDsWithoutCopy(ctx context.Context, entryIDs []string) ([]*EntryInfo, error) {
@@ -297,21 +499,24 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 	for _, v := range d.MultiArticles {
 		resources = append(resources, &empyrean_lens.ResourceInfo{
 			EntryID:   v.EntryId,
-			EntryType: empyrean_lens.EntryTypeEnum(v.EntryType),
+			EntryType: empyrean_lens.EntryTypeEnum(utils.TranslateSubscribeEntryType(int(v.EntryType))),
+			URL:       v.URL,
 		})
 	}
 	if d.SourceEntryInfo.EntryID != "" {
 		if d.SourceEntryInfo.EntryType != int(empyrean_lens.EntryTypeEnum_MULTI) {
 			resources = append(resources, &empyrean_lens.ResourceInfo{
 				EntryID:   d.SourceEntryInfo.EntryID,
-				EntryType: empyrean_lens.EntryTypeEnum(d.SourceEntryInfo.EntryType),
+				EntryType: empyrean_lens.EntryTypeEnum(utils.TranslateSubscribeEntryType(d.SourceEntryInfo.EntryType)),
+				URL:       d.SourceEntryInfo.URL,
 			})
 		}
 	}
 	if len(resources) == 0 {
 		resources = append(resources, &empyrean_lens.ResourceInfo{
 			EntryID:   d.EntryID,
-			EntryType: empyrean_lens.EntryTypeEnum(d.EntryType),
+			EntryType: empyrean_lens.EntryTypeEnum(utils.TranslateSubscribeEntryType(d.EntryType)),
+			URL:       d.EntryURL,
 		})
 	}
 	// 状态转换，未执行认为是失败
@@ -330,6 +535,7 @@ func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 	}
 	return &empyrean_lens.UserActionRespRow{
 		UserID:     d.UserID,
+		UserType:   int32(d.UserType),
 		EntryID:    d.EntryID,
 		EntryType:  empyrean_lens.EntryTypeEnum(d.EntryType),
 		Channel:    utils.ChannelIntToString(d.ChannelType),

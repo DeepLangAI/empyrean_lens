@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"empyrean_lens/utils"
 	"sync"
 	"time"
 
@@ -78,7 +79,7 @@ func (d *ResourceSummaryDao) FindByEntryTypeAndEntryIDAndSummaryType(ctx context
 	var res *ResourceSummary
 	filter := bson.M{"$and": []bson.M{
 		//{"is_delete": false},
-		{"entry_type": TranslateSubscribeEntryType(entryType)},
+		{"entry_type": utils.TranslateSubscribeEntryType(entryType)},
 		{"entry_id": entryID},
 		{"summary_type": summaryType},
 	}}
@@ -92,6 +93,6 @@ func (d *ResourceSummaryDao) FindByEntryTypeAndEntryIDAndSummaryType(ctx context
 	}
 	res.CreateTime = res.CreateTime.Local()
 	res.UpdateTime = res.UpdateTime.Local()
-	res.EntryType = TranslateEntryType(res.EntryType)
+	res.EntryType = utils.TranslateEntryType(res.EntryType)
 	return res, nil
 }

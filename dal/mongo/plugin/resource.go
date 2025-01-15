@@ -35,7 +35,7 @@ type Resource struct {
 	UpdateTime  time.Time          `bson:"update_time" json:"update_time"`
 
 	// 不从数据库查询的字段
-	ArticleList []ArticleEntry `bson:"article_list" json:"article_list"`
+	ArticleList []bi.ArticleEntry `bson:"article_list" json:"article_list"`
 }
 
 const TableNameResource = "resource"
@@ -78,7 +78,7 @@ func (d *ResourceDao) FindResourceById(ctx context.Context, id string) (*Resourc
 	}
 	res[0].CreateTime = res[0].CreateTime.Local()
 	res[0].UpdateTime = res[0].UpdateTime.Local()
-	res[0].EntryType = TranslateEntryType(res[0].EntryType)
+	res[0].EntryType = utils.TranslateEntryType(res[0].EntryType)
 	return res[0], nil
 }
 
@@ -112,7 +112,7 @@ func (d *ResourceDao) FindResourceByIds(ctx context.Context, ids []string) (map[
 	for _, v := range res {
 		v.CreateTime = v.CreateTime.Local()
 		v.UpdateTime = v.UpdateTime.Local()
-		v.EntryType = TranslateEntryType(v.EntryType)
+		v.EntryType = utils.TranslateEntryType(v.EntryType)
 		sourceMapping[v.ID.Hex()] = v
 	}
 	return sourceMapping, nil
@@ -141,7 +141,7 @@ func (d *ResourceDao) FindResourceByTimeRange(ctx context.Context, startTime, en
 	for i := 0; i < len(res); i++ {
 		res[i].CreateTime = res[i].CreateTime.Local()
 		res[i].UpdateTime = res[i].UpdateTime.Local()
-		res[i].EntryType = TranslateEntryType(res[i].EntryType)
+		res[i].EntryType = utils.TranslateEntryType(res[i].EntryType)
 	}
 	return res, nil
 }
@@ -152,7 +152,7 @@ func (d *ResourceDao) FindResourceByTimeRangeForSave(ctx context.Context, entryT
 	filter := bson.M{"$and": []bson.M{
 		//{"is_delete": false},
 		{"create_time": bson.M{"$gte": startTime, "$lt": endTime}},
-		{"entry_type": TranslateSubscribeEntryType(entryType)},
+		{"entry_type": utils.TranslateSubscribeEntryType(entryType)},
 		{"$or": []bson.M{
 			{"status": consts.SubscribeSuccessStatus},
 			{"status": bson.M{"$lt": 0}},
@@ -173,18 +173,15 @@ func (d *ResourceDao) FindResourceByTimeRangeForSave(ctx context.Context, entryT
 	for i := 0; i < len(res); i++ {
 		res[i].CreateTime = res[i].CreateTime.Local()
 		res[i].UpdateTime = res[i].UpdateTime.Local()
-		res[i].EntryType = TranslateEntryType(res[i].EntryType)
+		res[i].EntryType = utils.TranslateEntryType(res[i].EntryType)
 	}
 	return res, nil
 }
 
 func (d *Resource) TranslateEntryInfo() *bi.EntryInfo {
-	multiArticles := []bi.MultiArticles{}
-	for _, article := range d.ArticleList {
-		multiArticles = append(multiArticles, bi.MultiArticles{
-			EntryId:   article.EntryId,
-			EntryType: int(article.EntryType),
-		})
+	entryURL := d.FileOssUrl
+	if entryURL == "" {
+		entryURL = d.OrigUrl
 	}
 	return &bi.EntryInfo{
 		ID:              primitive.NewObjectID(),
@@ -193,10 +190,10 @@ func (d *Resource) TranslateEntryInfo() *bi.EntryInfo {
 		EntrySource:     consts.EntryInfoEntrySourceSubscribe,
 		SourceTable:     TableNameResource,
 		DataType:        consts.EntryInfoDataTypeSubscribe,
-		MultiArticles:   multiArticles,
+		MultiArticles:   d.ArticleList,
 		Title:           d.Title,
 		Content:         d.Content,
-		EntryURL:        d.FileOssUrl,
+		EntryURL:        entryURL,
 		Status:          int(utils.GetActionStatus(empyrean_lens.EntryTypeEnum(d.EntryType), d.Status, 0, 0)),
 		WebSite:         utils.ChannelIntToString(0),
 		ActionName:      utils.GetActionName(d.EntryType, "", "", "", 0),
@@ -204,30 +201,4 @@ func (d *Resource) TranslateEntryInfo() *bi.EntryInfo {
 		EntryUpdateTime: d.UpdateTime,
 		CreateTime:      time.Now(),
 	}
-}
-
-// 转换 基础类型 到 订阅类型
-func TranslateEntryType(entryType int) int {
-	switch entryType {
-	case int(empyrean_lens.EntryTypeEnum_WEB):
-		return int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB)
-	case int(empyrean_lens.EntryTypeEnum_FILE):
-		return int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE)
-	case int(empyrean_lens.EntryTypeEnum_MULTI):
-		return int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI)
-	}
-	return entryType
-}
-
-// 转换 订阅类型 到 基础类型
-func TranslateSubscribeEntryType(entryType int) int {
-	switch entryType {
-	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_WEB):
-		return int(empyrean_lens.EntryTypeEnum_WEB)
-	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE):
-		return int(empyrean_lens.EntryTypeEnum_FILE)
-	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI):
-		return int(empyrean_lens.EntryTypeEnum_MULTI)
-	}
-	return entryType
 }

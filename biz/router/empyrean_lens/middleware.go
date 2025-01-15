@@ -352,3 +352,13 @@ func _updateuseractionMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _downloaduseractionsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _updateentryinfoMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

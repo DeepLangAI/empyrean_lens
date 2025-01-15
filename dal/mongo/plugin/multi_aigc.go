@@ -27,11 +27,11 @@ type MultiAigc struct {
 	UpdateTime time.Time                `bson:"update_time" json:"update_time"`
 
 	// 不是从数据库获取的
-	ArticleList        []ArticleEntry `json:"article_list" bson:"article_list"`
-	UserID             string         `json:"user_id" bson:"user_id"`
-	Title              string         `json:"title" bson:"title"`
-	ChannelType        int            `json:"channel_type" bson:"channel_type"`
-	CopyFromResourceID string         `json:"copy_from_resource_id" bson:"copy_from_resource_id"`
+	ArticleList        []bi.ArticleEntry `json:"article_list" bson:"article_list"`
+	UserID             string            `json:"user_id" bson:"user_id"`
+	Title              string            `json:"title" bson:"title"`
+	ChannelType        int               `json:"channel_type" bson:"channel_type"`
+	CopyFromResourceID string            `json:"copy_from_resource_id" bson:"copy_from_resource_id"`
 }
 
 const TableNameMultiAigc = "multi_aigc"
@@ -138,11 +138,12 @@ func (d *MultiAigcDao) QueryFirstAigc(ctx context.Context, multiID, theme string
 }
 
 func (d *MultiAigc) TranslateEntryInfo() *bi.EntryInfo {
-	multiArticles := []bi.MultiArticles{}
+	multiArticles := []bi.ArticleEntry{}
 	for _, article := range d.ArticleList {
-		multiArticles = append(multiArticles, bi.MultiArticles{
+		multiArticles = append(multiArticles, bi.ArticleEntry{
 			EntryId:   article.EntryId,
-			EntryType: int(article.EntryType),
+			EntryType: article.EntryType,
+			Title:     article.Title,
 		})
 	}
 	return &bi.EntryInfo{

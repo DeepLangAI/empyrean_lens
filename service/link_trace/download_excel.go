@@ -134,11 +134,13 @@ func GetExcelRows(ctx context.Context, req *empyrean_lens.UserActionReq, begin, 
 		}
 		wg.Wait()
 		// mongo中结果
-		mongoExcelRows, bizCode := getGetExcelFromMongo(ctx, req, endDate, end)
-		if bizCode != nil {
-			return nil, bizCode
+		if !end.Equal(endDate) {
+			mongoExcelRows, bizCode := getGetExcelFromExcel(ctx, req, endDate, endDate, end)
+			if bizCode != nil {
+				return nil, bizCode
+			}
+			excelRows = append(excelRows, mongoExcelRows...)
 		}
-		excelRows = append(excelRows, mongoExcelRows...)
 	}
 	// 如果为空，并且query不为空，查询traceID
 	if len(excelRows) == 0 && req.Query != "" {

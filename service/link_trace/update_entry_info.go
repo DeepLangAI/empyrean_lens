@@ -7,7 +7,7 @@ import (
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	bi "empyrean_lens/dal/mongo/lingowhale_bi"
-	"empyrean_lens/utils"
+	"empyrean_lens/utils/gse"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
@@ -251,7 +251,7 @@ func UpdateEntryUrl(ctx context.Context, entryID string, entryType int) *consts.
 		for _, article := range entryInfo.MultiArticles {
 			contentList = append(contentList, article.EntryId)
 		}
-		tokens := utils.InitGse().CutTextV1(strings.Join(contentList, "\n"))
+		tokens := gse.InitGse().CutTextV1(strings.Join(contentList, "\n"))
 		entryInfo.ContentIndex = strings.Join(tokens, " ")
 	}
 	// 更新url

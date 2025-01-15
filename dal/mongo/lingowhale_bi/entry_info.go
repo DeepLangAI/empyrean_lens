@@ -12,6 +12,7 @@ import (
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
+	"empyrean_lens/utils/gse"
 
 	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -280,7 +281,7 @@ func (d *EntryInfoDao) CountByTimeRange(ctx context.Context, status []int32, web
 }
 
 func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64, textCount, unTextCount int64) ([]*EntryInfo, error) {
-	tokens := utils.InitGse().CutTextV1(query)
+	tokens := gse.InitGse().CutTextV1(query)
 	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
 	unTextFilter := bson.M{
 		"$or": []bson.M{
@@ -371,7 +372,7 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 }
 
 func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time) (int64, int64, int64, int64, error) {
-	tokens := utils.InitGse().CutTextV1(query)
+	tokens := gse.InitGse().CutTextV1(query)
 	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
 	unTextFilter := bson.M{
 		"$or": []bson.M{

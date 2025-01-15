@@ -15,6 +15,7 @@ import (
 	"empyrean_lens/dal/redis"
 	"empyrean_lens/tools"
 	"empyrean_lens/utils"
+	"empyrean_lens/utils/gse"
 
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/utillib"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -498,7 +499,7 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 	for _, article := range entryInfo.MultiArticles {
 		contentList = append(contentList, article.EntryId)
 	}
-	tokens := utils.InitGse().CutTextV1(strings.Join(contentList, "\n"))
+	tokens := gse.InitGse().CutTextV1(strings.Join(contentList, "\n"))
 	entryInfo.ContentIndex = strings.Join(tokens, " ")
 	return entryInfo
 }

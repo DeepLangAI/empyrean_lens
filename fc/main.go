@@ -36,6 +36,8 @@ func HandleMnsTimerRequest(ctx context.Context, event events.TimerEvent) error {
 	switch *event.Payload {
 	case conf.GetConfig().MNS.BatchSaveLinkTrace.Name:
 		return tasks.HandleBatchSaveLinkTraceEvent(ctx)
+	case conf.GetConfig().MNS.BatchUpdateLinkTrace.Name:
+		return tasks.HandleBatchUpdateLinkTraceEvent(ctx)
 	}
 	return nil
 }

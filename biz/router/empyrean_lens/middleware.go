@@ -362,3 +362,8 @@ func _updateentryinfoMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _batchupdatefailrecordMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

@@ -37,6 +37,7 @@ type Summary struct {
 	SourceEntryType int    `json:"source_entry_type" bson:"source_entry_type"`
 	SourceEntryID   string `json:"source_entry_id" bson:"source_entry_id"`
 	SourceTitle     string `json:"source_title" bson:"source_title"`
+	SourceURL       string `json:"source_url" bson:"source_url"`
 }
 
 const TableNameSummary = "summary"

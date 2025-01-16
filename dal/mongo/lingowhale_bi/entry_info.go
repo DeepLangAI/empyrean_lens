@@ -494,6 +494,29 @@ func (d *EntryInfoDao) FindByEntryIDAndEntryType(ctx context.Context, entryID st
 	return entryInfo, nil
 }
 
+func (d *EntryInfoDao) FindFailedEntryTypeAndEntryID(ctx context.Context, start, end *time.Time) ([]*EntryInfo, error) {
+	var entryInfos []*EntryInfo
+	filter := bson.M{"$and": []bson.M{
+		{"$or": []bson.M{{"link_status": 3}, {"status": 3}}},
+		{"entry_create_time": bson.M{"$gte": start, "$lt": end}},
+	}}
+	options := options.Find().SetProjection(bson.M{"entry_id": 1, "entry_type": 1})
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter, options)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		hlog.CtxErrorf(ctx, "db error, method:FindFailedEntryTypeAndEntryID, err:%+v", err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	if err = cur.All(ctx, &entryInfos); err != nil {
+		hlog.CtxErrorf(ctx, "[FindFailedEntryTypeAndEntryID] mongo all error:%+v", err)
+		return nil, err
+	}
+	return entryInfos, nil
+}
+
 func (d *EntryInfo) TranslateUserActionRow() *empyrean_lens.UserActionRespRow {
 	resources := []*empyrean_lens.ResourceInfo{}
 	for _, v := range d.MultiArticles {

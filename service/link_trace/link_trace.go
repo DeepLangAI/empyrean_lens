@@ -228,11 +228,13 @@ func SummaryTrace(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, en
 		summaryInfo.SourceEntryID = articleInfo.(*plugin.File).ID.Hex()
 		summaryInfo.SourceEntryType = consts.EntryTypePDF
 		summaryInfo.SourceTitle = articleInfo.(*plugin.File).Name
+		summaryInfo.SourceURL = articleInfo.(*plugin.File).FileURL
 	} else {
 		actionName = utils.GetActionName(int(entryType), articleInfo.(*plugin.WebReader).MultiId, articleInfo.(*plugin.WebReader).CopyFromResourceID, summaryInfo.SummaryLangType, summaryInfo.OutlineType)
 		summaryInfo.SourceEntryID = articleInfo.(*plugin.WebReader).ID.Hex()
 		summaryInfo.SourceEntryType = consts.EntryTypeWEB
 		summaryInfo.SourceTitle = articleInfo.(*plugin.WebReader).Title
+		summaryInfo.SourceURL = articleInfo.(*plugin.WebReader).URL
 	}
 	return summaryInfo, &empyrean_lens.DocLinkTraceRespData{
 		LinkGraph:  articleLinkTraceGroup.LinkGraph,
@@ -1248,7 +1250,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 		return processLogsToNode(processType, processLogs, entryInfo, nil), nil
 	case empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:
 		// 查数据库，没有记录，说明未执行/长度不够
-		summaryID, pairID, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
+		summaryID, pairID, result, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[FindSummaryID] find summary fail, err: %v", bizCode)
 			// return nil, &consts.QueryRecordError
@@ -1265,7 +1267,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			query = summaryID
 		}
 		start, end := createAt.Add(-24*time.Hour), createAt.Add(24*time.Hour)
-		traceIDLogs, err := aliyun.TraceIDQuery(ctx, pairID, start, end)
+		traceIDLogs, err := aliyun.TraceIDQuery(ctx, query, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[TraceIDQuery] get api logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
@@ -1296,10 +1298,14 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				break
 			}
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, extra), nil
+		node := processLogsToNode(processType, processLogs, entryInfo, extra)
+		if result {
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:
 		// 查数据库，没有记录，说明未执行/长度不够
-		summaryID, pairID, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
+		summaryID, pairID, result, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[FindSummaryID] find summary fail, err: %v", bizCode)
 			// return nil, &consts.QueryRecordError
@@ -1360,12 +1366,16 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			}
 			return node, nil
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, extra), nil
+		node := processLogsToNode(processType, processLogs, entryInfo, extra)
+		if result {
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_OUTLINE_FINISH,
 		empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH,
 		empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH:
 		// 查数据库，没有记录，说明未执行/长度不够
-		summaryID, pairID, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
+		summaryID, pairID, result, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[FindSummaryID] find summary fail, err: %v", bizCode)
 			// return nil, &consts.QueryRecordError
@@ -1445,7 +1455,11 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				break
 			}
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, extra), nil
+		node := processLogsToNode(processType, processLogs, entryInfo, extra)
+		if result {
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_ANALYSIS_FINISH:
 		processLogs, err := aliyun.MultiItemAnalysisQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
@@ -1825,7 +1839,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 	return makeEmptyNode(processType, entryInfo), nil
 }
 
-func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType empyrean_lens.LinkNodeTypeEnum) (string, string, *time.Time, *consts.BizCode) {
+func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType empyrean_lens.LinkNodeTypeEnum) (string, string, bool, *time.Time, *consts.BizCode) {
 	if utils.IsSubscribe(articleInfo.EntryType) {
 		// 订阅的summary记录
 		summaryType := 0
@@ -1842,12 +1856,12 @@ func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType e
 		summaryInfo, err := plugin.NewResourceSummaryDao().FindByEntryTypeAndEntryIDAndSummaryType(ctx, articleInfo.EntryType, articleInfo.EntryID, summaryType)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindByEntryTypeAndEntryIDAndSummaryType] get summary info failed, err: %v", err)
-			return "", "", nil, &consts.QueryRecordError
+			return "", "", false, nil, &consts.QueryRecordError
 		}
 		if summaryInfo == nil {
-			return "", "", nil, nil
+			return "", "", false, nil, nil
 		}
-		return summaryInfo.ID.Hex(), "", &summaryInfo.CreateTime, nil
+		return summaryInfo.ID.Hex(), "", len(summaryInfo.SummaryContent) > 0, &summaryInfo.CreateTime, nil
 	} else {
 		// 非订阅的summary记录
 		outlineType, summaryType := 0, 0
@@ -1866,45 +1880,45 @@ func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType e
 		summaryInfo, err := plugin.NewSummaryDao().FindByUserIDAndUrlAndType(ctx, articleInfo.UserID, articleInfo.EntryURL, summaryType, outlineType)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindByUserIDAndUrlAndType] get summary info failed, err: %v", err)
-			return "", "", nil, &consts.QueryRecordError
+			return "", "", false, nil, &consts.QueryRecordError
 		}
 		if articleInfo.ParentEntryID != "" {
-			summaryID, pairID, createAt, err := FindSummaryIDByCopyID(ctx, summaryType, outlineType, summaryInfo.PairID, articleInfo.ParentEntryType, articleInfo.ParentEntryID)
+			summaryID, pairID, result, createAt, err := FindSummaryIDByCopyID(ctx, summaryType, outlineType, summaryInfo.PairID, articleInfo.ParentEntryType, articleInfo.ParentEntryID)
 			if err != nil {
-				return summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, nil
+				return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, &summaryInfo.CreateTime, nil
 			}
 			if summaryID != "" && pairID != "" {
-				return summaryID, pairID, createAt, err
+				return summaryID, pairID, result, createAt, err
 			}
-			return summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, nil
+			return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, &summaryInfo.CreateTime, nil
 		}
 		if summaryInfo == nil {
-			return "", "", nil, nil
+			return "", "", false, nil, nil
 		}
-		return summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, nil
+		return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, &summaryInfo.CreateTime, nil
 	}
 }
 
-func FindSummaryIDByCopyID(ctx context.Context, summartType, outlineType int, pairID string, parentEntryType int, parentEntryID string) (string, string, *time.Time, *consts.BizCode) {
+func FindSummaryIDByCopyID(ctx context.Context, summartType, outlineType int, pairID string, parentEntryType int, parentEntryID string) (string, string, bool, *time.Time, *consts.BizCode) {
 	// parent article info
 	parentArticleInfo, err := GetEntryInfo(ctx, empyrean_lens.EntryTypeEnum(parentEntryType), parentEntryID)
 	if err != nil {
-		return "", "", nil, &consts.QueryRecordError
+		return "", "", false, nil, &consts.QueryRecordError
 	}
 	if parentArticleInfo != nil {
 		summaryInfo, err := plugin.NewSummaryDao().FindByUserIDAndTypeAndPairID(ctx, parentArticleInfo.UserID, summartType, outlineType, pairID)
 		if err == nil {
 			hlog.CtxErrorf(ctx, "[FindByUserIDAndTypeAndPairID] get summary info failed, err: %v", err)
-			return summaryInfo.ID.Hex(), summaryInfo.PairID, &summaryInfo.CreateTime, nil
+			return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, &summaryInfo.CreateTime, nil
 		}
 		if parentArticleInfo.ParentEntryID != "" {
-			summaryID, pairID, createAt, err := FindSummaryIDByCopyID(ctx, summartType, outlineType, pairID, parentArticleInfo.ParentEntryType, parentArticleInfo.ParentEntryID)
+			summaryID, pairID, result, createAt, err := FindSummaryIDByCopyID(ctx, summartType, outlineType, pairID, parentArticleInfo.ParentEntryType, parentArticleInfo.ParentEntryID)
 			if err == nil {
-				return summaryID, pairID, createAt, err
+				return summaryID, pairID, result, createAt, err
 			}
 		}
 	}
-	return "", "", nil, nil
+	return "", "", false, nil, nil
 }
 
 func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliyun.FileProcessLog, entryInfo *bi.EntryInfo, extra map[string]string) *empyrean_lens.GraphNode {

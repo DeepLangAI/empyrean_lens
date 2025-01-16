@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"empyrean_lens/biz/model/empyrean_lens"
@@ -145,38 +146,29 @@ func getUserActionFromTraceID(ctx context.Context, req *empyrean_lens.UserAction
 }
 
 func GetResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInfo) (map[string]*empyrean_lens.ResourceInfo, *consts.BizCode) {
-	entryIDs := []string{}
+	mapping := sync.Map{}
+	// 并发查数据库
+	wg := sync.WaitGroup{}
+	wg.Add(len(resources))
 	for _, resource := range resources {
-		entryIDs = append(entryIDs, resource.EntryID)
-	}
-	// 查找记录
-	entryInfos, err := bi.NewEntryInfoDao().FindByEntryIDs(ctx, entryIDs)
-	if err != nil {
-		return nil, &consts.QueryRecordError
-	}
-	// 订阅记录
-	subscribeInfos, err := plugin.NewResourceDao().FindResourceByIds(ctx, entryIDs)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "[FindResourceByIds] get entry from mongo failed, err: %v", err)
-		return nil, &consts.QueryRecordError
-	}
-	resourceMapping := map[string]*empyrean_lens.ResourceInfo{}
-	for _, entryInfo := range entryInfos {
-		key := fmt.Sprintf("%d_%s", entryInfo.EntryType, entryInfo.EntryID)
-		resourceMapping[key] = &empyrean_lens.ResourceInfo{
-			EntryType: empyrean_lens.EntryTypeEnum(entryInfo.EntryType),
-			EntryID:   entryInfo.EntryID,
-			Title:     entryInfo.Title,
-			URL:       entryInfo.EntryURL,
-		}
-		if _, ok := subscribeInfos[entryInfo.EntryID]; ok {
-			if resourceMapping[key].EntryType == empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE {
-				resourceMapping[key].URL = subscribeInfos[entryInfo.EntryID].FileOssUrl
-			} else {
-				resourceMapping[key].URL = subscribeInfos[entryInfo.EntryID].OrigUrl
+		entryType, entryID := resource.EntryType, resource.EntryID
+		go func() {
+			defer wg.Done()
+			// 查询数据库
+			entryInfo, bizCode := GetEntryInfo(ctx, entryType, entryID)
+			if bizCode != nil {
+				return
 			}
-		}
+			mapping.Store(entryID, entryInfo)
+		}()
 	}
+	wg.Wait()
+	// 转换
+	resourceMapping := map[string]*empyrean_lens.ResourceInfo{}
+	mapping.Range(func(key, value interface{}) bool {
+		resourceMapping[key.(string)] = value.(*empyrean_lens.ResourceInfo)
+		return true
+	})
 	return resourceMapping, nil
 }
 

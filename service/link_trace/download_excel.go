@@ -53,6 +53,11 @@ func TranslateRespRow(row *empyrean_lens.UserActionRespRow) ExcelRow {
 	}
 }
 
+func MakeExcelPath(timeAt time.Time) string {
+	startDay := utils.StartDay(timeAt)
+	return fmt.Sprintf("../excel/%s.xlsx", startDay.Format("20060102"))
+}
+
 func MakeUserActionExcel(ctx context.Context, req empyrean_lens.DownloadUserActionReq) (*bytes.Buffer, *consts.BizCode) {
 	// 确定时间范围
 	var err error
@@ -201,8 +206,7 @@ func getGetExcelFromMongo(ctx context.Context, req *empyrean_lens.UserActionReq,
 // 从excel获取数据
 func getGetExcelFromExcel(ctx context.Context, req *empyrean_lens.UserActionReq, date, begin, end time.Time) ([]ExcelRow, *consts.BizCode) {
 	// 获取所有数据
-	timeAt := date.Format("20060102")
-	rows, err := ReadExcel(ctx, fmt.Sprintf("%s.xlsx", timeAt))
+	rows, err := ReadExcel(ctx, MakeExcelPath(date))
 	if err != nil || len(rows) == 0 {
 		// 从mongo获取当天的数据，记录到本地
 		go func() {
@@ -251,8 +255,7 @@ func getGetExcelFromExcel(ctx context.Context, req *empyrean_lens.UserActionReq,
 
 // 记录某天的数据到excel
 func RecordExcel(ctx context.Context, startTime time.Time) *consts.BizCode {
-	start := utils.StartDay(startTime)
-	filePath := fmt.Sprintf("../excel/%s.xlsx", start.Format("20060102"))
+	filePath := MakeExcelPath(startTime)
 	// 从mongo获取记录
 	buffer, err := bi.NewExcelDao().GridfsDownload(ctx, filePath)
 	if err != nil {
@@ -268,6 +271,7 @@ func RecordExcel(ctx context.Context, startTime time.Time) *consts.BizCode {
 		return nil
 	}
 	// 读取记录
+	start := utils.StartDay(startTime)
 	getReq := &empyrean_lens.UserActionReq{}
 	excelRows, bizCode := getGetExcelFromMongo(ctx, getReq, start, start.Add(time.Hour*24))
 	if bizCode != nil {
@@ -336,8 +340,7 @@ func MakeExccel(ctx context.Context, excelRows []ExcelRow, path string) (*bytes.
 	return buffer, nil
 }
 
-func ReadExcel(ctx context.Context, excelName string) ([]ExcelRow, error) {
-	path := fmt.Sprintf("../excel/%s", excelName)
+func ReadExcel(ctx context.Context, path string) ([]ExcelRow, error) {
 	f, err := excelize.OpenFile(path)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "read excel error, err:%v", err)

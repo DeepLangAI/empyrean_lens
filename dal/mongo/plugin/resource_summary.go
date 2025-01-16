@@ -22,12 +22,13 @@ var (
 )
 
 type ResourceSummary struct {
-	ID          primitive.ObjectID `bson:"_id" json:"_id"`
-	EntryType   int                `bson:"entry_type" json:"entry_type"`
-	EntryID     string             `bson:"entry_id" json:"entry_id"`
-	SummaryType SummaryType        `bson:"summary_type" json:"summary_type"`
-	CreateTime  time.Time          `bson:"create_time" json:"create_time"`
-	UpdateTime  time.Time          `bson:"update_time" json:"update_time"`
+	ID             primitive.ObjectID `bson:"_id" json:"_id"`
+	EntryType      int                `bson:"entry_type" json:"entry_type"`
+	EntryID        string             `bson:"entry_id" json:"entry_id"`
+	SummaryType    SummaryType        `bson:"summary_type" json:"summary_type"`
+	SummaryContent []any              `bson:"summary_content" json:"summary_content"`
+	CreateTime     time.Time          `bson:"create_time" json:"create_time"`
+	UpdateTime     time.Time          `bson:"update_time" json:"update_time"`
 }
 
 const TableNameResourceSummary = "resource_summary"

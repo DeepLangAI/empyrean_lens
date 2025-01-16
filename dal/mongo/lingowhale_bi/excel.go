@@ -60,3 +60,15 @@ func (ed *ExcelDao) GridfsDownload(ctx context.Context, fileName string) (fileCo
 	}
 	return fileBuffer.Bytes(), nil
 }
+
+// 删除文件
+func (ed *ExcelDao) GridfsDelete(ctx context.Context, fileName string) (err error) {
+	// md5 获取文件ID
+	fileID := fmt.Sprintf("%x", md5.Sum([]byte(fileName)))
+	bucket := ed.getGridfsBucket(TableNameExcel)
+	if err = bucket.DeleteContext(ctx, fileID); err != nil {
+		hlog.CtxErrorf(ctx, "GridfsDelete error: %v", err)
+		return err
+	}
+	return nil
+}

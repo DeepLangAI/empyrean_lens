@@ -166,7 +166,12 @@ func GetResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInf
 	// 转换
 	resourceMapping := map[string]*empyrean_lens.ResourceInfo{}
 	mapping.Range(func(key, value interface{}) bool {
-		resourceMapping[key.(string)] = value.(*empyrean_lens.ResourceInfo)
+		entryInfo := value.(*bi.EntryInfo)
+		resourceMapping[key.(string)] = &empyrean_lens.ResourceInfo{
+			EntryID:   entryInfo.EntryID,
+			EntryType: empyrean_lens.EntryTypeEnum(entryInfo.EntryType),
+			URL:       entryInfo.EntryURL,
+		}
 		return true
 	})
 	return resourceMapping, nil

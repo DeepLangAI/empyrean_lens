@@ -1169,10 +1169,24 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					hlog.CtxErrorf(ctx, "[SingleTraceIDErrorQuery] get api logs failed, err: %v", err)
 					return nil, &consts.QueryRecordError
 				}
-				return processLogsToNode(processType, append(apiLogsInput, errorLogs...), entryInfo, nil), nil
+				node := processLogsToNode(processType, append(apiLogsInput, errorLogs...), entryInfo, nil)
+				if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_FILE) && entryInfo.Status == consts.PDFSuccessStatus {
+					node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+				}
+				if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_WEB) && entryInfo.Status == consts.URLSuccessStatus {
+					node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+				}
+				return node, nil
 			}
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, nil), nil
+		node := processLogsToNode(processType, processLogs, entryInfo, nil)
+		if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_FILE) && entryInfo.Status == consts.PDFSuccessStatus {
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_WEB) && entryInfo.Status == consts.URLSuccessStatus {
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_SUQIN_PARSE_FINISH:
 		// 查询copy日志
 		processLogs, err := aliyun.PDFParserCopyQuery(ctx, entryInfo.EntryID, start, end)
@@ -1247,7 +1261,14 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			hlog.CtxErrorf(ctx, "[EduParseQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, nil), nil
+		node := processLogsToNode(processType, processLogs, entryInfo, nil)
+		if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_FILE) && entryInfo.Status == consts.PDFSuccessStatus {
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_WEB) && entryInfo.Status == consts.URLSuccessStatus {
+			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+		}
+		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:
 		// 查数据库，没有记录，说明未执行/长度不够
 		summaryID, pairID, result, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)

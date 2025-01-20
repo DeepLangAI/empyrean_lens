@@ -167,7 +167,8 @@ func GetResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInf
 	resourceMapping := map[string]*empyrean_lens.ResourceInfo{}
 	mapping.Range(func(key, value interface{}) bool {
 		entryInfo := value.(*bi.EntryInfo)
-		resourceMapping[key.(string)] = &empyrean_lens.ResourceInfo{
+		mapKey := fmt.Sprintf("%d_%s", entryInfo.EntryType, entryInfo.EntryID)
+		resourceMapping[mapKey] = &empyrean_lens.ResourceInfo{
 			EntryID:   entryInfo.EntryID,
 			EntryType: empyrean_lens.EntryTypeEnum(entryInfo.EntryType),
 			URL:       entryInfo.EntryURL,
@@ -573,7 +574,7 @@ func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserA
 		},
 		CreateTime: file.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus(consts.PDF, file.Status, 0, 0, 0),
+		Status:     ActionStatus(consts.PDF, file.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_FILE,
 		EntryID:    string(file.ID.Hex()),
 	}
@@ -595,7 +596,7 @@ func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empy
 		},
 		CreateTime: webReader.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus(consts.URL, webReader.Status, 0, 0, 0),
+		Status:     ActionStatus(consts.URL, webReader.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_WEB,
 		EntryID:    string(webReader.ID.Hex()),
 	}
@@ -632,13 +633,13 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel, fileMappi
 		Resources:  resources,
 		CreateTime: multiModel.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus(consts.MULTI, 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
+		Status:     ActionStatus(consts.MULTI, 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
 		EntryType:  empyrean_lens.EntryTypeEnum_MULTI,
 		EntryID:    string(multiModel.ID.Hex()),
 	}
 }
 
-func actionStatus(actionType string, status, analysisStatus, mergeStatus, summaryStatus int) empyrean_lens.ActionStatusEnum {
+func ActionStatus(actionType string, status, analysisStatus, mergeStatus, summaryStatus int) empyrean_lens.ActionStatusEnum {
 	switch actionType {
 	case consts.PDF:
 		if status == consts.PDFSuccessStatus {

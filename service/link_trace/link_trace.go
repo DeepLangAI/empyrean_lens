@@ -1170,20 +1170,14 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					return nil, &consts.QueryRecordError
 				}
 				node := processLogsToNode(processType, append(apiLogsInput, errorLogs...), entryInfo, nil)
-				if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_FILE) && entryInfo.Status == consts.PDFSuccessStatus {
-					node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
-				}
-				if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_WEB) && entryInfo.Status == consts.URLSuccessStatus {
+				if entryInfo.Status == int(empyrean_lens.ActionStatusEnum_SUCCESS) {
 					node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 				}
 				return node, nil
 			}
 		}
 		node := processLogsToNode(processType, processLogs, entryInfo, nil)
-		if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_FILE) && entryInfo.Status == consts.PDFSuccessStatus {
-			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
-		}
-		if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_WEB) && entryInfo.Status == consts.URLSuccessStatus {
+		if entryInfo.Status == int(empyrean_lens.ActionStatusEnum_SUCCESS) {
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
 		return node, nil
@@ -1262,10 +1256,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			return nil, &consts.QueryRecordError
 		}
 		node := processLogsToNode(processType, processLogs, entryInfo, nil)
-		if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_FILE) && entryInfo.Status == consts.PDFSuccessStatus {
-			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
-		}
-		if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_WEB) && entryInfo.Status == consts.URLSuccessStatus {
+		if entryInfo.Status == int(empyrean_lens.ActionStatusEnum_SUCCESS) {
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
 		return node, nil

@@ -262,7 +262,7 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 		output = utils.TranslateJsonIO(output, true)
 	}
 
-	if input != "" && output != "" {
+	if input != "" || output != "" {
 		logs = append(logs, &empyrean_lens.ApiLog{
 			TraceID:     d.TraceID,
 			Input:       input,

@@ -22,8 +22,9 @@ type Config struct {
 }
 
 type Api struct {
-	SaveLinkTrace      string `yaml:"save_link_trace"`
-	BatchSaveLinkTrace string `yaml:"batch_save_link_trace"`
+	SaveLinkTrace        string `yaml:"save_link_trace"`
+	BatchSaveLinkTrace   string `yaml:"batch_save_link_trace"`
+	BatchUpdateLinkTrace string `yaml:"batch_update_link_trace"`
 }
 
 type FcTimer struct {
@@ -31,8 +32,9 @@ type FcTimer struct {
 }
 
 type MNS struct {
-	SaveLinkTrace      FcTimer `yaml:"save_link_trace"`
-	BatchSaveLinkTrace FcTimer `yaml:"batch_save_link_trace"`
+	SaveLinkTrace        FcTimer `yaml:"save_link_trace"`
+	BatchSaveLinkTrace   FcTimer `yaml:"batch_save_link_trace"`
+	BatchUpdateLinkTrace FcTimer `yaml:"batch_update_link_trace"`
 }
 
 // 配置文件路径

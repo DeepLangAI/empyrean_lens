@@ -3,10 +3,14 @@ package link_trace
 import (
 	"context"
 	"strings"
+	"time"
 
 	"empyrean_lens/biz/model/empyrean_lens"
+	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	bi "empyrean_lens/dal/mongo/lingowhale_bi"
+	"empyrean_lens/tools"
+	"empyrean_lens/utils"
 	"empyrean_lens/utils/gse"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -27,11 +31,6 @@ func UpdateEntryInfo(ctx context.Context, req empyrean_lens.UpdateEntryInfoReq) 
 	} else if req.EntryID != "" {
 		if err := UpdateEntryUrl(ctx, req.EntryID, int(req.EntryType)); err != nil {
 			hlog.CtxErrorf(ctx, "UpdateEntryUrl err: %v", err)
-			return &consts.QueryRecordError
-		}
-	} else {
-		if err := UpdateSubscriptionUserID(ctx); err != nil {
-			hlog.CtxErrorf(ctx, "UpdateSubscriptionUserID err: %v", err)
 			return &consts.QueryRecordError
 		}
 	}
@@ -292,6 +291,40 @@ func UpdateEntryUrl(ctx context.Context, entryID string, entryType int) *consts.
 	return nil
 }
 
-func UpdateSubscriptionUserID(ctx context.Context) error {
-	return bi.NewEntryInfoDao().UpdateSubscriptionUserID(ctx)
+func BatchUpdateFailRecord(ctx context.Context, req *empyrean_lens.BatchUpdateFailRecordReq) *consts.BizCode {
+	begin, end := time.Unix(req.BeginAt, 0), time.Unix(req.EndAt, 0)
+	// 查询最近失败的记录
+	entryInfos, err := bi.NewEntryInfoDao().FindFailedEntryTypeAndEntryID(ctx, &begin, &end)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "[EntryAction] get entry action failed, err: %v", err)
+		return &consts.QueryRecordError
+	}
+	// 上报消息队列
+	msgList := []bi.ArticleEntry{}
+	for _, entryInfo := range entryInfos {
+		msgList = append(msgList, bi.ArticleEntry{
+			EntryId:   entryInfo.EntryID,
+			EntryType: consts.EntryType(entryInfo.EntryType),
+		})
+	}
+	sliceI := make([]interface{}, len(msgList))
+	for i, val := range msgList {
+		sliceI[i] = val
+	}
+	err = tools.BatchSendMsg(conf.GetConfig().MnsConfig.QueueName, sliceI)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "batch send msg failed, err: %v", err)
+		return &consts.WriteDbError
+	}
+	// 删除对应日期的excel缓存
+	startDate, endDate := utils.StartDay(begin), utils.EndDay(end)
+	for startDate.Before(endDate) {
+		filePath := MakeExcelPath(startDate)
+		err := bi.NewExcelDao().GridfsDelete(ctx, filePath)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "delete excel failed, err: %v", err)
+		}
+		startDate = startDate.AddDate(0, 0, 1)
+	}
+	return nil
 }

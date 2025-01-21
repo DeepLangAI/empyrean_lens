@@ -2269,7 +2269,7 @@ func PDFParserQuery(ctx context.Context, resourceId string, timeBegin, timeEnd t
 	}
 
 	query := `
-	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "PDFParser, core_node:" or message: "苏秦解析异常，file_id:" or message: "苏秦解析异常" or message: "parsing file failed" or message: "read pdf fail" or message: "pdf读取失败")
+	(__tag__:_container_name_ : lingowhale-python-prod or __tag__:_container_name_ : lingowhale-python-pre) and message: "%s" and not message: "单文件上传完成" and (message: "苏秦解析完成" or message: "PDF解析完成" or message: "PDFParser, core_node:" or message: "苏秦解析异常，file_id:" or message: "苏秦解析异常" or message: "parsing file failed" or message: "read pdf fail" or message: "pdf读取失败")
 	`
 	query = FormatWithTemplate(query, nil)
 	query = fmt.Sprintf(query, resourceId)

@@ -237,6 +237,31 @@ func BatchSaveLinkTrace(ctx context.Context, c *app.RequestContext) {
 	})
 }
 
+// BatchUpdateFailRecord .
+// @router /api/v1/link_trace/batch_update_fail_record [POST]
+func BatchUpdateFailRecord(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.BatchUpdateFailRecordReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	bizCode := link_trace.BatchUpdateFailRecord(ctx, &req)
+	if bizCode != nil {
+		hlog.CtxErrorf(ctx, "[BatchUpdateFailRecord] error: %+v", bizCode)
+		c.JSON(consts.StatusOK, &empyrean_lens.BatchUpdateFailRecordResp{
+			Code: int64(bizCode.Code),
+			Msg:  bizCode.Msg,
+		})
+		return
+	}
+
+	resp := new(empyrean_lens.BatchUpdateFailRecordResp)
+	c.JSON(consts.StatusOK, resp)
+}
+
 // WcdNodeDetail .
 // @router /api/v1/link_trace/wcd_oss_detail [GET]
 func WcdNodeDetail(ctx context.Context, c *app.RequestContext) {

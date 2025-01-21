@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"empyrean_lens/biz/model/empyrean_lens"
@@ -145,38 +146,35 @@ func getUserActionFromTraceID(ctx context.Context, req *empyrean_lens.UserAction
 }
 
 func GetResourceInfo(ctx context.Context, resources []*empyrean_lens.ResourceInfo) (map[string]*empyrean_lens.ResourceInfo, *consts.BizCode) {
-	entryIDs := []string{}
+	mapping := sync.Map{}
+	// 并发查数据库
+	wg := sync.WaitGroup{}
+	wg.Add(len(resources))
 	for _, resource := range resources {
-		entryIDs = append(entryIDs, resource.EntryID)
+		entryType, entryID := resource.EntryType, resource.EntryID
+		go func() {
+			defer wg.Done()
+			// 查询数据库
+			entryInfo, bizCode := GetEntryInfo(ctx, entryType, entryID)
+			if bizCode != nil {
+				return
+			}
+			mapping.Store(entryID, entryInfo)
+		}()
 	}
-	// 查找记录
-	entryInfos, err := bi.NewEntryInfoDao().FindByEntryIDs(ctx, entryIDs)
-	if err != nil {
-		return nil, &consts.QueryRecordError
-	}
-	// 订阅记录
-	subscribeInfos, err := plugin.NewResourceDao().FindResourceByIds(ctx, entryIDs)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "[FindResourceByIds] get entry from mongo failed, err: %v", err)
-		return nil, &consts.QueryRecordError
-	}
+	wg.Wait()
+	// 转换
 	resourceMapping := map[string]*empyrean_lens.ResourceInfo{}
-	for _, entryInfo := range entryInfos {
-		key := fmt.Sprintf("%d_%s", entryInfo.EntryType, entryInfo.EntryID)
-		resourceMapping[key] = &empyrean_lens.ResourceInfo{
-			EntryType: empyrean_lens.EntryTypeEnum(entryInfo.EntryType),
+	mapping.Range(func(key, value interface{}) bool {
+		entryInfo := value.(*bi.EntryInfo)
+		mapKey := fmt.Sprintf("%d_%s", entryInfo.EntryType, entryInfo.EntryID)
+		resourceMapping[mapKey] = &empyrean_lens.ResourceInfo{
 			EntryID:   entryInfo.EntryID,
-			Title:     entryInfo.Title,
+			EntryType: empyrean_lens.EntryTypeEnum(entryInfo.EntryType),
 			URL:       entryInfo.EntryURL,
 		}
-		if _, ok := subscribeInfos[entryInfo.EntryID]; ok {
-			if resourceMapping[key].EntryType == empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE {
-				resourceMapping[key].URL = subscribeInfos[entryInfo.EntryID].FileOssUrl
-			} else {
-				resourceMapping[key].URL = subscribeInfos[entryInfo.EntryID].OrigUrl
-			}
-		}
-	}
+		return true
+	})
 	return resourceMapping, nil
 }
 
@@ -576,7 +574,7 @@ func fileToActionData(actionName string, file *plugin.File) *empyrean_lens.UserA
 		},
 		CreateTime: file.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus(consts.PDF, file.Status, 0, 0, 0),
+		Status:     ActionStatus(consts.PDF, file.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_FILE,
 		EntryID:    string(file.ID.Hex()),
 	}
@@ -598,7 +596,7 @@ func webReaderToActionData(actionName string, webReader *plugin.WebReader) *empy
 		},
 		CreateTime: webReader.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus(consts.URL, webReader.Status, 0, 0, 0),
+		Status:     ActionStatus(consts.URL, webReader.Status, 0, 0, 0),
 		EntryType:  empyrean_lens.EntryTypeEnum_WEB,
 		EntryID:    string(webReader.ID.Hex()),
 	}
@@ -635,13 +633,13 @@ func multiActionData(actionName string, multiModel *plugin.MultiModel, fileMappi
 		Resources:  resources,
 		CreateTime: multiModel.CreateTime.Format(consts.DateTimeTemplate),
 		Cost:       0, // todo
-		Status:     actionStatus(consts.MULTI, 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
+		Status:     ActionStatus(consts.MULTI, 0, multiModel.AnalysisStatus, multiModel.MergeStatus, multiModel.SummaryStatus),
 		EntryType:  empyrean_lens.EntryTypeEnum_MULTI,
 		EntryID:    string(multiModel.ID.Hex()),
 	}
 }
 
-func actionStatus(actionType string, status, analysisStatus, mergeStatus, summaryStatus int) empyrean_lens.ActionStatusEnum {
+func ActionStatus(actionType string, status, analysisStatus, mergeStatus, summaryStatus int) empyrean_lens.ActionStatusEnum {
 	switch actionType {
 	case consts.PDF:
 		if status == consts.PDFSuccessStatus {

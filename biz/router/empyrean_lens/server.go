@@ -41,6 +41,7 @@ func Register(r *server.Hertz) {
 			{
 				_link_trace := _v1.Group("/link_trace", _link_traceMw()...)
 				_link_trace.POST("/batch_save", append(_batchsavelinktraceMw(), empyrean_lens.BatchSaveLinkTrace)...)
+				_link_trace.POST("/batch_update_fail_record", append(_batchupdatefailrecordMw(), empyrean_lens.BatchUpdateFailRecord)...)
 				_link_trace.GET("/download_user_actions", append(_downloaduseractionsMw(), empyrean_lens.DownloadUserActions)...)
 				_link_trace.GET("/multi_doc", append(_multidoclinktraceMw(), empyrean_lens.MultiDocLinkTrace)...)
 				_link_trace.GET("/node_logs", append(_linknodelogsMw(), empyrean_lens.LinkNodeLogs)...)

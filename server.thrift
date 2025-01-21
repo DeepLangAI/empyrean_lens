@@ -774,6 +774,17 @@ struct BatchSaveLinkTraceResp {
     2: string msg
 }
 
+// 批量更新失败的记录
+struct BatchUpdateFailRecordReq {
+    1: i64 begin_at  // 开始时间戳
+    2: i64 end_at  // 结束时间戳
+}
+
+struct BatchUpdateFailRecordResp {
+    1: i64 code
+    2: string msg
+}
+
 // 查wcd在oss上传的详细日志
 struct WcdOssDetalReq{
     1: string entry_id
@@ -1019,6 +1030,10 @@ service LinkTrace{
     // 批量保存链路信息到数据库
     BatchSaveLinkTraceResp BatchSaveLinkTrace(1: BatchSaveLinkTraceReq req) (
         api.post="/api/v1/link_trace/batch_save"
+    )
+    // 批量更新失败的记录
+    BatchUpdateFailRecordResp BatchUpdateFailRecord(1: BatchUpdateFailRecordReq req) (
+        api.post="/api/v1/link_trace/batch_update_fail_record"
     )
     // wcd节点处理的详情
     WcdOssDetalResp WcdNodeDetail(1: WcdOssDetalReq req) (

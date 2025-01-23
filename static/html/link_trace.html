@@ -271,6 +271,40 @@
         }
 
         /* 日志样式 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .pagination .button {
+            padding: 5px 10px;
+            margin: 0 5px;
+            border: 1px solid #4CAF50;
+            border-radius: 3px;
+            background-color: #ffffff;
+            color: #4CAF50;
+            cursor: pointer;
+            transition-duration: 0.4s;
+        }
+
+        .pagination .button:first {
+            padding: 5px 10px;
+            margin: 0 5px;
+            border: 1px solid #ffffff;
+            border-radius: 3px;
+            background-color: #4CAF50;
+            color: #ffffff;
+            cursor: pointer;
+            transition-duration: 0.4s;
+        }
+
+        .pagination .button:hover {
+            background-color: #4CAF50;
+            color: #ffffff;
+        }
+
         .log-container {
             font-size: 13px;
             background-color: white;
@@ -2605,171 +2639,221 @@
         }
 
         function renderNodeApiLogs(data, nodeName, entryId, entryType, nodeType, traceId){
-            let $page = $('<div>').addClass('page-body');
-            let logs = data.logs
-            let $logs = $('<div>').addClass('logs');
-            for (let i = 0; i < logs.length; i++)  {
-                let log = logs[i];
-                let logContainer = $('<div>').addClass('log-container')
-                let logId = $('<div>').addClass('log-id').text(i + 1)
-                let logTime = $('<div>').addClass('log-time').text(log.enter_time.slice(10, 19))
-                let logDetails = $('<div>').addClass('log-details')
-                let logDetailsHeader = $('<div>').addClass('log-details-header');
-                let logDetailsBody = $('<div>').addClass('log-details-body');
+            function renderNodeApiLogsOnePage(idx) {
+                let groups = data.groups;
+                let group = groups[idx-1];
+                let logs = group.logs;
+                for (let i = 0; i < logs.length; i++)  {
+                    let log = logs[i];
+                    let logContainer = $('<div>').addClass('log-container')
+                    let logId = $('<div>').addClass('log-id').text(i + 1)
+                    let logTime = $('<div>').addClass('log-time').text(log.enter_time.slice(10, 19))
+                    let logDetails = $('<div>').addClass('log-details')
+                    let logDetailsHeader = $('<div>').addClass('log-details-header');
+                    let logDetailsBody = $('<div>').addClass('log-details-body');
 
-                let keysInHeader = ["http_code", "enter_time", "finish_time", "container_name"]
-                for (var key in log){
-                    const id = key +'-' + i;
-                    let value = log[key]
-                    if (!value){
-                        continue
-                    }
-                    if (keysInHeader.includes(key)){
-                        logDetailsHeader.append(
-                            $("<span>")
-                                .attr("data-field-name", key)
-                                .text(log[key])
-                        );
-                        continue
-                    }
+                    let keysInHeader = ["http_code", "enter_time", "finish_time", "container_name"]
+                    for (var key in log){
+                        const id = key +'-' + i;
+                        let value = log[key]
+                        if (!value){
+                            continue
+                        }
+                        if (keysInHeader.includes(key)){
+                            logDetailsHeader.append(
+                                $("<span>")
+                                    .attr("data-field-name", key)
+                                    .text(log[key])
+                            );
+                            continue
+                        }
 
-                    var span = $('<span>')
-                        .addClass('expand-tip')
-                        .click(function(e) {
-                            e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
-                            handleClickExpand(id)
-                        })
-                    if (key == 'input' || key == 'output'){
-                        // 格式化json字符串，需要先loads再dumps
-                        let jsonStr = reformatJsonStr(value)
+                        var span = $('<span>')
+                            .addClass('expand-tip')
+                            .click(function(e) {
+                                e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                handleClickExpand(id)
+                            })
+                        if (key == 'input' || key == 'output'){
+                            // 格式化json字符串，需要先loads再dumps
+                            let jsonStr = reformatJsonStr(value)
 
-                        var p = $('<p class="expanded">')
-                            .attr('id', id)
-                            .append($("<span>").text(key + ":"))
-                            .append($('<pre class="expanded">').append($('<code class="json">').text(jsonStr)))
-                        span.text('收起')
-                        p.append(span)
-                        p.append(
-                            $('<span>')
-                                .addClass('copy-tip')
-                                .click(function(e) {
-                                    e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
-                                    handleClickCopy(id)
-                                })
-                                .text('复制')
-                        )
-                    } else{
-                        var p = $('<p>')
-                            .attr('id', id)
-                            .append($("<span>").text(key + ":"))
-                            .append(log[key])
-                        if(log[key].length >= 150){
-                            span.text('展开')
+                            var p = $('<p class="expanded">')
+                                .attr('id', id)
+                                .append($("<span>").text(key + ":"))
+                                .append($('<pre class="expanded">').append($('<code class="json">').text(jsonStr)))
+                            span.text('收起')
                             p.append(span)
-                        }
-                    }
-
-                    logDetailsBody.append(p)
-                }
-                if (log['output'] != DataTooLong && log['output']){
-                    if (nodeType == NodeTypeEnum.WCD_PARSE_FINISH){
-                        let wcdOutput = log["output"]
-                        let wcdRequestId = ''
-                        let ossInfo = {}
-                        try{
-                            let wcdOutputObj = JSON.parse(wcdOutput)
-                            wcdRequestId = wcdOutputObj['wcd-request-id']
-                            ossInfo = wcdOutputObj['oss_info'] || {}
-                        }catch (e){
-
-                        }
-                        if (log["output"].indexOf("model_result_str") != -1){
-                            let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId, ossInfo)
-                            logDetailsBody.prepend(wcdExpanders)
-                        }
-                    } else if ( [
-                            NodeTypeEnum.OUTLINE_FINISH, NodeTypeEnum.OUTLINE_RETRY_FINISH,
-                            NodeTypeEnum.SIMPLE_OUTLINE_FINISH, NodeTypeEnum.DETAIL_OUTLINE_FINISH,
-                            NodeTypeEnum.SIMPLE_OUTLINE_RETRY_FINISH, NodeTypeEnum.DETAIL_OUTLINE_RETRY_FINISH
-                        ].includes(nodeType)
-                    ){
-                        if (log['output']){
-                            let output = JSON.parse(log['output'])
-                            let input = JSON.parse(log['input'])
-                            let title = '大纲结果'
-                            if (input.verbose == false){
-                                title = '简版大纲结果'
-                            } else if (input.verbose == true){
-                                title = '丰富大纲结果'
+                            p.append(
+                                $('<span>')
+                                    .addClass('copy-tip')
+                                    .click(function(e) {
+                                        e.stopPropagation(); // 阻止事件冒泡，避免触发 p 的点击事件
+                                        handleClickCopy(id)
+                                    })
+                                    .text('复制')
+                            )
+                        } else{
+                            var p = $('<p>')
+                                .attr('id', id)
+                                .append($("<span>").text(key + ":"))
+                                .append(log[key])
+                            if(log[key].length >= 150){
+                                span.text('展开')
+                                p.append(span)
                             }
-                            // if (input.en_mode == true){
-                            //     title = '英文' + title
-                            // } else if (input.en_mode == false){
-                            //     title = '中文' + title
-                            // }
-                            let expanders = createOutlineFinshExpanders(title, output)
+                        }
+
+                        logDetailsBody.append(p)
+                    }
+                    if (log['output'] != DataTooLong && log['output']){
+                        if (nodeType == NodeTypeEnum.WCD_PARSE_FINISH){
+                            let wcdOutput = log["output"]
+                            let wcdRequestId = ''
+                            let ossInfo = {}
+                            try{
+                                let wcdOutputObj = JSON.parse(wcdOutput)
+                                wcdRequestId = wcdOutputObj['wcd-request-id']
+                                ossInfo = wcdOutputObj['oss_info'] || {}
+                            }catch (e){
+
+                            }
+                            if (log["output"].indexOf("model_result_str") != -1){
+                                let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId, ossInfo)
+                                logDetailsBody.prepend(wcdExpanders)
+                            }
+                        } else if ( [
+                                NodeTypeEnum.OUTLINE_FINISH, NodeTypeEnum.OUTLINE_RETRY_FINISH,
+                                NodeTypeEnum.SIMPLE_OUTLINE_FINISH, NodeTypeEnum.DETAIL_OUTLINE_FINISH,
+                                NodeTypeEnum.SIMPLE_OUTLINE_RETRY_FINISH, NodeTypeEnum.DETAIL_OUTLINE_RETRY_FINISH
+                            ].includes(nodeType)
+                        ){
+                            if (log['output']){
+                                let output = JSON.parse(log['output'])
+                                let input = JSON.parse(log['input'])
+                                let title = '大纲结果'
+                                if (input.verbose == false){
+                                    title = '简版大纲结果'
+                                } else if (input.verbose == true){
+                                    title = '丰富大纲结果'
+                                }
+                                // if (input.en_mode == true){
+                                //     title = '英文' + title
+                                // } else if (input.en_mode == false){
+                                //     title = '中文' + title
+                                // }
+                                let expanders = createOutlineFinshExpanders(title, output)
+                                logDetailsBody.prepend(expanders)
+                            }
+                        } else if (
+                            [NodeTypeEnum.MULTI_OUTLINE_FINISH, NodeTypeEnum.MULTI_OUTLINE_RETRY_FINISH].includes(nodeType)
+                        ){
+                            let output = JSON.parse(log['output'])
+                            let title = '多文档大纲结果'
+                            try{
+                                let input = JSON.parse(log['input'])
+                                title = `【${input.theme}】多文档大纲结果`
+                            } catch (e){
+                            }
+                            let expanders = createMultiOutlineFinshExpanders(title, output)
+                            logDetailsBody.prepend(expanders)
+                        } else if (
+                            [NodeTypeEnum.KEY_INFO_FINISH, NodeTypeEnum.KEY_INFO_RETRY_FINISH].includes(nodeType)
+                        ){
+                            let output = JSON.parse(log['output'])
+                            let title = '关键信息结果'
+                            try{
+                                let input = JSON.parse(log['input'])
+                                if (input.en_mode == true){
+                                    title = '英文' + title
+                                }
+                            } catch (e){
+
+                            }
+                            let expanders = createViewpointFinshExpanders(title, output)
+                            logDetailsBody.prepend(expanders)
+                        } else if (
+                            [NodeTypeEnum.SUMMARY_FINISH, NodeTypeEnum.SUMMARY_RETRY_FINISH].includes(nodeType)
+                        ){
+                            let output = JSON.parse(log['output'])
+                            let title = '概述结果'
+                            try{
+                                let input = JSON.parse(log['input'])
+                                if (input.en_mode == true){
+                                    title = '英文' + title
+                                }
+                            } catch (e){
+
+                            }
+                            let expanders = createAbstractFinishExpanders(title, output)
+                            logDetailsBody.prepend(expanders)
+                        } else if (
+                            [NodeTypeEnum.EDU_PARSE_FINISH].includes(nodeType)
+                        ){
+                            let output = JSON.parse(log['output'])
+                            let title = '最小信息单元树'
+                            let expanders = createEduFinishExpanders(title, output)
                             logDetailsBody.prepend(expanders)
                         }
-                    } else if (
-                        [NodeTypeEnum.MULTI_OUTLINE_FINISH, NodeTypeEnum.MULTI_OUTLINE_RETRY_FINISH].includes(nodeType)
-                    ){
-                        let output = JSON.parse(log['output'])
-                        let title = '多文档大纲结果'
-                        try{
-                            let input = JSON.parse(log['input'])
-                            title = `【${input.theme}】多文档大纲结果`
-                        } catch (e){
-                        }
-                        let expanders = createMultiOutlineFinshExpanders(title, output)
-                        logDetailsBody.prepend(expanders)
-                    } else if (
-                        [NodeTypeEnum.KEY_INFO_FINISH, NodeTypeEnum.KEY_INFO_RETRY_FINISH].includes(nodeType)
-                    ){
-                        let output = JSON.parse(log['output'])
-                        let title = '关键信息结果'
-                        try{
-                            let input = JSON.parse(log['input'])
-                            if (input.en_mode == true){
-                                title = '英文' + title
-                            }
-                        } catch (e){
+                    }
+                    logDetails.append(logDetailsHeader, logDetailsBody)
+                    logContainer.append(logId, logTime, logDetails)
+                    $logs.append(logContainer)
 
-                        }
-                        let expanders = createViewpointFinshExpanders(title, output)
-                        logDetailsBody.prepend(expanders)
-                    } else if (
-                        [NodeTypeEnum.SUMMARY_FINISH, NodeTypeEnum.SUMMARY_RETRY_FINISH].includes(nodeType)
-                    ){
-                        let output = JSON.parse(log['output'])
-                        let title = '概述结果'
-                        try{
-                            let input = JSON.parse(log['input'])
-                            if (input.en_mode == true){
-                                title = '英文' + title
-                            }
-                        } catch (e){
-
-                        }
-                        let expanders = createAbstractFinishExpanders(title, output)
-                        logDetailsBody.prepend(expanders)
-                    } else if (
-                        [NodeTypeEnum.EDU_PARSE_FINISH].includes(nodeType)
-                    ){
-                        let output = JSON.parse(log['output'])
-                        let title = '最小信息单元树'
-                        let expanders = createEduFinishExpanders(title, output)
-                        logDetailsBody.prepend(expanders)
+                    const codeElement = $logs.find('code');
+                    for (let i = 0; i < codeElement.length; i++){
+                        let code = codeElement[i];
+                        hljs.highlightBlock(code);
                     }
                 }
-                logDetails.append(logDetailsHeader, logDetailsBody)
-                logContainer.append(logId, logTime, logDetails)
-                $logs.append(logContainer)
             }
-            const codeElement = $logs.find('code');
-            for (let i = 0; i < codeElement.length; i++){
-                let code = codeElement[i];
-                hljs.highlightBlock(code);
+
+            let $page = $('<div>').addClass('page-body');
+            let groups = data.groups;
+            let $logs = $('<div>').addClass('logs');
+            // 添加分页
+            if (groups.length > 1) {
+                let $pagination = $('<div>').addClass('pagination');
+                for (let i = 0; i < groups.length; i++) {
+                    let group = groups[i];
+                    let $pageButton = $('<button>').text('第' + String(i + 1) + '次').addClass('button');
+                    $pageButton.on('click', function(page_idx) {
+                        if (this.dataset.clicked === "true") {
+                            return
+                        }
+                        // 修改全部按钮背景颜色
+                        let page_buttons = $pagination.find('.button');
+                        for (let i = 0; i < page_buttons.length; i++) {
+                            page_buttons[i].removeAttribute('style')
+                            page_buttons[i].dataset.clicked = "false"
+                        }
+                        // 修改状态
+                        this.dataset.clicked = "true";
+                        // 选中当前页
+                        this.style.backgroundColor='#4CAF50';
+                        this.style.color='#ffffff';
+                        // 重新构建页面内容
+                        let $logContainer = $logs.find('.log-container');
+                        $logContainer.remove();
+                        renderNodeApiLogsOnePage(i + 1);
+                    })
+                    $pagination.append($pageButton);
+                    // 初始化第一个按钮颜色和状态
+                    if (i === 0) {
+                        let page_buttons = $pagination.find('.button');
+                        for (let i = 0; i < page_buttons.length; i++) {
+                            page_buttons[i].style.backgroundColor='#4CAF50';
+                            page_buttons[i].style.color='#ffffff';
+                            page_buttons[i].dataset.clicked = "true";
+                            break;
+                        }
+                    }
+                }
+                $logs.append($pagination);
             }
+            // 默认显示第一页
+            renderNodeApiLogsOnePage(1);
+
             let docInfo = null
             if (data.docInfo){
                 docInfo = data.docInfo.clone(true)
@@ -2793,10 +2877,11 @@
                     entry_id: entry_id,
                     entry_type: entry_type,
                     node_type: node_type,
+                    need_group: true,  // 是否需要分组
                 }
             }).then(response => {
                 const data = response.data.data;
-                if (!response.data || data.logs.length == 0){
+                if (!response.data || ((!data.logs || data.logs.length == 0) && (!data.groups || data.groups.length == 0))){
                     Swal.fire({
                         position: "top-end",
                         icon: "error",

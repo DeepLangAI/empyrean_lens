@@ -642,6 +642,7 @@ struct GraphNode {
     6: ActionStatusEnum status // 节点状态，如成功、失败、超时等
     7: string trace_id // trace id
     8: map<string, string> extra // 额外信息
+    9: bool is_copied // 是否是拷贝
 }
 
 // 单文档链路查询

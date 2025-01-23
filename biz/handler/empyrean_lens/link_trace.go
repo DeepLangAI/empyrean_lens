@@ -171,8 +171,14 @@ func LinkNodeLogs(ctx context.Context, c *app.RequestContext) {
 	}
 	// 判断是否需要分组
 	if req.NeedGroup {
-		data.Groups = link_trace.GroupLogsByRetry(data.Logs)
+		// 按照输入输出分组
+		data.Groups = link_trace.GroupLogsByRetry(data.Status, data.Logs)
 		data.Logs = nil
+	} else {
+		// 节点成功的，删除错误日志
+		if data.Status == empyrean_lens.ActionStatusEnum_SUCCESS {
+			data.Logs = link_trace.DeleteFailLogs(data.Logs)
+		}
 	}
 	c.JSON(consts.StatusOK, &empyrean_lens.LinkNodeLogResp{
 		Code: 0,

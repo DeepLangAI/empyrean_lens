@@ -958,13 +958,13 @@ func findLinkTraceFromMongo(ctx context.Context, entryType int, entryID string,
 	for pracessType, pracessTypeList := range pracessMapping {
 		node1, ok := nodeMappingNew[pracessType]
 		if !ok || node1 == nil {
-			node1 = makeEmptyNode(pracessType, entryInfo)
+			node1 = makeEmptyNode(pracessType, entryInfo, false)
 		}
 		edges[node1.ID] = []empyrean_lens.NodeId{}
 		for _, itemType := range pracessTypeList {
 			node2, ok := nodeMappingNew[itemType]
 			if !ok || node2 == nil {
-				node2 = makeEmptyNode(pracessType, entryInfo)
+				node2 = makeEmptyNode(pracessType, entryInfo, false)
 			}
 			edges[node1.ID] = append(edges[node1.ID], node2.ID)
 		}
@@ -1110,17 +1110,18 @@ func GetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeE
 				EnterTime:  entryActions[0].ActionStartTime.Format(consts.DateTimeTemplate),
 				FinishTime: entryActions[0].ActionEndTime.Format(consts.DateTimeTemplate),
 				TraceID:    entryActions[0].ActionIOs[0].TraceID,
+				IsCopied:   true,
 			}, nil
 		}
 		start := newEntryInfo.EntryCreateTime.Add(-24 * time.Hour)
 		end := newEntryInfo.EntryCreateTime.Add(24 * time.Hour)
-		return doGetProcessNode(ctx, processType, newEntryInfo, start, end)
+		return doGetProcessNode(ctx, processType, newEntryInfo, start, end, true)
 	}
-	return doGetProcessNode(ctx, processType, entryInfo, start, end)
+	return doGetProcessNode(ctx, processType, entryInfo, start, end, false)
 }
 
 // 获取节点日志
-func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeEnum, entryInfo *bi.EntryInfo, start, end time.Time) (*empyrean_lens.GraphNode, *consts.BizCode) {
+func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTypeEnum, entryInfo *bi.EntryInfo, start, end time.Time, isCopied bool) (*empyrean_lens.GraphNode, *consts.BizCode) {
 	switch processType {
 	case empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH:
 		processLogs, err := aliyun.ResourceUploadQuery(ctx, entryInfo.EntryID, consts.EntryTypeMap[entryInfo.EntryType], start, end)
@@ -1128,7 +1129,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			hlog.CtxErrorf(ctx, "[ResourceUploadQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, nil), nil
+		return processLogsToNode(processType, processLogs, entryInfo, nil, isCopied), nil
 	case empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:
 		processLogs, err := aliyun.CrawlerQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
@@ -1147,9 +1148,9 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[CrawlerOutResponseQuery] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			return processLogsToNode(processType, append(apiLogsInput, apiLogsOuput...), entryInfo, nil), nil
+			return processLogsToNode(processType, append(apiLogsInput, apiLogsOuput...), entryInfo, nil, isCopied), nil
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, nil), nil
+		return processLogsToNode(processType, processLogs, entryInfo, nil, isCopied), nil
 	case empyrean_lens.LinkNodeTypeEnum_WCD_PARSE_FINISH:
 		processLogs, err := aliyun.WcdParseQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
@@ -1169,14 +1170,14 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					hlog.CtxErrorf(ctx, "[SingleTraceIDErrorQuery] get api logs failed, err: %v", err)
 					return nil, &consts.QueryRecordError
 				}
-				node := processLogsToNode(processType, append(apiLogsInput, errorLogs...), entryInfo, nil)
+				node := processLogsToNode(processType, append(apiLogsInput, errorLogs...), entryInfo, nil, isCopied)
 				if entryInfo.Status == int(empyrean_lens.ActionStatusEnum_SUCCESS) {
 					node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 				}
 				return node, nil
 			}
 		}
-		node := processLogsToNode(processType, processLogs, entryInfo, nil)
+		node := processLogsToNode(processType, processLogs, entryInfo, nil, isCopied)
 		if entryInfo.Status == int(empyrean_lens.ActionStatusEnum_SUCCESS) {
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
@@ -1189,7 +1190,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			return nil, &consts.QueryRecordError
 		}
 		if len(processLogs) > 0 {
-			return makeEmptyNode(processType, entryInfo), nil
+			return makeEmptyNode(processType, entryInfo, isCopied), nil
 		}
 		processLogs, err = aliyun.PDFParserQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
@@ -1204,7 +1205,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				return nil, &consts.QueryRecordError
 			}
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, nil), nil
+		return processLogsToNode(processType, processLogs, entryInfo, nil, isCopied), nil
 	case empyrean_lens.LinkNodeTypeEnum_TEXT_PARSE_FINISH:
 		apiLogsInput, err := aliyun.TextParseOutRequestQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
@@ -1219,7 +1220,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 		processLogs := apiLogsOuput
 		if len(apiLogsInput) > 0 && len(apiLogsOuput) > 0 {
 			processLogs[0].Cost = float64(apiLogsOuput[0].Asctime.Sub(apiLogsInput[0].Asctime).Seconds())
-			return processLogsToNode(processType, processLogs, entryInfo, nil), nil
+			return processLogsToNode(processType, processLogs, entryInfo, nil, isCopied), nil
 		}
 		if len(apiLogsInput) > 0 && len(apiLogsOuput) == 0 {
 			if entryInfo.MultiID != "" {
@@ -1238,7 +1239,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				processLogs = append(apiLogsInput, errLogs...)
 			}
 		}
-		node := processLogsToNode(processType, processLogs, entryInfo, nil)
+		node := processLogsToNode(processType, processLogs, entryInfo, nil, isCopied)
 		if len(apiLogsInput) > 0 {
 			node.TraceID = apiLogsInput[0].TraceId
 		}
@@ -1255,20 +1256,20 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			hlog.CtxErrorf(ctx, "[EduParseQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		node := processLogsToNode(processType, processLogs, entryInfo, nil)
+		node := processLogsToNode(processType, processLogs, entryInfo, nil, isCopied)
 		if entryInfo.Status == int(empyrean_lens.ActionStatusEnum_SUCCESS) {
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
 		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_KEY_INFO_FINISH:
 		// 查数据库，没有记录，说明未执行/长度不够
-		summaryID, pairID, result, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
+		summaryID, pairID, result, isSummaryCopied, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[FindSummaryID] find summary fail, err: %v", bizCode)
 			// return nil, &consts.QueryRecordError
 		}
 		if summaryID == "" {
-			node := makeEmptyNode(processType, entryInfo)
+			node := makeEmptyNode(processType, entryInfo, isCopied || isSummaryCopied)
 			// 兜底，未触发
 			node.Status = empyrean_lens.ActionStatusEnum_UNREACHEAD
 			return node, nil
@@ -1310,20 +1311,20 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				break
 			}
 		}
-		node := processLogsToNode(processType, processLogs, entryInfo, extra)
+		node := processLogsToNode(processType, processLogs, entryInfo, extra, isCopied)
 		if result {
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
 		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:
 		// 查数据库，没有记录，说明未执行/长度不够
-		summaryID, pairID, result, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
+		summaryID, pairID, result, isSummaryCopied, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[FindSummaryID] find summary fail, err: %v", bizCode)
 			// return nil, &consts.QueryRecordError
 		}
 		if summaryID == "" {
-			node := makeEmptyNode(processType, entryInfo)
+			node := makeEmptyNode(processType, entryInfo, isCopied || isSummaryCopied)
 			// 兜底，长度不够
 			if entryInfo.ContentSize < 1000 {
 				node.Status = empyrean_lens.ActionStatusEnum_LENGTH_ERROR
@@ -1369,7 +1370,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			}
 		}
 		if len(processLogs) == 0 && utils.IsSubscribe(entryInfo.EntryType) {
-			node := makeEmptyNode(processType, entryInfo)
+			node := makeEmptyNode(processType, entryInfo, isCopied)
 			// 兜底，长度不够
 			if entryInfo.ContentSize < 1000 {
 				node.Status = empyrean_lens.ActionStatusEnum_LENGTH_ERROR
@@ -1378,7 +1379,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			}
 			return node, nil
 		}
-		node := processLogsToNode(processType, processLogs, entryInfo, extra)
+		node := processLogsToNode(processType, processLogs, entryInfo, extra, isCopied)
 		if result {
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
@@ -1387,13 +1388,13 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 		empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_FINISH,
 		empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_FINISH:
 		// 查数据库，没有记录，说明未执行/长度不够
-		summaryID, pairID, result, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
+		summaryID, pairID, result, isSummaryCopied, createAt, bizCode := FindSummaryID(ctx, entryInfo, processType)
 		if bizCode != nil {
 			hlog.CtxErrorf(ctx, "[FindSummaryID] find summary fail, err: %v", bizCode)
 			// return nil, &consts.QueryRecordError
 		}
 		if summaryID == "" {
-			node := makeEmptyNode(processType, entryInfo)
+			node := makeEmptyNode(processType, entryInfo, isCopied || isSummaryCopied)
 			// 兜底，长度不够
 			if entryInfo.ContentSize < 1000 {
 				node.Status = empyrean_lens.ActionStatusEnum_LENGTH_ERROR
@@ -1467,7 +1468,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				break
 			}
 		}
-		node := processLogsToNode(processType, processLogs, entryInfo, extra)
+		node := processLogsToNode(processType, processLogs, entryInfo, extra, isCopied)
 		if result {
 			node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
 		}
@@ -1489,9 +1490,9 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				hlog.CtxErrorf(ctx, "[MultiSingleAnalysisModelOutResponseQuery] get api logs failed, err: %v", err)
 				return nil, &consts.QueryRecordError
 			}
-			return processLogsToNode(processType, append(apiLogsInput, apiLogsOuput...), entryInfo, nil), nil
+			return processLogsToNode(processType, append(apiLogsInput, apiLogsOuput...), entryInfo, nil, isCopied), nil
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, nil), nil
+		return processLogsToNode(processType, processLogs, entryInfo, nil, isCopied), nil
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH:
 		processLogs, err := aliyun.MultiThemeQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
@@ -1520,7 +1521,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				processLogs = append(apiLogsInput, apiLogsOuput...)
 			}
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, nil), nil
+		return processLogsToNode(processType, processLogs, entryInfo, nil, isCopied), nil
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_FINISH:
 		// 订阅来源，需要查询traceID
 		processLogs, err := aliyun.MultiOutlineQuery(ctx, entryInfo.EntryID, start, end)
@@ -1565,9 +1566,9 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 				}
 			}
 		}
-		return processLogsToNode(processType, processLogs, entryInfo, nil), nil
+		return processLogsToNode(processType, processLogs, entryInfo, nil, isCopied), nil
 	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_RETRY_FINISH:
-		node := makeEmptyNode(processType, entryInfo)
+		node := makeEmptyNode(processType, entryInfo, isCopied)
 		// 获取summary记录
 		summaryInfo, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(empyrean_lens.EntryTypeEnum_SUMMARY), entryInfo.EntryID)
 		if err != nil {
@@ -1640,7 +1641,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 		node.FinishTime = summaryInfo.CreateTime.Format(consts.DateTimeTemplate)
 		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_KEY_INFO_RETRY_FINISH:
-		node := makeEmptyNode(processType, entryInfo)
+		node := makeEmptyNode(processType, entryInfo, isCopied)
 		// 获取summary记录
 		summaryInfo, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(empyrean_lens.EntryTypeEnum_VIEWPOINT), entryInfo.EntryID)
 		if err != nil {
@@ -1714,7 +1715,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 	case empyrean_lens.LinkNodeTypeEnum_OUTLINE_RETRY_FINISH,
 		empyrean_lens.LinkNodeTypeEnum_SIMPLE_OUTLINE_RETRY_FINISH,
 		empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_RETRY_FINISH:
-		node := makeEmptyNode(processType, entryInfo)
+		node := makeEmptyNode(processType, entryInfo, isCopied)
 		// 获取summary记录
 		summaryInfo, err := plugin.NewSummaryDao().QueryByTypeAndID(ctx, int(empyrean_lens.EntryTypeEnum_OUTLINE), entryInfo.EntryID)
 		if err != nil {
@@ -1793,7 +1794,7 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 		node.FinishTime = summaryInfo.CreateTime.Format(consts.DateTimeTemplate)
 		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_RETRY_FINISH:
-		node := makeEmptyNode(processType, entryInfo)
+		node := makeEmptyNode(processType, entryInfo, isCopied)
 		// 获取traceID
 		logs, err := aliyun.TraceIDQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil || len(logs) == 0 {
@@ -1846,12 +1847,12 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			hlog.CtxErrorf(ctx, "[NovelFormOutResponseQuery] get process logs failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
-		return processLogsToNode(processType, append(apiLogsInput, apiLogsOuput...), entryInfo, nil), nil
+		return processLogsToNode(processType, append(apiLogsInput, apiLogsOuput...), entryInfo, nil, isCopied), nil
 	}
-	return makeEmptyNode(processType, entryInfo), nil
+	return makeEmptyNode(processType, entryInfo, isCopied), nil
 }
 
-func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType empyrean_lens.LinkNodeTypeEnum) (string, string, bool, *time.Time, *consts.BizCode) {
+func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType empyrean_lens.LinkNodeTypeEnum) (string, string, bool, bool, *time.Time, *consts.BizCode) {
 	if utils.IsSubscribe(articleInfo.EntryType) {
 		// 订阅的summary记录
 		summaryType := 0
@@ -1868,12 +1869,12 @@ func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType e
 		summaryInfo, err := plugin.NewResourceSummaryDao().FindByEntryTypeAndEntryIDAndSummaryType(ctx, articleInfo.EntryType, articleInfo.EntryID, summaryType)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindByEntryTypeAndEntryIDAndSummaryType] get summary info failed, err: %v", err)
-			return "", "", false, nil, &consts.QueryRecordError
+			return "", "", false, false, nil, &consts.QueryRecordError
 		}
 		if summaryInfo == nil {
-			return "", "", false, nil, nil
+			return "", "", false, false, nil, nil
 		}
-		return summaryInfo.ID.Hex(), "", len(summaryInfo.SummaryContent) > 0, &summaryInfo.CreateTime, nil
+		return summaryInfo.ID.Hex(), "", len(summaryInfo.SummaryContent) > 0, false, &summaryInfo.CreateTime, nil
 	} else {
 		// 非订阅的summary记录
 		outlineType, summaryType := 0, 0
@@ -1892,22 +1893,22 @@ func FindSummaryID(ctx context.Context, articleInfo *bi.EntryInfo, processType e
 		summaryInfo, err := plugin.NewSummaryDao().FindByUserIDAndUrlAndType(ctx, articleInfo.UserID, articleInfo.EntryURL, summaryType, outlineType)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[FindByUserIDAndUrlAndType] get summary info failed, err: %v", err)
-			return "", "", false, nil, &consts.QueryRecordError
+			return "", "", false, false, nil, &consts.QueryRecordError
 		}
 		if articleInfo.ParentEntryID != "" {
 			summaryID, pairID, result, createAt, err := FindSummaryIDByCopyID(ctx, summaryType, outlineType, summaryInfo.PairID, articleInfo.ParentEntryType, articleInfo.ParentEntryID)
 			if err != nil {
-				return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, &summaryInfo.CreateTime, nil
+				return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, false, &summaryInfo.CreateTime, nil
 			}
 			if summaryID != "" && pairID != "" {
-				return summaryID, pairID, result, createAt, err
+				return summaryID, pairID, result, true, createAt, err
 			}
-			return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, &summaryInfo.CreateTime, nil
+			return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, false, &summaryInfo.CreateTime, nil
 		}
 		if summaryInfo == nil {
-			return "", "", false, nil, nil
+			return "", "", false, false, nil, nil
 		}
-		return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, &summaryInfo.CreateTime, nil
+		return summaryInfo.ID.Hex(), summaryInfo.PairID, len(summaryInfo.Content) > 0, false, &summaryInfo.CreateTime, nil
 	}
 }
 
@@ -1933,9 +1934,9 @@ func FindSummaryIDByCopyID(ctx context.Context, summartType, outlineType int, pa
 	return "", "", false, nil, nil
 }
 
-func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliyun.FileProcessLog, entryInfo *bi.EntryInfo, extra map[string]string) *empyrean_lens.GraphNode {
+func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliyun.FileProcessLog, entryInfo *bi.EntryInfo, extra map[string]string, isCopied bool) *empyrean_lens.GraphNode {
 	if len(processLogs) == 0 {
-		return makeEmptyNode(nodeType, entryInfo)
+		return makeEmptyNode(nodeType, entryInfo, isCopied)
 	}
 	enterTime := processLogs[0].Asctime.Add(-time.Millisecond * time.Duration(processLogs[0].Cost*1000))
 	return &empyrean_lens.GraphNode{
@@ -1947,6 +1948,7 @@ func processLogsToNode(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []al
 		Status:     getActionStatus(nodeType, processLogs, entryInfo),
 		TraceID:    processLogs[0].TraceId,
 		Extra:      extra,
+		IsCopied:   isCopied,
 	}
 }
 
@@ -1985,7 +1987,7 @@ func mergeLinkTraceGraph(headers []*empyrean_lens.TraceLinkGraph, tail *empyrean
 	}
 }
 
-func makeEmptyNode(nodeType empyrean_lens.LinkNodeTypeEnum, entryInfo *bi.EntryInfo) *empyrean_lens.GraphNode {
+func makeEmptyNode(nodeType empyrean_lens.LinkNodeTypeEnum, entryInfo *bi.EntryInfo, isCopied bool) *empyrean_lens.GraphNode {
 	status := empyrean_lens.ActionStatusEnum_UNREACHEAD
 	if nodeType == empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH {
 		status = empyrean_lens.ActionStatusEnum_SUCCESS
@@ -2001,6 +2003,7 @@ func makeEmptyNode(nodeType empyrean_lens.LinkNodeTypeEnum, entryInfo *bi.EntryI
 		EnterTime:  entryInfo.EntryCreateTime.Format(consts.DateTimeTemplate),
 		FinishTime: entryInfo.EntryCreateTime.Format(consts.DateTimeTemplate),
 		Status:     status,
+		IsCopied:   isCopied,
 	}
 }
 

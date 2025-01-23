@@ -20752,6 +20752,8 @@ type GraphNode struct {
 	TraceID string `thrift:"trace_id,7" form:"trace_id" json:"trace_id" query:"trace_id"`
 	// 额外信息
 	Extra map[string]string `thrift:"extra,8" form:"extra" json:"extra" query:"extra"`
+	// 是否是拷贝
+	IsCopied bool `thrift:"is_copied,9" form:"is_copied" json:"is_copied" query:"is_copied"`
 }
 
 func NewGraphNode() *GraphNode {
@@ -20793,6 +20795,10 @@ func (p *GraphNode) GetExtra() (v map[string]string) {
 	return p.Extra
 }
 
+func (p *GraphNode) GetIsCopied() (v bool) {
+	return p.IsCopied
+}
+
 var fieldIDToName_GraphNode = map[int16]string{
 	1: "id",
 	2: "name",
@@ -20802,6 +20808,7 @@ var fieldIDToName_GraphNode = map[int16]string{
 	6: "status",
 	7: "trace_id",
 	8: "extra",
+	9: "is_copied",
 }
 
 func (p *GraphNode) Read(iprot thrift.TProtocol) (err error) {
@@ -20882,6 +20889,14 @@ func (p *GraphNode) Read(iprot thrift.TProtocol) (err error) {
 		case 8:
 			if fieldTypeId == thrift.MAP {
 				if err = p.ReadField8(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 9:
+			if fieldTypeId == thrift.BOOL {
+				if err = p.ReadField9(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -21022,6 +21037,17 @@ func (p *GraphNode) ReadField8(iprot thrift.TProtocol) error {
 	p.Extra = _field
 	return nil
 }
+func (p *GraphNode) ReadField9(iprot thrift.TProtocol) error {
+
+	var _field bool
+	if v, err := iprot.ReadBool(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.IsCopied = _field
+	return nil
+}
 
 func (p *GraphNode) Write(oprot thrift.TProtocol) (err error) {
 
@@ -21060,6 +21086,10 @@ func (p *GraphNode) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField8(oprot); err != nil {
 			fieldId = 8
+			goto WriteFieldError
+		}
+		if err = p.writeField9(oprot); err != nil {
+			fieldId = 9
 			goto WriteFieldError
 		}
 	}
@@ -21225,6 +21255,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 8 end error: ", p), err)
+}
+
+func (p *GraphNode) writeField9(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("is_copied", thrift.BOOL, 9); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteBool(p.IsCopied); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 9 end error: ", p), err)
 }
 
 func (p *GraphNode) String() string {

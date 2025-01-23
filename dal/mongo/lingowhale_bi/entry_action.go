@@ -39,6 +39,7 @@ type EntryAction struct {
 	ActionStatus    int                `json:"action_status" bson:"action_status"`
 	DataVersion     string             `json:"data_version" bson:"data_version"`
 	Cost            int                `json:"cost" bson:"cost"`
+	IsCopied        bool               `json:"is_copied" bson:"is_copied"`
 	ActionStartTime time.Time          `json:"action_start_time" bson:"action_start_time"`
 	ActionEndTime   time.Time          `json:"action_end_time" bson:"action_end_time"`
 	CreateTime      time.Time          `json:"create_time" bson:"create_time"`
@@ -79,7 +80,7 @@ func (d *EntryActionDao) SaveEntryAction(ctx context.Context, entryAction *Entry
 	// 存在，upload
 	if info != nil {
 		filter := bson.M{"entry_id": entryAction.EntryID, "action_channel": entryAction.ActionChannel, "action_type": entryAction.ActionType}
-		update := bson.M{"action_type": entryAction.ActionType, "action_ios": entryAction.ActionIOs, "action_status": entryAction.ActionStatus, "cost": entryAction.Cost, "action_start_time": entryAction.ActionStartTime, "action_end_time": entryAction.ActionEndTime}
+		update := bson.M{"action_type": entryAction.ActionType, "action_ios": entryAction.ActionIOs, "action_status": entryAction.ActionStatus, "cost": entryAction.Cost, "action_start_time": entryAction.ActionStartTime, "action_end_time": entryAction.ActionEndTime, "is_copied": entryAction.IsCopied}
 		res, err := biCollection.Collection(TableNameEntryAction()).UpdateOne(ctx, filter, bson.M{"$set": update})
 		if err != nil {
 			hlog.CtxErrorf(ctx, "db error, method:Save EntryAction, err:%+v", err)
@@ -202,9 +203,13 @@ func (d *EntryAction) TranslateGraphNode() *empyrean_lens.GraphNode {
 	if status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
 		status = empyrean_lens.ActionStatusEnum_FAIL
 	}
+	name := consts.LinkNodeTypeName[empyrean_lens.LinkNodeTypeEnum(d.ActionType)]
+	if d.IsCopied {
+		name = name + "(copy)"
+	}
 	node := &empyrean_lens.GraphNode{
 		ID:         d.ID.Hex(),
-		Name:       consts.LinkNodeTypeName[empyrean_lens.LinkNodeTypeEnum(d.ActionType)],
+		Name:       name,
 		Type:       empyrean_lens.LinkNodeTypeEnum(d.ActionType),
 		EnterTime:  d.ActionStartTime.Format(consts.DateTimeTemplate),
 		FinishTime: d.ActionEndTime.Format(consts.DateTimeTemplate),

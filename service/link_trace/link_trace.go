@@ -1792,6 +1792,20 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 		}
 		node.EnterTime = summaryInfo.CreateTime.Format(consts.DateTimeTemplate)
 		node.FinishTime = summaryInfo.CreateTime.Format(consts.DateTimeTemplate)
+		// 没有trace_id，兜底查
+		if node.TraceID == "" {
+			for _, log := range logs1 {
+				if node.Type == empyrean_lens.LinkNodeTypeEnum_DETAIL_OUTLINE_RETRY_FINISH {
+					if strings.Contains(log.Message, "outline_type:2") {
+						node.TraceID = log.TraceId
+					}
+				} else {
+					if strings.Contains(log.Message, "outline_type:1") {
+						node.TraceID = log.TraceId
+					}
+				}
+			}
+		}
 		return node, nil
 	case empyrean_lens.LinkNodeTypeEnum_MULTI_OUTLINE_RETRY_FINISH:
 		node := makeEmptyNode(processType, entryInfo, isCopied)

@@ -2131,7 +2131,7 @@ func isChildUnSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.Grap
 	for len(nodeIds) > 0 {
 		newNodeIds := []empyrean_lens.NodeId{}
 		for _, id := range nodeIds {
-			if nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_SUCCESS {
+			if nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_SUCCESS && nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_UNREACHEAD {
 				return true
 			}
 			newNodeIds = append(newNodeIds, nodeIDMapping[id]...)

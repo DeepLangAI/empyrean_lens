@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"net/url"
 	"sync"
 	"time"
 
@@ -227,6 +228,11 @@ func (d *File) TranslateEntryInfo() *bi.EntryInfo {
 	if d.RealChannelType >= int(empyrean_lens.ChannelType_IosUrl) {
 		d.ChannelType = d.RealChannelType
 	}
+	// url解码
+	name, err := url.QueryUnescape(d.Name)
+	if err != nil {
+		name = d.Name
+	}
 	return &bi.EntryInfo{
 		ID:              primitive.NewObjectID(),
 		EntryID:         d.ID.Hex(),
@@ -235,7 +241,7 @@ func (d *File) TranslateEntryInfo() *bi.EntryInfo {
 		SourceTable:     TableNameFile,
 		DataType:        utils.GetDataType(d.MultiId, d.CopyFromResourceID, empyrean_lens.EntryTypeEnum_FILE),
 		UserID:          d.UserID,
-		Title:           d.Name,
+		Title:           name,
 		Content:         d.Content,
 		ChannelType:     d.ChannelType,
 		MultiID:         d.MultiId,

@@ -958,15 +958,19 @@ func findLinkTraceFromMongo(ctx context.Context, entryType int, entryID string,
 	for pracessType, pracessTypeList := range pracessMapping {
 		node1, ok := nodeMappingNew[pracessType]
 		if !ok || node1 == nil {
-			node1 = makeEmptyNode(pracessType, entryInfo, false)
-		}
-		edges[node1.ID] = []empyrean_lens.NodeId{}
-		for _, itemType := range pracessTypeList {
-			node2, ok := nodeMappingNew[itemType]
-			if !ok || node2 == nil {
-				node2 = makeEmptyNode(pracessType, entryInfo, false)
+			if !utils.IsSubscribe(entryInfo.EntryType) && pracessType != empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH {
+				node1 = makeEmptyNode(pracessType, entryInfo, false)
 			}
-			edges[node1.ID] = append(edges[node1.ID], node2.ID)
+		}
+		if node1 != nil {
+			edges[node1.ID] = []empyrean_lens.NodeId{}
+			for _, itemType := range pracessTypeList {
+				node2, ok := nodeMappingNew[itemType]
+				if !ok || node2 == nil {
+					node2 = makeEmptyNode(pracessType, entryInfo, false)
+				}
+				edges[node1.ID] = append(edges[node1.ID], node2.ID)
+			}
 		}
 	}
 	// 返回
@@ -1131,10 +1135,24 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 		}
 		return processLogsToNode(processType, processLogs, entryInfo, nil, isCopied), nil
 	case empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:
-		processLogs, err := aliyun.CrawlerQuery(ctx, entryInfo.EntryID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[CrawlerQuery] get process logs failed, err: %v", err)
-			return nil, &consts.QueryRecordError
+		var err error
+		var processLogs []aliyun.FileProcessLog
+		if !utils.IsSubscribe(entryInfo.EntryType) {
+			processLogs, err = aliyun.CrawlerQuery(ctx, entryInfo.EntryID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[CrawlerQuery] get process logs failed, err: %v", err)
+				return nil, &consts.QueryRecordError
+			}
+		} else {
+			node := makeEmptyNode(processType, entryInfo, isCopied)
+			if entryInfo.Status == int(empyrean_lens.ActionStatusEnum_SUCCESS) {
+				node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+			} else {
+				node.Status = empyrean_lens.ActionStatusEnum_UNREACHEAD
+			}
+			node.EnterTime = entryInfo.EntryCreateTime.Format(consts.DateTimeTemplate)
+			node.FinishTime = entryInfo.EntryCreateTime.Format(consts.DateTimeTemplate)
+			return node, nil
 		}
 		// 没有抓取日志，使用输入输出兜底
 		if len(processLogs) == 0 {
@@ -2160,7 +2178,7 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 			return processLogs[i].Asctime.After(processLogs[j].Asctime)
 		})
 		for _, processLog := range processLogs {
-			if strings.Contains(processLog.Message, "WcdRaw do req error") {
+			if strings.Contains(processLog.Message, "WcdRaw do req error") || strings.Contains(processLog.Message, "handle resource error") {
 				return empyrean_lens.ActionStatusEnum_FAIL
 			}
 			if strings.Contains(processLog.Message, "wcd text nil") || strings.Contains(processLog.Message, "wcd worthless") {

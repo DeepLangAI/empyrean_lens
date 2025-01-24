@@ -556,6 +556,38 @@ func doNodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 		}
 		return getReqAndResp(ctx, entryInfo, node, apiLogsInputs, apiLogsOuputs)
 	case empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH:
+		// 来自订阅
+		if utils.IsSubscribe(entryInfo.EntryType) {
+			// 获取订阅traceID
+			query := "ResourceProcessor " + entryInfo.EntryID
+			logs, err := aliyun.TraceIDQuery(ctx, query, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[TraceIDQuery] get process logs failed, err: %v", err)
+				return "", nil, &consts.QueryRecordError
+			}
+			// 获取crawler日志
+			traceIDMapping := make(map[string]struct{})
+			for _, log := range logs {
+				if log.TraceId != "" {
+					traceIDMapping[log.TraceId] = struct{}{}
+				}
+			}
+			totalApiLogsInput := []aliyun.FileProcessLog{}
+			for traceID := range traceIDMapping {
+				apiLogsInput, err := aliyun.CrawlerSubscribeQuery(ctx, traceID, start, end)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "[CrawlerSubscribeQuery] get process logs failed, err: %v", err)
+					return "", nil, &consts.QueryRecordError
+				}
+				for _, log := range apiLogsInput {
+					if strings.Contains(log.Message, entryInfo.EntryURL) || strings.Contains(log.Message, "ResourceCrawled") {
+						totalApiLogsInput = append(totalApiLogsInput, log)
+						break
+					}
+				}
+			}
+			return getReqAndResp(ctx, entryInfo, node, totalApiLogsInput, []aliyun.FileProcessLog{})
+		}
 		apiLogsInput, err := aliyun.CrawlerOutRequestQuery(ctx, entryInfo.EntryID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
@@ -965,7 +997,7 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 	}
 	// 错误日志
 	for _, errLog := range errLogs {
-		if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && (node.Type == empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH || errLog.EnterTime >= node.EnterTime) {
+		if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && (node.Type == empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH || node.Type == empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH || errLog.EnterTime >= node.EnterTime) {
 			apiLogs = append(apiLogs, errLog)
 		}
 	}

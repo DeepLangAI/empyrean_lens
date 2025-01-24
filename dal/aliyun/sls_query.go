@@ -2739,6 +2739,24 @@ func CrawlerOutResponseQuery(ctx context.Context, resourceId string, timeBegin, 
 	return ConvertFileProcessLogFromFc(ctx, logs.Logs)
 }
 
+func CrawlerSubscribeQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `((message: "url" and funcName: "is_inner") or (message: "ResourceCrawled")) and "%s"`
+	query = fmt.Sprintf(query, traceID)
+	hlog.CtxDebugf(ctx, "CrawlerSubscribeQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "CrawlerSubscribeQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
 func WcdOutRequestQuery(ctx context.Context, resourceId string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
 	query := `message: "OutRequest wcd req" and "%s"`
 	query = fmt.Sprintf(query, resourceId)

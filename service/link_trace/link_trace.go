@@ -1071,6 +1071,13 @@ func LinkTraceGraph(ctx context.Context, entryInfo *bi.EntryInfo, start, end tim
 			}
 		}
 	}
+	for _, pracessType := range pracessList {
+		if node, ok := nodeMappingNew[pracessType]; ok && node != nil {
+			if isChildUnSuccess(node, nodes, edges) && node.Status == empyrean_lens.ActionStatusEnum_UNREACHEAD {
+				node.Status = empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
+	}
 	return &empyrean_lens.TraceLinkGraph{
 		Nodes: nodes,
 		Edges: edges,
@@ -2102,6 +2109,29 @@ func isChildSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphN
 		newNodeIds := []empyrean_lens.NodeId{}
 		for _, id := range nodeIds {
 			if nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_FAIL && nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_WORTHLESS && nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_UNREACHEAD && nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_LENGTH_ERROR {
+				return true
+			}
+			newNodeIds = append(newNodeIds, nodeIDMapping[id]...)
+		}
+		nodeIds = newNodeIds
+	}
+	return false
+}
+
+func isChildUnSuccess(node *empyrean_lens.GraphNode, nodes []*empyrean_lens.GraphNode, nodeIDMapping map[empyrean_lens.NodeId][]empyrean_lens.NodeId) bool {
+	if _, ok := nodeIDMapping[node.ID]; !ok {
+		return false
+	}
+	nodeMapping := map[empyrean_lens.NodeId]*empyrean_lens.GraphNode{}
+	for _, node := range nodes {
+		nodeMapping[node.ID] = node
+	}
+	// 广度优先遍历
+	nodeIds := nodeIDMapping[node.ID]
+	for len(nodeIds) > 0 {
+		newNodeIds := []empyrean_lens.NodeId{}
+		for _, id := range nodeIds {
+			if nodeMapping[id].Status != empyrean_lens.ActionStatusEnum_SUCCESS {
 				return true
 			}
 			newNodeIds = append(newNodeIds, nodeIDMapping[id]...)

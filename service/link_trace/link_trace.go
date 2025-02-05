@@ -1641,11 +1641,13 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					inputStr = log.Message
 				}
 				// 语言判断
-				if summaryInfo.SummaryLangType == "en" && !strings.Contains(inputStr, "\"en_mode\":true") {
-					continue
-				}
-				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
-					continue
+				if inputStr != "data too long" {
+					if summaryInfo.SummaryLangType == "en" && !strings.Contains(inputStr, "\"en_mode\":true") {
+						continue
+					}
+					if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
+						continue
+					}
 				}
 				// 时间判断
 				if summaryInfo.CreateTime.Add(5*time.Second).Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
@@ -1713,11 +1715,13 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					inputStr = log.Message
 				}
 				// 语言判断
-				if summaryInfo.SummaryLangType == "en" && !strings.Contains(inputStr, "\"en_mode\":true") {
-					continue
-				}
-				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
-					continue
+				if inputStr != "data too long" {
+					if summaryInfo.SummaryLangType == "en" && !strings.Contains(inputStr, "\"en_mode\":true") {
+						continue
+					}
+					if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
+						continue
+					}
 				}
 				// 时间判断
 				if summaryInfo.CreateTime.Add(5*time.Second).Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
@@ -1787,11 +1791,13 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					inputStr = log.Message
 				}
 				// 语言判断
-				if summaryInfo.SummaryLangType == "en" && !strings.Contains(inputStr, "\"en_mode\":true") {
-					continue
-				}
-				if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
-					continue
+				if inputStr != "data too long" {
+					if summaryInfo.SummaryLangType == "en" && !strings.Contains(inputStr, "\"en_mode\":true") {
+						continue
+					}
+					if summaryInfo.SummaryLangType == "zh" && !strings.Contains(inputStr, "\"en_mode\":false") {
+						continue
+					}
 				}
 				// 简单详细判断
 				if summaryInfo.OutlineType == 1 && !strings.Contains(inputStr, "\"verbose\":false") {

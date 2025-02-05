@@ -3844,14 +3844,14 @@
 
                 // 下载按钮
                 let lock = false;
-                function downloadExcel(params) {
+                function downloadExcel(downloadParams) {
                     if (lock) return;
                     lock = true;
                     $buttonContainer.text('下载中')
                     $buttonContainer.prop('disabled', true)
                     showLoadingStatus($loadingContainer)
                     axios.get('/api/v1/link_trace/download_user_actions', {
-                        params: params,
+                        params: downloadParams,
                         responseType: 'blob',
                         paramsSerializer: params => {
                             return Qs.stringify(params, { indices: false })
@@ -3877,10 +3877,6 @@
 
                 // 下载按钮
                 const $buttonContainer = $('<button class="operation-button">')
-                    .text('下载')
-                    .click(()=>{
-                        downloadExcel(params);
-                    });
                 $statisticContainer.append($buttonContainer);
                 let $title = $('<div>').append(
                     $('<h3 class="table-title left">').text('用户行为'),
@@ -3902,12 +3898,23 @@
                         // titleChild: $statisticContainer,
                         parent: $table,
                     });
+
+                    // 下载按钮
+                    $table.find('.operation-button').text('下载').click(()=>{
+                        downloadExcel(params);
+                    });
+                    
                 } else {
                     const $tbody = $table.find('tbody');
                     $tbody.empty();
                     data.rows.forEach(row => {
                         let $row = createTableRow(row, columns)
                         $tbody.append($row);
+                    });
+
+                    // 下载按钮，需要先解绑点击事件再重新绑定
+                    $table.find('.operation-button').text('下载').off('click').click(()=>{
+                        downloadExcel(params);
                     });
 
                     $table.find('.table-title').text(`用户行为 (第 ${currentPage + 1} 页)`);

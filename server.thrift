@@ -806,6 +806,8 @@ struct WcdOssDetalRespData{
     2: string parsed_html
     3: string text_parser_labels
     4: string conclusion
+    5: string model_input  // 模型输入
+    6: string parsed_text  // 解析后到text内容
 }
 
 // 查询wcd无意义处理结果日志

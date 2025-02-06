@@ -64,6 +64,8 @@ type WcdModel struct {
 	ParsedHtml       string `json:"parsed_html"`
 	TextParserLabels string `json:"text_parser_labels"`
 	Conclusion       string `json:"conclusion"`
+	ModelInput       string `json:"model_input"`
+	ParsedText       string `json:"parsed_text"`
 }
 
 func (o *OssOperator) getWcdZipReader(bucketName, objectKey string) (io.ReadCloser, error) {
@@ -134,6 +136,10 @@ func (o *OssOperator) DownloadWcdOssFile(bucketName, objectKey string) (*WcdMode
 			wcdModel.RawHtml = strings.TrimSpace(fileBuffer.String())
 		} else if strings.Contains(f.Name, "model_result.json") {
 			wcdModel.TextParserLabels = strings.TrimSpace(fileBuffer.String())
+		} else if strings.Contains(f.Name, "model_input.json") {
+			wcdModel.ModelInput = strings.TrimSpace(fileBuffer.String())
+		} else if strings.Contains(f.Name, "pure.txt") {
+			wcdModel.ParsedText = strings.TrimSpace(fileBuffer.String())
 		}
 	}
 	return wcdModel, nil

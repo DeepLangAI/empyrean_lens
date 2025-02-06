@@ -2622,8 +2622,24 @@
                     ), ()=>{
                         return reformatJsonStr(detail['conclusion'])
                     })
+                    let $expanderModelInput = createExpander("模型输入", $('<pre class="expanded">').css({
+                        'max-height': '250px'
+                    }).append(
+                        $('<code class="json">').text(reformatJsonStr(
+                            detail['model_input'])
+                        )
+                    ), ()=>{
+                        return reformatJsonStr(detail['model_input'])
+                    })
+                    let $expanderParsedText = createExpander("解析后text", $('<pre class="expanded">').css({
+                        'max-height': '250px'
+                    }).append(
+                        $('<code class="json">').text(detail['parsed_text'])
+                    ), ()=>{
+                        return detail['parsed_text']
+                    })
 
-                    expanders.append($expanderRawHtml, $expanderParsedHtml, $textParserLabels, $expanderWcdConclusion)
+                    expanders.append($expanderRawHtml, $expanderParsedHtml, $expanderModelInput, $textParserLabels, $expanderWcdConclusion, $expanderParsedText)
                 }
                 const codeElement = expanders.find('code');
                 for (let i = 0; i < codeElement.length; i++){
@@ -2790,7 +2806,12 @@
                         } else if (
                             [NodeTypeEnum.EDU_PARSE_FINISH].includes(nodeType)
                         ){
-                            let output = JSON.parse(log['output'])
+                            let output = log['output']
+                            try{
+                                output = JSON.parse(log['output'])
+                            } catch (e){
+                                output = { "output": output };
+                            }
                             let title = '最小信息单元树'
                             let expanders = createEduFinishExpanders(title, output)
                             logDetailsBody.prepend(expanders)

@@ -7,9 +7,10 @@ import (
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/dal/mongo/plugin"
 	"empyrean_lens/tools"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"strings"
 	"time"
+
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 func GetWcdOssLogDetail(ctx context.Context, req empyrean_lens.WcdOssDetalReq) ([]*empyrean_lens.WcdOssDetalRespData, *consts.BizCode) {
@@ -52,6 +53,8 @@ func GetWcdOssLogDetail(ctx context.Context, req empyrean_lens.WcdOssDetalReq) (
 			ParsedHTML:       file.ParsedHtml,
 			TextParserLabels: file.TextParserLabels,
 			Conclusion:       file.Conclusion,
+			ModelInput:       file.ModelInput,
+			ParsedText:       file.ParsedText,
 		})
 	}
 	return result, nil

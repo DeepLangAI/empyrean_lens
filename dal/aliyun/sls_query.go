@@ -2740,7 +2740,7 @@ func CrawlerOutResponseQuery(ctx context.Context, resourceId string, timeBegin, 
 }
 
 func CrawlerSubscribeQuery(ctx context.Context, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `((message: "url" and funcName: "is_inner") or (message: "ResourceCrawled")) and "%s"`
+	query := `((message: "url" and funcName: "is_inner") or (message: "ResourceCrawled") or (message: "UrlChecked")) and "%s"`
 	query = fmt.Sprintf(query, traceID)
 	hlog.CtxDebugf(ctx, "CrawlerSubscribeQuery query: %s", query)
 
@@ -2914,6 +2914,24 @@ func EduParserOutResponseQuery(ctx context.Context, resourceId string, timeBegin
 	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "EduParserOutRequestQuery query log error: %v", err)
+		return nil, err
+	}
+	return ConvertFileProcessLog(ctx, logs.Logs)
+}
+
+func EduParserOutResponseLinesQuery(ctx context.Context, resourceId, traceID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
+	query := `message: "ParseEduNode line index" and "%s" and "%s"`
+	query = fmt.Sprintf(query, resourceId, traceID)
+	hlog.CtxDebugf(ctx, "EduParserOutResponseLinesQuery query: %s", query)
+
+	logstore, err := client.GetMetricStore(consts.PROJECT_NAME, consts.BUSINESS_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := QueryLogsWithRetry(ctx, logstore, timeBegin.Unix(), timeEnd.Unix(), query)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "EduParserOutResponseLinesQuery query log error: %v", err)
 		return nil, err
 	}
 	return ConvertFileProcessLog(ctx, logs.Logs)

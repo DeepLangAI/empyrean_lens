@@ -273,7 +273,7 @@ func SubscribeNodeLogs(ctx context.Context, nodeType empyrean_lens.LinkNodeTypeE
 			Cost:       getNodeCost(apiLogs),
 			TraceID:    apiLogs[0].TraceID,
 			Title:      resourceInfo.Title,
-			UserID:     resourceInfo.UserID,
+			UserID:     "resource_server",
 			ActionName: utils.GetActionName(int(entryType), "", "", "", 0),
 			Status:     empyrean_lens.ActionStatusEnum(action.ActionStatus),
 			NodeName:   consts.LinkNodeTypeName[nodeType],
@@ -580,7 +580,7 @@ func doNodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 					return "", nil, &consts.QueryRecordError
 				}
 				for _, log := range apiLogsInput {
-					if strings.Contains(log.Message, entryInfo.EntryURL) || strings.Contains(log.Message, "ResourceCrawled") {
+					if strings.Contains(log.Message, entryInfo.EntryURL) || strings.Contains(log.Message, "ResourceCrawled") || strings.Contains(log.Message, "UrlChecked") {
 						totalApiLogsInput = append(totalApiLogsInput, log)
 						break
 					}
@@ -641,10 +641,29 @@ func doNodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return "", nil, &consts.QueryRecordError
 		}
-		apiLogsOuput, err := aliyun.EduParserOutResponseQuery(ctx, entryInfo.EntryID, start, end)
+		// 获取每一行日志
+		lineLogs, err := aliyun.EduParserOutResponseLinesQuery(ctx, entryInfo.EntryID, node.TraceID, start, end)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
 			return "", nil, &consts.QueryRecordError
+		}
+		totalOutPut := make([]string, 0, len(lineLogs))
+		for _, line := range lineLogs {
+			lineStr := GetReqRespFromMsg(line.Message, "line:")
+			totalOutPut = append(totalOutPut, lineStr)
+		}
+		var apiLogsOuput []aliyun.FileProcessLog
+		if len(totalOutPut) > 0 {
+			apiLogsOuput = []aliyun.FileProcessLog{lineLogs[0]}
+			totalOutPutStr, _ := json.Marshal(totalOutPut)
+			apiLogsOuput[0].Message = "resp:" + string(totalOutPutStr)
+		} else {
+			// 如果没有逐行记录
+			apiLogsOuput, err = aliyun.EduParserOutResponseQuery(ctx, entryInfo.EntryID, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+				return "", nil, &consts.QueryRecordError
+			}
 		}
 		return getReqAndResp(ctx, entryInfo, node, apiLogsInput, apiLogsOuput)
 	case empyrean_lens.LinkNodeTypeEnum_SUMMARY_FINISH:
@@ -979,6 +998,13 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 							// 更新输出
 							outputJson["raw_html"] = file.RawHtml
 							outputJson["parsed_html"] = file.ParsedHtml
+							outputJson["model_result"] = file.TextParserLabels
+							outputJson["model_input_str"] = file.ModelInput
+							// 删除map中的字段
+							delete(outputJson, "oss_info")
+							delete(outputJson, "model_result_str")
+							delete(outputJson, "model_input_df")
+							delete(outputJson, "readable_html")
 							outputStr, _ := json.Marshal(outputJson)
 							apiLog.Output = string(outputStr)
 						}

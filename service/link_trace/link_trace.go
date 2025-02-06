@@ -171,7 +171,7 @@ func SubscribeSingleLinkTrace(ctx context.Context, entryType empyrean_lens.Entry
 		Cost:       float64(utils.GetCostFromNodes(linkTraceGraph.Nodes)),
 		EntryID:    entryID,
 		EntryType:  entryType,
-		UserID:     resourceInfo.UserID,
+		UserID:     "resource_server",
 		Title:      resourceInfo.Title,
 		ActionName: utils.GetActionName(int(entryType), "", "", "", 0),
 		Status:     status,

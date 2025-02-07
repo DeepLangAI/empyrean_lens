@@ -3232,7 +3232,7 @@ func MultiOutlineModelOutResponseQuery(ctx context.Context, multiID string, time
 }
 
 func NovelFormOutRequestQuery(ctx context.Context, entryID string, timeBegin, timeEnd time.Time) ([]FileProcessLog, error) {
-	query := `message: "begin NovelFormProcessor" and "%s"`
+	query := `(message: "continue exec status Ready" or message: "continue exec status ContentTooShort") and "%s"`
 	query = fmt.Sprintf(query, entryID)
 	hlog.CtxDebugf(ctx, "NovelFormOutRequestQuery query: %s", query)
 

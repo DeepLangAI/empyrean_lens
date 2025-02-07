@@ -1001,7 +1001,6 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 							outputJson["model_result"] = file.TextParserLabels
 							outputJson["model_input_str"] = file.ModelInput
 							// 删除map中的字段
-							delete(outputJson, "oss_info")
 							delete(outputJson, "model_result_str")
 							delete(outputJson, "model_input_df")
 							delete(outputJson, "readable_html")

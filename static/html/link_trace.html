@@ -2734,7 +2734,7 @@
                             }catch (e){
 
                             }
-                            if (log["output"].indexOf("model_result_str") != -1){
+                            if (log["output"].indexOf("model_result") != -1 || log["output"].indexOf("model_result_str") != -1){
                                 let wcdExpanders = createWcdExpanders(entryId, wcdRequestId || traceId, ossInfo)
                                 logDetailsBody.prepend(wcdExpanders)
                             }

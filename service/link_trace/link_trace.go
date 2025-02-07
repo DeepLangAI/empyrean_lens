@@ -455,7 +455,7 @@ func SubscriMultibeLinkTrace(ctx context.Context, entryType empyrean_lens.EntryT
 		Articles:   articles,
 		EntryID:    entryID,
 		EntryType:  entryType,
-		UserID:     resourceInfo.UserID,
+		UserID:     "resource_server",
 		Title:      resourceInfo.Title,
 		ActionName: utils.GetActionName(int(entryType), "", "", "", 0),
 		Status:     status,
@@ -2315,6 +2315,15 @@ func getActionStatus(nodeType empyrean_lens.LinkNodeTypeEnum, processLogs []aliy
 		for _, processLog := range processLogs {
 			if strings.Contains(processLog.Message, "status Ready") {
 				return empyrean_lens.ActionStatusEnum_SUCCESS
+			}
+		}
+		// 倒排
+		sort.Slice(processLogs, func(i, j int) bool {
+			return processLogs[i].Asctime.After(processLogs[j].Asctime)
+		})
+		for _, processLog := range processLogs {
+			if strings.Contains(processLog.Message, "status ContentTooShort") {
+				return empyrean_lens.ActionStatusEnum_LENGTH_ERROR
 			}
 		}
 		return empyrean_lens.ActionStatusEnum_FAIL

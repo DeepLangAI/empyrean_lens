@@ -234,6 +234,10 @@ var NGINX_INGRESS_APIS = map[string][]API{
 			Api:   "/api/novel_form/feed/recommend",
 			Alias: "【新形态内容】【后端】读后推荐",
 		},
+		{
+			Api:   "/api/plugin/articles/summary_inc/outline",
+			Alias: "【单文档】【后端】大纲增量生成",
+		},
 	},
 	//HOST_LINGO_PRE_BACKEND: {
 	//	{

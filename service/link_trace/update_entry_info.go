@@ -316,6 +316,7 @@ func BatchUpdateFailRecord(ctx context.Context, req *empyrean_lens.BatchUpdateFa
 		hlog.CtxErrorf(ctx, "batch send msg failed, err: %v", err)
 		return &consts.WriteDbError
 	}
+	hlog.CtxInfof(ctx, "BatchUpdateFailRecord success, begin:%v, end:%v, num:%d", begin, end, len(msgList))
 	// 删除对应日期的excel缓存
 	startDate, endDate := utils.StartDay(begin), utils.EndDay(end)
 	for startDate.Before(endDate) {

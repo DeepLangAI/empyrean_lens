@@ -248,7 +248,7 @@ func BatchSaveLinkTrace(ctx context.Context, c *app.RequestContext) {
 func BatchUpdateFailRecord(ctx context.Context, c *app.RequestContext) {
 	var err error
 	var req empyrean_lens.BatchUpdateFailRecordReq
-	err = c.BindAndValidate(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.String(consts.StatusBadRequest, err.Error())
 		return

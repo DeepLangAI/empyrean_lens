@@ -3,9 +3,11 @@ package empyrean_lens
 import (
 	"context"
 	"empyrean_lens/consts"
+	"empyrean_lens/dal/http"
 	"empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"sort"
 	"time"
 )
 
@@ -32,10 +34,11 @@ func GetDailyAppCrashByTime(ctx context.Context, beginTime, endTime time.Time) (
 		return nil, e
 	}
 	// 按照 date 分组
+	// TODO: 是否需要按照 update_time 降序，然后轮流更新，避免出现脏数据污染？
 	dateMap := make(map[string][]empyrean_lens.AppCrashModel)
 	dateMap2 := make(map[string]AppCrushRespData)
 	for _, detail := range appCrashDetails {
-		date := detail.Time.Local().Format("2006-01-02")
+		date := detail.Time.Format("2006-01-02")
 		dateMap[date] = append(dateMap[date], detail)
 	}
 	var respDetails []AppCrushRespData
@@ -77,5 +80,56 @@ func GetDailyAppCrashByTime(ctx context.Context, beginTime, endTime time.Time) (
 		}
 		respDetails = append(respDetails, detail)
 	}
+	sort.Slice(respDetails, func(i, j int) bool {
+		return respDetails[i].Date > respDetails[j].Date
+	})
 	return respDetails, nil
+}
+
+func UpdateLatestAppCrashInfo(ctx context.Context, dateStr string) error {
+	// 查询今天的崩溃信息
+	//todayBeginStr := time.Now().Local().Format("2006-01-02") + " 00:00:00"
+	//todayBegin, err := time.ParseInLocation("2006-01-02 15:04:05", todayBeginStr, time.Local)
+	//if err != nil {
+	//	hlog.CtxErrorf(ctx, "parse date error in UpdateLatestAppCrashInfo :%v", err)
+	//	return err
+	//}
+	beginTime, err := time.ParseInLocation("2006-01-02 15:04:05", dateStr+" 00:00:00", time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse begin date error in UpdateLatestAppCrashInfo :%v", err)
+	}
+	endTime, err := time.ParseInLocation("2006-01-02 15:04:05", dateStr+" 23:59:59", time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse end date error in UpdateLatestAppCrashInfo :%v", err)
+	}
+	if time.Now().Format("2006-01-02") == dateStr {
+		endTime = time.Now()
+	}
+	infos, err := http.UmengDal.GetCrashInfoByTime(ctx, beginTime, endTime)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get crash info error in UpdateLatestAppCrashInfo :%v", err)
+		return err
+	}
+	// 保存到数据库
+	var appCrashModels []empyrean_lens.AppCrashModel
+	for _, info := range infos {
+		appCrashModels = append(appCrashModels, empyrean_lens.AppCrashModel{
+			Time:              info.Time,
+			PlatformType:      info.PlatformType,
+			ErrorCount:        info.ErrorCount,
+			LaunchCount:       info.LaunchCount,
+			AffectedUserCount: info.AffectedUserCount,
+			ActiveUserCount:   info.ActiveUserCount,
+			Status:            consts.StatusValid,
+			CreateTime:        time.Now(),
+			UpdateTime:        time.Now(),
+		})
+	}
+	hlog.CtxDebugf(ctx, "app crash models: %+v", appCrashModels)
+	err = empyrean_lens.NewAppCrashModelDao().SaveBatch(ctx, appCrashModels)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "save app crash info error in UpdateLatestAppCrashInfo :%v", err)
+		return err
+	}
+	return nil
 }

@@ -68,7 +68,7 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 
 	dailyAppCrashOverview, err := empyrean_lens2.GetDailyAppCrashByTime(
 		ctx,
-		time.Date(2025, 02, 9, 0, 0, 0, 0, time.Local),
+		time.Date(2025, 02, 01, 0, 0, 0, 0, time.Local),
 		time.Now().Add(8*time.Hour),
 	)
 	if err != nil {

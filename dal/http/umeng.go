@@ -28,10 +28,11 @@ func (u *umengDal) postRequest(ctx context.Context, url string, appId string, be
 	postData["errorType"] = "crash"
 	postData["timeUnit"] = "unit_custom"
 	postData["dateType"] = "freeDays"
-	beginTimeStr, endTimeStr := beginTime.Local().Format("20060102 150405"), endTime.Local().Format("20060102 150405")
+	beginTimeStr, endTimeStr := beginTime.Format("20060102 150405"), endTime.Format("20060102 150405")
 	postData["startDay"] = beginTimeStr
 	postData["endDay"] = endTimeStr
 	postData["dateRange"] = []string{beginTimeStr, endTimeStr}
+	hlog.CtxDebugf(ctx, "umeng post request data: %v", postData)
 	res, err := utils.UmengDoPost(ctx, url, postData, UmengCookie)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "umeng post request failed: %s", err)
@@ -94,7 +95,7 @@ func (u *umengDal) GetCrashInfoByTime(ctx context.Context, beginTime, endTime ti
 	}
 	crashInfos := make([]UmengCrashInfo, 0)
 	crashInfos = append(crashInfos, UmengCrashInfo{
-		Time:              beginTime,
+		Time:              endTime,
 		PlatformType:      consts.Platform_IOS,
 		ErrorCount:        iosCrashInfo.Data.ErrorCount.Value,
 		LaunchCount:       iosCrashInfo.Data.LaunchCount.Value,
@@ -102,7 +103,7 @@ func (u *umengDal) GetCrashInfoByTime(ctx context.Context, beginTime, endTime ti
 		ActiveUserCount:   iosCrashInfo.Data.ActiveUserCount.Value,
 	})
 	crashInfos = append(crashInfos, UmengCrashInfo{
-		Time:              beginTime,
+		Time:              endTime,
 		PlatformType:      consts.Platform_Android,
 		ErrorCount:        androidCrashInfo.Data.ErrorCount.Value,
 		LaunchCount:       androidCrashInfo.Data.LaunchCount.Value,

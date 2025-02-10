@@ -19,7 +19,7 @@ func TestAppCrashModelDao_GetAppCrashInfoByTime(t *testing.T) {
 		t.Error(err)
 	}
 	for _, log := range logs {
-		fmt.Printf("%v+\n", log)
+		fmt.Printf("%+v\n", log)
 	}
 }
 

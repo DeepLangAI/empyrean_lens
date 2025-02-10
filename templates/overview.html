@@ -888,6 +888,49 @@
 </div>
 <div class="pagination" id="daily-overview-pagination"></div>
 
+<div class="container">
+    <h2 id="daily-app-crash-heading">语鲸APP崩溃情况 天级数据</h2>
+    <table id="daily-app-crash-table" class="table-container">
+        <thead>
+        <tr>
+            <th>日期</th>
+            <th>IOS端崩溃数</th>
+            <th>Android端崩溃数</th>
+            <th>IOS端崩溃影响用户数</th>
+            <th>Android端崩溃影响用户数</th>
+<!--            <th>IOS端应用启动次数</th>-->
+<!--            <th>Android端应用启动次数</th>-->
+<!--            <th>IOS端活跃用户数</th>-->
+<!--            <th>Android端活跃用户数</th>-->
+            <th>IOS端崩溃率</th>
+            <th>Android端崩溃率</th>
+            <th>IOS端崩溃率环比</th>
+            <th>IOS端崩溃率同比</th>
+            <th>Android端崩溃率环比</th>
+            <th>Android端崩溃率同比</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .DailyAppCrash  }}
+        <tr>
+            <td data-label="日期">{{.Date }}</td>
+            <td data-label="IOS端崩溃数" {{ if gt .IosCrashCnt 0 }} class="clickable" onclick="showCrashDetails(this, 0)" {{ end }}>{{.IosCrashCnt }}</td>
+            <td data-label="Android端崩溃数" {{ if gt .AndroidCrashCnt 0 }} class="clickable" onclick="showCrashDetails(this, 1)" {{ end }} >{{.AndroidCrashCnt }}</td>
+            <td data-label="IOS端崩溃影响用户数">{{.IosCrashUserCnt }}</td>
+            <td data-label="Android端崩溃影响用户数">{{.AndroidCrashUserCnt }}</td>
+            <td data-label="IOS端崩溃率">{{ printf "%.2f"  .IosCrashRate }}%</td>
+            <td data-label="Android端崩溃率">{{ printf "%.2f" .AndroidCrashRate }}%</td>
+            <td data-label="IOS端崩溃率环比">{{ printf "%.2f"  .IosCrashRateDayOverDay }}%</td>
+            <td data-label="IOS端崩溃率同比">{{ printf "%.2f"  .IosCrashRateWeekOverWeek }}%</td>
+            <td data-label="Android端崩溃率环比">{{ printf "%.2f"  .AndroidCrashRateDayOverDay }}%</td>
+            <td data-label="Android端崩溃率同比">{{ printf "%.2f"  .AndroidCrashRateWeekOverWeek }}%</td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</div>
+<div class="pagination" id="daily-app-crash-pagination"></div>
+
 <script>
     const DateTimeTemplates = {
         DateTime: '2006-01-02 15:04:05',

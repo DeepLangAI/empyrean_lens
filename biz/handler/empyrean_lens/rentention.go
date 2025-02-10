@@ -33,6 +33,7 @@ type Overview struct {
 	DailyOverview    []empyrean_lens2.ScoreListItem
 	RealtimeOverview aliyun2.RealtimeReport
 	SceneOverviews   []map[string]string
+	DailyAppCrash    []empyrean_lens2.AppCrushRespData
 }
 
 // OverviewRender .
@@ -65,10 +66,21 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 
 	//aigcCostOverview, err := empyrean_lens2.SceneResult(ctx, timeBegin, time.Now())
 
+	dailyAppCrashOverview, err := empyrean_lens2.GetDailyAppCrashByTime(
+		ctx,
+		time.Date(2025, 02, 9, 0, 0, 0, 0, time.Local),
+		time.Now().Add(8*time.Hour),
+	)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
+
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{
 		DailyOverview:    dailyOverview,
 		RealtimeOverview: *realtimeOverview,
+		DailyAppCrash:    dailyAppCrashOverview,
 		//SceneOverviews:   aigcCostOverview,
 	}
 

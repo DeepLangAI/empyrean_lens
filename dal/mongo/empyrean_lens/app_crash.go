@@ -15,6 +15,7 @@ var TableNameAppCrash = "app_crash"
 
 type AppCrashModel struct {
 	Time              time.Time `bson:"time"`
+	Date              time.Time `bson:"date"`
 	PlatformType      string    `bson:"platform_type"`
 	ErrorCount        int32     `bson:"error_count"`
 	LaunchCount       int32     `bson:"launch_count"`
@@ -58,7 +59,7 @@ func (self *AppCrashModelDao) SaveBatch(ctx context.Context, models []AppCrashMo
 	for _, model := range models {
 		// 定义过滤条件: time 和 platform_type
 		filter := bson.M{
-			"time":          model.Time,
+			"date":          model.Date,
 			"platform_type": model.PlatformType,
 		}
 

@@ -34,11 +34,13 @@ func GetDailyAppCrashByTime(ctx context.Context, beginTime, endTime time.Time) (
 		return nil, e
 	}
 	// 按照 date 分组
-	// TODO: 是否需要按照 update_time 降序，然后轮流更新，避免出现脏数据污染？
 	dateMap := make(map[string][]empyrean_lens.AppCrashModel)
 	dateMap2 := make(map[string]AppCrushRespData)
 	for _, detail := range appCrashDetails {
-		date := detail.Time.Format("2006-01-02")
+		date := detail.Date.Local().Format("2006-01-02")
+		if date == "0001-01-01" {
+			continue
+		}
 		dateMap[date] = append(dateMap[date], detail)
 	}
 	var respDetails []AppCrushRespData
@@ -70,6 +72,7 @@ func GetDailyAppCrashByTime(ctx context.Context, beginTime, endTime time.Time) (
 		}
 		lastDay, lastWeek := today.AddDate(0, 0, -1), today.AddDate(0, 0, -7)
 		lastDayStr, lastWeekStr := lastDay.Format("2006-01-02"), lastWeek.Format("2006-01-02")
+		//hlog.CtxDebugf(ctx, "today=%v, lastDay=%v, lastWeek=%v", today, lastDay, lastWeek)
 		if lastDayDetail, ok := dateMap2[lastDayStr]; ok {
 			detail.IosCrashRateDayOverDay = utils.Div(float32(detail.IosCrashCnt-lastDayDetail.IosCrashCnt), float32(lastDayDetail.IosCrashCnt)) * 100
 			detail.AndroidCrashRateDayOverDay = utils.Div(float32(detail.AndroidCrashCnt-lastDayDetail.AndroidCrashCnt), float32(lastDayDetail.AndroidCrashCnt)) * 100
@@ -94,6 +97,11 @@ func UpdateLatestAppCrashInfo(ctx context.Context, dateStr string) error {
 	//	hlog.CtxErrorf(ctx, "parse date error in UpdateLatestAppCrashInfo :%v", err)
 	//	return err
 	//}
+	today, err := time.ParseInLocation("2006-01-02", dateStr, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse date error in UpdateLatestAppCrashInfo :%v", err)
+		return err
+	}
 	beginTime, err := time.ParseInLocation("2006-01-02 15:04:05", dateStr+" 00:00:00", time.Local)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "parse begin date error in UpdateLatestAppCrashInfo :%v", err)
@@ -115,6 +123,7 @@ func UpdateLatestAppCrashInfo(ctx context.Context, dateStr string) error {
 	for _, info := range infos {
 		appCrashModels = append(appCrashModels, empyrean_lens.AppCrashModel{
 			Time:              info.Time,
+			Date:              today,
 			PlatformType:      info.PlatformType,
 			ErrorCount:        info.ErrorCount,
 			LaunchCount:       info.LaunchCount,

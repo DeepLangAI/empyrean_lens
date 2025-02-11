@@ -895,17 +895,18 @@
         <tr>
             <th>日期</th>
             <th>IOS端崩溃数</th>
-            <th>Android端崩溃数</th>
             <th>IOS端崩溃影响用户数</th>
-            <th>Android端崩溃影响用户数</th>
-<!--            <th>IOS端应用启动次数</th>-->
-<!--            <th>Android端应用启动次数</th>-->
-<!--            <th>IOS端活跃用户数</th>-->
-<!--            <th>Android端活跃用户数</th>-->
+            <th>IOS端应用启动次数</th>
             <th>IOS端崩溃率</th>
-            <th>Android端崩溃率</th>
             <th>IOS端崩溃率环比</th>
             <th>IOS端崩溃率同比</th>
+            <th>Android端崩溃数</th>
+            <th>Android端崩溃影响用户数</th>
+            <th>Android端应用启动次数</th>
+<!--            <th>IOS端活跃用户数</th>-->
+<!--            <th>Android端活跃用户数</th>-->
+
+            <th>Android端崩溃率</th>
             <th>Android端崩溃率环比</th>
             <th>Android端崩溃率同比</th>
         </tr>
@@ -915,13 +916,15 @@
         <tr>
             <td data-label="日期">{{.Date }}</td>
             <td data-label="IOS端崩溃数" {{ if gt .IosCrashCnt 0 }} class="clickable" onclick="showCrashDetails(this, 0)" {{ end }}>{{.IosCrashCnt }}</td>
-            <td data-label="Android端崩溃数" {{ if gt .AndroidCrashCnt 0 }} class="clickable" onclick="showCrashDetails(this, 1)" {{ end }} >{{.AndroidCrashCnt }}</td>
             <td data-label="IOS端崩溃影响用户数">{{.IosCrashUserCnt }}</td>
-            <td data-label="Android端崩溃影响用户数">{{.AndroidCrashUserCnt }}</td>
+            <td data-label="IOS端应用启动次数">{{ .IosLaunchCnt }}</td>
             <td data-label="IOS端崩溃率">{{ printf "%.2f"  .IosCrashRate }}%</td>
-            <td data-label="Android端崩溃率">{{ printf "%.2f" .AndroidCrashRate }}%</td>
             <td data-label="IOS端崩溃率环比">{{ printf "%.2f"  .IosCrashRateDayOverDay }}%</td>
             <td data-label="IOS端崩溃率同比">{{ printf "%.2f"  .IosCrashRateWeekOverWeek }}%</td>
+            <td data-label="Android端崩溃数" {{ if gt .AndroidCrashCnt 0 }} class="clickable" onclick="showCrashDetails(this, 1)" {{ end }} >{{.AndroidCrashCnt }}</td>
+            <td data-label="Android端崩溃影响用户数">{{.AndroidCrashUserCnt }}</td>
+            <td data-label="Android端应用启动次数">{{.AndroidLaunchCnt }}</td>
+            <td data-label="Android端崩溃率">{{ printf "%.2f" .AndroidCrashRate }}%</td>
             <td data-label="Android端崩溃率环比">{{ printf "%.2f"  .AndroidCrashRateDayOverDay }}%</td>
             <td data-label="Android端崩溃率同比">{{ printf "%.2f"  .AndroidCrashRateWeekOverWeek }}%</td>
         </tr>
@@ -2700,6 +2703,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         updateHeading('#daily-overview-table tbody tr td:first-child', 'daily-heading');
+        updateHeading('#daily-app-crash-table tbody tr td:first-child', 'daily-app-crash-heading');
         // updateHeading('#daily-overview-table tbody tr td:first-child', 'metric-heading');
     });
 

@@ -1766,8 +1766,12 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			hlog.CtxErrorf(ctx, "[TraceIDQueryByUserID] get traceID failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
+		logs := append(logs1, logs2...)
+		sort.Slice(logs, func(i, j int) bool {
+			return logs[i].Asctime.After(logs[j].Asctime)
+		})
 		queryMapping := map[string]struct{}{}
-		for _, log := range append(logs1, logs2...) {
+		for _, log := range logs {
 			traceID := log.TraceId
 			if _, ok := queryMapping[traceID]; ok {
 				continue
@@ -1806,7 +1810,8 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					continue
 				}
 				// 时间判断
-				if summaryInfo.CreateTime.Add(5*time.Second).Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
+				if summaryInfo.CreateTime.Add(5*time.Second).Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) &&
+					summaryInfo.CreateTime.Add(-1*time.Hour).Format(consts.DateTimeTemplate) < log.Asctime.Format(consts.DateTimeTemplate) {
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}

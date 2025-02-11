@@ -812,7 +812,6 @@ func getSubscribeLinkTracePracessConfig(entryType int, novelFormID string, isFro
 		} else {
 			pracessList, pracessMapping = consts.MultiWebReaderProcessList, consts.MultiWebReaderProcessMapping
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
-			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
 		}
 	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE):
 		if !isFromMulti {

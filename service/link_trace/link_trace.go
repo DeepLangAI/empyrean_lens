@@ -619,13 +619,19 @@ func IsRetryMultiOutline(ctx context.Context, multiAigcInfo *plugin.MultiAigc) b
 func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plugin.WebReader, withoutSummary bool) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
 	pracessList := consts.SingleWebReaderProcessList
 	pracessMapping := consts.SingleWebReaderProcessMapping
+	// 多文档不需要模型生成
 	if webReaderInfo.CopyFromResourceID == "" && webReaderInfo.MultiId != "" {
 		pracessList = consts.MultiWebReaderProcessList
 		pracessMapping = consts.MultiWebReaderProcessMapping
 	}
 	if webReaderInfo.CopyFromResourceID != "" {
-		pracessList = consts.SubscribeWebReaderProcessList
-		pracessMapping = consts.SubscribeWebReaderProcessMapping
+		if webReaderInfo.MultiId == "" {
+			pracessList = consts.SubscribeWebReaderProcessList
+			pracessMapping = consts.SubscribeWebReaderProcessMapping
+		} else {
+			pracessList = consts.MultiWebReaderProcessList
+			pracessMapping = consts.MultiWebReaderProcessMapping
+		}
 	}
 	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
 	// 订阅来源，没有crawler节点
@@ -672,8 +678,13 @@ func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File, w
 		pracessMapping = consts.MultiFileProcessMapping
 	}
 	if fileInfo.CopyFromResourceID != "" {
-		pracessList = consts.SubscribeFileProcessList
-		pracessMapping = consts.SubscribeFileProcessMapping
+		if fileInfo.MultiId == "" {
+			pracessList = consts.SubscribeFileProcessList
+			pracessMapping = consts.SubscribeFileProcessMapping
+		} else {
+			pracessList = consts.MultiFileProcessList
+			pracessMapping = consts.MultiFileProcessMapping
+		}
 	}
 	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
 	// copy来源，不需要上传节点
@@ -862,10 +873,8 @@ func getSummaryLinkTracePracessConfig(ctx context.Context, summaryInfo *plugin.S
 
 func getMultiLinkTracePracessConfig(ctx context.Context, multiInfo *plugin.MultiModel) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
 	pracessList, pracessMapping := consts.MultiProcessList, consts.MultiProcessMapping
-	if multiInfo.CopyFromMultiID != "" || multiInfo.CopyFromResourceID != "" {
-		return []empyrean_lens.LinkNodeTypeEnum{
-			empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH,
-		}, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{}
+	if multiInfo.CopyFromResourceID != "" {
+		return consts.SubscribeMultiProcessList, consts.SubscribeMultiProcessMapping
 	}
 	return pracessList, pracessMapping
 }

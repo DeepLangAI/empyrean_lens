@@ -89,26 +89,30 @@
             background-color: #f9f9f9; /* 隔行变色 */
         }
 
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-        }
+        /*.pagination {*/
+        /*    display: flex;*/
+        /*    flex-direction: row;*/
+        /*    flex-wrap: nowrap;*/
+        /*    max-width: 65vw;*/
+        /*    overflow: scroll;*/
+        /*    !*justify-content: center;*!*/
+        /*    margin-top: 20px;*/
+        /*}*/
 
-        .pagination button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 2px;
-            cursor: pointer;
-            font-size: 14px;
-        }
+        /*.pagination button {*/
+        /*    background-color: #4CAF50;*/
+        /*    color: white;*/
+        /*    border: none;*/
+        /*    padding: 10px 20px;*/
+        /*    margin: 2px;*/
+        /*    cursor: pointer;*/
+        /*    font-size: 14px;*/
+        /*}*/
 
-        .pagination button.disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
+        /*.pagination button.disabled {*/
+        /*    background-color: #cccccc;*/
+        /*    cursor: not-allowed;*/
+        /*}*/
 
         /* 移动端样式 */
         @media (max-width: 767px) {
@@ -273,9 +277,12 @@
         /* 日志样式 */
         .pagination {
             display: flex;
-            justify-content: center;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            max-width: 65vw;
+            overflow: scroll;
             margin-top: 10px;
-            margin-bottom: 10px;
+            padding-bottom: 20px;
         }
 
         .pagination .button {
@@ -287,22 +294,18 @@
             color: #4CAF50;
             cursor: pointer;
             transition-duration: 0.4s;
+            white-space: nowrap;
         }
-
-        .pagination .button:first {
-            padding: 5px 10px;
-            margin: 0 5px;
-            border: 1px solid #ffffff;
-            border-radius: 3px;
+        .pagination .button.active {
             background-color: #4CAF50;
-            color: #ffffff;
-            cursor: pointer;
-            transition-duration: 0.4s;
+            color: white;
         }
 
         .pagination .button:hover {
-            background-color: #4CAF50;
+            background-color: rgba(76, 175, 80, 0.8);
             color: #ffffff;
+            border: 1px solid #4CAF50; /* 改变边框颜色 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 添加阴影 */
         }
 
         .log-container {
@@ -1241,6 +1244,12 @@
             50% { transform: translateX(1px); }
             75% { transform: translateX(-1px); }
             100% { transform: translateX(0); }
+        }
+
+        .logs{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
 
@@ -2845,32 +2854,25 @@
                         // 修改全部按钮背景颜色
                         let page_buttons = $pagination.find('.button');
                         for (let i = 0; i < page_buttons.length; i++) {
-                            page_buttons[i].removeAttribute('style')
-                            page_buttons[i].dataset.clicked = "false"
+                            // page_buttons[i].removeAttribute('style')
+                            // page_buttons[i].dataset.clicked = "false"
+                            // 全部删除active类
+                            $(page_buttons[i]).removeClass('active')
                         }
                         // 修改状态
-                        this.dataset.clicked = "true";
+                        // this.dataset.clicked = "true";
+                        $(this).addClass('active')
                         // 选中当前页
-                        this.style.backgroundColor='#4CAF50';
-                        this.style.color='#ffffff';
                         // 重新构建页面内容
                         let $logContainer = $logs.find('.log-container');
                         $logContainer.remove();
                         renderNodeApiLogsOnePage(i + 1);
                     })
                     $pagination.append($pageButton);
-                    // 初始化第一个按钮颜色和状态
-                    if (i === 0) {
-                        let page_buttons = $pagination.find('.button');
-                        for (let i = 0; i < page_buttons.length; i++) {
-                            page_buttons[i].style.backgroundColor='#4CAF50';
-                            page_buttons[i].style.color='#ffffff';
-                            page_buttons[i].dataset.clicked = "true";
-                            break;
-                        }
-                    }
                 }
                 $logs.append($pagination);
+                // 初始化第一个按钮颜色和状态
+                $pagination.find('.button').first().click()
             }
             // 默认显示第一页
             renderNodeApiLogsOnePage(1);

@@ -507,7 +507,11 @@ func makeEntryInfo(ctx context.Context, entryType empyrean_lens.EntryTypeEnum, a
 func makeEntryActions(entryInfo *bi.EntryInfo, nodes []*empyrean_lens.GraphNode, nodeLogMapping map[string]*empyrean_lens.LinkNodeLogRespData) []*bi.EntryAction {
 	var processList []empyrean_lens.LinkNodeTypeEnum
 	if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_MULTI) {
-		processList = consts.MultiProcessList
+		if entryInfo.ParentEntryType == int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI) {
+			processList = consts.SubscribeMultiProcessList
+		} else {
+			processList = consts.MultiProcessList
+		}
 	} else if entryInfo.EntryType == int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_MULTI) {
 		processList = consts.SubscribeMultiProcessList
 	} else {

@@ -2821,9 +2821,13 @@
                             } catch (e){
                                 output = { "output": output };
                             }
-                            let title = '最小信息单元树'
-                            let expanders = createEduFinishExpanders(title, output)
-                            logDetailsBody.prepend(expanders)
+                            try{
+                                let title = '最小信息单元树'
+                                let expanders = createEduFinishExpanders(title, output)
+                                logDetailsBody.prepend(expanders)
+                            } catch (e){
+                                
+                            }
                         }
                     }
                     logDetails.append(logDetailsHeader, logDetailsBody)

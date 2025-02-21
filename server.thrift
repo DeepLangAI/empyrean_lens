@@ -906,6 +906,36 @@ struct GenerateErrorLog{
     8: string trace_id
 }
 
+struct AppCrashDetailReq {
+    1: string platform
+    2: string date
+}
+
+struct AppCrashDetailResp {
+    1: i64 code
+    2: string msg
+    3: list<AppCrashDetailRespData> data
+}
+
+struct AppCrashDetailRespData {
+    1: string first_happen_time
+    2: string last_happen_time
+    3: string app_version
+    4: string summary
+    5: i64 happen_times
+    6: i64 affect_users
+}
+
+struct AppCrashBatchSaveReq {
+    1: string begin_date
+    2: string end_date
+}
+
+struct AppCrashBatchSaveResp {
+    1: i64 code
+    2: string msg
+}
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -990,6 +1020,14 @@ service Rentention{
    // - 探针日志上报
    WriteProbeResp WriteProbeLogs(1: WriteProbeReq req) (
        api.post="/api/v1/report/db/write_probe"
+   )
+   // App crash details
+   AppCrashDetailResp AppCrashDetails(1: AppCrashDetailReq req) (
+       api.get="/api/v1/report/app_crash"
+   )
+   // batch save app crash info
+   AppCrashBatchSaveResp AppCrashBatchSave(1: AppCrashBatchSaveReq req) (
+       api.post="/api/v1/report/app_crash/batch_save"
    )
 }
 

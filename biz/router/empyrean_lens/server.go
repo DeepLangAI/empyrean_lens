@@ -55,6 +55,9 @@ func Register(r *server.Hertz) {
 			}
 			{
 				_report := _v1.Group("/report", _reportMw()...)
+				_report.GET("/app_crash", append(_appcrashdetailsMw(), empyrean_lens.AppCrashDetails)...)
+				_app_crash := _report.Group("/app_crash", _app_crashMw()...)
+				_app_crash.POST("/batch_save", append(_appcrashbatchsaveMw(), empyrean_lens.AppCrashBatchSave)...)
 				_report.GET("/auth", append(_authMw(), empyrean_lens.Auth)...)
 				_report.GET("/online_operation", append(_getonlineoperationMw(), empyrean_lens.GetOnlineOperation)...)
 				_report.GET("/realtime", append(_systemrealtimescoreMw(), empyrean_lens.SystemRealtimeScore)...)

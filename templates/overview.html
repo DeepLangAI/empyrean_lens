@@ -2518,7 +2518,7 @@
     }
 
 
-    function paginateTable(tableId, rowsPerPage, paginationId) {
+    function paginateTable(tableId, rowsPerPage, paginationId, colorChange) {
         let currentPage = 1;
         const table = document.getElementById(tableId);
         const tbody = table.querySelector('tbody');
@@ -2530,7 +2530,7 @@
             row.dataset.date = table.rows[index + 1].cells[0].textContent;
         });
 
-        function renderTable() {
+        function renderTable(colorChange) {
             let currentDate = '';
             let rowSpan = 1;
 
@@ -2546,8 +2546,10 @@
                     i = j
                     rowSpan = 1;
                     currentDate = rowDate;
-                    row.cells[1].style.fontWeight = "bold"
-                    row.cells[1].style.color = "rebeccapurple"
+                    if (colorChange) {
+                        row.cells[1].style.fontWeight = "bold"
+                        row.cells[1].style.color = "rebeccapurple"
+                    }
                     for (let k = 1; k < row.cells.length; k++) {
                         row.cells[k].style.display = '';
                     }
@@ -2559,10 +2561,10 @@
                 row.style.display = i >= start && i < end ? '' : 'none';
             }
 
-            renderPaginationControls();
+            renderPaginationControls(colorChange);
         }
 
-        function renderPaginationControls() {
+        function renderPaginationControls(colorChange) {
             const totalPages = Math.ceil(rows.length / rowsPerPage);
             paginationControls.innerHTML = '';
 
@@ -2573,7 +2575,7 @@
                 button.disabled = page === currentPage;
                 button.addEventListener('click', () => {
                     currentPage = page;
-                    renderTable();
+                    renderTable(colorChange);
                 });
                 paginationControls.appendChild(button);
             }
@@ -2616,13 +2618,14 @@
             }
         }
 
-        renderTable();
+        renderTable(colorChange);
     }
 
 
     document.addEventListener('DOMContentLoaded', () => {
         hideLoadingStatus()
-        paginateTable('daily-overview-table', 12, 'daily-overview-pagination');
+        paginateTable('daily-overview-table', 12, 'daily-overview-pagination', true);
+        paginateTable('daily-app-crash-table', 12, 'daily-app-crash-pagination', false);
         // paginateTable('metric-overview-table', 12, 'metric-overview-pagination');
         // paginateTable('nginx-table', 12, 'nginx-pagination');
         // paginateTable('logstore-table', 12, 'logstore-pagination');

@@ -367,3 +367,18 @@ func _batchupdatefailrecordMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _appcrashdetailsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _app_crashMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _appcrashbatchsaveMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

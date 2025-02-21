@@ -33,6 +33,7 @@ type Overview struct {
 	DailyOverview    []empyrean_lens2.ScoreListItem
 	RealtimeOverview aliyun2.RealtimeReport
 	SceneOverviews   []map[string]string
+	DailyAppCrash    []empyrean_lens2.AppCrushRespData
 }
 
 // OverviewRender .
@@ -65,10 +66,21 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 
 	//aigcCostOverview, err := empyrean_lens2.SceneResult(ctx, timeBegin, time.Now())
 
+	dailyAppCrashOverview, err := empyrean_lens2.GetDailyAppCrashByTime(
+		ctx,
+		time.Date(2025, 02, 01, 0, 0, 0, 0, time.Local),
+		time.Now().Add(8*time.Hour),
+	)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
+
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{
 		DailyOverview:    dailyOverview,
 		RealtimeOverview: *realtimeOverview,
+		DailyAppCrash:    dailyAppCrashOverview,
 		//SceneOverviews:   aigcCostOverview,
 	}
 
@@ -614,4 +626,78 @@ func UserActionInfo(ctx context.Context, c *app.RequestContext) {
 	}
 	resp.Data = data
 	base.SuccessResponse(c, resp)
+}
+
+// AppCrashDetails .
+// @router /api/v1/report/app_crash [GET]
+func AppCrashDetails(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.AppCrashDetailReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.AppCrashDetailResp)
+
+	c.JSON(consts.StatusOK, resp)
+}
+
+// AppCrashBatchSave .
+// @router /api/v1/report/app_crash/batch_save [POST]
+func AppCrashBatchSave(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.AppCrashBatchSaveReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+	resp := new(empyrean_lens.AppCrashBatchSaveResp)
+	beginDate, endDate := req.BeginDate, req.EndDate
+	beginTime, err := time.ParseInLocation("2006-01-02", beginDate, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse begin date error: %v", err)
+		resp.Code = int64(consts2.ParamBindJsonError.Code)
+		resp.Msg = consts2.ParamBindJsonError.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+	endTime, err := time.ParseInLocation("2006-01-02", endDate, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse end date error: %v", err)
+		resp.Code = int64(consts2.ParamBindJsonError.Code)
+		resp.Msg = consts2.ParamBindJsonError.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+	// check if begintime or endtime after now
+	if beginTime.After(time.Now()) || endTime.After(time.Now()) {
+		hlog.CtxErrorf(ctx, "begin time or end time is after now")
+		resp.Code = int64(consts2.ParamBindJsonError.Code)
+		resp.Msg = consts2.ParamBindJsonError.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+	if beginTime.After(endTime) {
+		hlog.CtxErrorf(ctx, "begin time is after end time")
+		resp.Code = int64(consts2.ParamBindJsonError.Code)
+		resp.Msg = consts2.ParamBindJsonError.Msg
+		c.JSON(consts.StatusOK, resp)
+	}
+	for beginTime.Before(endTime) {
+		date := beginTime.Format("2006-01-02")
+		err := empyrean_lens2.UpdateLatestAppCrashInfo(ctx, date)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "update app crash info error: %v", err)
+			resp.Code = int64(consts2.SystemErr.Code)
+			resp.Msg = consts2.SystemErr.Msg
+			c.JSON(consts.StatusOK, resp)
+			return
+		}
+		beginTime = beginTime.AddDate(0, 0, 1)
+	}
+	resp.Msg = "success"
+	c.JSON(consts.StatusOK, resp)
 }

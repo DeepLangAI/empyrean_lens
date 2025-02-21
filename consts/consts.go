@@ -746,3 +746,8 @@ const (
 	FilterProbeUser      = "not user_id: 823df25bde18445494b5691222979cd0 not user_id: 6575b44010fcc60ccaf92101 not user_id: e8cc0d425acd4660b36afcbb976a7d97"
 	ModelFilterProbeuser = "not content.user_id: 823df25bde18445494b5691222979cd0 not content.user_id: 6575b44010fcc60ccaf92101 not content.user_id: e8cc0d425acd4660b36afcbb976a7d97"
 )
+
+const (
+	Platform_IOS     = "IOS"
+	Platform_Android = "ANDROID"
+)

@@ -888,6 +888,52 @@
 </div>
 <div class="pagination" id="daily-overview-pagination"></div>
 
+<div class="container">
+    <h2 id="daily-app-crash-heading">语鲸APP崩溃情况 天级数据</h2>
+    <table id="daily-app-crash-table" class="table-container">
+        <thead>
+        <tr>
+            <th>日期</th>
+            <th>IOS端崩溃数</th>
+            <th>IOS端崩溃影响用户数</th>
+            <th>IOS端应用启动次数</th>
+            <th>IOS端崩溃率</th>
+            <th>IOS端崩溃率环比</th>
+            <th>IOS端崩溃率同比</th>
+            <th>Android端崩溃数</th>
+            <th>Android端崩溃影响用户数</th>
+            <th>Android端应用启动次数</th>
+<!--            <th>IOS端活跃用户数</th>-->
+<!--            <th>Android端活跃用户数</th>-->
+
+            <th>Android端崩溃率</th>
+            <th>Android端崩溃率环比</th>
+            <th>Android端崩溃率同比</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .DailyAppCrash  }}
+        <tr>
+            <td data-label="日期">{{.Date }}</td>
+            <td data-label="IOS端崩溃数" {{ if gt .IosCrashCnt 0 }} class="clickable" onclick="showCrashDetails(this, 0)" {{ end }}>{{.IosCrashCnt }}</td>
+            <td data-label="IOS端崩溃影响用户数">{{.IosCrashUserCnt }}</td>
+            <td data-label="IOS端应用启动次数">{{ .IosLaunchCnt }}</td>
+            <td data-label="IOS端崩溃率">{{ printf "%.2f"  .IosCrashRate }}%</td>
+            <td data-label="IOS端崩溃率环比">{{ printf "%.2f"  .IosCrashRateDayOverDay }}%</td>
+            <td data-label="IOS端崩溃率同比">{{ printf "%.2f"  .IosCrashRateWeekOverWeek }}%</td>
+            <td data-label="Android端崩溃数" {{ if gt .AndroidCrashCnt 0 }} class="clickable" onclick="showCrashDetails(this, 1)" {{ end }} >{{.AndroidCrashCnt }}</td>
+            <td data-label="Android端崩溃影响用户数">{{.AndroidCrashUserCnt }}</td>
+            <td data-label="Android端应用启动次数">{{.AndroidLaunchCnt }}</td>
+            <td data-label="Android端崩溃率">{{ printf "%.2f" .AndroidCrashRate }}%</td>
+            <td data-label="Android端崩溃率环比">{{ printf "%.2f"  .AndroidCrashRateDayOverDay }}%</td>
+            <td data-label="Android端崩溃率同比">{{ printf "%.2f"  .AndroidCrashRateWeekOverWeek }}%</td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</div>
+<div class="pagination" id="daily-app-crash-pagination"></div>
+
 <script>
     const DateTimeTemplates = {
         DateTime: '2006-01-02 15:04:05',
@@ -2472,7 +2518,7 @@
     }
 
 
-    function paginateTable(tableId, rowsPerPage, paginationId) {
+    function paginateTable(tableId, rowsPerPage, paginationId, colorChange) {
         let currentPage = 1;
         const table = document.getElementById(tableId);
         const tbody = table.querySelector('tbody');
@@ -2484,7 +2530,7 @@
             row.dataset.date = table.rows[index + 1].cells[0].textContent;
         });
 
-        function renderTable() {
+        function renderTable(colorChange) {
             let currentDate = '';
             let rowSpan = 1;
 
@@ -2500,8 +2546,10 @@
                     i = j
                     rowSpan = 1;
                     currentDate = rowDate;
-                    row.cells[1].style.fontWeight = "bold"
-                    row.cells[1].style.color = "rebeccapurple"
+                    if (colorChange) {
+                        row.cells[1].style.fontWeight = "bold"
+                        row.cells[1].style.color = "rebeccapurple"
+                    }
                     for (let k = 1; k < row.cells.length; k++) {
                         row.cells[k].style.display = '';
                     }
@@ -2513,10 +2561,10 @@
                 row.style.display = i >= start && i < end ? '' : 'none';
             }
 
-            renderPaginationControls();
+            renderPaginationControls(colorChange);
         }
 
-        function renderPaginationControls() {
+        function renderPaginationControls(colorChange) {
             const totalPages = Math.ceil(rows.length / rowsPerPage);
             paginationControls.innerHTML = '';
 
@@ -2527,7 +2575,7 @@
                 button.disabled = page === currentPage;
                 button.addEventListener('click', () => {
                     currentPage = page;
-                    renderTable();
+                    renderTable(colorChange);
                 });
                 paginationControls.appendChild(button);
             }
@@ -2570,13 +2618,14 @@
             }
         }
 
-        renderTable();
+        renderTable(colorChange);
     }
 
 
     document.addEventListener('DOMContentLoaded', () => {
         hideLoadingStatus()
-        paginateTable('daily-overview-table', 12, 'daily-overview-pagination');
+        paginateTable('daily-overview-table', 12, 'daily-overview-pagination', true);
+        paginateTable('daily-app-crash-table', 12, 'daily-app-crash-pagination', false);
         // paginateTable('metric-overview-table', 12, 'metric-overview-pagination');
         // paginateTable('nginx-table', 12, 'nginx-pagination');
         // paginateTable('logstore-table', 12, 'logstore-pagination');
@@ -2657,6 +2706,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         updateHeading('#daily-overview-table tbody tr td:first-child', 'daily-heading');
+        updateHeading('#daily-app-crash-table tbody tr td:first-child', 'daily-app-crash-heading');
         // updateHeading('#daily-overview-table tbody tr td:first-child', 'metric-heading');
     });
 

@@ -35,6 +35,7 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	s.Every(10).Minutes().StartImmediately().Do(func() {
 		empyrean_lens.SaveUploadLogByDate(ctx, GetCurrentDate())
 		empyrean_lens.SaveGenerateErrlogByDate(ctx, GetCurrentDate())
+		empyrean_lens.UpdateLatestAppCrashInfo(ctx, GetCurrentDate())
 	})
 
 	s.StartAsync()

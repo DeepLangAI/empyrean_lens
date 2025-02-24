@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
 	"encoding/json"
@@ -34,6 +35,9 @@ func (u *umengDal) postRequest(ctx context.Context, url string, appId string, be
 	postData["startDay"] = beginTimeStr
 	postData["endDay"] = endTimeStr
 	postData["dateRange"] = []string{beginTimeStr, endTimeStr}
+	if url == UmengErrorInfoUrl {
+		postData["pageSize"] = 100
+	}
 	hlog.CtxDebugf(ctx, "umeng post request data: %v", postData)
 	res, err := utils.UmengDoPost(ctx, url, postData, UmengCookie)
 	if err != nil {
@@ -43,6 +47,10 @@ func (u *umengDal) postRequest(ctx context.Context, url string, appId string, be
 	if strings.Contains(res, "您还没有该操作的权限") {
 		hlog.CtxErrorf(ctx, "umeng cookie expired: %s", res)
 		return "", errors.New("umeng cookie expired")
+	}
+	if strings.Contains(res, "请求中含有不正确参数，请确认后再试") {
+		hlog.CtxErrorf(ctx, "umeng post request failed: %s", res)
+		return "", errors.New("umeng post request failed")
 	}
 	return res, nil
 }
@@ -75,6 +83,46 @@ type UmengCrashInfo struct {
 	LaunchCount       int32     `bson:"launch_count"`
 	AffectedUserCount int32     `bson:"affected_user_count"`
 	ActiveUserCount   int32     `bson:"active_user_count"`
+}
+
+type UmengCrashDetailInfo struct {
+	Code      int    `json:"code"`
+	Msg       any    `json:"msg"`
+	DetailMsg any    `json:"detailMsg"`
+	TraceID   string `json:"traceId"`
+	Data      struct {
+		RecurrenceErrorCount int `json:"recurrenceErrorCount"`
+		Total                int `json:"total"`
+		Page                 int `json:"page"`
+		List                 []struct {
+			ID                    string    `json:"id"`
+			AppKey                string    `json:"appKey"`
+			AppName               string    `json:"appName"`
+			Os                    string    `json:"os"`
+			AppVersion            string    `json:"appVersion"`
+			Summary               string    `json:"summary"`
+			Status                int       `json:"status"`
+			ErrorType             string    `json:"errorType"`
+			CrashType             string    `json:"crashType"`
+			HappenTimes           int       `json:"happenTimes"`
+			AffectUsers           int       `json:"affectUsers"`
+			SummaryMd5            string    `json:"summaryMd5"`
+			HTTPErrorCode         any       `json:"httpErrorCode"`
+			AggregationKey        string    `json:"aggregationKey"`
+			AggregationName       any       `json:"aggregationName"`
+			Color                 any       `json:"color"`
+			ErrorLevel            any       `json:"errorLevel"`
+			ErrorClass            any       `json:"errorClass"`
+			ErrorPageCount        any       `json:"errorPageCount"`
+			FlutterAppVersion     any       `json:"flutterAppVersion"`
+			HasOom                bool      `json:"hasOom"`
+			FirstHappenTime       time.Time `json:"firstHappenTime"`
+			Tags                  []any     `json:"tags"`
+			LastHappenTime        time.Time `json:"lastHappenTime"`
+			RecurrenceAppVersions any       `json:"recurrenceAppVersions"`
+			Processors            []any     `json:"processors"`
+		} `json:"list"`
+	} `json:"data"`
 }
 
 func (u *umengDal) GetCrashInfoByTime(ctx context.Context, beginTime, endTime time.Time) ([]UmengCrashInfo, error) {
@@ -117,4 +165,41 @@ func (u *umengDal) GetCrashInfoByTime(ctx context.Context, beginTime, endTime ti
 		ActiveUserCount:   androidCrashInfo.Data.ActiveUserCount.Value,
 	})
 	return crashInfos, nil
+}
+
+func (u *umengDal) GetCrashDetailsByTime(ctx context.Context, beginTime, endTime time.Time, Platform string) ([]*empyrean_lens.AppCrashDetailRespData, error) {
+	hlog.CtxDebugf(ctx, "in GetCrashDetailsByTime: beginTime = %v, endTime = %v", beginTime, endTime)
+	var appId string
+	if Platform == consts.Platform_IOS {
+		appId = UmengAppId_IOS
+	} else {
+		appId = UmengAppId_Android
+	}
+	crashInfoStr, err := u.postRequest(ctx, UmengErrorInfoUrl, appId, beginTime, endTime)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "GetCrashDetailsByTime failed: %s", err)
+		return nil, err
+	}
+	jsonBytes := []byte(crashInfoStr)
+	var errDetails UmengCrashDetailInfo
+	//hlog.CtxInfof(ctx, "GetCrashDetailsByTime jsonBytes = %s", jsonBytes)
+	if err = json.Unmarshal(jsonBytes, &errDetails); err != nil {
+		hlog.CtxErrorf(ctx, "GetCrashDetailsByTime unmarshal failed: %s", err)
+		return nil, err
+	}
+	hlog.CtxInfof(ctx, "GetCrashDetailsByTime errDetails = %+v", errDetails)
+	//return nil, nil
+	respData := make([]*empyrean_lens.AppCrashDetailRespData, 0)
+	for _, errDetail := range errDetails.Data.List {
+		resp := empyrean_lens.AppCrashDetailRespData{
+			FirstHappenTime: errDetail.FirstHappenTime.Local().Format("2006-01-02 15:04:05"),
+			LastHappenTime:  errDetail.LastHappenTime.Local().Format("2006-01-02 15:04:05"),
+			AppVersion:      errDetail.AppVersion,
+			Summary:         errDetail.Summary,
+			HappenTimes:     int64(errDetail.HappenTimes),
+			AffectUsers:     int64(errDetail.AffectUsers),
+		}
+		respData = append(respData, &resp)
+	}
+	return respData, nil
 }

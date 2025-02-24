@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"empyrean_lens/consts"
 	"fmt"
 	"testing"
 	"time"
@@ -18,4 +19,11 @@ func TestUmengDal_GetCrashInfoByTime(t *testing.T) {
 	for _, item := range info {
 		fmt.Printf("%v\n", item)
 	}
+}
+
+func TestUmengDal_GetCrashDetailsByTime(t *testing.T) {
+	ctx := context.Background()
+	beginTime := time.Date(2025, 2, 21, 0, 0, 0, 0, time.Local)
+	endTime := time.Date(2025, 2, 22, 0, 0, 0, 0, time.Local)
+	_, _ = UmengDal.GetCrashDetailsByTime(ctx, beginTime, endTime, consts.Platform_Android)
 }

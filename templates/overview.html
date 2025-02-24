@@ -3263,6 +3263,101 @@
         $gallaryBackground.appendTo('body')
         return $gallaryContainer
     }
+
+    function showCrashDetails(scoreCell, platformType){
+        const $scoreCell = $(scoreCell);
+        const date = $scoreCell.closest('tr').find('[data-label="日期"]').text();
+        const startDate = new Date(date)
+        // const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 增加一天
+
+        const startTime = formatDate(startDate)
+        const platformtype = (platformType === 0 ? 'IOS': 'Android')
+        // const endTime = formatDate(endDate)
+
+        axios.get('/api/v1/report/app_crash', {
+            params: {
+                date: startTime,
+                platform: platformtype,
+            }
+        }).then( response => {
+            console.log(response.data)
+            displayCrashDetails(response.data, startTime, platformType)
+        }).catch( error => {
+            console.error('Error fetching score details:', error);
+        });
+    }
+
+    function displayCrashDetails(crashDetails, date, platformType) {
+        // 在这里实现显示分数细节的逻辑
+        // console.log(scoreDetails);
+        String.prototype.format = function(...args) {
+            return this.replace(/{(\d+)}/g, (match, index) => args[index]);
+        };
+        const platform = (platformType === 0? 'IOS': 'Android')
+        menus = ['崩溃详情']
+        const details = crashDetails.data;
+
+        // 动态生成表格行
+        const tableRows = details.map(detail => `
+        <tr class="data-row">
+            <td>${detail.first_happen_time}</td>
+            <td>${detail.last_happen_time}</td>
+            <td>${detail.app_version}</td>
+            <td>${detail.summary}%</td>
+            <td>${detail.happen_times}</td>
+            <td>${detail.affect_users}</td>
+        </tr>
+    `).join('');
+
+        Swal.fire({
+            html: `
+            <div id="sidebar">
+                <div id="loading-container" class="loading-container">
+                    <div class="loading-spinner"></div>
+                </div>
+
+                <div id="menu">
+                    <div id="back" onclick="back()"><</div>
+                </div>
+                <div id="崩溃详情">
+                    <h2>${date} ${platform} 端崩溃详情（共 ${details.length} 条）</h2>
+                    <div class="table-wrapper">
+                        <table class="table-container">
+                            <thead>
+                                <tr>
+                                    <th>首次发生时间</th>
+                                    <th>最后一次发生时间</th>
+                                    <th>应用版本范围</th>
+                                    <th>错误摘要</th>
+                                    <th>错误次数</th>
+                                    <th>影响用户数</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'swal2-popup swal2-drawer',
+            },
+            didOpen: () => {
+                modifySidebar()
+                hideLoadingStatus()
+                // showRequestTrend(detail.date)
+            },
+            willClose: ()=>{
+                $('.gallary-background').remove();
+            },
+            didClose: ()=>{
+                $(document).off('keydown');
+            }
+        });
+    }
 </script>
 
 </body>

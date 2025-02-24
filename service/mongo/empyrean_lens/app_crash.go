@@ -2,10 +2,12 @@ package empyrean_lens
 
 import (
 	"context"
+	empyrean_lens2 "empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/http"
 	"empyrean_lens/dal/mongo/empyrean_lens"
 	"empyrean_lens/utils"
+	"errors"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"sort"
 	"time"
@@ -141,4 +143,28 @@ func UpdateLatestAppCrashInfo(ctx context.Context, dateStr string) error {
 		return err
 	}
 	return nil
+}
+
+func GetCrashDetailsByDate(ctx context.Context, date string, platform string) ([]*empyrean_lens2.AppCrashDetailRespData, error) {
+	startTimeStr, endTimeStr := date+" 00:00:00", date+" 23:59:59"
+	startTime, err := time.ParseInLocation("2006-01-02 15:04:05", startTimeStr, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse start time error in GetCrashDetailsByDate :%v", err)
+		return nil, err
+	}
+	endTime, err := time.ParseInLocation("2006-01-02 15:04:05", endTimeStr, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse end time error in GetCrashDetailsByDate :%v", err)
+		return nil, err
+	}
+	if startTime.After(endTime) {
+		hlog.CtxErrorf(ctx, "start time must before end time in GetCrashDetailsByDate :%v", err)
+		return nil, errors.New("start time must before end time")
+	}
+	respData, err := http.UmengDal.GetCrashDetailsByTime(ctx, startTime, endTime, platform)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get crash details error in GetCrashDetailsByDate :%v", err)
+		return nil, err
+	}
+	return respData, nil
 }

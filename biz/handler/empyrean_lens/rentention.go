@@ -640,7 +640,14 @@ func AppCrashDetails(ctx context.Context, c *app.RequestContext) {
 	}
 
 	resp := new(empyrean_lens.AppCrashDetailResp)
+	//data, err :=
+	data, err := empyrean_lens2.GetCrashDetailsByDate(ctx, req.Date, req.Platform)
+	if err != nil {
+		c.String(int(consts2.SystemErr.Code), err.Error())
+		return
+	}
 
+	resp.Data = data
 	c.JSON(consts.StatusOK, resp)
 }
 

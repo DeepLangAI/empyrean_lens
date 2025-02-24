@@ -9,8 +9,8 @@ import (
 	"github.com/go-ego/gse"
 )
 
-const chStopPath = "../utils/gse/ch_stopwords.txt"
-const enStopPath = "../utils/gse/en_stopwords.txt"
+const chStopPath = "utils/gse/ch_stopwords.txt"
+const enStopPath = "utils/gse/en_stopwords.txt"
 
 var (
 	myGse   *Gse

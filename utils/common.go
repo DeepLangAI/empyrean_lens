@@ -5,6 +5,7 @@ import (
 	"empyrean_lens/consts"
 	"encoding/json"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -370,4 +371,15 @@ func Div[T DivType](a T, b T) T {
 		return 0
 	}
 	return a / b
+}
+
+func IsValidObjectID(id string) bool {
+	// 使用primitive.ObjectIDFromHex尝试将字符串转换为ObjectId
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		// 如果转换失败，说明id不是一个有效的ObjectId
+		return false
+	}
+	// 如果转换成功，可以进一步检查objectId是否为空
+	return !objectId.IsZero()
 }

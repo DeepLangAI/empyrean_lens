@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"empyrean_lens/tools"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,8 +15,8 @@ import (
 	"empyrean_lens/service/link_trace"
 	"empyrean_lens/service/mongo/empyrean_lens"
 	"empyrean_lens/service/passport"
-	"empyrean_lens/tools"
 	"empyrean_lens/utils"
+	"empyrean_lens/utils/gse"
 
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/logger"
 	"github.com/cloudwego/hertz/pkg/app"
@@ -48,8 +49,10 @@ func main() {
 	conf.InitConfig()
 	logger.Init(conf.GetConfig().Logger)
 	dal.Init()
+	// 初始化分词器词表
+	gse.InitGse()
 
-	// SaveUserLogsOnce()
+	//SaveUserLogsOnce()
 	InitExcelOnce()
 
 	runner := tools.ProbeRunner{}

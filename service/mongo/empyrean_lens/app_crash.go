@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type AppCrushRespData struct {
+type AppCrashRespData struct {
 	Date                         string  `json:"date"`
 	IosCrashCnt                  int32   `json:"ios_crash_cnt"`
 	AndroidCrashCnt              int32   `json:"android_crash_cnt"`
@@ -30,14 +30,14 @@ type AppCrushRespData struct {
 	AndroidCrashRateWeekOverWeek float32 `json:"android_crash_rate_week_over_week"`
 }
 
-func GetDailyAppCrashByTime(ctx context.Context, beginTime, endTime time.Time) ([]AppCrushRespData, error) {
+func GetDailyAppCrashByTime(ctx context.Context, beginTime, endTime time.Time) ([]AppCrashRespData, error) {
 	appCrashDetails, e := empyrean_lens.NewAppCrashModelDao().GetAppCrashInfoByTime(ctx, beginTime, endTime)
 	if e != nil {
 		return nil, e
 	}
 	// 按照 date 分组
 	dateMap := make(map[string][]empyrean_lens.AppCrashModel)
-	dateMap2 := make(map[string]AppCrushRespData)
+	dateMap2 := make(map[string]AppCrashRespData)
 	for _, detail := range appCrashDetails {
 		date := detail.Date.Local().Format("2006-01-02")
 		if date == "0001-01-01" {
@@ -45,9 +45,9 @@ func GetDailyAppCrashByTime(ctx context.Context, beginTime, endTime time.Time) (
 		}
 		dateMap[date] = append(dateMap[date], detail)
 	}
-	var respDetails []AppCrushRespData
+	var respDetails []AppCrashRespData
 	for date, details := range dateMap {
-		respDetail := AppCrushRespData{
+		respDetail := AppCrashRespData{
 			Date: date,
 		}
 		for _, detail := range details {

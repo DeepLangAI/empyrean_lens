@@ -751,3 +751,9 @@ const (
 	Platform_IOS     = "IOS"
 	Platform_Android = "ANDROID"
 )
+
+const (
+	ModelAutomation_Correlation             = "correlation"
+	ModelAutomation_SingleOutline           = "single_outline"
+	ModelAutomation_SingleOutlineContinuity = "single_outline_continuity"
+)

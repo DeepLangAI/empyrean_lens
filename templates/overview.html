@@ -803,6 +803,45 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 阴影效果 */
             margin: 16px 0; /* 上下外边距 */
         }
+        .swal-pagination-container {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .swal-pagination {
+            display: flex;
+            gap: 5px;
+        }
+
+        .swal-pagination a {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .swal-pagination a.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .swal-pagination a:hover:not(.active) {
+            background-color: #f8f9fa;
+        }
+        .swal-pagination a.ellipsis {
+            border: none;
+            pointer-events: none;
+            color: #666;
+        }
+
+        .swal-pagination a[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -933,6 +972,37 @@
     </table>
 </div>
 <div class="pagination" id="daily-app-crash-pagination"></div>
+
+<div class="container">
+    <h2 id="daily-model-automation-heading">模型测试情况 天级数据</h2>
+    <table id="daily-model-automation-table" class="table-container">
+        <thead>
+        <tr>
+            <th>日期</th>
+            <th>Web测试总Case数</th>
+            <th>Web测试失败Case数</th>
+            <th>Pdf测试总Case数</th>
+            <th>Pdf测试失败Case数</th>
+            <th>多文档测试总Case数</th>
+            <th>多文档测试失败Case数</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .DailyModelResult  }}
+        <tr>
+            <td data-label="日期">{{.Date }}</td>
+            <td data-label="Web测试总数" {{ if gt .WebTotalNum 0 }} class="clickable" onclick="showModelDetails(this, 7, false)" {{ end }}>{{.WebTotalNum }}</td>
+            <td data-label="Web测试失败数" {{ if gt .WebFailNum 0 }} class="clickable" onclick="showModelDetails(this, 7, true)" {{ end }}>{{.WebFailNum }}</td>
+            <td data-label="Pdf测试总数" {{ if gt .SingleTotalNum 0 }} class="clickable" onclick="showModelDetails(this, 10, false)" {{ end }}>{{.SingleTotalNum }}</td>
+            <td data-label="Pdf测试失败数" {{ if gt .SingleFailNum 0 }} class="clickable" onclick="showModelDetails(this, 10, true)" {{ end }}>{{.SingleFailNum }}</td>
+            <td data-label="多文档测试总数" {{ if gt .MultiTotalNum 0 }} class="clickable" onclick="showModelDetails(this, 12, false)" {{ end }}>{{.MultiTotalNum }}</td>
+            <td data-label="多文档测试失败数" {{ if gt .MultiFailNum 0 }} class="clickable" onclick="showModelDetails(this, 12, true)" {{ end }}>{{.MultiFailNum }}</td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</div>
+<div class="pagination" id="daily-model-automation-pagination"></div>
 
 <script>
     const DateTimeTemplates = {
@@ -2626,6 +2696,8 @@
         hideLoadingStatus()
         paginateTable('daily-overview-table', 12, 'daily-overview-pagination', true);
         paginateTable('daily-app-crash-table', 12, 'daily-app-crash-pagination', false);
+        paginateTable('daily-model-automation-table', 12, 'daily-model-automation-pagination', false);
+        // paginateTable('table-case-result', 12, 'case-result-pagination', false);
         // paginateTable('metric-overview-table', 12, 'metric-overview-pagination');
         // paginateTable('nginx-table', 12, 'nginx-pagination');
         // paginateTable('logstore-table', 12, 'logstore-pagination');
@@ -2707,6 +2779,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         updateHeading('#daily-overview-table tbody tr td:first-child', 'daily-heading');
         updateHeading('#daily-app-crash-table tbody tr td:first-child', 'daily-app-crash-heading');
+        updateHeading('#daily-model-automation-table tbody tr td:first-child', 'daily-model-automation-heading');
         // updateHeading('#daily-overview-table tbody tr td:first-child', 'metric-heading');
     });
 
@@ -3352,6 +3425,319 @@
             },
             willClose: ()=>{
                 $('.gallary-background').remove();
+            },
+            didClose: ()=>{
+                $(document).off('keydown');
+            }
+        });
+    }
+    function showModelDetails(scoreCell, entryType, failOrTotal){
+        const $scoreCell = $(scoreCell);
+        const date = $scoreCell.closest('tr').find('[data-label="日期"]').text();
+        const startDate = new Date(date)
+        // const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 增加一天
+
+        const startTime = formatDate(startDate)
+        // const endTime = formatDate(endDate)
+
+        axios.get('/api/v1/report/model_automation', {
+            params: {
+                date: startTime,
+                entry_type: entryType,
+                fail_or_total: failOrTotal,
+            }
+        }).then( response => {
+            console.log(response.data)
+            displayModelDetails(response.data, startTime, entryType, failOrTotal)
+        }).catch( error => {
+            console.error('Error fetching score details:', error);
+        });
+    }
+
+    function convertCaseType(caseType) {
+        if (caseType === "correlation") {
+            return "总结内容与原文相关性"
+        } else if (caseType === "outline_duplicate") {
+            return "单文档大纲重复"
+        } else if (caseType === "outline_continuity") {
+            return "单文档大纲原文定位连续性"
+        } else if (caseType === "outline_count") {
+            return "单文档大纲条数过多"
+        } else if (caseType === "outline_original_count") {
+            return "单文档大纲原文定位字数"
+        }
+        return ""
+    }
+
+    function displayModelDetails(modelDetails, date, entryType) {
+        // 在这里实现显示分数细节的逻辑
+        // console.log(scoreDetails);
+        String.prototype.format = function(...args) {
+            return this.replace(/{(\d+)}/g, (match, index) => args[index]);
+        };
+        let platform = 'Pdf';
+        if (entryType === 7) {
+            platform = 'Web'
+        } else if (entryType === 12) {
+            platform = '多文档'
+        }
+        menus = ['模型测试详情']
+        const details = modelDetails.data;
+
+        // 动态生成表格行
+        const tableRows = details.map(detail => `
+    <tr class="data-row">
+        <td>${convertCaseType(detail.case_type)}</td>
+        <td class="${detail.total_num !== 0 ? 'clickable' : ''}"
+            ${detail.total_num !== 0 ? `onclick="showCaseDetails('${date}', '${entryType}', '${detail.case_type}', false)"` : ''}>
+            ${detail.total_num}
+        </td>
+        <td class="${detail.fail_num !== 0 ? 'clickable' : ''}"
+            ${detail.fail_num !== 0 ? `onclick="showCaseDetails('${date}', '${entryType}', '${detail.case_type}', true)"` : ''}>
+            ${detail.fail_num}
+        </td>
+    </tr>
+`).join('');
+    //     const tableRows = details.map(detail => `
+    //     <tr class="data-row">
+    //         <td>${convertCaseType(detail.case_type)}</td>
+    //         <td
+    //         class="${detail.fail_num !== 0 ? 'clickable' : ''}"
+    //         ${detail.fail_num !== 0 ? `onclick=showCaseDetails('${date}', '${entryType}', '${detail.case_type}', true)` : ''}
+    //         >${detail.fail_num}</td>
+    //         <td
+    //         class="${detail.total_num !== 0 ? 'clickable' : ''}"
+    //         ${detail.total_num !== 0 ? `onclick=showCaseDetails('${date}', '${entryType}', '${detail.case_type}', false)` : ''}
+    //         >${detail.total_num}</td>
+    //     </tr>
+    // `).join('');
+
+        Swal.fire({
+            html: `
+            <div id="sidebar">
+                <div id="loading-container" class="loading-container">
+                    <div class="loading-spinner"></div>
+                </div>
+
+                <div id="menu">
+                    <div id="back" onclick="back()"><</div>
+                </div>
+                <div id="模型测试详情">
+                    <h2>${date} ${platform} 测试详情（共 ${details.length} 条）</h2>
+                    <div class="table-wrapper">
+                        <table class="table-container">
+                            <thead>
+                                <tr>
+                                    <th>case类型</th>
+                                    <th>测试总case数</th>
+                                    <th>测试失败case数</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'swal2-popup swal2-drawer',
+            },
+            didOpen: () => {
+                modifySidebar()
+                hideLoadingStatus()
+                // showRequestTrend(detail.date)
+            },
+            willClose: ()=>{
+                $('.gallary-background').remove();
+            },
+            didClose: ()=>{
+                $(document).off('keydown');
+            }
+        });
+    }
+
+    function showCaseDetails(date, entryType, caseType, failOrTotal){
+        // const $scoreCell = $(scoreCell);
+        // const date = $scoreCell.closest('tr').find('[data-label="日期"]').text();
+        const startDate = new Date(date)
+        // const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 增加一天
+
+        const startTime = formatDate(startDate)
+        console.log(startDate, startTime)
+        // const endTime = formatDate(endDate)
+
+        axios.get('/api/v1/report/model_case_result', {
+            params: {
+                date: startTime,
+                entry_type: entryType,
+                case_type: caseType,
+                fail_or_total: failOrTotal,
+            }
+        }).then( response => {
+            console.log(response.data)
+            displayCaseDetails(response.data, startTime, entryType, caseType, failOrTotal)
+        }).catch( error => {
+            console.error('Error fetching score details:', error);
+        });
+    }
+    function displayCaseDetails(caseDetails, date, entryType, caseType, failOrTotal) {
+        // 在这里实现显示分数细节的逻辑
+        // console.log(scoreDetails);
+        String.prototype.format = function(...args) {
+            return this.replace(/{(\d+)}/g, (match, index) => args[index]);
+        };
+        console.log(entryType);
+        let platform = 'Pdf';
+        if (entryType === '7') {
+            platform = 'Web'
+        } else if (entryType === '12') {
+            platform = '多文档'
+        }
+        const caseTypeChinese = convertCaseType(caseType)
+        menus = [date + platform + caseTypeChinese]
+        // menus.push(caseTypeChinese)
+        modifySidebar();
+        // 不再显示#模型测试详情对应的div
+        // $('#模型测试详情').hide();
+        $('#' + caseTypeChinese).show();
+        const details = caseDetails.data;
+
+        // 动态生成表格行
+        const tableRows = details.map(detail => `
+    <tr class="data-row">
+        <td>${detail.entry_id}</td>
+        <td>${detail.case_result === true ? '成功' : '失败'}</td>
+<!--        <td>${detail.test_duration.toFixed(3)}</td>-->
+        <td>${detail.error_log}</td>
+    </tr>
+`).join('');
+
+        Swal.fire({
+            html: `
+            <div id="sidebar">
+                <div id="loading-container" class="loading-container">
+                    <div class="loading-spinner"></div>
+                </div>
+
+                <div id="menu">
+                    <div id="back" onclick="back()"><</div>
+                </div>
+                <div id="测试详情">
+                    <h2>测试详情（共 ${details.length} 条）</h2>
+                    <h3>${failOrTotal === true ? '仅失败记录' : '全部记录'}</h3>
+                    <div class="table-wrapper">
+                        <table class="table-container">
+                            <thead>
+                                <tr>
+                                    <th>entry_id</th>
+                                    <th>测试结果</th>
+<!--                                    <th>测试时长</th>-->
+                                    <th>错误日志</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="swal-pagination-container">
+                        <div id="swal-pagination" class="swal-pagination"></div>
+                    </div>
+                </div>
+            </div>
+
+        `,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'swal2-popup swal2-drawer',
+            },
+            didOpen: () => {
+                modifySidebar();
+                hideLoadingStatus();
+                // 分页功能
+                const itemsPerPage = 10;
+                const table = Swal.getPopup().querySelector('tbody');
+                const pagination = Swal.getPopup().querySelector('#swal-pagination');
+                let currentPage = 1;
+
+                function setupPagination() {
+                    const rows = table.querySelectorAll('tr');
+                    const pageCount = Math.ceil(rows.length / itemsPerPage);
+                    pagination.innerHTML = '';
+
+                    // 生成智能分页按钮
+                    const createPageItem = (page, text = page) => {
+                        const link = document.createElement('a');
+                        link.href = '#';
+                        link.textContent = text;
+                        if (page === currentPage) link.className = 'active';
+                        if (typeof page === 'number') {
+                            link.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                currentPage = page;
+                                updateTable();
+                                setupPagination();
+                            });
+                        }
+                        return link;
+                    };
+
+                    // 生成页码区间
+                    let startPage = Math.max(2, currentPage - 1);
+                    let endPage = Math.min(pageCount - 1, currentPage + 1);
+
+                    // 始终显示第一页
+                    pagination.appendChild(createPageItem(1));
+
+                    const createEllipsis = () => {
+                        const span = document.createElement('span');
+                        span.textContent = '...';
+                        span.className = 'ellipsis';
+                        return span;
+                    };
+
+                    // 前省略号
+                    if (startPage > 2) {
+                        pagination.appendChild(createEllipsis());
+                    }
+
+                    // 中间页码
+                    for (let i = startPage; i <= endPage; i++) {
+                        pagination.appendChild(createPageItem(i));
+                    }
+
+                    // 后省略号
+                    if (endPage < pageCount - 1) {
+                        pagination.appendChild(createEllipsis());
+                    }
+
+                    // 始终显示最后一页
+                    if (pageCount > 1) {
+                        pagination.appendChild(createPageItem(pageCount));
+                    }
+
+                    updateTable();
+                }
+
+                function updateTable() {
+                    const rows = table.querySelectorAll('tr');
+                    const start = (currentPage - 1) * itemsPerPage;
+                    const end = start + itemsPerPage;
+
+                    rows.forEach((row, index) => {
+                        row.style.display = (index >= start && index < end) ? '' : 'none';
+                    });
+                }
+
+                setupPagination();
+                // showRequestTrend(detail.date)
+            },
+            willClose: ()=>{
+                // $('.gallary-background').remove();
+                // $('#模型测试详情').show();
             },
             didClose: ()=>{
                 $(document).off('keydown');

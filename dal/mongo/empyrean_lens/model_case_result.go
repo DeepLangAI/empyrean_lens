@@ -42,7 +42,7 @@ func (self *ModelCaseResultDao) GetModelCaseResultsByTime(ctx context.Context, b
 	cur, err := probeDatabase.
 		Collection(TableNameModelCaseResult).
 		Find(ctx, bson.M{
-			"update_time": bson.M{
+			"create_time": bson.M{
 				"$gte": beginTime,
 				"$lt":  endTime,
 			},
@@ -63,7 +63,7 @@ func (self *ModelCaseResultDao) GetModelCaseResultsByTime(ctx context.Context, b
 func (self *ModelCaseResultDao) GetModelCaseResultsByTimeAndEntryType(ctx context.Context, beginTime, endTime time.Time, entryType int64, failOrTotal bool) ([]ModelCaseResultModel, error) {
 	var result []ModelCaseResultModel
 	q := bson.M{
-		"update_time": bson.M{
+		"create_time": bson.M{
 			"$gte": beginTime,
 			"$lt":  endTime,
 		},
@@ -91,7 +91,7 @@ func (self *ModelCaseResultDao) GetModelCaseResultsByTimeAndEntryType(ctx contex
 func (self *ModelCaseResultDao) GetModelCaseResultsByTimeAndEntryTypeAndCaseType(ctx context.Context, beginTime, endTime time.Time, entryType int64, caseType string, failOrTotal bool) ([]ModelCaseResultModel, error) {
 	var result []ModelCaseResultModel
 	q := bson.M{
-		"update_time": bson.M{
+		"create_time": bson.M{
 			"$gte": beginTime,
 			"$lt":  endTime,
 		},

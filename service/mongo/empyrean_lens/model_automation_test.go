@@ -46,7 +46,7 @@ func TestGetCaseResultsByTime(t *testing.T) {
 	empyrean_lens.Init(ctx)
 	beginTime := time.Now().AddDate(0, 0, -1)
 	endTime := time.Now()
-	resp, err := GetCaseResultsByTime(ctx, beginTime, endTime, consts.EntryTypeWEB, "outline_continuity", true)
+	resp, err := GetCaseResultsByTime(ctx, beginTime, endTime, consts.EntryTypeWEB, "edu_tree_lost", true)
 	if err != nil {
 		t.Fatal(err)
 	}

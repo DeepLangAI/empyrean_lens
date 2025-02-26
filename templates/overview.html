@@ -3465,8 +3465,10 @@
             return "单文档大纲条数过多"
         } else if (caseType === "outline_original_count") {
             return "单文档大纲原文定位字数"
+        } else if (caseType === "edu_tree_lost") {
+            return "单文档原文不在edu tree中"
         }
-        return ""
+        return "UNKNOWN"
     }
 
     function displayModelDetails(modelDetails, date, entryType) {
@@ -3566,7 +3568,7 @@
         // const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 增加一天
 
         const startTime = formatDate(startDate)
-        console.log(startDate, startTime)
+        // console.log(startDate, startTime)
         // const endTime = formatDate(endDate)
 
         axios.get('/api/v1/report/model_case_result', {
@@ -3606,14 +3608,70 @@
         const details = caseDetails.data;
 
         // 动态生成表格行
-        const tableRows = details.map(detail => `
-    <tr class="data-row">
-        <td>${detail.entry_id}</td>
-        <td>${detail.case_result === true ? '成功' : '失败'}</td>
-<!--        <td>${detail.test_duration.toFixed(3)}</td>-->
-        <td>${detail.error_log}</td>
-    </tr>
-`).join('');
+//         const tableRows = details.map(detail => {
+//             // Process share_link if it's not empty
+//             let shareLinksCell = '';
+//             if (detail.share_link && detail.share_link.trim() !== '') {
+//                 const links = detail.share_link.split('\n');
+//                 const buttons = links.map((link, index) =>
+//                     `<button onclick="window.open('${link}', '_blank')" class="share-link-btn">${index === 0 ? 'web' : 'H5'}</button>`
+//                 ).join('<br />');
+//
+//                 shareLinksCell = `<td>${buttons}</td>`;
+//             } else {
+//                 shareLinksCell = '<td></td>';
+//             }
+//
+//             return `<tr class="data-row">
+//     <td>${detail.entry_id}</td>
+//     <td>${detail.case_result === true ? '成功' : '失败'}</td>
+//     <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+//     <td>${detail.error_log}</td>
+//     ${shareLinksCell}
+//   </tr>`;
+//         }).join('');
+        const tableRows = details.map(detail => {
+            // Process share_link if it's not empty
+            let shareLinksCell = '';
+            if (detail.share_link && detail.share_link.trim() !== '') {
+                const links = detail.share_link.split('\n');
+
+                // Create single button that checks device type and redirects accordingly
+                shareLinksCell = `<td>
+            <button onclick="(() => {
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const url = isMobile && links.length > 1 ? '${links[1]}' : '${links[0]}';
+                window.open(url, '_blank');
+            })()" class="share-link-btn">跳转到原文</button>
+        </td>`;
+            } else {
+                shareLinksCell = '<td></td>';
+            }
+
+            // Create copy to clipboard button for entry_id
+            const copyButton = `<button onclick="(() => {
+        navigator.clipboard.writeText('${detail.entry_id}').then(() => {
+            alert('已复制到剪贴板');
+        }).catch(err => {
+            console.error('复制失败: ', err);
+        });
+    })()" class="copy-btn">复制到剪切板</button>`;
+
+            return `<tr class="data-row">
+  <td>${copyButton}</td>
+  <td>${detail.case_result === true ? '成功' : '失败'}</td>
+  <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+  <td>${detail.error_log
+                .replace(/\\n/g, '<br>')
+                .replace(/\\u003c/g, '<')
+                .replace(/\\u003e/g, '>')
+                .replace(/\\u([a-fA-F0-9]{4})/g, (match, code) => String.fromCharCode(parseInt(code, 16)))
+                .replace(/\\\\/g, '\\')
+            }</td>
+  ${shareLinksCell}
+</tr>`;
+        }).join('');
+
 
         Swal.fire({
             html: `
@@ -3636,6 +3694,7 @@
                                     <th>测试结果</th>
 <!--                                    <th>测试时长</th>-->
                                     <th>错误日志</th>
+                                    <th>阅读器链接</th>
                                 </tr>
                             </thead>
                             <tbody>

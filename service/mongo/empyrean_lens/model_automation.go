@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/mongo/empyrean_lens"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"sort"
 	"time"
 )
 
@@ -66,6 +67,9 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 		}
 		resp = append(resp, rowData)
 	}
+	sort.Slice(resp, func(i, j int) bool {
+		return resp[i].Date > resp[j].Date
+	})
 	return resp, nil
 }
 
@@ -96,6 +100,9 @@ func GetModelAutomationInfoByTime(ctx context.Context, beginTime, endTime time.T
 		rowData.TotalNum = int64(tot)
 		resp = append(resp, &rowData)
 	}
+	sort.Slice(resp, func(i, j int) bool {
+		return len(resp[i].CaseType) < len(resp[j].CaseType)
+	})
 	return resp, nil
 }
 
@@ -107,13 +114,31 @@ func GetCaseResultsByTime(ctx context.Context, beginTime, endTime time.Time, ent
 	}
 	var resp []*empyrean_lens2.ModelCaseResultRespData
 	for _, caseResult := range caseResults {
+		shareLinkMap, flag := caseResult.FailureDetails["share_link"].(map[string]interface{})
+		shareUrl := ""
+		if flag {
+			if _, ok := shareLinkMap["web"]; ok {
+				shareUrl += shareLinkMap["web"].(string)
+			}
+			if shareUrl != "" {
+				shareUrl += "\n"
+			}
+			if _, ok := shareLinkMap["h5"]; ok {
+				shareUrl += shareLinkMap["h5"].(string)
+			}
+		}
+		hlog.CtxDebugf(ctx, "shareUrl: %v", shareUrl)
 		resp = append(resp, &empyrean_lens2.ModelCaseResultRespData{
 			EntryID:      caseResult.FileEntryId,
 			EntryType:    int64(caseResult.FileTypeDetail["entry_type"].(int32)),
 			CaseResult:   caseResult.CaseResult,
 			TestDuration: caseResult.TestDuration,
 			ErrorLog:     caseResult.ErrorLog,
+			ShareLink:    shareUrl,
 		})
 	}
+	sort.Slice(resp, func(i, j int) bool {
+		return resp[i].EntryID > resp[j].EntryID
+	})
 	return resp, nil
 }

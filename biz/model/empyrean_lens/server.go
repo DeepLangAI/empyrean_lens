@@ -34157,6 +34157,7 @@ type ModelCaseResultRespData struct {
 	CaseResult   bool    `thrift:"case_result,3" form:"case_result" json:"case_result" query:"case_result"`
 	TestDuration float64 `thrift:"test_duration,4" form:"test_duration" json:"test_duration" query:"test_duration"`
 	ErrorLog     string  `thrift:"error_log,5" form:"error_log" json:"error_log" query:"error_log"`
+	ShareLink    string  `thrift:"share_link,6" form:"share_link" json:"share_link" query:"share_link"`
 }
 
 func NewModelCaseResultRespData() *ModelCaseResultRespData {
@@ -34186,12 +34187,17 @@ func (p *ModelCaseResultRespData) GetErrorLog() (v string) {
 	return p.ErrorLog
 }
 
+func (p *ModelCaseResultRespData) GetShareLink() (v string) {
+	return p.ShareLink
+}
+
 var fieldIDToName_ModelCaseResultRespData = map[int16]string{
 	1: "entry_id",
 	2: "entry_type",
 	3: "case_result",
 	4: "test_duration",
 	5: "error_log",
+	6: "share_link",
 }
 
 func (p *ModelCaseResultRespData) Read(iprot thrift.TProtocol) (err error) {
@@ -34248,6 +34254,14 @@ func (p *ModelCaseResultRespData) Read(iprot thrift.TProtocol) (err error) {
 		case 5:
 			if fieldTypeId == thrift.STRING {
 				if err = p.ReadField5(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 6:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField6(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -34337,6 +34351,17 @@ func (p *ModelCaseResultRespData) ReadField5(iprot thrift.TProtocol) error {
 	p.ErrorLog = _field
 	return nil
 }
+func (p *ModelCaseResultRespData) ReadField6(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.ShareLink = _field
+	return nil
+}
 
 func (p *ModelCaseResultRespData) Write(oprot thrift.TProtocol) (err error) {
 
@@ -34363,6 +34388,10 @@ func (p *ModelCaseResultRespData) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField5(oprot); err != nil {
 			fieldId = 5
+			goto WriteFieldError
+		}
+		if err = p.writeField6(oprot); err != nil {
+			fieldId = 6
 			goto WriteFieldError
 		}
 	}
@@ -34466,6 +34495,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
+}
+
+func (p *ModelCaseResultRespData) writeField6(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("share_link", thrift.STRING, 6); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.ShareLink); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
 }
 
 func (p *ModelCaseResultRespData) String() string {

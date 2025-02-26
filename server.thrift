@@ -973,6 +973,7 @@ struct ModelCaseResultRespData {
    3: bool case_result
    4: double test_duration
    5: string error_log
+   6: string share_link
 }
 
 service Rentention{

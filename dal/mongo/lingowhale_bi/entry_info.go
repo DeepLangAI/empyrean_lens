@@ -348,8 +348,8 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 		}
 	}
 	unTextFilter := bson.M{
-		"$or":           untextMatch,
-		"content_index": "",
+		"$or": untextMatch,
+		//"content_index": "",
 	}
 
 	var unTextEntryInfos []*EntryInfo
@@ -465,8 +465,8 @@ func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query strin
 		}
 	}
 	unTextFilter := bson.M{
-		"$or":           untextMatch,
-		"content_index": "",
+		"$or": untextMatch,
+		//"content_index": "",
 	}
 
 	cur, err := biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{

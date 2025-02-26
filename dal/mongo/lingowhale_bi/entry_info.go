@@ -6,16 +6,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"os"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
+	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
-	"empyrean_lens/utils/gse"
-
-	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -219,8 +216,8 @@ func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, webS
 	if onlyOuter {
 		filter["user_type"] = 1
 	}
-	options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
-	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter, options)
+	need_fields := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter, need_fields)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -282,8 +279,8 @@ func (d *EntryInfoDao) CountByTimeRange(ctx context.Context, status []int32, web
 
 func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64, textCount, unTextCount int64) ([]*EntryInfo, error) {
 	var (
-		tokens      []string
-		textMatch   []bson.M
+		//tokens      []string
+		//textMatch   []bson.M
 		untextMatch []bson.M
 	)
 	// 其它过滤条件
@@ -306,30 +303,30 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 	var textEntryInfos []*EntryInfo
 	// query
 	isValidQuery, _ := utils.IsValidQuery(query)
-	if isValidQuery {
-		tokens = gse.InitGse().CutTextV1(query)
-	}
-	if len(tokens) > 0 {
-		textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
-		textMatch = append(textMatch, textFilter)
-		textMatch = append(textMatch, otherFilter)
-		if textCount > skip {
-			options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
-			cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": textMatch}, options)
-			if err != nil {
-				if errors.Is(err, mongo.ErrNoDocuments) {
-					return nil, nil
-				}
-				hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-				return nil, err
-			}
-			defer cur.Close(ctx)
-			if err = cur.All(ctx, &textEntryInfos); err != nil {
-				hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
-				return nil, err
-			}
-		}
-	}
+	//if isValidQuery {
+	//	tokens = gse.InitGse().CutTextV1(query)
+	//}
+	//if len(tokens) > 0 {
+	//	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
+	//	textMatch = append(textMatch, textFilter)
+	//	textMatch = append(textMatch, otherFilter)
+	//	if textCount > skip {
+	//		options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+	//		cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": textMatch}, options)
+	//		if err != nil {
+	//			if errors.Is(err, mongo.ErrNoDocuments) {
+	//				return nil, nil
+	//			}
+	//			hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+	//			return nil, err
+	//		}
+	//		defer cur.Close(ctx)
+	//		if err = cur.All(ctx, &textEntryInfos); err != nil {
+	//			hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
+	//			return nil, err
+	//		}
+	//	}
+	//}
 
 	// 再查询非 text 索引
 	if isValidQuery {
@@ -346,7 +343,7 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 			untextMatch = append(untextMatch, bson.M{"entry_url": query}) // url
 		}
 		// 用户uid
-		if utils.IsAlphanumeric(query) {
+		if (!utils.IsValidObjectID(query)) && utils.IsAlphanumeric(query) {
 			untextMatch = append(untextMatch, bson.M{"user_id": query}) // user id
 		}
 	}
@@ -399,9 +396,9 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 
 func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time) (int64, int64, int64, int64, error) {
 	var (
-		textMatch   []bson.M
+		//textMatch   []bson.M
 		untextMatch []bson.M
-		tokens      []string
+		//tokens      []string
 	)
 	textResults := []GroupResult{}
 	// 其它过滤条件
@@ -422,32 +419,32 @@ func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query strin
 	}
 	// query
 	isValidQuery, _ := utils.IsValidQuery(query)
-	if isValidQuery {
-		tokens = gse.InitGse().CutTextV1(query)
-	}
-	if len(tokens) > 0 {
-		textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
-		textMatch = append(textMatch, textFilter)
-		textMatch = append(textMatch, otherFilter)
-		// 统计用户数、行为数，text 索引
-		cur, err := biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
-			bson.D{{Key: "$match", Value: bson.M{"$and": textMatch}}},
-			bson.D{{Key: "$project", Value: bson.D{{Key: "user_id", Value: 1}}}},
-			bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: "$user_id"}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
-		})
-		if err != nil {
-			if errors.Is(err, mongo.ErrNoDocuments) {
-				return 0, 0, 0, 0, nil
-			}
-			hlog.CtxErrorf(ctx, "db error, method:CountByQueryAndTimeRange, err:%+v", err)
-			return 0, 0, 0, 0, err
-		}
-		defer cur.Close(ctx)
-		if err = cur.All(ctx, &textResults); err != nil {
-			hlog.CtxErrorf(ctx, "db error, method:CountByQueryAndTimeRange, err:%+v", err)
-			return 0, 0, 0, 0, err
-		}
-	}
+	//if isValidQuery {
+	//	tokens = gse.InitGse().CutTextV1(query)
+	//}
+	//if len(tokens) > 0 {
+	//	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
+	//	textMatch = append(textMatch, textFilter)
+	//	textMatch = append(textMatch, otherFilter)
+	//	// 统计用户数、行为数，text 索引
+	//	cur, err := biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
+	//		bson.D{{Key: "$match", Value: bson.M{"$and": textMatch}}},
+	//		bson.D{{Key: "$project", Value: bson.D{{Key: "user_id", Value: 1}}}},
+	//		bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: "$user_id"}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
+	//	})
+	//	if err != nil {
+	//		if errors.Is(err, mongo.ErrNoDocuments) {
+	//			return 0, 0, 0, 0, nil
+	//		}
+	//		hlog.CtxErrorf(ctx, "db error, method:CountByQueryAndTimeRange, err:%+v", err)
+	//		return 0, 0, 0, 0, err
+	//	}
+	//	defer cur.Close(ctx)
+	//	if err = cur.All(ctx, &textResults); err != nil {
+	//		hlog.CtxErrorf(ctx, "db error, method:CountByQueryAndTimeRange, err:%+v", err)
+	//		return 0, 0, 0, 0, err
+	//	}
+	//}
 	// 统计用户数、行为数，非 text 索引
 	if isValidQuery {
 		untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": query}}) // 标题
@@ -463,7 +460,7 @@ func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query strin
 			untextMatch = append(untextMatch, bson.M{"entry_url": query}) // url
 		}
 		// 用户uid
-		if utils.IsAlphanumeric(query) {
+		if (!utils.IsValidObjectID(query)) && utils.IsAlphanumeric(query) {
 			untextMatch = append(untextMatch, bson.M{"user_id": query}) // user id
 		}
 	}

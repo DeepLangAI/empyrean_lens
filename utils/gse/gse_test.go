@@ -7,7 +7,7 @@ import (
 
 func TestCutTextV1_EmptyInput(t *testing.T) {
 
-	query := "6762b26e1c8cda9b178a2718"
+	query := "6711ff7cb9b31534c35511fc"
 	tokens := InitGse().CutTextV1(query)
 	fmt.Println(tokens)
 }

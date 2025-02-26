@@ -210,3 +210,15 @@ func TestParseQuery_validQuery_ReturnsFalse(t *testing.T) {
 		t.Errorf("ParseQuery(%s) = %v; want %v", query, actual, expected)
 	}
 }
+
+func TestIsValidQuery(t *testing.T) {
+	got, err := IsValidQuery("6711ff7cb9b31534c35511fc")
+	if err != nil {
+		t.Errorf("IsValidQuery() error = %v", err)
+	}
+	if got != false {
+		t.Errorf("IsValidQuery() = %v, want %v", got, false)
+	}
+
+	t.Errorf("IsValidQuery() = %v, want %v", got, true)
+}

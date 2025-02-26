@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"empyrean_lens/tools"
 	"path/filepath"
 	"strings"
 	"time"
@@ -53,10 +52,10 @@ func main() {
 	gse.InitGse()
 
 	//SaveUserLogsOnce()
-	InitExcelOnce()
-
-	runner := tools.ProbeRunner{}
-	runner.Run(context.Background())
+	//InitExcelOnce()
+	//
+	//runner := tools.ProbeRunner{}
+	//runner.Run(context.Background())
 
 	h := server.Default(server.WithHostPorts(conf.GetConfig().Server.Port))
 

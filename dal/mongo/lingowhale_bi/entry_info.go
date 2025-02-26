@@ -3,6 +3,7 @@ package bi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"os"
 	"sort"
@@ -330,7 +331,9 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 
 	// 再查询非 text 索引
 	if isValidQuery {
-		untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": query}}) // 标题
+		regexPattern := fmt.Sprintf(".*%s.*", query)
+		untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": regexPattern, "$options": "i"}})
+		//untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": query}}) // 标题
 	} else {
 		// 文档id
 		if utils.IsValidObjectID(query) {
@@ -447,7 +450,9 @@ func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query strin
 	//}
 	// 统计用户数、行为数，非 text 索引
 	if isValidQuery {
-		untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": query}}) // 标题
+		regexPattern := fmt.Sprintf(".*%s.*", query)
+		untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": regexPattern, "$options": "i"}})
+		//untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": query}}) // 标题
 	} else {
 		// 文档id
 		if utils.IsValidObjectID(query) {

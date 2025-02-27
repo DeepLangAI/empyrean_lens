@@ -976,6 +976,16 @@ struct ModelCaseResultRespData {
    6: string share_link
 }
 
+struct ModelCaseInfoSaveReq {
+    1: string db_name
+    2: map<string, string> info
+}
+
+struct ModelCaseInfoSaveResp {
+    1: i64 code
+    2: string msg
+}
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -1076,6 +1086,10 @@ service Rentention{
    // get model case result
    ModelCaseResultResp ModelCaseResult(1: ModelCaseResultReq req) (
        api.get="/api/v1/report/model_case_result"
+   )
+   // save model case info
+   ModelCaseInfoSaveResp ModelCaseInfoSave(1: ModelCaseInfoSaveReq req) (
+       api.post="/api/v1/report/model/save"
    )
 }
 

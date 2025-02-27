@@ -2,8 +2,11 @@ package empyrean_lens
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -11,6 +14,7 @@ import (
 var TableNameModelCaseResult = "model_case_result"
 
 type ModelCaseResultModel struct {
+	Id             primitive.ObjectID     `bson:"_id"`
 	CaseId         string                 `bson:"case_id"`
 	FileEntryId    string                 `bson:"file_entry_id"`
 	FileTypeDetail map[string]interface{} `bson:"file_type_detail"`
@@ -115,4 +119,62 @@ func (self *ModelCaseResultDao) GetModelCaseResultsByTimeAndEntryTypeAndCaseType
 		return nil, err
 	}
 	return result, nil
+}
+
+func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req map[string]string) error {
+	caseId := req["case_id"]
+	fileEntryId := req["file_entry_id"]
+	fileTypeDetail := make(map[string]interface{})
+	if ft, ok := req["file_type_detail"]; ok {
+		if err := json.Unmarshal([]byte(ft), &fileTypeDetail); err != nil {
+			hlog.CtxErrorf(ctx, "parse file_type_detail error in SaveModelCaseResultInfo :%v", err)
+			return err
+		}
+	}
+	caseResult := req["case_result"]
+	caseType := req["case_type"]
+	failureDetails := make(map[string]interface{})
+	if fd, ok := req["failure_details"]; ok {
+		if err := json.Unmarshal([]byte(fd), &failureDetails); err != nil {
+			hlog.CtxErrorf(ctx, "parse failure_details error in SaveModelCaseResultInfo :%v", err)
+			return err
+		}
+	}
+	testDuration := req["test_duration"]
+	testDurationFloat, err := strconv.ParseFloat(testDuration, 64)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse test_duration error in SaveModelCaseResultInfo :%v", err)
+	}
+	errorLog := req["error_log"]
+	extra := make(map[string]interface{})
+	if ex, ok := req["extra"]; ok {
+		if err := json.Unmarshal([]byte(ex), &extra); err != nil {
+			hlog.CtxErrorf(ctx, "parse extra error in SaveModelCaseResultInfo :%v", err)
+			return err
+		}
+	}
+	model := ModelCaseResultModel{
+		Id:             primitive.NewObjectID(),
+		CaseId:         caseId,
+		FileEntryId:    fileEntryId,
+		FileTypeDetail: fileTypeDetail,
+		CaseResult:     caseResult == "true",
+		CaseType:       caseType,
+		FailureDetails: failureDetails,
+		TestDuration:   testDurationFloat,
+		ErrorLog:       errorLog,
+		IsUsing:        true,
+		Extra:          extra,
+		CreateTime:     time.Now(),
+		UpdateTime:     time.Now(),
+	}
+	hlog.CtxErrorf(ctx, "model = %+v", model)
+	_, err = probeDatabase.
+		Collection(TableNameModelCaseResult).
+		InsertOne(ctx, model)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "insert model_case_result model failed, err: %v", err)
+		return err
+	}
+	return nil
 }

@@ -3520,7 +3520,7 @@
                     <div id="back" onclick="back()"><</div>
                 </div>
                 <div id="模型测试详情">
-                    <h2>${date} ${platform} 测试详情（共 ${details.length} 条）</h2>
+                    <h1>${date} ${platform} 测试详情（共 ${details.length} 条）</h1>
                     <div class="table-wrapper">
                         <table class="table-container">
                             <thead>
@@ -3600,8 +3600,7 @@
         // $('#' + caseTypeChinese).show();
         const details = caseDetails.data;
         table.empty();
-        table.append(`<h2 style="text-align: center">{0}测试详情（共 {1} 条）</h2>`.format(caseType, details.length));
-        table.append(`<h3>仅失败记录</h3>`);
+        table.append(`<h1 style="text-align: center">{0}测试详情（共 {1} 条）</h1>`.format(caseType, details.length));
         const rowhead = `<tr>
 <!--                                    <th>entry_id</th>-->
 <!--                                    <th>测试时长</th>-->
@@ -3676,6 +3675,20 @@
                         let theme = themeMatch? themeMatch[1] : null;
 
                         errList += `${i+1}. 得分：${score}<br>主题：${theme}<br>大纲：${outline}<br>`;
+                    }
+                    row = `<tr class="data-row">
+                    <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+                    <td style="text-align: left">${errList}</td>
+                    ${shareLinksCell}
+                </tr>`;
+                }
+                else if(caseType === "大纲原文定位连续性") {
+                    let errorLog = detail.error_log;
+                    let logs = errorLog.split('\n');
+                    let errList = '';
+                    for(let i = 0; i < logs.length; i++) {
+                        const log = logs[i];
+                        errList += `${log}<br>`;
                     }
                     row = `<tr class="data-row">
                     <!-- <td>${detail.test_duration.toFixed(3)}</td>-->

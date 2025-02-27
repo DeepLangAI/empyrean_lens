@@ -152,3 +152,11 @@ func GetCaseResultsByTime(ctx context.Context, beginTime, endTime time.Time, ent
 	})
 	return resp, nil
 }
+
+func SaveModelAutomationInfo(ctx context.Context, req map[string]string) error {
+	return empyrean_lens.NewModelAutomationDao().SaveModelAutomationInfo(ctx, req)
+}
+
+func SaveModelCaseResultInfo(ctx context.Context, req map[string]string) error {
+	return empyrean_lens.NewModelCaseResultDao().SaveModelCaseResultInfo(ctx, req)
+}

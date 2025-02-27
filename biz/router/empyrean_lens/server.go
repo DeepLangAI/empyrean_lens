@@ -79,6 +79,10 @@ func Register(r *server.Hertz) {
 					_fail.GET("/list", append(_systemdailyapifailureinfoMw(), empyrean_lens.SystemDailyApiFailureInfo)...)
 				}
 				{
+					_model := _report.Group("/model", _modelMw()...)
+					_model.POST("/save", append(_modelcaseinfosaveMw(), empyrean_lens.ModelCaseInfoSave)...)
+				}
+				{
 					_probe := _report.Group("/probe", _probeMw()...)
 					_probe.GET("/detail", append(_systemprobelogdetailMw(), empyrean_lens.SystemProbeLogDetail)...)
 					_probe.GET("/list", append(_systemdailyapicostMw(), empyrean_lens.SystemDailyApiCost)...)

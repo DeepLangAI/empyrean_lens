@@ -5,6 +5,7 @@ import (
 	empyrean_lens2 "empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/mongo/empyrean_lens"
+	"errors"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sort"
@@ -35,11 +36,27 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 		hlog.CtxErrorf(ctx, "get model case result info error in GetDailyModelAutomationByTime :%v", err)
 		return nil, err
 	}
+	hlog.CtxErrorf(ctx, "get data done: %v", len(modelCaseResults))
 	// map<<date, entryType>, modelCaseResults>
 	dateEntryTypeModelCaseResultsMap := make(map[string]map[int][]empyrean_lens.ModelCaseResultModel)
 	for _, modelCaseResult := range modelCaseResults {
 		date := modelCaseResult.UpdateTime.Local().Format("2006-01-02")
-		entryType := int(modelCaseResult.FileTypeDetail["entry_type"].(int32))
+		var entryType int
+		if val, ok := modelCaseResult.FileTypeDetail["entry_type"]; ok && val != nil {
+			switch v := val.(type) {
+			case int:
+				entryType = v
+			case int32:
+				entryType = int(v)
+			case float64:
+				entryType = int(v)
+			default:
+				return nil, errors.New("entry_type is not valid")
+			}
+		} else {
+			return nil, errors.New("entry_type is not valid")
+		}
+		//entryType := int(modelCaseResult.FileTypeDetail["entry_type"].(int32))
 		if _, ok := dateEntryTypeModelCaseResultsMap[date]; !ok {
 			dateEntryTypeModelCaseResultsMap[date] = make(map[int][]empyrean_lens.ModelCaseResultModel)
 			dateEntryTypeModelCaseResultsMap[date][entryType] = make([]empyrean_lens.ModelCaseResultModel, 0)
@@ -78,6 +95,7 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 		}
 		resp = append(resp, rowData)
 	}
+	hlog.CtxErrorf(ctx, "get data done: %v", len(resp))
 	sort.Slice(resp, func(i, j int) bool {
 		return resp[i].Date > resp[j].Date
 	})

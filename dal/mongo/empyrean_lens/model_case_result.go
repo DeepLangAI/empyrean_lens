@@ -56,11 +56,13 @@ func (self *ModelCaseResultDao) GetModelCaseResultsByTime(ctx context.Context, b
 		hlog.CtxErrorf(ctx, "find model_case_result model failed, err: %v", err)
 		return nil, err
 	}
+	//hlog.CtxErrorf(ctx, "find model_case_result model done, line: 59, err: %v", err)
 	defer cur.Close(ctx)
 	if err = cur.All(ctx, &result); err != nil {
 		hlog.CtxErrorf(ctx, "find model_case_result model failed, err: %v", err)
 		return nil, err
 	}
+	//hlog.CtxErrorf(ctx, "find model_case_result model done, line: 65, err: %v", err)
 	return result, nil
 }
 

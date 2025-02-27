@@ -12,7 +12,7 @@ func TestModelCaseResultDao_GetModelCaseResultInfoByTime(t *testing.T) {
 	conf.InitConfig()
 	Init(ctx)
 	dao := NewModelCaseResultDao()
-	beginTime := time.Now().Add(-24 * time.Hour)
+	beginTime := time.Date(2025, 2, 24, 0, 0, 0, 0, time.Local)
 	endTime := time.Now()
 	result, err := dao.GetModelCaseResultsByTime(ctx, beginTime, endTime)
 	if err != nil {

@@ -157,9 +157,24 @@ func GetCaseResultsByTime(ctx context.Context, beginTime, endTime time.Time, ent
 			}
 		}
 		hlog.CtxDebugf(ctx, "shareUrl: %v", shareUrl)
+		var entryType int64
+		if val, ok := caseResult.FileTypeDetail["entry_type"]; ok && val != nil {
+			switch v := val.(type) {
+			case int:
+				entryType = int64(v)
+			case int32:
+				entryType = int64(v)
+			case float64:
+				entryType = int64(v)
+			default:
+				return nil, errors.New("entry_type is not valid")
+			}
+		} else {
+			return nil, errors.New("entry_type is not valid")
+		}
 		resp = append(resp, &empyrean_lens2.ModelCaseResultRespData{
 			EntryID:      caseResult.FileEntryId,
-			EntryType:    int64(caseResult.FileTypeDetail["entry_type"].(int32)),
+			EntryType:    entryType,
 			CaseResult:   caseResult.CaseResult,
 			TestDuration: caseResult.TestDuration,
 			ErrorLog:     caseResult.ErrorLog,

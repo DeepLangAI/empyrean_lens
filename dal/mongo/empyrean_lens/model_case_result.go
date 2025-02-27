@@ -132,6 +132,7 @@ func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req
 		}
 	}
 	caseResult := req["case_result"]
+	hlog.CtxErrorf(ctx, "caseResult = %v", caseResult)
 	caseType := req["case_type"]
 	failureDetails := make(map[string]interface{})
 	if fd, ok := req["failure_details"]; ok {
@@ -160,7 +161,7 @@ func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req
 		CaseId:         caseId,
 		FileEntryId:    fileEntryId,
 		FileTypeDetail: fileTypeDetail,
-		CaseResult:     caseResult == "true",
+		CaseResult:     caseResult == "True",
 		CaseType:       caseType,
 		FailureDetails: failureDetails,
 		TestDuration:   testDurationFloat,

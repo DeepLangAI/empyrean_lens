@@ -642,22 +642,25 @@ func doNodeApiLogs(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 			return "", nil, &consts.QueryRecordError
 		}
 		// 获取每一行日志
-		lineLogs, err := aliyun.EduParserOutResponseLinesQuery(ctx, entryInfo.EntryID, node.TraceID, start, end)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
-			return "", nil, &consts.QueryRecordError
-		}
-		totalOutPut := make([]string, 0, len(lineLogs))
-		for _, line := range lineLogs {
-			lineStr := GetReqRespFromMsg(line.Message, "line:")
-			totalOutPut = append(totalOutPut, lineStr)
-		}
 		var apiLogsOuput []aliyun.FileProcessLog
-		if len(totalOutPut) > 0 {
-			apiLogsOuput = []aliyun.FileProcessLog{lineLogs[0]}
-			totalOutPutStr, _ := json.Marshal(totalOutPut)
-			apiLogsOuput[0].Message = "resp:" + string(totalOutPutStr)
-		} else {
+		for _, inputLog := range apiLogsInput {
+			lineLogs, err := aliyun.EduParserOutResponseLinesQuery(ctx, entryInfo.EntryID, inputLog.TraceId, start, end)
+			if err != nil {
+				hlog.CtxErrorf(ctx, "[NodeApiLogs] get api logs failed, err: %v", err)
+				return "", nil, &consts.QueryRecordError
+			}
+			totalOutPut := make([]string, 0, len(lineLogs))
+			for _, line := range lineLogs {
+				lineStr := GetReqRespFromMsg(line.Message, "line:")
+				totalOutPut = append(totalOutPut, lineStr)
+			}
+			if len(totalOutPut) > 0 {
+				totalOutPutStr, _ := json.Marshal(totalOutPut)
+				lineLogs[0].Message = "resp:" + string(totalOutPutStr)
+				apiLogsOuput = append(apiLogsOuput, lineLogs[0])
+			}
+		}
+		if len(apiLogsOuput) == 0 {
 			// 如果没有逐行记录
 			apiLogsOuput, err = aliyun.EduParserOutResponseQuery(ctx, entryInfo.EntryID, start, end)
 			if err != nil {
@@ -1021,6 +1024,9 @@ func getReqAndResp(ctx context.Context, entryInfo *bi.EntryInfo, node *empyrean_
 		apiLogs = append(apiLogs, apiLog)
 	}
 	// 错误日志
+	if len(apiLogsInput) > 0 {
+		node.EnterTime = apiLogsInput[0].Asctime.Format(consts.DateTimeTemplate)
+	}
 	for _, errLog := range errLogs {
 		if node.Status != empyrean_lens.ActionStatusEnum_SUCCESS && (node.Type == empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH || node.Type == empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH || errLog.EnterTime >= node.EnterTime) {
 			apiLogs = append(apiLogs, errLog)
@@ -1234,33 +1240,67 @@ func GroupLogsByRetry(status empyrean_lens.ActionStatusEnum, logs []*empyrean_le
 	sort.Slice(inputLogs, func(i, j int) bool {
 		return inputLogs[i].EnterTime < inputLogs[j].EnterTime
 	})
-	// 按照重试将错误日志分组
 	groups := []*empyrean_lens.ApiLogGroup{}
-	for i := 0; i < len(inputLogs); i++ {
-		groupLogs := []*empyrean_lens.ApiLog{}
-		start, end := inputLogs[i].EnterTime, time.Now().Format(consts.DateTimeTemplate)
-		if i < len(inputLogs)-1 {
-			end = inputLogs[i+1].EnterTime
+	// 按照输入分组将错误日志分组
+	if len(inputLogs) > 0 {
+		// 输入的traceID是否都不同
+		inputTraceIDMapping := map[string]struct{}{}
+		for _, input := range inputLogs {
+			inputTraceIDMapping[input.TraceID] = struct{}{}
 		}
-		// 成功的节点，最后一次成功，所以没有错误日志
-		if status != empyrean_lens.ActionStatusEnum_SUCCESS || i != len(inputLogs)-1 {
-			for _, log := range logs {
-				if log.ErrorMsg != "" && log.EnterTime >= start && log.EnterTime < end {
-					groupLogs = append(groupLogs, log)
+		// 先按照traceID分组
+		groupLogsMapping := map[int][]*empyrean_lens.ApiLog{}
+		if len(inputTraceIDMapping) == len(inputLogs) {
+			usedLogsIdx := map[int]struct{}{}
+			for i := 0; i < len(inputLogs); i++ {
+				groupLogs := []*empyrean_lens.ApiLog{}
+				// 成功的节点，最后一次成功，所以没有错误日志
+				if status != empyrean_lens.ActionStatusEnum_SUCCESS || i != len(inputLogs)-1 {
+					for idx, log := range logs {
+						if log.ErrorMsg != "" && log.TraceID == inputLogs[i].TraceID {
+							groupLogs = append(groupLogs, log)
+							usedLogsIdx[idx] = struct{}{}
+						}
+					}
+				}
+				groupLogsMapping[i] = groupLogs
+			}
+			// 过滤未使用的
+			reaminLogs := []*empyrean_lens.ApiLog{}
+			for idx := range logs {
+				if _, ok := usedLogsIdx[idx]; !ok {
+					reaminLogs = append(reaminLogs, logs[idx])
 				}
 			}
+			logs = reaminLogs
 		}
-		sort.Slice(groupLogs, func(i, j int) bool {
-			return groupLogs[i].EnterTime < groupLogs[j].EnterTime
-		})
-		groupLogs = append([]*empyrean_lens.ApiLog{inputLogs[i]}, groupLogs...)
-		groups = append(groups, &empyrean_lens.ApiLogGroup{
-			Idx:  int32(i + 1),
-			Logs: groupLogs,
-		})
-	}
-	// group 为空，说明没有输入输出，按照trace_id分组
-	if len(groups) == 0 {
+		// 再按照时间对剩余的日志分组
+		for i := 0; i < len(inputLogs); i++ {
+			groupLogs := groupLogsMapping[i]
+			start, end := inputLogs[i].EnterTime, time.Now().Format(consts.DateTimeTemplate)
+			if i < len(inputLogs)-1 {
+				end = inputLogs[i+1].EnterTime
+			}
+			// 成功的节点，最后一次成功，所以没有错误日志
+			if status != empyrean_lens.ActionStatusEnum_SUCCESS || i != len(inputLogs)-1 {
+				for _, log := range logs {
+					if log.ErrorMsg != "" && log.EnterTime >= start && log.EnterTime < end {
+						groupLogs = append(groupLogs, log)
+					}
+				}
+			}
+			// 按照时间排序
+			sort.Slice(groupLogs, func(i, j int) bool {
+				return groupLogs[i].EnterTime < groupLogs[j].EnterTime
+			})
+			groupLogs = append([]*empyrean_lens.ApiLog{inputLogs[i]}, groupLogs...)
+			groups = append(groups, &empyrean_lens.ApiLogGroup{
+				Idx:  int32(i + 1),
+				Logs: groupLogs,
+			})
+		}
+	} else {
+		// 没有输入输出，按照traceID分组
 		traceIDs := []string{}
 		traceMapping := map[string][]*empyrean_lens.ApiLog{}
 		for _, log := range logs {

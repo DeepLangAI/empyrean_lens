@@ -619,13 +619,19 @@ func IsRetryMultiOutline(ctx context.Context, multiAigcInfo *plugin.MultiAigc) b
 func getWebReaderLinkTracePracessConfig(ctx context.Context, webReaderInfo *plugin.WebReader, withoutSummary bool) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
 	pracessList := consts.SingleWebReaderProcessList
 	pracessMapping := consts.SingleWebReaderProcessMapping
+	// 多文档不需要模型生成
 	if webReaderInfo.CopyFromResourceID == "" && webReaderInfo.MultiId != "" {
 		pracessList = consts.MultiWebReaderProcessList
 		pracessMapping = consts.MultiWebReaderProcessMapping
 	}
 	if webReaderInfo.CopyFromResourceID != "" {
-		pracessList = consts.SubscribeWebReaderProcessList
-		pracessMapping = consts.SubscribeWebReaderProcessMapping
+		if webReaderInfo.MultiId == "" {
+			pracessList = consts.SubscribeWebReaderProcessList
+			pracessMapping = consts.SubscribeWebReaderProcessMapping
+		} else {
+			pracessList = consts.MultiWebReaderProcessList
+			pracessMapping = consts.MultiWebReaderProcessMapping
+		}
 	}
 	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
 	// 订阅来源，没有crawler节点
@@ -672,8 +678,13 @@ func getFileLinkTracePracessConfig(ctx context.Context, fileInfo *plugin.File, w
 		pracessMapping = consts.MultiFileProcessMapping
 	}
 	if fileInfo.CopyFromResourceID != "" {
-		pracessList = consts.SubscribeFileProcessList
-		pracessMapping = consts.SubscribeFileProcessMapping
+		if fileInfo.MultiId == "" {
+			pracessList = consts.SubscribeFileProcessList
+			pracessMapping = consts.SubscribeFileProcessMapping
+		} else {
+			pracessList = consts.MultiFileProcessList
+			pracessMapping = consts.MultiFileProcessMapping
+		}
 	}
 	noNeedNodeType := []empyrean_lens.LinkNodeTypeEnum{}
 	// copy来源，不需要上传节点
@@ -812,7 +823,6 @@ func getSubscribeLinkTracePracessConfig(entryType int, novelFormID string, isFro
 		} else {
 			pracessList, pracessMapping = consts.MultiWebReaderProcessList, consts.MultiWebReaderProcessMapping
 			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_UPLOAD_FINISH)
-			noNeedNodeType = append(noNeedNodeType, empyrean_lens.LinkNodeTypeEnum_CRAWLER_FINISH)
 		}
 	case int(empyrean_lens.EntryTypeEnum_SUBSCRIBE_FILE):
 		if !isFromMulti {
@@ -863,10 +873,8 @@ func getSummaryLinkTracePracessConfig(ctx context.Context, summaryInfo *plugin.S
 
 func getMultiLinkTracePracessConfig(ctx context.Context, multiInfo *plugin.MultiModel) ([]empyrean_lens.LinkNodeTypeEnum, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum) {
 	pracessList, pracessMapping := consts.MultiProcessList, consts.MultiProcessMapping
-	if multiInfo.CopyFromMultiID != "" || multiInfo.CopyFromResourceID != "" {
-		return []empyrean_lens.LinkNodeTypeEnum{
-			empyrean_lens.LinkNodeTypeEnum_MULTI_TOPIC_FINISH,
-		}, map[empyrean_lens.LinkNodeTypeEnum][]empyrean_lens.LinkNodeTypeEnum{}
+	if multiInfo.CopyFromResourceID != "" {
+		return consts.SubscribeMultiProcessList, consts.SubscribeMultiProcessMapping
 	}
 	return pracessList, pracessMapping
 }
@@ -1767,8 +1775,12 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 			hlog.CtxErrorf(ctx, "[TraceIDQueryByUserID] get traceID failed, err: %v", err)
 			return nil, &consts.QueryRecordError
 		}
+		logs := append(logs1, logs2...)
+		sort.Slice(logs, func(i, j int) bool {
+			return logs[i].Asctime.After(logs[j].Asctime)
+		})
 		queryMapping := map[string]struct{}{}
-		for _, log := range append(logs1, logs2...) {
+		for _, log := range logs {
 			traceID := log.TraceId
 			if _, ok := queryMapping[traceID]; ok {
 				continue
@@ -1807,7 +1819,8 @@ func doGetProcessNode(ctx context.Context, processType empyrean_lens.LinkNodeTyp
 					continue
 				}
 				// 时间判断
-				if summaryInfo.CreateTime.Add(5*time.Second).Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) {
+				if summaryInfo.CreateTime.Add(5*time.Second).Format(consts.DateTimeTemplate) > log.Asctime.Format(consts.DateTimeTemplate) &&
+					summaryInfo.CreateTime.Add(-1*time.Hour).Format(consts.DateTimeTemplate) < log.Asctime.Format(consts.DateTimeTemplate) {
 					newApiLogsInput = append(newApiLogsInput, log)
 				}
 			}

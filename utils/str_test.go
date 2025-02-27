@@ -138,3 +138,87 @@ func TestUnMarshalJson(t *testing.T) {
 	output := UnMarshalJson(s)
 	fmt.Println(output)
 }
+
+func TestParseQuery_ValidObjectID_ReturnsTrue(t *testing.T) {
+	query := "507f1f77bcf86cd799439011"
+	expected := false
+	actual, _ := IsValidQuery(query)
+	if actual != expected {
+		t.Errorf("ParseQuery(%s) = %v; want %v", query, actual, expected)
+	}
+}
+
+func TestParseQuery_InvalidObjectID_ReturnsFalse(t *testing.T) {
+	query := "invalid-object-id"
+	expected := true
+	actual, _ := IsValidQuery(query)
+	if actual != expected {
+		t.Errorf("ParseQuery(%s) = %v; want %v", query, actual, expected)
+	}
+}
+
+func TestParseQuery_ValidURL_ReturnsFalse(t *testing.T) {
+	query := "http://example.com"
+	expected := false
+	actual, _ := IsValidQuery(query)
+	if actual != expected {
+		t.Errorf("ParseQuery(%s) = %v; want %v", query, actual, expected)
+	}
+}
+
+func TestParseQuery_InvalidURL_ReturnsFalse(t *testing.T) {
+	query := "ftp://example.com"
+	expected := false
+	actual, _ := IsValidQuery(query)
+	if actual != expected {
+		t.Errorf("ParseQuery(%s) = %v; want %v", query, actual, expected)
+	}
+}
+
+func TestParseQuery_ValidNumber_ReturnsTrue(t *testing.T) {
+	query := "12345abc"
+	expected := false
+	actual, _ := IsValidQuery(query)
+	if actual != expected {
+		t.Errorf("ParseQuery(%s) = %v; want %v", query, actual, expected)
+	}
+}
+
+func TestParseQuery_ValidUid_ReturnsTrue(t *testing.T) {
+	query := "8618120bd7324346a3ba6dae6feb78e6"
+	expected := false
+	actual, _ := IsValidQuery(query)
+	if actual != expected {
+		t.Errorf("ParseQuery(%s) = %v; want %v", query, actual, expected)
+	}
+}
+
+func TestParseQuery_InvalidNumber_ReturnsFalse(t *testing.T) {
+	query := "not-a-number"
+	expected := false
+	actual, _ := IsValidQuery(query)
+	if actual != expected {
+		t.Errorf("ParseQuery(%s) = %v; want %v", query, actual, expected)
+	}
+}
+
+func TestParseQuery_validQuery_ReturnsFalse(t *testing.T) {
+	query := "世界"
+	expected := true
+	actual, _ := IsValidQuery(query)
+	if actual != expected {
+		t.Errorf("ParseQuery(%s) = %v; want %v", query, actual, expected)
+	}
+}
+
+func TestIsValidQuery(t *testing.T) {
+	got, err := IsValidQuery("6711ff7cb9b31534c35511fc")
+	if err != nil {
+		t.Errorf("IsValidQuery() error = %v", err)
+	}
+	if got != false {
+		t.Errorf("IsValidQuery() = %v, want %v", got, false)
+	}
+
+	t.Errorf("IsValidQuery() = %v, want %v", got, true)
+}

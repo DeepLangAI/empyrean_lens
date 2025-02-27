@@ -3,6 +3,7 @@
 package empyrean_lens
 
 import (
+	"empyrean_lens/biz/handler"
 	empyrean_lens "empyrean_lens/biz/handler/empyrean_lens"
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
@@ -17,6 +18,7 @@ import (
 func Register(r *server.Hertz) {
 
 	root := r.Group("/", rootMw()...)
+	root.GET("/", append(rootMw(), handler.Ping)...)
 	{
 		_api := root.Group("/api", _apiMw()...)
 		{
@@ -118,5 +120,6 @@ func Register(r *server.Hertz) {
 				}
 			}
 		}
+
 	}
 }

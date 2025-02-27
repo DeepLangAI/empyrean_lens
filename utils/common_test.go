@@ -54,3 +54,8 @@ func TestGetIPLocation1(t *testing.T) {
 	assert.True(t, location != "-")
 	fmt.Println(location)
 }
+
+func TestIsValidObjectID(t *testing.T) {
+	//assert.Equalf(t, tt.want, IsValidObjectID(tt.args.id), "IsValidObjectID(%v)", tt.args.id)
+	fmt.Println(IsValidObjectID("8126d3fcc4da4ef18d8d08a77dfe274c"))
+}

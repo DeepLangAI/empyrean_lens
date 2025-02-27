@@ -4,8 +4,6 @@ package handler
 
 import (
 	"context"
-	"os"
-
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/utils"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
@@ -13,8 +11,7 @@ import (
 
 // Ping .
 func Ping(ctx context.Context, c *app.RequestContext) {
-	wd, _ := os.Getwd()
 	c.JSON(consts.StatusOK, utils.H{
-		"message": wd,
+		"message": "success",
 	})
 }

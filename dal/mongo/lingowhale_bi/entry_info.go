@@ -3,22 +3,20 @@ package bi
 import (
 	"context"
 	"errors"
+	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"os"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
+	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"empyrean_lens/biz/model/empyrean_lens"
 	"empyrean_lens/consts"
 	"empyrean_lens/utils"
-	"empyrean_lens/utils/gse"
-
-	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -219,8 +217,8 @@ func (d *EntryInfoDao) FindByTimeRange(ctx context.Context, status []int32, webS
 	if onlyOuter {
 		filter["user_type"] = 1
 	}
-	options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
-	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter, options)
+	need_fields := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, filter, need_fields)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -281,19 +279,11 @@ func (d *EntryInfoDao) CountByTimeRange(ctx context.Context, status []int32, web
 }
 
 func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time, skip, limit int64, textCount, unTextCount int64) ([]*EntryInfo, error) {
-	tokens := gse.InitGse().CutTextV1(query)
-	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
-	unTextFilter := bson.M{
-		"$or": []bson.M{
-			{"title": bson.M{"$regex": query}},    // 标题
-			{"user_id": query},                    // user id
-			{"entry_id": query},                   // entry id
-			{"entry_url": query},                  // url
-			{"multi_articles.entry_id": query},    // 子文档
-			{"source_entry_info.entry_id": query}, // 来源文档
-		},
-		"content_index": "",
-	}
+	var (
+		//tokens      []string
+		//textMatch   []bson.M
+		untextMatch []bson.M
+	)
 	// 其它过滤条件
 	otherFilter := bson.M{
 		"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime},
@@ -312,23 +302,59 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 	}
 	// 先查询 text 索引
 	var textEntryInfos []*EntryInfo
-	if textCount > skip {
-		options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
-		cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": []bson.M{textFilter, otherFilter}}, options)
-		if err != nil {
-			if errors.Is(err, mongo.ErrNoDocuments) {
-				return nil, nil
-			}
-			hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-			return nil, err
+	// query
+	isValidQuery, _ := utils.IsValidQuery(query)
+	//if isValidQuery {
+	//	tokens = gse.InitGse().CutTextV1(query)
+	//}
+	//if len(tokens) > 0 {
+	//	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
+	//	textMatch = append(textMatch, textFilter)
+	//	textMatch = append(textMatch, otherFilter)
+	//	if textCount > skip {
+	//		options := options.Find().SetSort(bson.D{{Key: "entry_create_time", Value: -1}}).SetLimit(limit).SetSkip(skip)
+	//		cur, err := biCollection.Collection(TableNameEntryInfo()).Find(ctx, bson.M{"$and": textMatch}, options)
+	//		if err != nil {
+	//			if errors.Is(err, mongo.ErrNoDocuments) {
+	//				return nil, nil
+	//			}
+	//			hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+	//			return nil, err
+	//		}
+	//		defer cur.Close(ctx)
+	//		if err = cur.All(ctx, &textEntryInfos); err != nil {
+	//			hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
+	//			return nil, err
+	//		}
+	//	}
+	//}
+
+	// 再查询非 text 索引
+	if isValidQuery {
+		regexPattern := fmt.Sprintf(".*%s.*", query)
+		untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": regexPattern, "$options": "i"}})
+		//untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": query}}) // 标题
+	} else {
+		// 文档id
+		if utils.IsValidObjectID(query) {
+			untextMatch = append(untextMatch, bson.M{"entry_id": query})                   // entry id
+			untextMatch = append(untextMatch, bson.M{"source_entry_info.entry_id": query}) // 来源文档
+			untextMatch = append(untextMatch, bson.M{"multi_articles.entry_id": query})    // 子文档
 		}
-		defer cur.Close(ctx)
-		if err = cur.All(ctx, &textEntryInfos); err != nil {
-			hlog.CtxErrorf(ctx, "[FindByQueryAndTimeRange] mongo all error:%+v", err)
-			return nil, err
+		// url
+		if utils.IsValidUrl(query) {
+			untextMatch = append(untextMatch, bson.M{"entry_url": query}) // url
+		}
+		// 用户uid
+		if (!utils.IsValidObjectID(query)) && utils.IsAlphanumeric(query) {
+			untextMatch = append(untextMatch, bson.M{"user_id": query}) // user id
 		}
 	}
-	// 再查询非 text 索引
+	unTextFilter := bson.M{
+		"$or": untextMatch,
+		//"content_index": "",
+	}
+
 	var unTextEntryInfos []*EntryInfo
 	if len(textEntryInfos) < int(limit) {
 		newSkip := int64(0)
@@ -372,19 +398,12 @@ func (d *EntryInfoDao) FindByQueryAndTimeRange(ctx context.Context, query string
 }
 
 func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query string, status []int32, webSites, actionNames []string, onlyOuter bool, startTime, endTime time.Time) (int64, int64, int64, int64, error) {
-	tokens := gse.InitGse().CutTextV1(query)
-	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
-	unTextFilter := bson.M{
-		"$or": []bson.M{
-			{"title": bson.M{"$regex": query}},    // 标题
-			{"user_id": query},                    // user id
-			{"entry_id": query},                   // entry id
-			{"entry_url": query},                  // url
-			{"multi_articles.entry_id": query},    // 子文档
-			{"source_entry_info.entry_id": query}, // 来源文档
-		},
-		"content_index": "",
-	}
+	var (
+		//textMatch   []bson.M
+		untextMatch []bson.M
+		//tokens      []string
+	)
+	textResults := []GroupResult{}
 	// 其它过滤条件
 	otherFilter := bson.M{
 		"entry_create_time": bson.M{"$gte": startTime, "$lt": endTime},
@@ -401,27 +420,61 @@ func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query strin
 	if onlyOuter {
 		otherFilter["user_type"] = 1
 	}
-	// 统计用户数、行为数，text 索引
-	cur, err := biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
-		bson.D{{Key: "$match", Value: bson.M{"$and": []bson.M{textFilter, otherFilter}}}},
-		bson.D{{Key: "$project", Value: bson.D{{Key: "user_id", Value: 1}}}},
-		bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: "$user_id"}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
-	})
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return 0, 0, 0, 0, nil
-		}
-		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return 0, 0, 0, 0, err
-	}
-	defer cur.Close(ctx)
-	textResults := []GroupResult{}
-	if err = cur.All(ctx, &textResults); err != nil {
-		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
-		return 0, 0, 0, 0, err
-	}
+	// query
+	isValidQuery, _ := utils.IsValidQuery(query)
+	//if isValidQuery {
+	//	tokens = gse.InitGse().CutTextV1(query)
+	//}
+	//if len(tokens) > 0 {
+	//	textFilter := bson.M{"$text": bson.M{"$search": "\"" + strings.Join(tokens, " ") + "\""}}
+	//	textMatch = append(textMatch, textFilter)
+	//	textMatch = append(textMatch, otherFilter)
+	//	// 统计用户数、行为数，text 索引
+	//	cur, err := biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
+	//		bson.D{{Key: "$match", Value: bson.M{"$and": textMatch}}},
+	//		bson.D{{Key: "$project", Value: bson.D{{Key: "user_id", Value: 1}}}},
+	//		bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: "$user_id"}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
+	//	})
+	//	if err != nil {
+	//		if errors.Is(err, mongo.ErrNoDocuments) {
+	//			return 0, 0, 0, 0, nil
+	//		}
+	//		hlog.CtxErrorf(ctx, "db error, method:CountByQueryAndTimeRange, err:%+v", err)
+	//		return 0, 0, 0, 0, err
+	//	}
+	//	defer cur.Close(ctx)
+	//	if err = cur.All(ctx, &textResults); err != nil {
+	//		hlog.CtxErrorf(ctx, "db error, method:CountByQueryAndTimeRange, err:%+v", err)
+	//		return 0, 0, 0, 0, err
+	//	}
+	//}
 	// 统计用户数、行为数，非 text 索引
-	cur, err = biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
+	if isValidQuery {
+		regexPattern := fmt.Sprintf(".*%s.*", query)
+		untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": regexPattern, "$options": "i"}})
+		//untextMatch = append(untextMatch, bson.M{"title": bson.M{"$regex": query}}) // 标题
+	} else {
+		// 文档id
+		if utils.IsValidObjectID(query) {
+			untextMatch = append(untextMatch, bson.M{"entry_id": query})                   // entry id
+			untextMatch = append(untextMatch, bson.M{"source_entry_info.entry_id": query}) // 来源文档
+			untextMatch = append(untextMatch, bson.M{"multi_articles.entry_id": query})    // 子文档
+		}
+		// url
+		if utils.IsValidUrl(query) {
+			untextMatch = append(untextMatch, bson.M{"entry_url": query}) // url
+		}
+		// 用户uid
+		if (!utils.IsValidObjectID(query)) && utils.IsAlphanumeric(query) {
+			untextMatch = append(untextMatch, bson.M{"user_id": query}) // user id
+		}
+	}
+	unTextFilter := bson.M{
+		"$or": untextMatch,
+		//"content_index": "",
+	}
+
+	cur, err := biCollection.Collection(TableNameEntryInfo()).Aggregate(ctx, mongo.Pipeline{
 		bson.D{{Key: "$match", Value: bson.M{"$and": []bson.M{unTextFilter, otherFilter}}}},
 		bson.D{{Key: "$project", Value: bson.D{{Key: "user_id", Value: 1}}}},
 		bson.D{{Key: "$group", Value: bson.D{{Key: "_id", Value: "$user_id"}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}}}},
@@ -430,13 +483,13 @@ func (d *EntryInfoDao) CountByQueryAndTimeRange(ctx context.Context, query strin
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return 0, 0, 0, 0, nil
 		}
-		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+		hlog.CtxErrorf(ctx, "db error, method:CountByQueryAndTimeRange, err:%+v", err)
 		return 0, 0, 0, 0, err
 	}
 	defer cur.Close(ctx)
 	unTextResults := []GroupResult{}
 	if err = cur.All(ctx, &unTextResults); err != nil {
-		hlog.CtxErrorf(ctx, "db error, method:FindByQueryAndTimeRange, err:%+v", err)
+		hlog.CtxErrorf(ctx, "db error, method:CountByQueryAndTimeRange, err:%+v", err)
 		return 0, 0, 0, 0, err
 	}
 	// 整合

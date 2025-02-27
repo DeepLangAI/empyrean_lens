@@ -5,11 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"unicode/utf8"
 
 	"github.com/bytedance/sonic"
 )
@@ -131,4 +132,42 @@ func processJSON(data interface{}) interface{} {
 		}
 	}
 	return data
+}
+
+func IsValidQuery(query string) (bool, error) {
+	// 判断 query是否为数据库id
+	if IsValidObjectID(query) {
+		return false, nil
+	}
+	// 判断 query是否为 url
+	if IsValidUrl(query) {
+		return false, nil
+	}
+	// 判断 query是否uid
+	if IsAlphanumeric(query) && CharLength(query) >= 24 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func IsAlphanumeric(s string) bool {
+	// 创建一个正则表达式，匹配仅包含字母和数字的字符串
+	re := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
+	return re.MatchString(s)
+}
+
+func IsValidUrl(query string) bool {
+	if strings.HasPrefix(query, "http://") || strings.HasPrefix(query, "https://") {
+		return true
+	}
+	return false
+}
+
+func CharLength(s string) int {
+	return utf8.RuneCountInString(s)
+}
+
+func ByteLength(s string) int {
+	return len(s)
 }

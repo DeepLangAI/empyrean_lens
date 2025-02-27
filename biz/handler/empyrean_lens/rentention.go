@@ -819,11 +819,30 @@ func ModelCaseInfoSave(ctx context.Context, c *app.RequestContext) {
 	}
 
 	resp := new(empyrean_lens.ModelCaseInfoSaveResp)
-
 	if req.DbName == "model_automation" {
-		err = empyrean_lens2.SaveModelAutomationInfo(ctx, req.Info)
+		returnId, err := empyrean_lens2.SaveModelAutomationInfo(ctx, req.Info)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "save model automation info error: %v", err)
+			resp.Code = int64(consts2.SystemErr.Code)
+			resp.Msg = consts2.SystemErr.Msg
+			//c.JSON(consts.StatusOK, resp)
+		} else {
+			resp.Code = 0
+			resp.Msg = returnId.Hex()
+		}
+		//c.JSON(consts.StatusOK, resp)
 	} else if req.DbName == "model_case_result" {
-		err = empyrean_lens2.SaveModelCaseResultInfo(ctx, req.Info)
+		returnId, err := empyrean_lens2.SaveModelCaseResultInfo(ctx, req.Info)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "save model case result info error: %v", err)
+			resp.Code = int64(consts2.SystemErr.Code)
+			resp.Msg = consts2.SystemErr.Msg
+			//c.JSON(consts.StatusOK, resp)
+		} else {
+			resp.Code = 0
+			resp.Msg = returnId.Hex()
+		}
+		//c.JSON(consts.StatusOK, resp)
 	}
 
 	c.JSON(consts.StatusOK, resp)

@@ -60,36 +60,37 @@ func (self *ModelAutomationDao) GetModelAutomationInfoByTime(ctx context.Context
 	return result, nil
 }
 
-func (self *ModelAutomationDao) SaveModelAutomationInfo(ctx context.Context, req map[string]string) error {
+func (self *ModelAutomationDao) SaveModelAutomationInfo(ctx context.Context, req map[string]string) (primitive.ObjectID, error) {
 	// 解析req, 构建Model
 	testCaseVersion := req["test_case_version"]
 	environmentConfig := make(map[string]interface{})
 	if ec, ok := req["environment_config"]; ok {
 		if err := json.Unmarshal([]byte(ec), &environmentConfig); err != nil {
-			return err
+			return primitive.ObjectID{}, err
 		}
 	}
 	modelVersion := req["model_version"]
 	fileEntryIds := make([]string, 0)
 	if fe, ok := req["file_entry_ids"]; ok {
 		if err := json.Unmarshal([]byte(fe), &fileEntryIds); err != nil {
-			return err
+			return primitive.ObjectID{}, err
 		}
 	}
 	resultCollection := make(map[string]interface{})
 	if rc, ok := req["result_collection"]; ok {
 		if err := json.Unmarshal([]byte(rc), &resultCollection); err != nil {
-			return err
+			return primitive.ObjectID{}, err
 		}
 	}
 	extra := make(map[string]interface{})
 	if ex, ok := req["extra"]; ok {
 		if err := json.Unmarshal([]byte(ex), &extra); err != nil {
-			return err
+			return primitive.ObjectID{}, err
 		}
 	}
+	id := primitive.NewObjectID()
 	model := ModelAutomationModel{
-		Id:                primitive.NewObjectID(),
+		Id:                id,
 		TestCaseVersion:   testCaseVersion,
 		ModelVersion:      modelVersion,
 		EnvironmentConfig: environmentConfig,
@@ -103,7 +104,7 @@ func (self *ModelAutomationDao) SaveModelAutomationInfo(ctx context.Context, req
 	_, err := probeDatabase.Collection(TableNameModelAutomation).InsertOne(ctx, model)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "insert model_automation model failed, err: %v", err)
-		return err
+		return primitive.ObjectID{}, err
 	}
-	return nil
+	return id, nil
 }

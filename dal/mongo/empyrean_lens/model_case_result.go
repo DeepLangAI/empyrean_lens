@@ -121,14 +121,14 @@ func (self *ModelCaseResultDao) GetModelCaseResultsByTimeAndEntryTypeAndCaseType
 	return result, nil
 }
 
-func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req map[string]string) error {
+func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req map[string]string) (primitive.ObjectID, error) {
 	caseId := req["case_id"]
 	fileEntryId := req["file_entry_id"]
 	fileTypeDetail := make(map[string]interface{})
 	if ft, ok := req["file_type_detail"]; ok {
 		if err := json.Unmarshal([]byte(ft), &fileTypeDetail); err != nil {
 			hlog.CtxErrorf(ctx, "parse file_type_detail error in SaveModelCaseResultInfo :%v", err)
-			return err
+			return primitive.ObjectID{}, err
 		}
 	}
 	caseResult := req["case_result"]
@@ -137,24 +137,26 @@ func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req
 	if fd, ok := req["failure_details"]; ok {
 		if err := json.Unmarshal([]byte(fd), &failureDetails); err != nil {
 			hlog.CtxErrorf(ctx, "parse failure_details error in SaveModelCaseResultInfo :%v", err)
-			return err
+			return primitive.ObjectID{}, err
 		}
 	}
 	testDuration := req["test_duration"]
 	testDurationFloat, err := strconv.ParseFloat(testDuration, 64)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "parse test_duration error in SaveModelCaseResultInfo :%v", err)
+		return primitive.ObjectID{}, err
 	}
 	errorLog := req["error_log"]
 	extra := make(map[string]interface{})
 	if ex, ok := req["extra"]; ok {
 		if err := json.Unmarshal([]byte(ex), &extra); err != nil {
 			hlog.CtxErrorf(ctx, "parse extra error in SaveModelCaseResultInfo :%v", err)
-			return err
+			return primitive.ObjectID{}, err
 		}
 	}
+	id := primitive.NewObjectID()
 	model := ModelCaseResultModel{
-		Id:             primitive.NewObjectID(),
+		Id:             id,
 		CaseId:         caseId,
 		FileEntryId:    fileEntryId,
 		FileTypeDetail: fileTypeDetail,
@@ -174,7 +176,7 @@ func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req
 		InsertOne(ctx, model)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "insert model_case_result model failed, err: %v", err)
-		return err
+		return primitive.ObjectID{}, err
 	}
-	return nil
+	return id, nil
 }

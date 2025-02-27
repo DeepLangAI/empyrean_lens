@@ -6,6 +6,7 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/mongo/empyrean_lens"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"sort"
 	"time"
 )
@@ -153,10 +154,10 @@ func GetCaseResultsByTime(ctx context.Context, beginTime, endTime time.Time, ent
 	return resp, nil
 }
 
-func SaveModelAutomationInfo(ctx context.Context, req map[string]string) error {
+func SaveModelAutomationInfo(ctx context.Context, req map[string]string) (primitive.ObjectID, error) {
 	return empyrean_lens.NewModelAutomationDao().SaveModelAutomationInfo(ctx, req)
 }
 
-func SaveModelCaseResultInfo(ctx context.Context, req map[string]string) error {
+func SaveModelCaseResultInfo(ctx context.Context, req map[string]string) (primitive.ObjectID, error) {
 	return empyrean_lens.NewModelCaseResultDao().SaveModelCaseResultInfo(ctx, req)
 }

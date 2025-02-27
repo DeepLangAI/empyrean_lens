@@ -14,10 +14,13 @@ type DailyModelAutomationData struct {
 	Date           string `json:"date"`
 	SingleFailNum  int    `json:"single_fail_num"`
 	SingleTotalNum int    `json:"single_total_num"`
+	SingleDocNum   int    `json:"single_doc_num"`
 	WebFailNum     int    `json:"web_fail_num"`
 	WebTotalNum    int    `json:"web_total_num"`
+	WebDocNum      int    `json:"web_doc_num"`
 	MultiFailNum   int    `json:"multi_fail_num"`
 	MultiTotalNum  int    `json:"multi_total_num"`
+	MultiDocNum    int    `json:"multi_doc_num"`
 }
 
 func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.Time) ([]DailyModelAutomationData, error) {
@@ -48,7 +51,11 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 		rowData.Date = date
 		for entryType, modelCaseResultsTemp := range entryTypeModelCaseResultsMap {
 			total, fail := 0, 0
+			entryIdSet := make(map[string]bool)
 			for _, modelCaseResult := range modelCaseResultsTemp {
+				if _, ok := entryIdSet[modelCaseResult.FileEntryId]; !ok {
+					entryIdSet[modelCaseResult.FileEntryId] = true
+				}
 				total++
 				if modelCaseResult.CaseResult == false {
 					fail++
@@ -57,12 +64,15 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 			if entryType == consts.EntryTypeWEB {
 				rowData.WebTotalNum = total
 				rowData.WebFailNum = fail
+				rowData.WebDocNum = len(entryIdSet)
 			} else if entryType == consts.EntryTypePDF {
 				rowData.SingleTotalNum = total
 				rowData.SingleFailNum = fail
+				rowData.SingleDocNum = len(entryIdSet)
 			} else if entryType == consts.EntryTypeMulti {
 				rowData.MultiTotalNum = total
 				rowData.MultiFailNum = fail
+				rowData.MultiDocNum = len(entryIdSet)
 			}
 		}
 		resp = append(resp, rowData)
@@ -101,7 +111,7 @@ func GetModelAutomationInfoByTime(ctx context.Context, beginTime, endTime time.T
 		resp = append(resp, &rowData)
 	}
 	sort.Slice(resp, func(i, j int) bool {
-		return len(resp[i].CaseType) < len(resp[j].CaseType)
+		return resp[i].CaseType < resp[j].CaseType
 	})
 	return resp, nil
 }

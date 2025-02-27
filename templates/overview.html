@@ -979,10 +979,13 @@
         <thead>
         <tr>
             <th>日期</th>
+            <th>Web文档总数</th>
             <th>Web测试总Case数</th>
             <th>Web测试失败Case数</th>
+            <th>Pdf文档总数</th>
             <th>Pdf测试总Case数</th>
             <th>Pdf测试失败Case数</th>
+            <th>多文档总数</th>
             <th>多文档测试总Case数</th>
             <th>多文档测试失败Case数</th>
         </tr>
@@ -991,11 +994,14 @@
         {{ range .DailyModelResult  }}
         <tr>
             <td data-label="日期">{{.Date }}</td>
-            <td data-label="Web测试总数" {{ if gt .WebTotalNum 0 }} class="clickable" onclick="showModelDetails(this, 7, false)" {{ end }}>{{.WebTotalNum }}</td>
+            <td data-label="Web文档总数">{{ .WebDocNum }}</td>
+            <td data-label="Web测试总数">{{.WebTotalNum }}</td>
             <td data-label="Web测试失败数" {{ if gt .WebFailNum 0 }} class="clickable" onclick="showModelDetails(this, 7, true)" {{ end }}>{{.WebFailNum }}</td>
-            <td data-label="Pdf测试总数" {{ if gt .SingleTotalNum 0 }} class="clickable" onclick="showModelDetails(this, 10, false)" {{ end }}>{{.SingleTotalNum }}</td>
+            <td data-label="Pdf文档总数">{{ .SingleDocNum }}</td>
+            <td data-label="Pdf测试总数">{{.SingleTotalNum }}</td>
             <td data-label="Pdf测试失败数" {{ if gt .SingleFailNum 0 }} class="clickable" onclick="showModelDetails(this, 10, true)" {{ end }}>{{.SingleFailNum }}</td>
-            <td data-label="多文档测试总数" {{ if gt .MultiTotalNum 0 }} class="clickable" onclick="showModelDetails(this, 12, false)" {{ end }}>{{.MultiTotalNum }}</td>
+            <td data-label="多文档总数">{{ .MultiDocNum }}</td>
+            <td data-label="多文档测试总数">{{.MultiTotalNum }}</td>
             <td data-label="多文档测试失败数" {{ if gt .MultiFailNum 0 }} class="clickable" onclick="showModelDetails(this, 12, true)" {{ end }}>{{.MultiFailNum }}</td>
         </tr>
         {{ end }}
@@ -3455,21 +3461,26 @@
     }
 
     function convertCaseType(caseType) {
-        if (caseType === "correlation") {
-            return "总结内容与原文相关性"
-        } else if (caseType === "outline_duplicate") {
-            return "单文档大纲重复"
-        } else if (caseType === "outline_continuity") {
-            return "单文档大纲原文定位连续性"
-        } else if (caseType === "outline_count") {
-            return "单文档大纲条数过多"
-        } else if (caseType === "outline_original_count") {
-            return "单文档大纲原文定位字数"
-        } else if (caseType === "edu_tree_lost") {
-            return "单文档原文不在edu tree中"
-        }
-        return "UNKNOWN"
+        return caseType
     }
+
+    // function convertCaseType(caseType) {
+    //     if (caseType === "correlation") {
+    //         return "总结内容与原文相关性"
+    //     } else if (caseType === "outline_duplicate") {
+    //         return "单文档大纲重复"
+    //     } else if (caseType === "outline_continuity") {
+    //         return "单文档大纲原文定位连续性"
+    //     } else if (caseType === "outline_count") {
+    //         return "单文档大纲条数过多"
+    //     } else if (caseType === "outline_original_count") {
+    //         return "单文档大纲原文定位字数较少"
+    //     } else if (caseType === "edu_tree_lost") {
+    //         return "单文档原文不在edu tree中"
+    //     }
+    //     return "UNKNOWN"
+    // }
+
 
     function displayModelDetails(modelDetails, date, entryType) {
         // 在这里实现显示分数细节的逻辑
@@ -3490,29 +3501,13 @@
         const tableRows = details.map(detail => `
     <tr class="data-row">
         <td>${convertCaseType(detail.case_type)}</td>
-        <td class="${detail.total_num !== 0 ? 'clickable' : ''}"
-            ${detail.total_num !== 0 ? `onclick="showCaseDetails('${date}', '${entryType}', '${detail.case_type}', false)"` : ''}>
-            ${detail.total_num}
-        </td>
+        <td>${detail.total_num}</td>
         <td class="${detail.fail_num !== 0 ? 'clickable' : ''}"
             ${detail.fail_num !== 0 ? `onclick="showCaseDetails('${date}', '${entryType}', '${detail.case_type}', true)"` : ''}>
             ${detail.fail_num}
         </td>
     </tr>
 `).join('');
-    //     const tableRows = details.map(detail => `
-    //     <tr class="data-row">
-    //         <td>${convertCaseType(detail.case_type)}</td>
-    //         <td
-    //         class="${detail.fail_num !== 0 ? 'clickable' : ''}"
-    //         ${detail.fail_num !== 0 ? `onclick=showCaseDetails('${date}', '${entryType}', '${detail.case_type}', true)` : ''}
-    //         >${detail.fail_num}</td>
-    //         <td
-    //         class="${detail.total_num !== 0 ? 'clickable' : ''}"
-    //         ${detail.total_num !== 0 ? `onclick=showCaseDetails('${date}', '${entryType}', '${detail.case_type}', false)` : ''}
-    //         >${detail.total_num}</td>
-    //     </tr>
-    // `).join('');
 
         Swal.fire({
             html: `
@@ -3531,8 +3526,8 @@
                             <thead>
                                 <tr>
                                     <th>case类型</th>
-                                    <th>测试总case数</th>
-                                    <th>测试失败case数</th>
+                                    <th>测试文档数</th>
+                                    <th>测试失败文档数</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -3541,6 +3536,9 @@
                         </table>
                     </div>
                 </div>
+                <div id="测试详情">
+                        <table id="case-result-table" class="table-container" ></table>
+                    </div>
             </div>
         `,
             showConfirmButton: false,
@@ -3591,218 +3589,414 @@
         String.prototype.format = function(...args) {
             return this.replace(/{(\d+)}/g, (match, index) => args[index]);
         };
-        console.log(entryType);
-        let platform = 'Pdf';
-        if (entryType === '7') {
-            platform = 'Web'
-        } else if (entryType === '12') {
-            platform = '多文档'
-        }
-        const caseTypeChinese = convertCaseType(caseType)
-        menus = [date + platform + caseTypeChinese]
+        menus.push('测试详情')
+
         // menus.push(caseTypeChinese)
         modifySidebar();
         // 不再显示#模型测试详情对应的div
-        // $('#模型测试详情').hide();
-        $('#' + caseTypeChinese).show();
+        $('#模型测试详情').hide();
+        $('#测试详情').show();
+        const table = $('#case-result-table');
+        // $('#' + caseTypeChinese).show();
         const details = caseDetails.data;
-
-        // 动态生成表格行
-//         const tableRows = details.map(detail => {
-//             // Process share_link if it's not empty
-//             let shareLinksCell = '';
-//             if (detail.share_link && detail.share_link.trim() !== '') {
-//                 const links = detail.share_link.split('\n');
-//                 const buttons = links.map((link, index) =>
-//                     `<button onclick="window.open('${link}', '_blank')" class="share-link-btn">${index === 0 ? 'web' : 'H5'}</button>`
-//                 ).join('<br />');
-//
-//                 shareLinksCell = `<td>${buttons}</td>`;
-//             } else {
-//                 shareLinksCell = '<td></td>';
-//             }
-//
-//             return `<tr class="data-row">
-//     <td>${detail.entry_id}</td>
-//     <td>${detail.case_result === true ? '成功' : '失败'}</td>
-//     <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
-//     <td>${detail.error_log}</td>
-//     ${shareLinksCell}
-//   </tr>`;
-//         }).join('');
-        const tableRows = details.map(detail => {
-            // Process share_link if it's not empty
-            let shareLinksCell = '';
-            if (detail.share_link && detail.share_link.trim() !== '') {
-                const links = detail.share_link.split('\n');
-
-                // Create single button that checks device type and redirects accordingly
-                shareLinksCell = `<td>
-            <button onclick="(() => {
-                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                const url = isMobile && links.length > 1 ? '${links[1]}' : '${links[0]}';
-                window.open(url, '_blank');
-            })()" class="share-link-btn">跳转到原文</button>
-        </td>`;
-            } else {
-                shareLinksCell = '<td></td>';
-            }
-
-            // Create copy to clipboard button for entry_id
-            const copyButton = `<button onclick="(() => {
-        navigator.clipboard.writeText('${detail.entry_id}').then(() => {
-            alert('已复制到剪贴板');
-        }).catch(err => {
-            console.error('复制失败: ', err);
-        });
-    })()" class="copy-btn">复制到剪切板</button>`;
-
-            return `<tr class="data-row">
-  <td>${copyButton}</td>
-  <td>${detail.case_result === true ? '成功' : '失败'}</td>
-  <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
-  <td>${detail.error_log
-                .replace(/\\n/g, '<br>')
-                .replace(/\\u003c/g, '<')
-                .replace(/\\u003e/g, '>')
-                .replace(/\\u([a-fA-F0-9]{4})/g, (match, code) => String.fromCharCode(parseInt(code, 16)))
-                .replace(/\\\\/g, '\\')
-            }</td>
-  ${shareLinksCell}
-</tr>`;
-        }).join('');
-
-
-        Swal.fire({
-            html: `
-            <div id="sidebar">
-                <div id="loading-container" class="loading-container">
-                    <div class="loading-spinner"></div>
-                </div>
-
-                <div id="menu">
-                    <div id="back" onclick="back()"><</div>
-                </div>
-                <div id="测试详情">
-                    <h2>测试详情（共 ${details.length} 条）</h2>
-                    <h3>${failOrTotal === true ? '仅失败记录' : '全部记录'}</h3>
-                    <div class="table-wrapper">
-                        <table class="table-container">
-                            <thead>
-                                <tr>
-                                    <th>entry_id</th>
-                                    <th>测试结果</th>
+        table.empty();
+        table.append(`<h2 style="text-align: center">{0}测试详情（共 {1} 条）</h2>`.format(caseType, details.length));
+        table.append(`<h3>仅失败记录</h3>`);
+        const rowhead = `<tr>
+<!--                                    <th>entry_id</th>-->
 <!--                                    <th>测试时长</th>-->
                                     <th>错误日志</th>
                                     <th>阅读器链接</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tableRows}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="swal-pagination-container">
-                        <div id="swal-pagination" class="swal-pagination"></div>
-                    </div>
-                </div>
-            </div>
+                                </tr>`;
+        table.append(rowhead);
 
-        `,
-            showConfirmButton: false,
-            customClass: {
-                popup: 'swal2-popup swal2-drawer',
-            },
-            didOpen: () => {
-                modifySidebar();
-                hideLoadingStatus();
-                // 分页功能
-                const itemsPerPage = 10;
-                const table = Swal.getPopup().querySelector('tbody');
-                const pagination = Swal.getPopup().querySelector('#swal-pagination');
-                let currentPage = 1;
+        // 分页设置
+        const rowsPerPage = 10; // 每页显示的行数
+        let currentPage = 1; // 当前页码
+        const totalPages = Math.ceil(details.length / rowsPerPage); // 总页数
 
-                function setupPagination() {
-                    const rows = table.querySelectorAll('tr');
-                    const pageCount = Math.ceil(rows.length / itemsPerPage);
-                    pagination.innerHTML = '';
+        // 创建表格数据容器
+        const tableBody = $('<tbody id="case-result-tbody"></tbody>');
+        table.append(tableBody);
 
-                    // 生成智能分页按钮
-                    const createPageItem = (page, text = page) => {
-                        const link = document.createElement('a');
-                        link.href = '#';
-                        link.textContent = text;
-                        if (page === currentPage) link.className = 'active';
-                        if (typeof page === 'number') {
-                            link.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                currentPage = page;
-                                updateTable();
-                                setupPagination();
-                            });
+        // 渲染指定页的数据
+        function renderTablePage(page) {
+            const tbody = $('#case-result-tbody');
+            tbody.empty();
+
+            const startIndex = (page - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, details.length);
+
+            // 生成当前页的表格行
+            for (let i = startIndex; i < endIndex; i++) {
+                const detail = details[i];
+
+                // Process share_link if it's not empty
+                let shareLinksCell = '';
+                // Create copy to clipboard button for entry_id
+                const copyButton = `<button onclick="(() => {
+                navigator.clipboard.writeText('${detail.entry_id}').then(() => {
+                    alert('entry_id已复制到剪贴板');
+                }).catch(err => {
+                    console.error('复制失败: ', err);
+                });
+            })()" class="copy-btn">复制id</button>`;
+
+                if (detail.share_link && detail.share_link.trim() !== '') {
+                    const links = detail.share_link.split('\n');
+
+                    // Create single button that checks device type and redirects accordingly
+                    shareLinksCell = `<td>
+                    <button onclick="(() => {
+                        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                        const url = isMobile && ${links.length > 1} ? '${links[1] || ''}' : '${links[0] || ''}';
+                        window.open(url, '_blank');
+                    })()" class="share-link-btn">跳转到原文</button>
+                    ${copyButton}
+                </td>`;
+                } else {
+                    shareLinksCell = `<td>${copyButton}</td>`;
+                }
+
+                let row = '';
+                if(caseType === '大纲与原文相关性') {
+                    let errorLog = detail.error_log;
+                    let logs = errorLog.split('\n');
+                    let errList = '';
+                    for(let i = 0; i < logs.length; i++) {
+                        const log = logs[i];
+                        // 1. 使用正则表达式匹配 score 和 outline
+                        let scoreMatch = log.match(/'score':\s*([\d.]+)/);
+                        let outlineMatch = log.match(/'outline':\s*'([^']+)'/);
+                        let themeMatch = log.match(/'theme':\s*'([^']+)'/);
+
+                        // 2. 获取匹配的内容
+                        let score = scoreMatch ? parseFloat(scoreMatch[1]) : null;
+                        let outline = outlineMatch ? outlineMatch[1] : null;
+                        let theme = themeMatch? themeMatch[1] : null;
+
+                        errList += `${i+1}. 得分：${score}<br>主题：${theme}<br>大纲：${outline}<br>`;
+                    }
+                    row = `<tr class="data-row">
+                    <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+                    <td style="text-align: left">${errList}</td>
+                    ${shareLinksCell}
+                </tr>`;
+                }
+                else if(caseType === "原文定位字数") {
+                    let errorLog = detail.error_log;
+
+                    // Extract original_sentences
+                    const originalMatch = errorLog.match(/'original_sentences':\s*'([^']*)'/);
+                    const originalSentence = originalMatch ? originalMatch[1] : "";
+
+                    // Extract theme
+                    const themeMatch = errorLog.match(/'theme':\s*'([^']*)'/);
+                    const theme = themeMatch ? themeMatch[1] : "";
+
+                    // Extract outline
+                    const outlineMatch = errorLog.match(/'outline':\s*'([^']*)'/);
+                    const outline = outlineMatch ? outlineMatch[1] : "";
+
+                    // Format the combined string as requested
+                    let resultString = `原句子：${originalSentence}<br>
+主题：${theme}<br>
+大纲：${outline}`;
+                    row = `<tr class="data-row">
+                    <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+                    <td style="text-align: left">${resultString}</td>
+                    ${shareLinksCell}
+                </tr>`;
+                } else if(caseType === "原文不在edu tree中") {
+                    try {
+                        let error_logs = JSON.parse(detail.error_log.replace(/\\u003c/g, '<')
+                            .replace(/\\u003e/g, '>')
+                            .replace(/\\u([a-fA-F0-9]{4})/g, (match, code) => String.fromCharCode(parseInt(code, 16)))
+                            .replace(/\\x([a-fA-F0-9]{2})/g, (match, code) => String.fromCharCode(parseInt(code, 16)))
+                            .replace(/\\\\/g, '\\').replace(/'/g, '"'));
+
+                        // Create a numbered list from error_logs
+                        let errorList = '';
+                        if (Array.isArray(error_logs)) {
+                            for (let i = 0; i < error_logs.length; i++) {
+                                errorList += `${i+1}. ${error_logs[i]}<br>`;
+                            }
+                        } else {
+                            // If error_logs is not an array, display it as a single item
+                            errorList = `1. ${error_logs}<br>`;
                         }
-                        return link;
-                    };
 
-                    // 生成页码区间
-                    let startPage = Math.max(2, currentPage - 1);
-                    let endPage = Math.min(pageCount - 1, currentPage + 1);
-
-                    // 始终显示第一页
-                    pagination.appendChild(createPageItem(1));
-
-                    const createEllipsis = () => {
-                        const span = document.createElement('span');
-                        span.textContent = '...';
-                        span.className = 'ellipsis';
-                        return span;
-                    };
-
-                    // 前省略号
-                    if (startPage > 2) {
-                        pagination.appendChild(createEllipsis());
+                        row = `<tr class="data-row">
+                        <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+                        <td style="text-align: left">${errorList}</td>
+                        ${shareLinksCell}
+                    </tr>`;
+                    } catch (e) {
+                        // 如果解析JSON失败，显示原始错误日志
+                        row = `<tr class="data-row">
+                        <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+                        <td style="text-align: left">解析错误: ${detail.error_log}</td>
+                        ${shareLinksCell}
+                    </tr>`;
                     }
-
-                    // 中间页码
-                    for (let i = startPage; i <= endPage; i++) {
-                        pagination.appendChild(createPageItem(i));
-                    }
-
-                    // 后省略号
-                    if (endPage < pageCount - 1) {
-                        pagination.appendChild(createEllipsis());
-                    }
-
-                    // 始终显示最后一页
-                    if (pageCount > 1) {
-                        pagination.appendChild(createPageItem(pageCount));
-                    }
-
-                    updateTable();
+                } else {
+                    row = `<tr class="data-row">
+                    <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+                    <td style="text-align: left">${detail.error_log
+                        .replace(/\\n/g, '<br>')
+                        .replace(/\\u003c/g, '<')
+                        .replace(/\\u003e/g, '>')
+                        .replace(/\\u([a-fA-F0-9]{4})/g, (match, code) => String.fromCharCode(parseInt(code, 16)))
+                        .replace(/\\\\/g, '\\')
+                    }</td>
+                    ${shareLinksCell}
+                </tr>`;
                 }
 
-                function updateTable() {
-                    const rows = table.querySelectorAll('tr');
-                    const start = (currentPage - 1) * itemsPerPage;
-                    const end = start + itemsPerPage;
-
-                    rows.forEach((row, index) => {
-                        row.style.display = (index >= start && index < end) ? '' : 'none';
-                    });
-                }
-
-                setupPagination();
-                // showRequestTrend(detail.date)
-            },
-            willClose: ()=>{
-                // $('.gallary-background').remove();
-                // $('#模型测试详情').show();
-            },
-            didClose: ()=>{
-                $(document).off('keydown');
+                tbody.append(row);
             }
-        });
+        }
+
+        // 添加分页控件
+        function addPagination() {
+            const paginationDiv = $('<div class="pagination-container" style="text-align: center; margin-top: 20px;"></div>');
+
+            // 添加上一页按钮
+            const prevBtn = $(`<button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`);
+            prevBtn.click(function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updatePagination();
+                    renderTablePage(currentPage);
+                }
+            });
+
+            // 添加页码显示
+            const pageInfo = $(`<span style="margin: 0 15px;">第 <span id="current-page">${currentPage}</span> 页，共 ${totalPages} 页</span>`);
+
+            // 添加下一页按钮
+            const nextBtn = $(`<button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`);
+            nextBtn.click(function() {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updatePagination();
+                    renderTablePage(currentPage);
+                }
+            });
+
+            // 添加跳转到指定页的功能
+            const jumpToPage = $(`
+            <div style="margin-top: 10px;">
+                跳转到: <input type="number" id="page-jump" min="1" max="${totalPages}" value="${currentPage}" style="width: 50px; text-align: center;">
+                <button id="jump-btn">确定</button>
+            </div>
+        `);
+            paginationDiv.empty();
+
+            paginationDiv.append(prevBtn);
+            paginationDiv.append(pageInfo);
+            paginationDiv.append(nextBtn);
+            paginationDiv.append(jumpToPage);
+
+            // 添加到表格后面
+            table.append(paginationDiv);
+
+            // 绑定跳转按钮事件
+            $('#jump-btn').click(function() {
+                const pageNum = parseInt($('#page-jump').val());
+                if (pageNum >= 1 && pageNum <= totalPages) {
+                    currentPage = pageNum;
+                    updatePagination();
+                    renderTablePage(currentPage);
+                } else {
+                    alert(`请输入1到${totalPages}之间的页码！`);
+                    $('#page-jump').val(currentPage);
+                }
+            });
+
+            // 监听回车键
+            $('#page-jump').keypress(function(e) {
+                if (e.which === 13) { // Enter key
+                    $('#jump-btn').click();
+                }
+            });
+        }
+
+        // 更新分页按钮状态
+        function updatePagination() {
+            $('#current-page').text(currentPage);
+            $('.pagination-btn').prop('disabled', false);
+            if (currentPage === 1) {
+                $('.pagination-btn:first').prop('disabled', true);
+            }
+            if (currentPage === totalPages) {
+                $('.pagination-btn:last').prop('disabled', true);
+            }
+            $('#page-jump').val(currentPage);
+        }
+
+        // 初始渲染第一页
+        renderTablePage(currentPage);
+
+        // 添加分页控件
+        if (totalPages > 1) {
+            addPagination();
+        }
+
+        // 添加简单的CSS样式
+        $('<style>')
+            .prop('type', 'text/css')
+            .html(`
+            .pagination-btn {
+                padding: 5px 10px;
+                border: 1px solid #ddd;
+                background-color: #f8f8f8;
+                cursor: pointer;
+                border-radius: 3px;
+            }
+            .pagination-btn:hover:not([disabled]) {
+                background-color: #e8e8e8;
+            }
+            .pagination-btn[disabled] {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            #page-jump {
+                padding: 5px;
+                border: 1px solid #ddd;
+                border-radius: 3px;
+            }
+            #jump-btn {
+                padding: 5px 10px;
+                border: 1px solid #ddd;
+                background-color: #f8f8f8;
+                cursor: pointer;
+                border-radius: 3px;
+            }
+        `)
+            .appendTo('head');
     }
+//     function displayCaseDetails(caseDetails, date, entryType, caseType, failOrTotal) {
+//         // 在这里实现显示分数细节的逻辑
+//         // console.log(scoreDetails);
+//         String.prototype.format = function(...args) {
+//             return this.replace(/{(\d+)}/g, (match, index) => args[index]);
+//         };
+//         menus.push('测试详情')
+//
+//         // menus.push(caseTypeChinese)
+//         modifySidebar();
+//         // 不再显示#模型测试详情对应的div
+//         $('#模型测试详情').hide();
+//         $('#测试详情').show();
+//         const table = $('#case-result-table');
+//         // $('#' + caseTypeChinese).show();
+//         const details = caseDetails.data;
+//         table.empty();
+//         table.append(`<h2 style="text-align: center">{0}测试详情（共 {1} 条）</h2>`.format(caseType, details.length));
+//         table.append(`<h3>仅失败记录</h3>`);
+//         const rowhead = `<tr>
+// <!--                                    <th>entry_id</th>-->
+// <!--                                    <th>测试时长</th>-->
+//                                     <th>错误日志</th>
+//                                     <th>阅读器链接</th>
+//                                 </tr>`;
+//         table.append(rowhead);
+//
+//
+//         // 动态生成表格行
+//         const tableRows = details.map(detail => {
+//             // Process share_link if it's not empty
+//             let shareLinksCell = '';
+//             // Create copy to clipboard button for entry_id
+//             const copyButton = `<button onclick="(() => {
+//         navigator.clipboard.writeText('${detail.entry_id}').then(() => {
+//             alert('entry_id已复制到剪贴板');
+//         }).catch(err => {
+//             console.error('复制失败: ', err);
+//         });
+//     })()" class="copy-btn">复制id</button>`;
+//             if (detail.share_link && detail.share_link.trim() !== '') {
+//                 const links = detail.share_link.split('\n');
+//
+//                 // Create single button that checks device type and redirects accordingly
+//                 shareLinksCell = `<td>
+//             <button onclick="(() => {
+//                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+//                 const url = isMobile && links.length > 1 ? '${links[1]}' : '${links[0]}';
+//                 window.open(url, '_blank');
+//             })()" class="share-link-btn">跳转到原文</button>
+//             ${copyButton}
+//         </td>`;
+//             } else {
+//                 shareLinksCell = '<td>${copyButton}</td>';
+//             }
+//             if(caseType === "原文定位字数") {
+//                 let errorLog = detail.error_log;
+//
+//                 // Extract original_sentences
+//                 const originalMatch = errorLog.match(/'original_sentences':\s*'([^']*)'/);
+//                 const originalSentence = originalMatch ? originalMatch[1] : "";
+//
+//                 // Extract theme
+//                 const themeMatch = errorLog.match(/'theme':\s*'([^']*)'/);
+//                 const theme = themeMatch ? themeMatch[1] : "";
+//
+//                 // Extract outline
+//                 const outlineMatch = errorLog.match(/'outline':\s*'([^']*)'/);
+//                 const outline = outlineMatch ? outlineMatch[1] : "";
+//
+//                 // Format the combined string as requested
+//                 let resultString = `原句子：${originalSentence}<br>
+// 主题：${theme}<br>
+// 大纲：${outline}`;
+//                     return `<tr class="data-row">
+//   <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+//   <td style="text-align: left">${resultString}</td>
+//   ${shareLinksCell}
+// </tr>
+// `;
+//             }
+//             if(caseType === "原文不在edu tree中") {
+//                 // console.log(detail.error_log);
+//                 let error_logs = JSON.parse(detail.error_log.replace(/\\u003c/g, '<')
+//                     .replace(/\\u003e/g, '>')
+//                     .replace(/\\u([a-fA-F0-9]{4})/g, (match, code) => String.fromCharCode(parseInt(code, 16)))
+//                     .replace(/\\x([a-fA-F0-9]{2})/g, (match, code) => String.fromCharCode(parseInt(code, 16)))
+//                     .replace(/\\\\/g, '\\').replace(/'/g, '"'));
+//                 // console.log(error_logs);
+//                 // Create a numbered list from error_logs
+//                 let errorList = '';
+//                 if (Array.isArray(error_logs)) {
+//                     for (let i = 0; i < error_logs.length; i++) {
+//                         errorList += `${i+1}. ${error_logs[i]}<br>`;
+//                     }
+//                 } else {
+//                     // If error_logs is not an array, display it as a single item
+//                     errorList = `1. ${error_logs}<br>`;
+//                 }
+//                 return `<tr class="data-row">
+//   <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+//   <td style="text-align: left">${errorList}</td>
+//   ${shareLinksCell}
+// </tr>
+// `;
+//             }
+//
+//             return `<tr class="data-row">
+//   <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
+//   <td style="text-align: left">${detail.error_log
+//                 .replace(/\\n/g, '<br>')
+//                 .replace(/\\u003c/g, '<')
+//                 .replace(/\\u003e/g, '>')
+//                 .replace(/\\u([a-fA-F0-9]{4})/g, (match, code) => String.fromCharCode(parseInt(code, 16)))
+//                 .replace(/\\\\/g, '\\')
+//             }</td>
+//   ${shareLinksCell}
+// </tr>`;
+//         }).join('');
+//         table.append(tableRows);
+//     }
 </script>
 
 </body>

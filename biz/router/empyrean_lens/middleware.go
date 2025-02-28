@@ -382,3 +382,23 @@ func _appcrashbatchsaveMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _modelautomationMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _modelcaseresultMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _modelMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _modelcaseinfosaveMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

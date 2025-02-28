@@ -33,7 +33,8 @@ type Overview struct {
 	DailyOverview    []empyrean_lens2.ScoreListItem
 	RealtimeOverview aliyun2.RealtimeReport
 	SceneOverviews   []map[string]string
-	DailyAppCrash    []empyrean_lens2.AppCrushRespData
+	DailyAppCrash    []empyrean_lens2.AppCrashRespData
+	DailyModelResult []empyrean_lens2.DailyModelAutomationData
 }
 
 // OverviewRender .
@@ -76,11 +77,22 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
+	dailyModelResult, err := empyrean_lens2.GetDailyModelAutomationByTime(
+		ctx,
+		time.Date(2025, 02, 24, 0, 0, 0, 0, time.Local),
+		time.Now().Add(8*time.Hour),
+	)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
+
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{
 		DailyOverview:    dailyOverview,
 		RealtimeOverview: *realtimeOverview,
 		DailyAppCrash:    dailyAppCrashOverview,
+		DailyModelResult: dailyModelResult,
 		//SceneOverviews:   aigcCostOverview,
 	}
 
@@ -706,5 +718,132 @@ func AppCrashBatchSave(ctx context.Context, c *app.RequestContext) {
 		beginTime = beginTime.AddDate(0, 0, 1)
 	}
 	resp.Msg = "success"
+	c.JSON(consts.StatusOK, resp)
+}
+
+// ModelAutomation .
+// @router /api/v1/report/model_automation [GET]
+func ModelAutomation(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.ModelAutomationReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.ModelAutomationResp)
+	beginTimeStr, endTimeStr := req.Date+" 00:00:00", req.Date+" 23:59:59"
+	beginTime, err := time.ParseInLocation("2006-01-02 15:04:05", beginTimeStr, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse begin time error: %v", err)
+		resp.Code = int64(consts2.ParamBindJsonError.Code)
+		resp.Msg = consts2.ParamBindJsonError.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+	endTime, err := time.ParseInLocation("2006-01-02 15:04:05", endTimeStr, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse end time error: %v", err)
+		resp.Code = int64(consts2.ParamBindJsonError.Code)
+		resp.Msg = consts2.ParamBindJsonError.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+
+	data, err := empyrean_lens2.GetModelAutomationInfoByTime(ctx, beginTime, endTime, req.EntryType, req.FailOrTotal)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get model automation info error: %v", err)
+		resp.Code = int64(consts2.SystemErr.Code)
+		resp.Msg = consts2.SystemErr.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+
+	resp.Data = data
+	c.JSON(consts.StatusOK, resp)
+}
+
+// ModelCaseResult .
+// @router /api/v1/report/model_case_result [GET]
+func ModelCaseResult(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.ModelCaseResultReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.ModelCaseResultResp)
+
+	beginTimestr, endTimestr := req.Date+" 00:00:00", req.Date+" 23:59:59"
+	beginTime, err := time.ParseInLocation("2006-01-02 15:04:05", beginTimestr, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse begin time error: %v", err)
+		resp.Code = int64(consts2.ParamBindJsonError.Code)
+		resp.Msg = consts2.ParamBindJsonError.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+	endTime, err := time.ParseInLocation("2006-01-02 15:04:05", endTimestr, time.Local)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "parse end time error: %v", err)
+		resp.Code = int64(consts2.ParamBindJsonError.Code)
+		resp.Msg = consts2.ParamBindJsonError.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+	data, err := empyrean_lens2.GetCaseResultsByTime(ctx, beginTime, endTime, req.EntryType, req.CaseType, req.FailOrTotal)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get model case result error: %v", err)
+		resp.Code = int64(consts2.SystemErr.Code)
+		resp.Msg = consts2.SystemErr.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+	resp.Data = data
+
+	c.JSON(consts.StatusOK, resp)
+}
+
+// ModelCaseInfoSave .
+// @router /api/v1/report/model/save [POST]
+func ModelCaseInfoSave(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.ModelCaseInfoSaveReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.ModelCaseInfoSaveResp)
+	if req.DbName == "model_automation" {
+		returnId, err := empyrean_lens2.SaveModelAutomationInfo(ctx, req.Info)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "save model automation info error: %v", err)
+			resp.Code = int64(consts2.SystemErr.Code)
+			resp.Msg = consts2.SystemErr.Msg
+			//c.JSON(consts.StatusOK, resp)
+		} else {
+			resp.Code = 0
+			resp.Msg = returnId.Hex()
+		}
+		//c.JSON(consts.StatusOK, resp)
+	} else if req.DbName == "model_case_result" {
+		returnId, err := empyrean_lens2.SaveModelCaseResultInfo(ctx, req.Info)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "save model case result info error: %v", err)
+			resp.Code = int64(consts2.SystemErr.Code)
+			resp.Msg = consts2.SystemErr.Msg
+			//c.JSON(consts.StatusOK, resp)
+		} else {
+			resp.Code = 0
+			resp.Msg = returnId.Hex()
+		}
+		//c.JSON(consts.StatusOK, resp)
+	}
+
 	c.JSON(consts.StatusOK, resp)
 }

@@ -936,6 +936,56 @@ struct AppCrashBatchSaveResp {
     2: string msg
 }
 
+struct ModelAutomationReq {
+    1: string date
+    2: i64 entry_type
+    3: bool fail_or_total
+}
+
+struct ModelAutomationResp {
+    1: i64 code
+    2: string msg
+    3: list<ModelAutomationRespData> data
+}
+
+struct ModelAutomationRespData {
+    1: string case_type
+    2: i64 total_num
+    3: i64 fail_num
+}
+
+struct ModelCaseResultReq {
+    1: string date
+    2: i64 entry_type
+    3: string case_type
+    4: bool fail_or_total
+}
+
+struct ModelCaseResultResp {
+    1: i64 code
+    2: string msg
+    3: list<ModelCaseResultRespData> data
+}
+
+struct ModelCaseResultRespData {
+   1: string entry_id
+   2: i64 entry_type
+   3: bool case_result
+   4: double test_duration
+   5: string error_log
+   6: string share_link
+}
+
+struct ModelCaseInfoSaveReq {
+    1: string db_name
+    2: map<string, string> info
+}
+
+struct ModelCaseInfoSaveResp {
+    1: i64 code
+    2: string msg
+}
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -1028,6 +1078,18 @@ service Rentention{
    // batch save app crash info
    AppCrashBatchSaveResp AppCrashBatchSave(1: AppCrashBatchSaveReq req) (
        api.post="/api/v1/report/app_crash/batch_save"
+   )
+   // get model automation details
+   ModelAutomationResp ModelAutomation(1: ModelAutomationReq req) (
+       api.get="/api/v1/report/model_automation"
+   )
+   // get model case result
+   ModelCaseResultResp ModelCaseResult(1: ModelCaseResultReq req) (
+       api.get="/api/v1/report/model_case_result"
+   )
+   // save model case info
+   ModelCaseInfoSaveResp ModelCaseInfoSave(1: ModelCaseInfoSaveReq req) (
+       api.post="/api/v1/report/model/save"
    )
 }
 

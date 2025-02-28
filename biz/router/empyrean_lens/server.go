@@ -61,6 +61,8 @@ func Register(r *server.Hertz) {
 				_app_crash := _report.Group("/app_crash", _app_crashMw()...)
 				_app_crash.POST("/batch_save", append(_appcrashbatchsaveMw(), empyrean_lens.AppCrashBatchSave)...)
 				_report.GET("/auth", append(_authMw(), empyrean_lens.Auth)...)
+				_report.GET("/model_automation", append(_modelautomationMw(), empyrean_lens.ModelAutomation)...)
+				_report.GET("/model_case_result", append(_modelcaseresultMw(), empyrean_lens.ModelCaseResult)...)
 				_report.GET("/online_operation", append(_getonlineoperationMw(), empyrean_lens.GetOnlineOperation)...)
 				_report.GET("/realtime", append(_systemrealtimescoreMw(), empyrean_lens.SystemRealtimeScore)...)
 				{
@@ -77,6 +79,10 @@ func Register(r *server.Hertz) {
 					_fail := _report.Group("/fail", _failMw()...)
 					_fail.GET("/detail", append(_systemdailyapifailuredetailMw(), empyrean_lens.SystemDailyApiFailureDetail)...)
 					_fail.GET("/list", append(_systemdailyapifailureinfoMw(), empyrean_lens.SystemDailyApiFailureInfo)...)
+				}
+				{
+					_model := _report.Group("/model", _modelMw()...)
+					_model.POST("/save", append(_modelcaseinfosaveMw(), empyrean_lens.ModelCaseInfoSave)...)
 				}
 				{
 					_probe := _report.Group("/probe", _probeMw()...)

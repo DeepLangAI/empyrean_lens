@@ -98,8 +98,8 @@ func (self *ModelAutomationDao) SaveModelAutomationInfo(ctx context.Context, req
 		ResultCollection:  resultCollection,
 		IsUsing:           true,
 		Extra:             extra,
-		CreateTime:        time.Now(),
-		UpdateTime:        time.Now(),
+		CreateTime:        time.Now().AddDate(0, 0, -1),
+		UpdateTime:        time.Now().AddDate(0, 0, -1),
 	}
 	_, err := probeDatabase.Collection(TableNameModelAutomation).InsertOne(ctx, model)
 	if err != nil {

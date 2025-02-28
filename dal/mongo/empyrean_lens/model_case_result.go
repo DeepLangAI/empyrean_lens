@@ -170,8 +170,8 @@ func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req
 		ErrorLog:       errorLog,
 		IsUsing:        true,
 		Extra:          extra,
-		CreateTime:     time.Now(),
-		UpdateTime:     time.Now(),
+		CreateTime:     time.Now().AddDate(0, 0, -1),
+		UpdateTime:     time.Now().AddDate(0, 0, -1),
 	}
 	hlog.CtxDebugf(ctx, "model = %+v", model)
 	_, err = probeDatabase.

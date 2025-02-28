@@ -36,7 +36,7 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 		hlog.CtxErrorf(ctx, "get model case result info error in GetDailyModelAutomationByTime :%v", err)
 		return nil, err
 	}
-	hlog.CtxErrorf(ctx, "get data done: %v", len(modelCaseResults))
+	hlog.CtxDebugf(ctx, "get data done: %v", len(modelCaseResults))
 	// map<<date, entryType>, modelCaseResults>
 	dateEntryTypeModelCaseResultsMap := make(map[string]map[int][]empyrean_lens.ModelCaseResultModel)
 	for _, modelCaseResult := range modelCaseResults {
@@ -48,7 +48,11 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 				entryType = v
 			case int32:
 				entryType = int(v)
+			case int64:
+				entryType = int(v)
 			case float64:
+				entryType = int(v)
+			case float32:
 				entryType = int(v)
 			default:
 				return nil, errors.New("entry_type is not valid")
@@ -95,7 +99,7 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 		}
 		resp = append(resp, rowData)
 	}
-	hlog.CtxErrorf(ctx, "get data done: %v", len(resp))
+	hlog.CtxDebugf(ctx, "get data done: len(resp)=%v", len(resp))
 	sort.Slice(resp, func(i, j int) bool {
 		return resp[i].Date > resp[j].Date
 	})
@@ -118,15 +122,18 @@ func GetModelAutomationInfoByTime(ctx context.Context, beginTime, endTime time.T
 	for caseType, caseResultsTemp := range caseTypeCaseResultMap {
 		var rowData empyrean_lens2.ModelAutomationRespData
 		rowData.CaseType = caseType
-		fail, tot := 0, 0
+		fail := 0
+		entryIdMap := make(map[string]bool)
 		for _, caseResult := range caseResultsTemp {
-			tot++
+			if _, ok := entryIdMap[caseResult.FileEntryId]; !ok {
+				entryIdMap[caseResult.FileEntryId] = true
+			}
 			if caseResult.CaseResult == false {
 				fail++
 			}
 		}
 		rowData.FailNum = int64(fail)
-		rowData.TotalNum = int64(tot)
+		rowData.TotalNum = int64(len(entryIdMap))
 		resp = append(resp, &rowData)
 	}
 	sort.Slice(resp, func(i, j int) bool {
@@ -163,6 +170,10 @@ func GetCaseResultsByTime(ctx context.Context, beginTime, endTime time.Time, ent
 			case int:
 				entryType = int64(v)
 			case int32:
+				entryType = int64(v)
+			case int64:
+				entryType = v
+			case float32:
 				entryType = int64(v)
 			case float64:
 				entryType = int64(v)

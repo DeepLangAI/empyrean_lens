@@ -134,7 +134,7 @@ func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req
 		}
 	}
 	caseResult := req["case_result"]
-	hlog.CtxErrorf(ctx, "caseResult = %v", caseResult)
+	hlog.CtxDebugf(ctx, "caseResult = %v", caseResult)
 	caseType := req["case_type"]
 	failureDetails := make(map[string]interface{})
 	if fd, ok := req["failure_details"]; ok {
@@ -173,7 +173,7 @@ func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req
 		CreateTime:     time.Now(),
 		UpdateTime:     time.Now(),
 	}
-	hlog.CtxErrorf(ctx, "model = %+v", model)
+	hlog.CtxDebugf(ctx, "model = %+v", model)
 	_, err = probeDatabase.
 		Collection(TableNameModelCaseResult).
 		InsertOne(ctx, model)

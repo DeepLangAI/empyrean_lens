@@ -256,8 +256,16 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 	} else {
 		input = utils.TranslateJsonIO(input, true)
 	}
-	input = strings.Replace(input, `true,"`, `true",`, -1)
-	input = strings.Replace(input, `false,"`, `false",`, -1)
+	replacements := map[string]string{
+		`true,"`:  `true",`,
+		`true}"`:  `true`,
+		`false,"`: `false",`,
+		`false}"`: `false`,
+	}
+
+	for oldStr, newStr := range replacements {
+		input = strings.Replace(input, oldStr, newStr, -1)
+	}
 
 	output := d.ActionOutput.(string)
 	if newOutput, err := utillib.DeStrGzip(output); err == nil {
@@ -270,7 +278,7 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 		output = utils.TranslateJsonIO(output, true)
 	}
 
-	output = strings.Replace(output, `]}"`, `]"`, -1)
+	output = strings.Replace(output, `]}"`, `]`, -1)
 
 	if input != "" || output != "" {
 		logs = append(logs, &empyrean_lens.ApiLog{

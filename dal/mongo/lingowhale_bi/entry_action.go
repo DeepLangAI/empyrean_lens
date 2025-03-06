@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -255,6 +256,8 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 	} else {
 		input = utils.TranslateJsonIO(input, true)
 	}
+	input = strings.Replace(input, `true,"`, `true",`, -1)
+	input = strings.Replace(input, `false,"`, `false",`, -1)
 
 	output := d.ActionOutput.(string)
 	if newOutput, err := utillib.DeStrGzip(output); err == nil {
@@ -266,6 +269,8 @@ func (d *ActionIO) TranslateApiLogs(actionType int) []*empyrean_lens.ApiLog {
 	} else {
 		output = utils.TranslateJsonIO(output, true)
 	}
+
+	output = strings.Replace(output, `]}"`, `]"`, -1)
 
 	if input != "" || output != "" {
 		logs = append(logs, &empyrean_lens.ApiLog{

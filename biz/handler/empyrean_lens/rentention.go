@@ -77,9 +77,10 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
+	//todo：这里因为性能问题，临时调整为只获取最近5天的数据，后面需要优化升级
 	dailyModelResult, err := empyrean_lens2.GetDailyModelAutomationByTime(
 		ctx,
-		time.Date(2025, 02, 24, 0, 0, 0, 0, time.Local),
+		time.Now().Add(-5*24*time.Hour),
 		time.Now().Add(8*time.Hour),
 	)
 	if err != nil {

@@ -3,7 +3,6 @@
 package empyrean_lens
 
 import (
-	"empyrean_lens/biz/handler"
 	empyrean_lens "empyrean_lens/biz/handler/empyrean_lens"
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
@@ -18,7 +17,6 @@ import (
 func Register(r *server.Hertz) {
 
 	root := r.Group("/", rootMw()...)
-	root.GET("/", append(rootMw(), handler.Ping)...)
 	{
 		_api := root.Group("/api", _apiMw()...)
 		{
@@ -61,6 +59,7 @@ func Register(r *server.Hertz) {
 				_app_crash := _report.Group("/app_crash", _app_crashMw()...)
 				_app_crash.POST("/batch_save", append(_appcrashbatchsaveMw(), empyrean_lens.AppCrashBatchSave)...)
 				_report.GET("/auth", append(_authMw(), empyrean_lens.Auth)...)
+				_report.GET("/daily_model_automation_stats", append(_getdailymodelautomationstatsMw(), empyrean_lens.GetDailyModelAutomationStats)...)
 				_report.GET("/model_automation", append(_modelautomationMw(), empyrean_lens.ModelAutomation)...)
 				_report.GET("/model_case_result", append(_modelcaseresultMw(), empyrean_lens.ModelCaseResult)...)
 				_report.GET("/online_operation", append(_getonlineoperationMw(), empyrean_lens.GetOnlineOperation)...)
@@ -120,6 +119,5 @@ func Register(r *server.Hertz) {
 				}
 			}
 		}
-
 	}
 }

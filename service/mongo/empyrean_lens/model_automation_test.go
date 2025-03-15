@@ -16,7 +16,7 @@ func TestGetDailyModelAutomationByTime(t *testing.T) {
 	empyrean_lens.Init(ctx)
 	beginTime := time.Now().AddDate(0, 0, -1)
 	endTime := time.Now()
-	resp, err := GetDailyModelAutomationByTime(ctx, beginTime, endTime)
+	resp, err := GetDailyModelAutomationByTime(ctx, beginTime, endTime, 0, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

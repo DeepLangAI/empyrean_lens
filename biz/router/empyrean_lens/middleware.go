@@ -402,3 +402,8 @@ func _modelcaseinfosaveMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _getdailymodelautomationstatsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

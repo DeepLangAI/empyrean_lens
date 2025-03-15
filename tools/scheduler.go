@@ -5,6 +5,7 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/service/aliyun"
 	"empyrean_lens/service/mongo/empyrean_lens"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"time"
 
 	"github.com/go-co-op/gocron"
@@ -20,6 +21,7 @@ func GetCurrentDate() string {
 
 func (self *ProbeRunner) Run(ctx context.Context) {
 	s := gocron.NewScheduler(time.UTC)
+
 	// 每1分钟刷新一下当天的最新数据
 	s.Every(1).Minutes().StartImmediately().Do(func() {
 		//empyrean_lens.UpdateLatestScoreInfo(ctx)
@@ -38,5 +40,23 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 		empyrean_lens.UpdateLatestAppCrashInfo(ctx, GetCurrentDate())
 	})
 
+	// 系统启动时检查并补充漏掉的数据
+	if err := empyrean_lens.SaveMissingDaysAutomationStats(context.Background()); err != nil {
+		hlog.Errorf("Failed to save missing days data: %v", err)
+	}
+
+	// 添加新的定时任务：每天早上6点计算前一天的自动化测试统计数据
+	s.Every(1).Day().At("06:00").Do(func() {
+		if err := empyrean_lens.SaveYesterdayAutomationStats(context.Background()); err != nil {
+			hlog.Errorf("Failed to save yesterday's automation stats: %v", err)
+		}
+	})
+
+	// 一次性数据迁移（仅在需要时执行）
+	if err := empyrean_lens.SaveOnceDailyAutomationStats(context.Background()); err != nil {
+		hlog.Errorf("Failed to migrate historical data: %v", err)
+	}
+
 	s.StartAsync()
+
 }

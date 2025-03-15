@@ -36,6 +36,8 @@ type Overview struct {
 	SceneOverviews   []map[string]string
 	DailyAppCrash    []empyrean_lens2.AppCrashRespData
 	DailyModelResult []empyrean_lens2.DailyModelAutomationData
+	Pages            []int // 添加页码数组
+	CurrentPage      int64 // 添加当前页码
 }
 
 // OverviewRender .
@@ -79,14 +81,25 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 	}
 
 	//todo：这里因为性能问题，临时调整为只获取最近5天的数据，后面需要优化升级
+	// 获取页码参数
+	// 获取所有数据
 	dailyModelResult, err := empyrean_lens2.GetDailyModelAutomationByTime(
 		ctx,
-		time.Now().Add(-5*24*time.Hour),
+		time.Time{},
 		time.Now().Add(8*time.Hour),
+		0,  // skip 设为 0
+		-1, // limit 设为 -1 表示获取所有数据
 	)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())
 		return
+	}
+
+	// 计算总页数
+	totalPages := (len(dailyModelResult) + 9) / 10 // 每页10条数据
+	pages := make([]int, totalPages)
+	for i := range pages {
+		pages[i] = i + 1
 	}
 
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
@@ -96,6 +109,8 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		DailyAppCrash:    dailyAppCrashOverview,
 		DailyModelResult: dailyModelResult,
 		//SceneOverviews:   aigcCostOverview,
+		Pages:       pages,
+		CurrentPage: 1, // 默认第一页
 	}
 
 	tpl, err := template.ParseFiles(filepath.Join(utils.GetProjectPath(), consts2.OVERVIEW_TEMPLATE_PATH))

@@ -19,7 +19,7 @@ func SaveDailyAutomationStatsByDate(ctx context.Context, dateStr string) error {
 	endTime := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 999999999, time.Local)
 
 	// 获取当天的统计数据
-	stats, err := GetDailyModelAutomationByTime(ctx, beginTime, endTime)
+	stats, err := GetDailyModelAutomationByTime(ctx, beginTime, endTime, 0, 1)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "Failed to get daily automation stats: %v", err)
 		return err

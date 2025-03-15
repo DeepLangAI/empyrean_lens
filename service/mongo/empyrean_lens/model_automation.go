@@ -25,7 +25,7 @@ type DailyModelAutomationData struct {
 	MultiDocNum    int    `json:"multi_doc_num"`
 }
 
-func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.Time) ([]DailyModelAutomationData, error) {
+func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.Time, skip, limit int64) ([]DailyModelAutomationData, error) {
 	// _, err := empyrean_lens.NewModelAutomationDao().GetModelAutomationInfoByTime(ctx, beginTime, endTime)
 	// if err != nil {
 	// 	hlog.CtxErrorf(ctx, "get model automation info error in GetDailyModelAutomationByTime :%v", err)
@@ -49,6 +49,13 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 				MultiDocNum:    stat.MultiDocNum,
 			}
 		}
+
+		// 先对数据进行排序
+		sort.Slice(resp, func(i, j int) bool {
+			return resp[i].Date > resp[j].Date
+		})
+
+		// 返回所有数据，让前端处理分页
 		return resp, nil
 	}
 
@@ -124,7 +131,18 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 	sort.Slice(resp, func(i, j int) bool {
 		return resp[i].Date > resp[j].Date
 	})
-	return resp, nil
+
+	// 在返回结果前添加分页处理
+	if skip >= int64(len(resp)) {
+		return []DailyModelAutomationData{}, nil
+	}
+
+	end := skip + limit
+	if end > int64(len(resp)) {
+		end = int64(len(resp))
+	}
+
+	return resp[skip:end], nil
 }
 
 func GetModelAutomationInfoByTime(ctx context.Context, beginTime, endTime time.Time, entryType int64, failOrTotal bool) ([]*empyrean_lens2.ModelAutomationRespData, error) {

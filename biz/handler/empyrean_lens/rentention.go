@@ -6,6 +6,7 @@ import (
 	"context"
 	"empyrean_lens/biz/handler"
 	consts2 "empyrean_lens/consts"
+	dal_mongo_empyrean_lens "empyrean_lens/dal/mongo/empyrean_lens"
 	aliyun2 "empyrean_lens/service/aliyun"
 	empyrean_lens2 "empyrean_lens/service/mongo/empyrean_lens"
 	"empyrean_lens/service/passport"
@@ -846,5 +847,66 @@ func ModelCaseInfoSave(ctx context.Context, c *app.RequestContext) {
 		//c.JSON(consts.StatusOK, resp)
 	}
 
+	c.JSON(consts.StatusOK, resp)
+}
+
+// GetDailyModelAutomationStats .
+// @router /api/v1/report/daily_model_automation_stats [GET]
+func GetDailyModelAutomationStats(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.DailyModelAutomationStatsReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.DailyModelAutomationStatsResp)
+
+	// 解析开始和结束时间
+	beginTime, err := time.Parse("2006-01-02", req.StartTime)
+	if err != nil {
+		resp.Code = int64(consts2.RetParamError.Code)
+		resp.Msg = "无效的开始时间格式"
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+	endTime, err := time.Parse("2006-01-02", req.EndTime)
+	if err != nil {
+		resp.Code = int64(consts2.RetParamError.Code)
+		resp.Msg = "无效的结束时间格式"
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+
+	// 从新的数据库表中获取统计数据
+	stats, err := dal_mongo_empyrean_lens.NewDailyAutomationStatsDao().GetStatsByDateRange(ctx, beginTime, endTime)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get daily automation stats error: %v", err)
+		resp.Code = int64(consts2.SystemErr.Code)
+		resp.Msg = consts2.SystemErr.Msg
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+
+	// 构建响应数据
+	resp.Data = make([]*empyrean_lens.DailyModelAutomationStatsRespData, len(stats))
+	for i, stat := range stats {
+		resp.Data[i] = &empyrean_lens.DailyModelAutomationStatsRespData{
+			Date:           stat.Date,
+			SingleFailNum:  int32(stat.SingleFailNum),
+			SingleTotalNum: int32(stat.SingleTotalNum),
+			SingleDocNum:   int32(stat.SingleDocNum),
+			WebFailNum:     int32(stat.WebFailNum),
+			WebTotalNum:    int32(stat.WebTotalNum),
+			WebDocNum:      int32(stat.WebDocNum),
+			MultiFailNum:   int32(stat.MultiFailNum),
+			MultiTotalNum:  int32(stat.MultiTotalNum),
+			MultiDocNum:    int32(stat.MultiDocNum),
+		}
+	}
+
+	resp.Code = 0
+	resp.Msg = "success"
 	c.JSON(consts.StatusOK, resp)
 }

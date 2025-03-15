@@ -6,6 +6,8 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"strconv"
 	"sync"
 	"time"
@@ -182,4 +184,23 @@ func (self *ModelCaseResultDao) SaveModelCaseResultInfo(ctx context.Context, req
 		return primitive.ObjectID{}, err
 	}
 	return id, nil
+}
+
+// mlm 3-14
+// GetEarliestRecordDate 获取最早的记录日期
+func (d *ModelCaseResultDao) GetEarliestRecordDate(ctx context.Context) (time.Time, error) {
+	opts := options.FindOne().SetSort(bson.M{"update_time": 1})
+	var result ModelCaseResultModel
+	err := probeDatabase.Collection(TableNameModelCaseResult).
+		FindOne(ctx, bson.M{}, opts).
+		Decode(&result)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return time.Now(), nil // 如果没有记录，返回当前时间
+		}
+		return time.Time{}, err
+	}
+
+	return result.UpdateTime, nil
 }

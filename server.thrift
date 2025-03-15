@@ -986,6 +986,34 @@ struct ModelCaseInfoSaveResp {
     2: string msg
 }
 
+// mlm-0314
+// 获取前一天的自动化测试数据
+struct DailyModelAutomationStatsReq {
+    1: string start_time  // 开始时间 YYYY-MM-DD
+    2: string end_time    // 结束时间 YYYY-MM-DD
+}
+
+struct DailyModelAutomationStatsRespData {
+    1: string date            // 日期 YYYY-MM-DD
+    2: i32 single_fail_num    // PDF文档失败数
+    3: i32 single_total_num   // PDF文档总数
+    4: i32 single_doc_num     // PDF文档数量
+    5: i32 web_fail_num       // Web文档失败数
+    6: i32 web_total_num      // Web文档总数
+    7: i32 web_doc_num        // Web文档数量
+    8: i32 multi_fail_num     // 多文档失败数
+    9: i32 multi_total_num    // 多文档总数
+    10: i32 multi_doc_num     // 多文档数量
+}
+
+struct DailyModelAutomationStatsResp {
+    1: i64 code
+    2: string msg
+    3: list<DailyModelAutomationStatsRespData> data
+}
+
+
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -1090,6 +1118,10 @@ service Rentention{
    // save model case info
    ModelCaseInfoSaveResp ModelCaseInfoSave(1: ModelCaseInfoSaveReq req) (
        api.post="/api/v1/report/model/save"
+   )
+   // 获取前一天自动化测试统计数据
+   DailyModelAutomationStatsResp GetDailyModelAutomationStats(1: DailyModelAutomationStatsReq req) (
+           api.get="/api/v1/report/daily_model_automation_stats"
    )
 }
 

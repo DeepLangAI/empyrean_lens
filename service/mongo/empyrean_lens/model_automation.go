@@ -26,11 +26,32 @@ type DailyModelAutomationData struct {
 }
 
 func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.Time) ([]DailyModelAutomationData, error) {
-	_, err := empyrean_lens.NewModelAutomationDao().GetModelAutomationInfoByTime(ctx, beginTime, endTime)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "get model automation info error in GetDailyModelAutomationByTime :%v", err)
-		return nil, err
+	// _, err := empyrean_lens.NewModelAutomationDao().GetModelAutomationInfoByTime(ctx, beginTime, endTime)
+	// if err != nil {
+	// 	hlog.CtxErrorf(ctx, "get model automation info error in GetDailyModelAutomationByTime :%v", err)
+	// 	return nil, err
+	// }
+
+	stats, err := empyrean_lens.NewDailyAutomationStatsDao().GetStatsByDateRange(ctx, beginTime, endTime)
+	if err == nil && len(stats) > 0 {
+		resp := make([]DailyModelAutomationData, len(stats))
+		for i, stat := range stats {
+			resp[i] = DailyModelAutomationData{
+				Date:           stat.Date,
+				SingleFailNum:  stat.SingleFailNum,
+				SingleTotalNum: stat.SingleTotalNum,
+				SingleDocNum:   stat.SingleDocNum,
+				WebFailNum:     stat.WebFailNum,
+				WebTotalNum:    stat.WebTotalNum,
+				WebDocNum:      stat.WebDocNum,
+				MultiFailNum:   stat.MultiFailNum,
+				MultiTotalNum:  stat.MultiTotalNum,
+				MultiDocNum:    stat.MultiDocNum,
+			}
+		}
+		return resp, nil
 	}
+
 	modelCaseResults, err := empyrean_lens.NewModelCaseResultDao().GetModelCaseResultsByTime(ctx, beginTime, endTime)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "get model case result info error in GetDailyModelAutomationByTime :%v", err)
@@ -123,6 +144,7 @@ func GetModelAutomationInfoByTime(ctx context.Context, beginTime, endTime time.T
 		var rowData empyrean_lens2.ModelAutomationRespData
 		rowData.CaseType = caseType
 		fail := 0
+		// 去重处理， 要计算的是测试失败文档数，而不是测试失败用例数
 		entryIdMap := make(map[string]bool)
 		for _, caseResult := range caseResultsTemp {
 			if _, ok := entryIdMap[caseResult.FileEntryId]; !ok {

@@ -95,15 +95,9 @@ func (self *DailyAutomationStatsDao) SaveBatch(ctx context.Context, models []Dai
 		return nil
 	}
 
-	now := time.Now()
 	operations := make([]mongo.WriteModel, len(models))
 
 	for i := range models {
-		models[i].UpdateTime = now
-		if models[i].CreateTime.IsZero() {
-			models[i].CreateTime = now
-		}
-
 		// 创建 upsert 操作
 		operations[i] = mongo.NewUpdateOneModel().
 			SetFilter(bson.M{"date": models[i].Date}). // 使用日期作为唯一键

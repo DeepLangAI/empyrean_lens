@@ -20,7 +20,7 @@ func GetCurrentDate() string {
 }
 
 func (self *ProbeRunner) Run(ctx context.Context) {
-	s := gocron.NewScheduler(time.UTC)
+	s := gocron.NewScheduler(time.Local)
 
 	// 每1分钟刷新一下当天的最新数据
 	s.Every(1).Minutes().StartImmediately().Do(func() {
@@ -41,9 +41,9 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	})
 
 	// 系统启动时检查并补充漏掉的数据
-	if err := empyrean_lens.SaveMissingDaysAutomationStats(context.Background()); err != nil {
-		hlog.Errorf("Failed to save missing days data: %v", err)
-	}
+	//if err := empyrean_lens.SaveMissingDaysAutomationStats(context.Background()); err != nil {
+	//	hlog.Errorf("Failed to save missing days data: %v", err)
+	//}
 
 	// 添加新的定时任务：每天早上6点计算前一天的自动化测试统计数据
 	s.Every(1).Day().At("06:00").Do(func() {

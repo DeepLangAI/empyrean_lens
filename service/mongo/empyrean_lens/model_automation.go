@@ -13,16 +13,18 @@ import (
 )
 
 type DailyModelAutomationData struct {
-	Date           string `json:"date"`
-	SingleFailNum  int    `json:"single_fail_num"`
-	SingleTotalNum int    `json:"single_total_num"`
-	SingleDocNum   int    `json:"single_doc_num"`
-	WebFailNum     int    `json:"web_fail_num"`
-	WebTotalNum    int    `json:"web_total_num"`
-	WebDocNum      int    `json:"web_doc_num"`
-	MultiFailNum   int    `json:"multi_fail_num"`
-	MultiTotalNum  int    `json:"multi_total_num"`
-	MultiDocNum    int    `json:"multi_doc_num"`
+	Date           string    `json:"date"`
+	SingleFailNum  int       `json:"single_fail_num"`
+	SingleTotalNum int       `json:"single_total_num"`
+	SingleDocNum   int       `json:"single_doc_num"`
+	WebFailNum     int       `json:"web_fail_num"`
+	WebTotalNum    int       `json:"web_total_num"`
+	WebDocNum      int       `json:"web_doc_num"`
+	MultiFailNum   int       `json:"multi_fail_num"`
+	MultiTotalNum  int       `json:"multi_total_num"`
+	MultiDocNum    int       `json:"multi_doc_num"`
+	CreateTime     time.Time `bson:"create_time"`
+	UpdateTime     time.Time `bson:"update_time"`
 }
 
 func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.Time, skip, limit int64) ([]DailyModelAutomationData, error) {
@@ -47,6 +49,8 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 				MultiFailNum:   stat.MultiFailNum,
 				MultiTotalNum:  stat.MultiTotalNum,
 				MultiDocNum:    stat.MultiDocNum,
+				CreateTime:     stat.CreateTime,
+				UpdateTime:     stat.UpdateTime,
 			}
 		}
 
@@ -99,10 +103,18 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 	for date, entryTypeModelCaseResultsMap := range dateEntryTypeModelCaseResultsMap {
 		var rowData DailyModelAutomationData
 		rowData.Date = date
+
+		// 添加一个变量来跟踪当天的最后更新时间
+		var lastUpdateTime time.Time
+
 		for entryType, modelCaseResultsTemp := range entryTypeModelCaseResultsMap {
 			total, fail := 0, 0
 			entryIdSet := make(map[string]bool)
 			for _, modelCaseResult := range modelCaseResultsTemp {
+				if modelCaseResult.UpdateTime.After(lastUpdateTime) {
+					lastUpdateTime = modelCaseResult.UpdateTime
+				}
+
 				if _, ok := entryIdSet[modelCaseResult.FileEntryId]; !ok {
 					entryIdSet[modelCaseResult.FileEntryId] = true
 				}
@@ -125,6 +137,8 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 				rowData.MultiDocNum = len(entryIdSet)
 			}
 		}
+		rowData.CreateTime = lastUpdateTime
+		rowData.UpdateTime = lastUpdateTime
 		resp = append(resp, rowData)
 	}
 	hlog.CtxDebugf(ctx, "get data done: len(resp)=%v", len(resp))

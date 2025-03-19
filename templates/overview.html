@@ -2715,118 +2715,12 @@
         renderTable(colorChange);
     }
 
-    // 创建一个专门处理 model-automation 表格的分页函数
-    function paginateModelResult(tableId, rowsPerPage, paginationId, colorChange) {
-        const table = document.getElementById(tableId);
-        const tbody = table.querySelector('tbody');
-        const paginationControls = document.getElementById(paginationId);
-        const rows = Array.from(tbody.rows);
-
-        // 添加日期信息到行数据中
-        rows.forEach((row, index) => {
-            row.dataset.date = table.rows[index + 1].cells[0].textContent;
-        });
-
-        function renderTable(colorChange) {
-            let currentDate = '';
-            let rowSpan = 1;
-
-            let i = 0;
-            for (let j = 0; j < rows.length; j++) {
-                const row = rows[j];
-                const rowDate = row.dataset.date;
-
-                if (rowDate === currentDate) {
-                    rows[i].cells[0].rowSpan = ++rowSpan
-                    row.cells[0].style.display = 'none'
-                } else {
-                    i = j
-                    rowSpan = 1;
-                    currentDate = rowDate;
-                    if (colorChange) {
-                        row.cells[1].style.fontWeight = "bold"
-                        row.cells[1].style.color = "rebeccapurple"
-                    }
-                    for (let k = 1; k < row.cells.length; k++) {
-                        row.cells[k].style.display = '';
-                    }
-                }
-            }
-
-            renderPaginationControls(colorChange);
-        }
-
-        function renderPaginationControls(colorChange) {
-            const currentPage = parseInt('{{ .CurrentPage }}');
-            const totalPages = parseInt('{{ len .Pages }}');
-            paginationControls.innerHTML = '';
-
-            function createButton(page) {
-                const button = document.createElement('button');
-                button.textContent = page;
-                button.className = page === currentPage ? 'disabled' : '';
-                button.disabled = page === currentPage;
-                button.addEventListener('click', () => {
-                    loadPage(page);
-                });
-                paginationControls.appendChild(button);
-            }
-
-            function createEllipsis() {
-                const ellipsis = document.createElement('span');
-                ellipsis.textContent = '...';
-                paginationControls.appendChild(ellipsis);
-            }
-
-            if (totalPages <= 5) {
-                for (let i = 1; i <= totalPages; i++) {
-                    createButton(i);
-                }
-            } else {
-                createButton(1);
-                if (currentPage > 3) {
-                    createEllipsis();
-                }
-
-                let startPage = Math.max(2, currentPage - 1);
-                let endPage = Math.min(totalPages - 1, currentPage + 1);
-
-                if (currentPage <= 3) {
-                    endPage = 4;
-                }
-
-                if (currentPage >= totalPages - 2) {
-                    startPage = totalPages - 3;
-                }
-
-                for (let i = startPage; i <= endPage; i++) {
-                    createButton(i);
-                }
-
-                if (currentPage < totalPages - 2) {
-                    createEllipsis();
-                }
-                createButton(totalPages);
-            }
-        }
-
-        function loadPage(pageNumber) {
-            const url = new URL(window.location.href);
-            url.searchParams.set('page', pageNumber);
-            window.location.href = url.toString();
-        }
-
-        // 初始化表格和分页控件
-        renderTable(colorChange);
-    }
-
 
     document.addEventListener('DOMContentLoaded', () => {
         hideLoadingStatus()
         paginateTable('daily-overview-table', 12, 'daily-overview-pagination', true);
         paginateTable('daily-app-crash-table', 12, 'daily-app-crash-pagination', false);
-        // paginateTable('daily-model-automation-table', 10, 'daily-model-automation-pagination', false);
-        paginateModelResult('daily-model-automation-table', 10, 'daily-model-automation-pagination', true);
+        paginateTable('daily-model-automation-table', 10, 'daily-model-automation-pagination', false);
         // paginateTable('table-case-result', 12, 'case-result-pagination', false);
         // paginateTable('metric-overview-table', 12, 'metric-overview-pagination');
         // paginateTable('nginx-table', 12, 'nginx-pagination');

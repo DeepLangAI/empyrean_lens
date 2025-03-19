@@ -5,8 +5,9 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/service/aliyun"
 	"empyrean_lens/service/mongo/empyrean_lens"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"time"
+
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 
 	"github.com/go-co-op/gocron"
 )
@@ -53,9 +54,9 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	})
 
 	// 一次性数据迁移（仅在需要时执行）
-	//if err := empyrean_lens.SaveOnceDailyAutomationStats(context.Background()); err != nil {
-	//	hlog.Errorf("Failed to migrate historical data: %v", err)
-	//}
+	if err := empyrean_lens.SaveOnceDailyAutomationStats(context.Background()); err != nil {
+		hlog.Errorf("Failed to migrate historical data: %v", err)
+	}
 
 	s.StartAsync()
 

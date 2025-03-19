@@ -18,7 +18,7 @@ func SaveDailyAutomationStatsByDateRange(ctx context.Context, dateStr time.Time)
 	inputDate := dateStr
 
 	var beginTime time.Time
-	// 如果有最新记录，使用最新记录的日期作为开始时间
+	// 如果有最新记录，使用最新记录的日期加一天作为开始时间
 	if latestStats != nil {
 		latestDate, err := time.Parse("2006-01-02", latestStats.Date)
 		if err != nil {
@@ -26,8 +26,8 @@ func SaveDailyAutomationStatsByDateRange(ctx context.Context, dateStr time.Time)
 			return err
 		}
 
-		// 设置开始时间为最新记录日期的0点
-		beginTime = latestDate
+		// 设置开始时间为最新记录日期加一天的0点
+		beginTime = latestDate.AddDate(0, 0, 1).UTC()
 
 		// 如果最新记录的日期就是要插入的日期，直接返回
 		if latestDate.Year() == inputDate.Year() &&
@@ -38,11 +38,11 @@ func SaveDailyAutomationStatsByDateRange(ctx context.Context, dateStr time.Time)
 		}
 	} else {
 		// 如果没有最新记录，使用输入日期作为开始时间
-		beginTime = inputDate
+		beginTime = inputDate.UTC()
 	}
 
 	// 设置结束时间为当前时间
-	endTime := time.Now()
+	endTime := time.Now().UTC()
 
 	// 获取当时间段的统计数据
 	stats, err := GetDailyModelAutomationByTime(ctx, beginTime, endTime, 0, 1)

@@ -72,7 +72,7 @@ func GetDailyModelAutomationByTime(ctx context.Context, beginTime, endTime time.
 	// map<<date, entryType>, modelCaseResults>
 	dateEntryTypeModelCaseResultsMap := make(map[string]map[int][]empyrean_lens.ModelCaseResultModel)
 	for _, modelCaseResult := range modelCaseResults {
-		date := modelCaseResult.UpdateTime.Local().Format("2006-01-02")
+		date := modelCaseResult.CreateTime.Format("2006-01-02")
 		var entryType int
 		if val, ok := modelCaseResult.FileTypeDetail["entry_type"]; ok && val != nil {
 			switch v := val.(type) {

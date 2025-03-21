@@ -7,79 +7,6 @@ import (
 	"time"
 )
 
-func SaveDailyAutomationStatsByDateRange(ctx context.Context, dateStr time.Time) error {
-	// 获取最新的统计记录
-	latestStats, err := empyrean_lens.NewDailyAutomationStatsDao().GetLatestStats(ctx)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "Failed to get latest stats: %v", err)
-		return err
-	}
-
-	inputDate := dateStr
-
-	var beginTime time.Time
-	// 如果有最新记录，使用最新记录的日期加一天作为开始时间
-	if latestStats != nil {
-		latestDate, err := time.Parse("2006-01-02", latestStats.Date)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "Failed to parse latest date: %v", err)
-			return err
-		}
-
-		// 设置开始时间为最新记录日期加一天的0点
-		beginTime = latestDate.AddDate(0, 0, 1).UTC()
-
-		// 如果最新记录的日期就是要插入的日期，直接返回
-		if latestDate.Year() == inputDate.Year() &&
-			latestDate.Month() == inputDate.Month() &&
-			latestDate.Day() == inputDate.Day() {
-			hlog.CtxInfof(ctx, "Data for date %s already exists, skipping", dateStr)
-			return nil
-		}
-	} else {
-		// 如果没有最新记录，使用输入日期作为开始时间
-		beginTime = inputDate.UTC()
-	}
-
-	// 设置结束时间为当前时间
-	endTime := time.Now().UTC()
-
-	// 获取当时间段的统计数据
-	stats, err := GetDailyModelAutomationByTime(ctx, beginTime, endTime, 0, 1)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "Failed to get daily automation stats: %v", err)
-		return err
-	}
-
-	var statsModels []empyrean_lens.DailyAutomationStatsModel
-
-	for _, stat := range stats {
-		statsModel := empyrean_lens.DailyAutomationStatsModel{
-			Date:           stat.Date,
-			SingleFailNum:  stat.SingleFailNum,
-			SingleTotalNum: stat.SingleTotalNum,
-			SingleDocNum:   stat.SingleDocNum,
-			WebFailNum:     stat.WebFailNum,
-			WebTotalNum:    stat.WebTotalNum,
-			WebDocNum:      stat.WebDocNum,
-			MultiFailNum:   stat.MultiFailNum,
-			MultiTotalNum:  stat.MultiTotalNum,
-			MultiDocNum:    stat.MultiDocNum,
-			CreateTime:     stat.CreateTime,
-			UpdateTime:     stat.CreateTime,
-		}
-		statsModels = append(statsModels, statsModel)
-	}
-
-	err = empyrean_lens.NewDailyAutomationStatsDao().SaveBatch(ctx, statsModels)
-	if err != nil {
-		hlog.CtxErrorf(ctx, "Failed to save daily automation stats: %v", err)
-		return err
-	}
-	hlog.CtxInfof(ctx, "Successfully saved daily automation stats for date: %s", dateStr)
-	return nil
-}
-
 func SaveDailyAutomationStatsByDate(ctx context.Context, dateStr string) error {
 	// 设置时间范围为指定日期的 00:00:00 到 23:59:59
 	date, err := time.Parse("2006-01-02", dateStr)
@@ -126,6 +53,7 @@ func SaveDailyAutomationStatsByDate(ctx context.Context, dateStr string) error {
 }
 
 // SaveOnceDailyAutomationStats 一次性迁移所有历史数据（按日期倒序）
+// SaveOnceDailyAutomationStats 一次性迁移所有历史数据（按日期倒序）
 func SaveOnceDailyAutomationStats(ctx context.Context) error {
 	// 获取最早的记录时间作为结束日期
 	startDate, err := empyrean_lens.NewModelCaseResultDao().GetEarliestRecordDate(ctx)
@@ -140,6 +68,22 @@ func SaveOnceDailyAutomationStats(ctx context.Context) error {
 
 	for !currentTime.Before(endTime) {
 		dateStr := currentTime.Format("2006-01-02")
+
+		// 先查询该日期是否已有记录
+		exists, err := empyrean_lens.NewDailyAutomationStatsDao().ExistsByDate(ctx, dateStr)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "Failed to check stats existence for date %s: %v", dateStr, err)
+			return err
+		}
+
+		// 如果记录已存在，跳过该日期
+		if exists {
+			hlog.CtxInfof(ctx, "Stats already exist for date: %s, skipping...", dateStr)
+			currentTime = currentTime.AddDate(0, 0, -1)
+			continue
+		}
+
+		// 如果记录不存在，则保存新数据
 		if err := SaveDailyAutomationStatsByDate(ctx, dateStr); err != nil {
 			hlog.CtxErrorf(ctx, "Failed to save stats for date %s: %v", dateStr, err)
 			return err
@@ -151,17 +95,6 @@ func SaveOnceDailyAutomationStats(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// SaveYesterdayAutomationStats
-func SaveYesterdayAutomationStats(ctx context.Context) error {
-	yesterday := time.Now().AddDate(0, 0, -1)
-	//dateStr := yesterday.Format("2006-01-02")
-	//
-	//hlog.CtxInfof(ctx, "Yesterday: %v", yesterday)
-	//hlog.CtxInfof(ctx, "Date string to process: %v", dateStr)
-	//bufio.NewReader(os.Stdin).ReadBytes('\n')
-	return SaveDailyAutomationStatsByDateRange(ctx, yesterday)
 }
 
 // SaveMissingDaysAutomationStats 保存最近几天可能漏掉的数据

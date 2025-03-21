@@ -3676,11 +3676,11 @@
                 }
 
                 let row = '';
-                if(caseType === '大纲与原文相关性') {
+                if (caseType === '大纲与原文相关性') {
                     let errorLog = detail.error_log;
                     let logs = errorLog.split('\n');
                     let errList = '';
-                    for(let i = 0; i < logs.length; i++) {
+                    for (let i = 0; i < logs.length; i++) {
                         const log = logs[i];
                         // 1. 使用正则表达式匹配 score 和 outline
                         let scoreMatch = log.match(/'score':\s*([\d.]+)/);
@@ -3690,21 +3690,20 @@
                         // 2. 获取匹配的内容
                         let score = scoreMatch ? parseFloat(scoreMatch[1]) : null;
                         let outline = outlineMatch ? outlineMatch[1] : null;
-                        let theme = themeMatch? themeMatch[1] : null;
+                        let theme = themeMatch ? themeMatch[1] : null;
 
-                        errList += `${i+1}. 得分：${score}<br>主题：${theme}<br>大纲：${outline}<br>`;
+                        errList += `${i + 1}. 得分：${score}<br>主题：${theme}<br>大纲：${outline}<br>`;
                     }
                     row = `<tr class="data-row">
                     <!-- <td>${detail.test_duration.toFixed(3)}</td>-->
                     <td style="text-align: left">${errList}</td>
                     ${shareLinksCell}
                 </tr>`;
-                }
-                else if(caseType === "大纲原文定位连续性") {
+                } else if (caseType === "大纲原文定位连续性") {
                     let errorLog = detail.error_log;
                     let logs = errorLog.split('\n');
                     let errList = '';
-                    for(let i = 0; i < logs.length; i++) {
+                    for (let i = 0; i < logs.length; i++) {
                         const log = logs[i];
                         errList += `${log}<br>`;
                     }
@@ -3713,8 +3712,7 @@
                     <td style="text-align: left">${errList}</td>
                     ${shareLinksCell}
                 </tr>`;
-                }
-                else if(caseType === "原文定位字数") {
+                } else if (caseType === "原文定位字数") {
                     let errorLog = detail.error_log;
 
                     // Extract original_sentences
@@ -3738,7 +3736,7 @@
                     <td style="text-align: left">${resultString}</td>
                     ${shareLinksCell}
                 </tr>`;
-                } else if(caseType === "原文不在edu tree中") {
+                } else if (caseType === "原文不在edu tree中") {
                     try {
                         let error_logs = JSON.parse(detail.error_log.replace(/\\u003c/g, '<')
                             .replace(/\\u003e/g, '>')
@@ -3750,7 +3748,7 @@
                         let errorList = '';
                         if (Array.isArray(error_logs)) {
                             for (let i = 0; i < error_logs.length; i++) {
-                                errorList += `${i+1}. ${error_logs[i]}<br>`;
+                                errorList += `${i + 1}. ${error_logs[i]}<br>`;
                             }
                         } else {
                             // If error_logs is not an array, display it as a single item
@@ -3794,7 +3792,7 @@
 
             // 添加上一页按钮
             const prevBtn = $(`<button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`);
-            prevBtn.click(function() {
+            prevBtn.click(function () {
                 if (currentPage > 1) {
                     currentPage--;
                     updatePagination();
@@ -3807,7 +3805,7 @@
 
             // 添加下一页按钮
             const nextBtn = $(`<button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`);
-            nextBtn.click(function() {
+            nextBtn.click(function () {
                 if (currentPage < totalPages) {
                     currentPage++;
                     updatePagination();
@@ -3833,7 +3831,7 @@
             table.append(paginationDiv);
 
             // 绑定跳转按钮事件
-            $('#jump-btn').click(function() {
+            $('#jump-btn').click(function () {
                 const pageNum = parseInt($('#page-jump').val());
                 if (pageNum >= 1 && pageNum <= totalPages) {
                     currentPage = pageNum;
@@ -3846,7 +3844,7 @@
             });
 
             // 监听回车键
-            $('#page-jump').keypress(function(e) {
+            $('#page-jump').keypress(function (e) {
                 if (e.which === 13) { // Enter key
                     $('#jump-btn').click();
                 }

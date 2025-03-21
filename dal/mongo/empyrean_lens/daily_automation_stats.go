@@ -134,20 +134,12 @@ func (self *DailyAutomationStatsDao) GetStatsByDate(ctx context.Context, date st
 	return &result, nil
 }
 
-// GetLatestStats 获取最新的统计记录
-func (self *DailyAutomationStatsDao) GetLatestStats(ctx context.Context) (*DailyAutomationStatsModel, error) {
-	opts := options.FindOne().SetSort(bson.M{"date": -1})
-	var result DailyAutomationStatsModel
-	err := probeDatabase.
-		Collection(TableNameDailyAutomationStats).
-		FindOne(ctx, bson.M{}, opts).
-		Decode(&result)
-
-	if err == mongo.ErrNoDocuments {
-		return nil, nil
-	}
+func (d *DailyAutomationStatsDao) ExistsByDate(ctx context.Context, dateStr string) (bool, error) {
+	count, err := probeDatabase.Collection(TableNameDailyAutomationStats).CountDocuments(ctx, bson.M{
+		"date": dateStr,
+	})
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	return &result, nil
+	return count > 0, nil
 }

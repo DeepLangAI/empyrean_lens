@@ -53,13 +53,36 @@ func SaveDailyAutomationStatsByDate(ctx context.Context, dateStr string) error {
 }
 
 // SaveOnceDailyAutomationStats 一次性迁移所有历史数据（按日期倒序）
-// SaveOnceDailyAutomationStats 一次性迁移所有历史数据（按日期倒序）
 func SaveOnceDailyAutomationStats(ctx context.Context) error {
-	// 获取最早的记录时间作为结束日期
-	startDate, err := empyrean_lens.NewModelCaseResultDao().GetEarliestRecordDate(ctx)
+	// 获取 ModelCaseResult 最早的记录时间
+	modelCaseStartDate, err := empyrean_lens.NewModelCaseResultDao().GetEarliestRecordDate(ctx)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "Failed to get earliest record date: %v", err)
+		hlog.CtxErrorf(ctx, "Failed to get earliest record date from ModelCaseResult: %v", err)
 		return err
+	}
+
+	// 获取 daily_automation_stats 最新的记录时间
+	latestStats, err := empyrean_lens.NewDailyAutomationStatsDao().GetLatestStats(ctx)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "Failed to get latest stats date: %v", err)
+		return err
+	}
+
+	var startDate time.Time
+	if latestStats != nil {
+		statsDate, err := time.Parse("2006-01-02", latestStats.Date)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "Failed to parse latest stats date: %v", err)
+			return err
+		}
+		// 比较两个时间，取较新的那个
+		if statsDate.After(modelCaseStartDate) {
+			startDate = statsDate
+		} else {
+			startDate = modelCaseStartDate
+		}
+	} else {
+		startDate = modelCaseStartDate
 	}
 
 	// 从当前时间开始，倒序处理到最早的记录时间

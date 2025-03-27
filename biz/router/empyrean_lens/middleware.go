@@ -407,3 +407,18 @@ func _getdailymodelautomationstatsMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _testMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _detailMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _saveapitestdetailMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

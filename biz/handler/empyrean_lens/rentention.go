@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/cloudwego/hertz/pkg/common/adaptor"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/cloudwego/hertz/pkg/protocol"
@@ -924,4 +926,75 @@ func GetDailyModelAutomationStats(ctx context.Context, c *app.RequestContext) {
 	resp.Code = 0
 	resp.Msg = "success"
 	c.JSON(consts.StatusOK, resp)
+}
+
+// SaveApiTestDetail .
+// @router /api/v1/test/detail/save [POST]
+func SaveApiTestDetail(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var err error
+	var req empyrean_lens.SaveApiTestDetailReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.ParamBindJsonError, err)
+		return
+	}
+
+	// 添加显式的参数验证
+	if req.TraceID == "" {
+		resp := &empyrean_lens.SaveApiTestDetailResp{
+			Code: int32(consts2.ParamBindJsonError.Code),
+			Msg:  "trace_id不能为空",
+		}
+		c.JSON(consts.StatusBadRequest, resp)
+		return
+	}
+
+	if req.APIName == "" {
+		resp := &empyrean_lens.SaveApiTestDetailResp{
+			Code: int32(consts2.ParamBindJsonError.Code),
+			Msg:  "api_name不能为空",
+		}
+		c.JSON(consts.StatusBadRequest, resp)
+		return
+	}
+
+	// 创建 dal 层的 RequestContent
+	reqContent := dal_mongo_empyrean_lens.RequestContent{
+		Headers: req.RequestContent.Headers,
+		Body:    req.RequestContent.Body,
+		Method:  req.RequestContent.Method,
+		Url:     req.RequestContent.URL,
+	}
+
+	// 创建 dal 层的 ResponseContent
+	respContent := dal_mongo_empyrean_lens.ResponseContent{
+		StatusCode: int(req.ResponseContent.StatusCode),
+		Headers:    req.ResponseContent.Headers,
+		Body:       req.ResponseContent.Body,
+		Error:      req.ResponseContent.Error,
+	}
+
+	// 创建 dal 层的 ApiTestDetailModel
+	model := dal_mongo_empyrean_lens.ApiTestDetailModel{
+		Id:              primitive.NewObjectID(),
+		TraceId:         req.TraceID,
+		EntryId:         req.EntryID,
+		RequestContent:  reqContent,
+		ResponseContent: respContent,
+		CostTime:        req.CostTime,
+		ApiName:         req.APIName,
+		CreatedTime:     time.Now(),
+	}
+
+	if err := empyrean_lens2.SaveApiTestDetail(ctx, model); err != nil {
+		hlog.CtxErrorf(ctx, "save api test detail error: %v", err)
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	resp := new(empyrean_lens.SaveApiTestDetailResp)
+	resp.Code = 0
+	resp.Msg = "success"
+	base.SuccessResponse(c, resp)
 }

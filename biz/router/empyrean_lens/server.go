@@ -118,6 +118,13 @@ func Register(r *server.Hertz) {
 					_user_trace.GET("/list", append(_systemendtoendusertracelogsMw(), empyrean_lens.SystemEndToEndUserTraceLogs)...)
 				}
 			}
+			{
+				_test := _v1.Group("/test", _testMw()...)
+				{
+					_detail := _test.Group("/detail", _detailMw()...)
+					_detail.POST("/save", append(_saveapitestdetailMw(), empyrean_lens.SaveApiTestDetail)...)
+				}
+			}
 		}
 	}
 }

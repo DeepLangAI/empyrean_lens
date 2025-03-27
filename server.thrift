@@ -309,7 +309,7 @@ struct DbTidyReq{
 //    1: i32 timespan
 }
 
-// 查询用户信息
+# 查询用户信息
 struct UInfoReq{
     1: string phone
     2: string uid
@@ -324,7 +324,7 @@ struct UInfoRespData{
     2: string uid
     3: string nickname
 }
-// 用户活动信息
+# 用户活动信息
 struct UserActionInfoReq{
     1: list<string> uids
 }
@@ -349,7 +349,7 @@ struct UserActionDetail{
 }
 
 
-// 查询请求量趋势
+# 查询请求量趋势
 struct RequestTrendReq{
     1: string date
 }
@@ -374,7 +374,7 @@ struct RequestTrendRespDataItem{
     9: i32 num_trace_back
 }
 
-// 上报：上线数据
+# 上报：上线数据
 struct UploadOnlineOperationReq{
     1: list<UploadOnlineOperationReqData> data
 }
@@ -402,7 +402,7 @@ struct AuthReq{
     2: string state
 }
 
-// 上线单查询
+# 上线单查询
 struct OnlineOperationReq{
     1: string time_begin
     2: string time_end
@@ -418,11 +418,11 @@ struct OnlineOperationRespData{
     2: list<UploadOnlineOperationReqData> detail
 }
 
-// ========================================================
-//               链路追踪相关接口定义
-// ========================================================
+# ========================================================
+#               链路追踪相关接口定义
+# ========================================================
 
-// 用户行为
+# 用户行为
 enum UserActionStatus {
     Success = 1 // 成功
     Fail = 2 // 失败
@@ -430,7 +430,7 @@ enum UserActionStatus {
     Timeout = 4 // 超时失败
 }
 
-// 资源渠道的枚举值
+# 资源渠道的枚举值
 enum ChannelType {
     All = 0,  // 全部渠道
 
@@ -477,7 +477,7 @@ enum ChannelType {
     H5Page = 90,  // app h5页面
 }
 
-// 实体类型
+# 实体类型
 enum EntryTypeEnum{
     WORD = 1,  // 词
     QUOTE = 2,  // 句
@@ -532,7 +532,7 @@ enum LinkNodeTypeEnum{
     DETAIL_OUTLINE_RETRY_FINISH = 21  // 详细大纲重新生成
 }
 
-// 用户行为查询
+# 用户行为查询
 struct UserActionReq {
     1: string query // 关键词、url、uid、entry-id、multiid等。如果为空则表示不限制
     2: string start_time // consts.DateHourMinSecTemplate
@@ -565,7 +565,7 @@ struct ResourceInfo{
     4: string url
 }
 
-// 用户行为来源
+# 用户行为来源
 typedef string WebSite
 const WebSite WebSiteLingowhalePlugin = "语鲸插件"
 const WebSite WebSiteLingowhaleWeb = "语鲸web"
@@ -578,7 +578,7 @@ const WebSite WebSiteLingowhaleDesktopWin = "桌面端-win"
 const WebSite WebSiteLingowhaleDesktopMac = "桌面端-mac"
 const WebSite WebSiteLingowhaleSubscribe = "订阅"
 
-// 用户行为类型
+# 用户行为类型
 typedef string ActionName
 const ActionName ActionNameSingleWeb = "单文档web"
 const ActionName ActionNameSinglePdf = "单文档pdf"
@@ -615,7 +615,7 @@ struct UserActionRespRow {
     11: i32 user_type
 }
 
-// 用户行为下载
+# 用户行为下载
 struct DownloadUserActionReq {
     1: string query // 关键词、url、uid、entry-id、multiid等。如果为空则表示不限制
     2: string start_time // consts.DateHourMinSecTemplate
@@ -626,7 +626,7 @@ struct DownloadUserActionReq {
     7: list<ActionName> action_names // 用户行为类型
 }
 
-// 节点链路图
+# 节点链路图
 typedef string NodeId
 struct TraceLinkGraph {
     1: list<GraphNode> nodes
@@ -645,7 +645,7 @@ struct GraphNode {
     9: bool is_copied // 是否是拷贝
 }
 
-// 单文档链路查询
+# 单文档链路查询
 struct DocLinkTraceReq {
     1: string entry_id
     2: EntryTypeEnum entry_type
@@ -669,7 +669,7 @@ struct DocLinkTraceRespData {
     9: string time_at
 }
 
-// 多文档链路查询
+# 多文档链路查询
 struct MultiDocLinkTraceReq {
     1: string entry_id
     2: EntryTypeEnum entry_type
@@ -702,7 +702,7 @@ struct MultiDocLinkTraceRespData {
     10: string time_at
 }
 
-// 链路中某节点的日志查询
+# 链路中某节点的日志查询
 struct LinkNodeLogReq {
     1: string entry_id
     2: EntryTypeEnum entry_type
@@ -751,19 +751,19 @@ struct ApiLog {
     14: string operation_id // 行为ID
 }
 
-// 保存链路信息到数据库
+# 保存链路信息到数据库
 struct SaveLinkTraceReq {
     1: string entry_id
     2: EntryTypeEnum entry_type
 }
 
-// 保存链路信息到数据库
+# 保存链路信息到数据库
 struct SaveLinkTraceResp {
     1: i64 code
     2: string msg
 }
 
-// 批量保存链路信息到数据库
+# 批量保存链路信息到数据库
 struct BatchSaveLinkTraceReq {
     1: i64 begin_at  // 开始时间戳
     2: i64 end_at  // 结束时间戳
@@ -775,7 +775,7 @@ struct BatchSaveLinkTraceResp {
     2: string msg
 }
 
-// 批量更新失败的记录
+# 批量更新失败的记录
 struct BatchUpdateFailRecordReq {
     1: i64 begin_at  // 开始时间戳
     2: i64 end_at  // 结束时间戳
@@ -786,7 +786,7 @@ struct BatchUpdateFailRecordResp {
     2: string msg
 }
 
-// 查wcd在oss上传的详细日志
+# 查wcd在oss上传的详细日志
 struct WcdOssDetalReq{
     1: string entry_id
     2: string trace_id
@@ -810,7 +810,7 @@ struct WcdOssDetalRespData{
     6: string parsed_text  // 解析后到text内容
 }
 
-// 查询wcd无意义处理结果日志
+# 查询wcd无意义处理结果日志
 struct WcdWorthlessReq{
     1: string time_begin
     2: string time_end
@@ -835,7 +835,7 @@ struct WcdWorthlessRespData{
     9: string oss_key
 }
 
-// 通过trace_id查询对应的entry_id
+# 通过trace_id查询对应的entry_id
 struct TraceIdToEntryIdReq{
     1: string trace_id
     2: string user_id
@@ -851,7 +851,7 @@ struct TraceIdToEntryIdRespData{
     1: string entry_id
 }
 
-// 用户侧日志：错误列表
+# 用户侧日志：错误列表
 struct UserErrorListReq{
 }
 struct UserErrorListResp{
@@ -865,7 +865,7 @@ struct UserErrorListRespData{
     3: i64 num_error_generate
 }
 
-// 用户侧日志：错误详情
+# 用户侧日志：错误详情
 struct UserErrorUploadReq{
     2: string date
 }
@@ -886,7 +886,7 @@ struct UploadErrorLog{
     9: string ip_region
     10: string trace_id
 }
-// 用户侧日志，生成失败列表
+# 用户侧日志，生成失败列表
 struct UserErrorGenerateReq{
     2: string date
 }
@@ -986,8 +986,8 @@ struct ModelCaseInfoSaveResp {
     2: string msg
 }
 
-// mlm-0314
-// 获取前一天的自动化测试数据
+# mlm-0314
+# 获取前一天的自动化测试数据
 struct DailyModelAutomationStatsReq {
     1: string start_time  // 开始时间 YYYY-MM-DD
     2: string end_time    // 结束时间 YYYY-MM-DD
@@ -1018,18 +1018,18 @@ service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
 
-    // 鉴权
+    # 鉴权
     EmptyResp Auth(1: AuthReq req) (api.get="/api/v1/report/auth")
 
-   //  用于提供前后端分离接口
+   #  用于提供前后端分离接口
    RealtimeScoreResp SystemRealtimeScore(1: EmptyReq req) (
        api.get="/api/v1/report/realtime"
    )
-   // 系统分数列表
+   # 系统分数列表
    DailyScoreResp SystemDailyScore(1: DailyScoreReq req) (
        api.get="/api/v1/report/daily/score"
    )
-   // 错误率，基于Nginx日志
+   # 错误率，基于Nginx日志
    ApiFailureInfoResp SystemDailyApiFailureInfo(1: DailyApiFailureInfoReq req) (
        api.get="/api/v1/report/fail/list"
    )
@@ -1038,11 +1038,11 @@ service Rentention{
    )
 
 
-   // 慢查询率，基于业务日志
+   # 慢查询率，基于业务日志
    ApiSlowInfoResp SystemDailyApiSlowInfo(1: DailyApiSlowInfoReq req) (
        api.get="/api/v1/report/slow/list"
    )
-   // 探针错误率，基于探针日志
+   # 探针错误率，基于探针日志
    ApiProbeResp SystemDailyApiCost(1: ApiProbeResp req) (
        api.get="/api/v1/report/probe/list"
    )
@@ -1050,33 +1050,33 @@ service Rentention{
        api.get="/api/v1/report/probe/detail"
    )
 
-   // 全链路日志
+   # 全链路日志
    EndToEndTraceResp SystemEndToEndTraceLogs(1: EndToEndTraceReq req) (
        api.get="/api/v1/report/trace/list"
    )
-   // 用户全链路日志
+   # 用户全链路日志
    EndToEndUserTraceResp SystemEndToEndUserTraceLogs(1: EndToEndUserTraceReq req) (
        api.get="/api/v1/report/user_trace/list"
    )
-   // Traceback日志列表
+   # Traceback日志列表
    TracebackResp SysteTracebackLogs(1: TracebackReq req) (
        api.get="/api/v1/report/traceback/list"
    )
 
-   // 系统请求量趋势数据
+   # 系统请求量趋势数据
    RequestTrendResp RequestTrends(1: RequestTrendReq req) (
        api.get="/api/v1/report/trend/request"
    )
 
-   // 用于提供缓存数据库接口
+   # 用于提供缓存数据库接口
    DbRefreshResp SystemDbTidy(1: DbTidyReq req) (
        api.post="/api/v1/report/db/tidy"
    )
-   // 刷新数据库数据
+   # 刷新数据库数据
    DbRefreshResp SystemDbRefresh(1: DbRefreshReq req) (
        api.post="/api/v1/report/db/refresh"
    )
-   // 查用户信息
+   # 查用户信息
    UInfoResp GetUInfo(1: UInfoReq req) (
        api.get="/api/v1/report/user/info"
    )
@@ -1085,47 +1085,51 @@ service Rentention{
        api.post="/api/v1/report/user/user_action_info"
    )
 
-   // 上线单查询
+   # 上线单查询
    OnlineOperationResp GetOnlineOperation(1: OnlineOperationReq req) (
        api.get="/api/v1/report/online_operation"
    )
 
-   // 上报数据
-   // - 上线数据上报
+   # 上报数据
+   # - 上线数据上报
    BaseResp UploadOnlineOperation(1: UploadOnlineOperationReq req) (
        api.post="/api/v1/report/upload/online_operation"
    )
-   // - 探针日志上报
+   # - 探针日志上报
    WriteProbeResp WriteProbeLogs(1: WriteProbeReq req) (
        api.post="/api/v1/report/db/write_probe"
    )
-   // App crash details
+   # App crash details
    AppCrashDetailResp AppCrashDetails(1: AppCrashDetailReq req) (
        api.get="/api/v1/report/app_crash"
    )
-   // batch save app crash info
+   # batch save app crash info
    AppCrashBatchSaveResp AppCrashBatchSave(1: AppCrashBatchSaveReq req) (
        api.post="/api/v1/report/app_crash/batch_save"
    )
-   // get model automation details
+   # get model automation details
    ModelAutomationResp ModelAutomation(1: ModelAutomationReq req) (
        api.get="/api/v1/report/model_automation"
    )
-   // get model case result
+   # get model case result
    ModelCaseResultResp ModelCaseResult(1: ModelCaseResultReq req) (
        api.get="/api/v1/report/model_case_result"
    )
-   // save model case info
+   # save model case info
    ModelCaseInfoSaveResp ModelCaseInfoSave(1: ModelCaseInfoSaveReq req) (
        api.post="/api/v1/report/model/save"
    )
-   // 获取前一天自动化测试统计数据
+   # 获取前一天自动化测试统计数据
    DailyModelAutomationStatsResp GetDailyModelAutomationStats(1: DailyModelAutomationStatsReq req) (
            api.get="/api/v1/report/daily_model_automation_stats"
    )
+   # 保存API测试详情
+   SaveApiTestDetailResp SaveApiTestDetail(1: SaveApiTestDetailReq req) (
+       api.post="/api/v1/test/detail/save"
+   )
 }
 
-// 更新entry info
+# 更新entry info
 struct UpdateEntryInfoReq {
     1: i32 entry_type
     2: string entry_id
@@ -1134,67 +1138,96 @@ struct UpdateEntryInfoReq {
 }
 
 service LinkTrace{
-    // 查用户行为列表
+    # 查用户行为列表
     UserActionResp UserActions(1: UserActionReq req) (
         api.get="/api/v1/link_trace/user_actions"
     )
-    // 更新entry info
+    # 更新entry info
     SaveLinkTraceResp UpdateEntryInfo(1: UpdateEntryInfoReq req) (
         api.post="/api/v1/link_trace/update"
     )
-    // 下载用户行为列表
+    # 下载用户行为列表
     UserActionResp DownloadUserActions(1: DownloadUserActionReq req) (
         api.get="/api/v1/link_trace/download_user_actions"
     )
-    // 查单文档链路
+    # 查单文档链路
     DocLinkTraceResp DocLinkTrace(1: DocLinkTraceReq req) (
         api.get="/api/v1/link_trace/single_doc"
     )
-    // 查多文档链路
+    # 查多文档链路
     MultiDocLinkTraceResp MultiDocLinkTrace(1: MultiDocLinkTraceReq req) (
         api.get="/api/v1/link_trace/multi_doc"
     )
-    // 链路中某节点的日志查询
+    # 链路中某节点的日志查询
     LinkNodeLogResp LinkNodeLogs(1: LinkNodeLogReq req) (
         api.get="/api/v1/link_trace/node_logs"
     )
-    // 保存链路信息到数据库
+    # 保存链路信息到数据库
     SaveLinkTraceResp SaveLinkTrace(1: SaveLinkTraceReq req) (
         api.post="/api/v1/link_trace/save"
     )
-    // 批量保存链路信息到数据库
+    # 批量保存链路信息到数据库
     BatchSaveLinkTraceResp BatchSaveLinkTrace(1: BatchSaveLinkTraceReq req) (
         api.post="/api/v1/link_trace/batch_save"
     )
-    // 批量更新失败的记录
+    # 批量更新失败的记录
     BatchUpdateFailRecordResp BatchUpdateFailRecord(1: BatchUpdateFailRecordReq req) (
         api.post="/api/v1/link_trace/batch_update_fail_record"
     )
-    // wcd节点处理的详情
+    # wcd节点处理的详情
     WcdOssDetalResp WcdNodeDetail(1: WcdOssDetalReq req) (
         api.get="/api/v1/link_trace/wcd_oss_detail"
     )
-    // wcd处理结果无意义日志
+    # wcd处理结果无意义日志
     WcdWorthlessResp WcdOssWorthlessLogs(1: WcdWorthlessReq req) (
         api.get="/api/v1/link_trace/wcd_worthless"
     )
-    // 通过trace_id查询对应的entry_id
+    # 通过trace_id查询对应的entry_id
     TraceIdToEntryIdResp TraceIdToEntryId(1: TraceIdToEntryIdReq req) (
         api.get="/api/v1/link_trace/trace_id_to_entry_id"
     )
 }
 
 service FrontError{
-    // 错误列表
+    # 错误列表
     UserErrorListResp ErrorList(1: UserErrorListReq req) (
         api.get="/api/v1/front_err/list"
     )
-    // 上传失败聚合
+    # 上传失败聚合
     UserErrorUploadResp ErrorUpload(1: UserErrorUploadReq req) (
         api.get="/api/v1/front_err/upload/list"
     )
-    // 生成失败聚合
+    # 生成失败聚合
     UserErrorGenerateResp ErrorGenerate(1: UserErrorGenerateReq req) (
         api.get="/api/v1/front_err/generate/list"
     )
+}
+
+# API测试详情
+struct SaveApiTestDetailReq {
+    1: string trace_id (vd="$!=''")
+    2: string entry_id
+    3: RequestContent request_content
+    4: ResponseContent response_content
+    5: i64 cost_time
+    6: string api_name (vd="$!=''")
+}
+
+struct RequestContent {
+    1: map<string, string> headers
+    2: string body
+    3: string method
+    4: string url
+}
+
+struct ResponseContent {
+    1: i32 status_code
+    2: map<string, string> headers
+    3: string body
+    4: string error
+}
+
+struct SaveApiTestDetailResp {
+    1: i32 code
+    2: string msg
 }

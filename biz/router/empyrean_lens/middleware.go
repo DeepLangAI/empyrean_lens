@@ -208,6 +208,11 @@ func _toolsrenderMw() []app.HandlerFunc {
 	return nil
 }
 
+func _dataservicerenderMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
 func _userMw() []app.HandlerFunc {
 	// your code...
 	return nil
@@ -404,6 +409,41 @@ func _modelcaseinfosaveMw() []app.HandlerFunc {
 }
 
 func _getdailymodelautomationstatsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _testMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _detailMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _saveapitestdetailMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _api_statsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _getapistatsdailyMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _api_testMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _getapitestdetailsMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }

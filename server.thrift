@@ -1121,11 +1121,20 @@ service Rentention{
    )
    # 获取前一天自动化测试统计数据
    DailyModelAutomationStatsResp GetDailyModelAutomationStats(1: DailyModelAutomationStatsReq req) (
-           api.get="/api/v1/report/daily_model_automation_stats"
+       api.get="/api/v1/report/daily_model_automation_stats"
    )
    # 保存API测试详情
    SaveApiTestDetailResp SaveApiTestDetail(1: SaveApiTestDetailReq req) (
        api.post="/api/v1/test/detail/save"
+   )
+   # 获取API每日统计数据
+   GetApiStatsDailyResp GetApiStatsDaily(1: GetApiStatsDailyReq req) (
+       api.get="/api/v1/report/api_stats/daily"
+   )
+
+   # 获取API测试详情
+   GetApiTestDetailsResp GetApiTestDetails(1: GetApiTestDetailsReq req) (
+       api.get="/api/v1/report/api_test/details"
    )
 }
 
@@ -1230,4 +1239,51 @@ struct ResponseContent {
 struct SaveApiTestDetailResp {
     1: i32 code
     2: string msg
+}
+
+# API统计数据查询
+struct GetApiStatsDailyReq {
+    1: string start_date (vd="$!=''")      // 开始日期，格式：YYYY-MM-DD
+    2: string end_date (vd="$!=''")        // 结束日期，格式：YYYY-MM-DD
+}
+
+struct ApiStatsDailyRespData {
+    1: string date                         // 日期，格式：YYYY-MM-DD
+    2: map<string, ApiStatsItem> api_stats // key为api_type，value为统计数据
+}
+
+struct ApiStatsItem {
+    1: i32 total                          // 总请求数
+    2: i32 success                        // 成功请求数
+    3: double rate                        // 成功率
+}
+
+struct GetApiStatsDailyResp {
+    1: i64 code
+    2: string msg
+    3: list<ApiStatsDailyRespData> data
+}
+
+# API测试详情查询
+struct GetApiTestDetailsReq {
+    1: string api_type (vd="$!=''")        // API类型
+    2: string date (vd="$!=''")            // 日期，格式：YYYY-MM-DD
+}
+
+struct ApiTestDetailItem {
+    1: string trace_id
+    2: string entry_id
+    3: RequestContent request_content
+    4: ResponseContent response_content
+    5: i64 cost_time
+}
+
+struct GetApiTestDetailsResp {
+    1: i64 code
+    2: string msg
+    3: GetApiTestDetailsRespData data
+}
+
+struct GetApiTestDetailsRespData {
+    1: list<ApiTestDetailItem> items       // 当前页数据
 }

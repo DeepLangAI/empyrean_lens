@@ -2,10 +2,15 @@ package empyrean_lens
 
 import (
 	"context"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var TableNameApiTestDetail = "api_test_detail"
@@ -48,9 +53,71 @@ func NewApiTestDetailDao() *ApiTestDetailDao {
 }
 
 func (self *ApiTestDetailDao) Save(ctx context.Context, model ApiTestDetailModel) error {
-	_, err := probeDatabase.Collection(TableNameApiTestDetail).InsertOne(ctx, model)
+
+	// 检查是否已存在相同的 trace_id
+	count, err := probeDatabase.Collection(TableNameApiTestDetail).CountDocuments(ctx, bson.M{"trace_id": model.TraceId})
+	if err != nil {
+		hlog.CtxErrorf(ctx, "check duplicate trace_id error:%v", err)
+		return err
+	}
+	if count > 0 {
+		hlog.CtxErrorf(ctx, "check duplicate trace_id error:%v", model.TraceId)
+		return fmt.Errorf("duplicate trace_id: %s", model.TraceId)
+	}
+
+	// 插入新记录
+	_, err = probeDatabase.Collection(TableNameApiTestDetail).InsertOne(ctx, model)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "mongo insert one error:%v", err)
 	}
 	return err
+}
+
+// Aggregate 执行聚合查询
+func (self *ApiTestDetailDao) Aggregate(ctx context.Context, pipeline interface{}) (*mongo.Cursor, error) {
+	return probeDatabase.Collection(TableNameApiTestDetail).Aggregate(ctx, pipeline)
+}
+
+// FindByApiTypeAndDate 根据API类型和日期查询测试详情
+func (self *ApiTestDetailDao) FindByApiTypeAndDate(ctx context.Context, apiType string, date time.Time) ([]ApiTestDetailModel, error) {
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
+	filter := bson.M{
+		"api_name": apiType,
+		"created_time": bson.M{
+			"$gte": startOfDay,
+			"$lt":  endOfDay,
+		},
+		"response_content.status_code": bson.M{
+			"$ne": 200, // 只查询非200状态码的记录
+		},
+	}
+
+	cursor, err := probeDatabase.Collection(TableNameApiTestDetail).Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []ApiTestDetailModel
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// GetEarliestRecordDate 获取最早的记录时间
+func (self *ApiTestDetailDao) GetEarliestRecordDate(ctx context.Context) (time.Time, error) {
+	opts := options.FindOne().SetSort(bson.D{{"created_time", 1}})
+	var result ApiTestDetailModel
+	err := probeDatabase.Collection(TableNameApiTestDetail).FindOne(ctx, bson.M{}, opts).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return time.Now(), nil // 如果没有记录，返回当前时间
+		}
+		return time.Time{}, err
+	}
+	return result.CreatedTime, nil
 }

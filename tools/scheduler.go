@@ -48,6 +48,25 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 		}
 	})
 
+	// 添加新的定时任务：每天早上12点补充api_stats_daily的历史数据
+	s.Every(1).Day().At("12:00").Do(func() {
+		if err := empyrean_lens.SaveOnceDailyApiStats(context.Background()); err != nil {
+			hlog.Errorf("Failed to migrate API stats historical data: %v", err)
+		}
+	})
+
+	//// 添加API统计数据计算任务
+	//s.Every(1).Day().At("12:00").Do(func() {
+	//	hlog.CtxInfof(ctx, "开始执行每日API统计数据计算任务")
+	//
+	//	err := empyrean_lens.CalculateAndSaveDailyStats(ctx, time.Now())
+	//	if err != nil {
+	//		hlog.CtxErrorf(ctx, "计算每日API统计数据失败: %v", err)
+	//	} else {
+	//		hlog.CtxInfof(ctx, "每日API统计数据计算完成")
+	//	}
+	//})
+
 	s.StartAsync()
 
 }

@@ -18,7 +18,7 @@ func TestApiTestDetailDao_Save(t *testing.T) {
 	// 准备测试数据
 	model := ApiTestDetailModel{
 		Id:      primitive.NewObjectID(),
-		TraceId: "test-trace-id",
+		TraceId: "test-trace-id8",
 		EntryId: "test-entry-id",
 		RequestContent: RequestContent{
 			Headers: map[string]string{"Content-Type": "application/json"},
@@ -33,8 +33,8 @@ func TestApiTestDetailDao_Save(t *testing.T) {
 			Error:      "",
 		},
 		CostTime:    100,
-		ApiName:     "test-api",
-		CreatedTime: time.Now(),
+		ApiName:     "edu_output",
+		CreatedTime: time.Now().AddDate(0, 0, -1),
 	}
 
 	// 测试保存

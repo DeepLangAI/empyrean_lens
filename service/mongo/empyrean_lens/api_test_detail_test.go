@@ -18,8 +18,8 @@ func TestSaveApiTestDetail(t *testing.T) {
 	// 准备测试数据
 	model := dal_mongo_empyrean_lens.ApiTestDetailModel{
 		Id:      primitive.NewObjectID(),
-		TraceId: "",
-		EntryId: "test-entry-id",
+		TraceId: "test-entry-id1",
+		EntryId: "test-entry-id1",
 		RequestContent: dal_mongo_empyrean_lens.RequestContent{
 			Headers: map[string]string{"Content-Type": "application/json"},
 			Body:    `{"test": "data"}`,
@@ -33,7 +33,7 @@ func TestSaveApiTestDetail(t *testing.T) {
 			Error:      "",
 		},
 		CostTime:    100,
-		ApiName:     "test-api",
+		ApiName:     "upload_pdf",
 		CreatedTime: time.Now(),
 	}
 

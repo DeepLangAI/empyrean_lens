@@ -11,10 +11,12 @@ import (
 	empyrean_lens2 "empyrean_lens/service/mongo/empyrean_lens"
 	"empyrean_lens/service/passport"
 	"empyrean_lens/utils"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -122,6 +124,102 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	if err := tpl.Execute(rw, overview); err != nil {
+		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
+		return
+	}
+}
+
+// DataServiceRender 渲染数据侧服务监测页面
+// @router /api/log/data_service [GET]
+func DataServiceRender(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.EmptyReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	// 获取所有API统计数据
+	stats, err := empyrean_lens2.GetApiStatsDaily(ctx, time.Time{}, time.Time{})
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// 转换为响应格式
+	dailyStats := make([]*empyrean_lens.ApiStatsDailyRespData, 0)
+	for _, stat := range stats {
+		apiStatsMap := make(map[string]*empyrean_lens.ApiStatsItem)
+		for _, item := range stat.ApiStats {
+			apiStatsMap[item.ApiType] = &empyrean_lens.ApiStatsItem{
+				Total:   int32(item.Total),
+				Success: int32(item.Success),
+				Rate:    item.Rate,
+			}
+		}
+
+		dailyStats = append(dailyStats, &empyrean_lens.ApiStatsDailyRespData{
+			Date:     stat.Date,
+			APIStats: apiStatsMap,
+		})
+	}
+
+	// 按日期降序排序
+	sort.Slice(dailyStats, func(i, j int) bool {
+		return dailyStats[i].Date > dailyStats[j].Date
+	})
+
+	// 定义模板数据结构
+	type TemplateData struct {
+		Stats    []*empyrean_lens.ApiStatsDailyRespData
+		ApiTypes []string
+	}
+
+	// 创建模板数据
+	data := TemplateData{
+		Stats: dailyStats,
+		ApiTypes: []string{
+			"upload_pdf",
+			"upload_pdf_parsing",
+			"upload_url",
+			"edu_input",
+			"edu_output",
+			"edu_tree",
+			"singledoc_outline",
+			"pdf_parsing",
+			"text_parse",
+			"wcd",
+			"crawler",
+			"crawler_img",
+			"novel_form_generate",
+			"novel_form_get",
+			"theme:master_theme_url",
+			"theme:single_doc_url",
+			"key-opinion",
+		},
+	}
+
+	rw := adaptor.GetCompatResponseWriter(&c.Response)
+	templatePath := filepath.Join(utils.GetProjectPath(), consts2.DATA_SERVICE_TEMPLATE_PATH)
+
+	// 创建自定义模板函数
+	funcMap := template.FuncMap{
+		"mul": func(a, b float64) float64 {
+			return a * b
+		},
+	}
+
+	// 使用自定义函数创建模板
+	tpl, err := template.New("data_service.html").Funcs(funcMap).ParseFiles(templatePath)
+	wd, _ := os.Getwd()
+	hlog.CtxInfof(ctx, "template path: %v. wd: %v", templatePath, wd)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
+		return
+	}
+
+	if err := tpl.Execute(rw, data); err != nil {
 		c.String(consts.StatusInternalServerError, fmt.Sprintf("%v PWD: %v", err.Error(), wd))
 		return
 	}
@@ -996,5 +1094,157 @@ func SaveApiTestDetail(ctx context.Context, c *app.RequestContext) {
 	resp := new(empyrean_lens.SaveApiTestDetailResp)
 	resp.Code = 0
 	resp.Msg = "success"
+	base.SuccessResponse(c, resp)
+}
+
+// GetApiStatsDaily 获取API每日统计数据
+// @router /api/v1/report/api_stats/daily [GET]
+func GetApiStatsDaily(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var req empyrean_lens.GetApiStatsDailyReq
+	err := c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.ParamBindJsonError, err)
+		return
+	}
+
+	var startDate, endDate time.Time
+
+	// 如果提供了日期参数，则解析日期
+	if req.StartDate != "" {
+		startDate, err = time.Parse("2006-01-02", req.StartDate)
+		if err != nil {
+			base.ErrorResponse(ctx, c, &consts2.ParamBindJsonError, err)
+			return
+		}
+	}
+
+	if req.EndDate != "" {
+		endDate, err = time.Parse("2006-01-02", req.EndDate)
+		if err != nil {
+			base.ErrorResponse(ctx, c, &consts2.ParamBindJsonError, err)
+			return
+		}
+	}
+
+	// 获取统计数据
+	stats, err := empyrean_lens2.GetApiStatsDaily(ctx, startDate, endDate)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get api stats daily error: %v", err)
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	// 转换为响应格式
+	dailyStats := make([]*empyrean_lens.ApiStatsDailyRespData, 0)
+	for _, stat := range stats {
+		apiStatsMap := make(map[string]*empyrean_lens.ApiStatsItem)
+		for _, item := range stat.ApiStats {
+			apiStatsMap[item.ApiType] = &empyrean_lens.ApiStatsItem{
+				Total:   int32(item.Total),
+				Success: int32(item.Success),
+				Rate:    item.Rate,
+			}
+		}
+
+		dailyStats = append(dailyStats, &empyrean_lens.ApiStatsDailyRespData{
+			Date:     stat.CreatedTime.Format("2006-01-02"),
+			APIStats: apiStatsMap,
+		})
+	}
+
+	resp := &empyrean_lens.GetApiStatsDailyResp{
+		Code: 0,
+		Msg:  "success",
+		Data: dailyStats,
+	}
+
+	base.SuccessResponse(c, resp)
+}
+
+// GetApiTestDetails 获取API测试详情
+// @router /api/v1/report/api_test/details [GET]
+func GetApiTestDetails(ctx context.Context, c *app.RequestContext) {
+	base := handler.BaseHandler{}
+	var req empyrean_lens.GetApiTestDetailsReq
+	err := c.BindAndValidate(&req)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.ParamBindJsonError, err)
+		return
+	}
+
+	// 解析日期
+	date, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		base.ErrorResponse(ctx, c, &consts2.ParamBindJsonError, err)
+		return
+	}
+
+	// 获取测试详情
+	details, err := empyrean_lens2.GetApiTestDetails(ctx, req.APIType, date)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get api test details error: %v", err)
+		base.ErrorResponse(ctx, c, &consts2.SystemErr, err)
+		return
+	}
+
+	// 转换为响应格式
+	items := make([]*empyrean_lens.ApiTestDetailItem, 0)
+	for _, detail := range details {
+		// 转换 RequestContent.Body 为 string
+		var reqBody string
+		if bodyStr, ok := detail.RequestContent.Body.(string); ok {
+			reqBody = bodyStr
+		} else {
+			// 如果不是 string，尝试 JSON 序列化
+			if bodyBytes, err := json.Marshal(detail.RequestContent.Body); err == nil {
+				reqBody = string(bodyBytes)
+			}
+		}
+
+		// 转换 ResponseContent.Body 为 string
+		var respBody string
+		if bodyStr, ok := detail.ResponseContent.Body.(string); ok {
+			respBody = bodyStr
+		} else {
+			// 如果不是 string，尝试 JSON 序列化
+			if bodyBytes, err := json.Marshal(detail.ResponseContent.Body); err == nil {
+				respBody = string(bodyBytes)
+			}
+		}
+
+		// 创建 RequestContent 指针
+		reqContent := &empyrean_lens.RequestContent{
+			Headers: detail.RequestContent.Headers,
+			Body:    reqBody,
+			Method:  detail.RequestContent.Method,
+			URL:     detail.RequestContent.Url,
+		}
+
+		// 创建 ResponseContent 指针
+		respContent := &empyrean_lens.ResponseContent{
+			StatusCode: int32(detail.ResponseContent.StatusCode),
+			Headers:    detail.ResponseContent.Headers,
+			Body:       respBody,
+			Error:      detail.ResponseContent.Error,
+		}
+
+		items = append(items, &empyrean_lens.ApiTestDetailItem{
+			TraceID:         detail.TraceId,
+			EntryID:         detail.EntryId,
+			RequestContent:  reqContent,
+			ResponseContent: respContent,
+			CostTime:        detail.CostTime,
+		})
+	}
+
+	resp := &empyrean_lens.GetApiTestDetailsResp{
+		Code: 0,
+		Msg:  "success",
+		Data: &empyrean_lens.GetApiTestDetailsRespData{
+			Items: items,
+		},
+	}
+
 	base.SuccessResponse(c, resp)
 }

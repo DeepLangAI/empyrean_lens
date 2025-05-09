@@ -21,7 +21,7 @@ func TestNginxTimeSpanReport(t *testing.T) {
 		t.Error(err)
 	}
 	for _, r := range report {
-		if r.CoreApiName == "当日总览" {
+		if r.CoreApiName != "当日总览" {
 			fmt.Printf("%+v\n", r)
 		}
 		//if r.HostName == "当日总览" {

@@ -78,6 +78,8 @@ func NginxTimespanReport(ctx context.Context, timespan int) ([]NginxTimeSpanRepo
 			} else if statusCode >= 400 && statusCode < 500 {
 				if statusCode != 499 {
 					apiReport.FailStatus4xx += 1
+				} else {
+					apiReport.FailCount -= 1 // 499不算失败
 				}
 			} else if statusCode >= 500 {
 				apiReport.FailStatus5xx += 1

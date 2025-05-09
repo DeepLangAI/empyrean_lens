@@ -41,7 +41,7 @@ func TestNginxErrlogsQuery(t *testing.T) {
 	Init(ctx)
 
 	//query, err := NginxErrlogsQuery(ctx, "api.lingoreader.cn", "/api/plugin/articles/summary", "2024-08-07")
-	query, err := NginxErrlogsQuery(ctx, "", "/api/plugin/articles/summary", "2024-08-07")
+	query, err := NginxErrlogsQuery(ctx, consts.HOST_LINGO_BACKEND, "/api/plugin/articles/summary", "2025-05-09")
 	if err != nil {
 		fmt.Println(err)
 	} else {

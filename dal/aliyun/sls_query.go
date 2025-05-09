@@ -1274,7 +1274,7 @@ from log where
 %v host = '%v' and 
 
 method in ('GET', 'POST') and
-status != 200
+status not in (200, 499)
 order by time desc
 limit %v
 )
@@ -1361,7 +1361,7 @@ from log where
 %v "content.vhost" = '%v' and 
 
 "content.method"  in ('GET', 'POST') and
-"content.status"  != 200 and
+"content.status"  not in (200, 499) and
 ("content.channel" = '{{.BaseChannelName}}-prod')
 order by "content.time" desc
 limit %v

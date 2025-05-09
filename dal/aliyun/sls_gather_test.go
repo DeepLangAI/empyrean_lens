@@ -80,7 +80,7 @@ func TestOutlineLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
 	//logs, e := SummaryCoreLogQuery(ctx, 0, consts.CORE_NAME_OUTLINE)
-	logs, e := SummaryCoreLogQuery(ctx, 1, consts.CORE_NAME_ABSTRACT)
+	logs, e := SummaryCoreLogQuery(ctx, 0, consts.CORE_NAME_OUTLINE)
 	if e != nil {
 		t.Error(e)
 	} else {
@@ -161,7 +161,7 @@ func TestStatusCodeUpdate(t *testing.T) {
 func TestNginxIngressBasicQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	logs, err := NginxIngressBasicQuery(ctx, 0, consts.HOST_WCD)
+	logs, err := NginxIngressBasicQuery(ctx, 1, consts.HOST_WCD)
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -464,7 +464,8 @@ func TestNginxLogsOfAPI_Business(t *testing.T) {
 func TestNginxLogsOfAPI_Model(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)
-	api, err := NginxErrorLogsOfAPI(ctx, "pdfparser.shenyandayi.com", "/", "2024-08-09")
+	//api, err := NginxErrorLogsOfAPI(ctx, "pdfparser.shenyandayi.com", "/", "2024-08-09")
+	api, err := NginxErrorLogsOfAPI(ctx, "api.lingowhale.com", "/api/plugin/articles/summary/list_v2", "2025-01-02")
 	if err != nil {
 		t.Error(err)
 	} else {

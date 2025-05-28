@@ -447,3 +447,18 @@ func _getapitestdetailsMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _api_performanceMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _getapiperformancestatsMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}
+
+func _getapiperformancetrendMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

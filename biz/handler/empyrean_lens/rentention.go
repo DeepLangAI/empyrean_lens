@@ -35,13 +35,14 @@ import (
 
 type Overview struct {
 	//DailyOverview    []utils.ReventResult
-	DailyOverview    []empyrean_lens2.ScoreListItem
-	RealtimeOverview aliyun2.RealtimeReport
-	SceneOverviews   []map[string]string
-	DailyAppCrash    []empyrean_lens2.AppCrashRespData
-	DailyModelResult []empyrean_lens2.DailyModelAutomationData
-	Pages            []int // 添加页码数组
-	CurrentPage      int64 // 添加当前页码
+	DailyOverview       []empyrean_lens2.ScoreListItem
+	RealtimeOverview    aliyun2.RealtimeReport
+	SceneOverviews      []map[string]string
+	DailyAppCrash       []empyrean_lens2.AppCrashRespData
+	DailyModelResult    []empyrean_lens2.DailyModelAutomationData
+	ApiPerformanceStats []*empyrean_lens.ApiPerformanceStatsData
+	Pages               []int // 添加页码数组
+	CurrentPage         int64 // 添加当前页码
 }
 
 // OverviewRender .
@@ -99,6 +100,53 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
+	// 获取新内容形态页加载性能数据
+	dao := dal_mongo_empyrean_lens.NewApiPerformanceStatsDao()
+	apiStats, err := dao.GetStatsByTimeRange(
+		ctx,
+		time.Now().AddDate(0, 0, -7), // 获取最近7天的数据
+		time.Now(),
+	)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// 转换为响应格式
+	apiPerformanceStats := make([]*empyrean_lens.ApiPerformanceStatsData, 0, len(apiStats))
+	for _, stats := range apiStats {
+		respData := &empyrean_lens.ApiPerformanceStatsData{
+			Date:          stats.CreatedAt.Format("2006-01-02"),
+			System:        stats.System,
+			TotalRequests: stats.Summary.TotalRequests,
+			AvgDuration:   stats.Summary.AvgDuration,
+			TimeIntervals: make([]*empyrean_lens.TimeIntervalStats, 0, len(stats.Buckets)),
+		}
+
+		// 计算各时间区间的占比
+		var totalBucketRequests int64
+		for _, bucket := range stats.Buckets {
+			totalBucketRequests += bucket.RequestCount
+		}
+
+		for _, bucket := range stats.Buckets {
+			proportion := float64(bucket.RequestCount) / float64(totalBucketRequests) * 100
+			respData.TimeIntervals = append(
+				respData.TimeIntervals,
+				&empyrean_lens.TimeIntervalStats{
+					TimeInterval: bucket.TimeInterval,
+					RequestCount: bucket.RequestCount,
+					Proportion:   proportion,
+				},
+			)
+		}
+
+		// 更新总请求数为区间请求数的总和
+		respData.TotalRequests = totalBucketRequests
+
+		apiPerformanceStats = append(apiPerformanceStats, respData)
+	}
+
 	// 计算总页数
 	totalPages := (len(dailyModelResult) + 9) / 10 // 每页10条数据
 	pages := make([]int, totalPages)
@@ -108,13 +156,13 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{
-		DailyOverview:    dailyOverview,
-		RealtimeOverview: *realtimeOverview,
-		DailyAppCrash:    dailyAppCrashOverview,
-		DailyModelResult: dailyModelResult,
-		//SceneOverviews:   aigcCostOverview,
-		Pages:       pages,
-		CurrentPage: 1, // 默认第一页
+		DailyOverview:       dailyOverview,
+		RealtimeOverview:    *realtimeOverview,
+		DailyAppCrash:       dailyAppCrashOverview,
+		DailyModelResult:    dailyModelResult,
+		ApiPerformanceStats: apiPerformanceStats,
+		Pages:               pages,
+		CurrentPage:         1, // 默认第一页
 	}
 
 	tpl, err := template.ParseFiles(filepath.Join(utils.GetProjectPath(), consts2.OVERVIEW_TEMPLATE_PATH))
@@ -1247,4 +1295,20 @@ func GetApiTestDetails(ctx context.Context, c *app.RequestContext) {
 	}
 
 	base.SuccessResponse(c, resp)
+}
+
+// GetApiPerformanceTrend .
+// @router /api/v1/report/api_performance/trend [GET]
+func GetApiPerformanceTrend(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.ApiPerformanceTrendReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp := new(empyrean_lens.ApiPerformanceTrendResp)
+
+	c.JSON(consts.StatusOK, resp)
 }

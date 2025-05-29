@@ -1005,7 +1005,7 @@
         <tr>
             <td data-label="日期">{{ .Date }}</td>
             <td data-label="系统">{{ .System }}</td>
-            <td data-label="总请求数">{{ .TotalRequests }}</td>
+            <td data-label="总请求数" onclick="showApiPerformanceTrend(this)" class="clickable">{{ .TotalRequests }}</td>
             <td data-label="平均请求耗时">{{ printf "%.2f" .AvgDuration }}</td>
             {{ range .TimeIntervals }}
             <td data-label="耗时区间占比">{{ printf "%.2f" .Proportion }}%</td>
@@ -1120,7 +1120,7 @@
 
         // 遍历menu数组，为每个项目创建li元素
         menus.forEach(function(item, index) {
-            ol.append($('<li class="breadcrumb-item active" aria-current="page" onclick="handleClickMenu(\'{0}\')">'.format(item) + item + '</li>'));
+            ol.append($(`<li class="breadcrumb-item active" aria-current="page" onclick="handleClickMenu('${item}')">${item}</li>`));
         });
 
         // 将有序列表添加到面包屑容器中，并将容器添加到menu div中
@@ -3938,6 +3938,172 @@
             }
         `)
             .appendTo('head');
+    }
+
+    function showApiPerformanceTrend(cell) {
+        const $cell = $(cell);
+        const date = $cell.closest('tr').find('[data-label="日期"]').text();
+        const system = $cell.closest('tr').find('[data-label="系统"]').text();
+        
+        // 计算一周前的时间
+        const endDate = new Date(date);
+        const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+        
+        const startTime = formatDate(startDate);
+        const endTime = formatDate(endDate);
+
+        console.log('Requesting API performance trend with params:', {
+            start_time: startTime,
+            end_time: endTime,
+            system: system
+        });
+
+        axios.get('/api/v1/report/api_performance/trend', {
+            params: {
+                start_time: startTime,
+                end_time: endTime,
+                system: system
+            }
+        }).then(response => {
+            console.log('API response:', response.data);
+            if (!response.data.data) {
+                console.error('No data received from API');
+                return;
+            }
+            if (!response.data.data.timestamps || !response.data.data.intervals) {
+                console.error('Invalid data structure received:', response.data.data);
+                return;
+            }
+            displayApiPerformanceTrend(response.data.data, date, system);
+        }).catch(error => {
+            console.error('Error fetching API performance trend:', error);
+            Swal.fire({
+                icon: 'error',
+                title: '获取数据失败',
+                text: '无法获取性能趋势数据，请稍后重试'
+            });
+        });
+    }
+
+    function displayApiPerformanceTrend(data, date, system) {
+        menus = ['性能趋势详情'];
+        Swal.fire({
+            html: `
+                <div id="sidebar">
+                    <div id="loading-container" class="loading-container">
+                        <div class="loading-spinner"></div>
+                    </div>
+
+                    <div id="menu">
+                        <div id="back" onclick="back()"><</div>
+                    </div>
+                    <div id="性能趋势详情">
+                        <h2>${system}系统 ${date} 前一周内性能趋势</h2>
+                        <div id="api-performance-chart" style="width: 100%; height: 400px;"></div>
+                    </div>
+                </div>
+            `,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'swal2-popup swal2-drawer',
+            },
+            didOpen: () => {
+                try {
+                    console.log('开始初始化图表...');
+                    modifySidebar();
+                    if (typeof echarts === 'undefined') {
+                        throw new Error('ECharts 库未加载');
+                    }
+                    const chartContainer = document.getElementById('api-performance-chart');
+                    if (!chartContainer) {
+                        throw new Error('图表容器未找到');
+                    }
+                    const chart = echarts.init(chartContainer);
+                    // 数据转换为 [{time, value}] 格式
+                    function toTimeSeries(timestamps, values) {
+                        return timestamps.map((t, i) => [new Date(t.replace(/-/g, '/')).getTime(), values[i]]);
+                    }
+                    const seriesNames = [
+                        {key: '0-2000', name: '0-2000ms', color: '#1890ff'},
+                        {key: '2000-3000', name: '2000-3000ms', color: '#52c41a'},
+                        {key: '3000-5000', name: '3000-5000ms', color: '#faad14'},
+                        {key: '5000+', name: '>5000ms', color: '#ff4d4f'}
+                    ];
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis',
+                            formatter: function(params) {
+                                let result = '';
+                                params.forEach(param => {
+                                    const date = new Date(param.value[0]);
+                                    let dateStr = date.getFullYear() + '-' + (date.getMonth()+1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0') + ' ' + date.toTimeString().slice(0,8);
+                                    result += dateStr + '<br/>' + param.seriesName + ': ' + param.value[1].toFixed(2) + '%<br/>';
+                                });
+                                return result;
+                            }
+                        },
+                        legend: {
+                            data: seriesNames.map(s => s.name),
+                            top: '30px',
+                            left: 'center',
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            containLabel: true
+                        },
+                        xAxis: {
+                            type: 'time',
+                            splitLine: { show: false },
+                            axisLabel: { fontSize: 12 }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: {
+                                formatter: '{value}%'
+                            }
+                        },
+                        series: seriesNames.map(s => ({
+                            name: s.name,
+                            type: 'line',
+                            data: toTimeSeries(data.timestamps, data.intervals[s.key]),
+                            showSymbol: false,
+                            smooth: true,
+                            itemStyle: { color: s.color },
+                            lineStyle: { color: s.color },
+                        }))
+                    };
+                    chart.setOption(option);
+                    // 复选框事件监听
+                    // $('.interval-checkbox').on('change', function() {
+                    //     const value = $(this).val();
+                    //     const checked = $(this).prop('checked');
+                    //     chart.dispatchAction({
+                    //         type: 'legendToggleSelect',
+                    //         name: seriesNames.find(s => s.key === value).name
+                    //     });
+                    // });
+                    window.addEventListener('resize', function() {
+                        chart.resize();
+                    });
+                    hideLoadingStatus();
+                } catch (error) {
+                    console.error('图表初始化详细错误:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: '图表初始化失败',
+                        text: `错误详情: ${error.message}`
+                    });
+                }
+            },
+            willClose: () => {
+                $('.gallary-background').remove();
+            },
+            didClose: () => {
+                $(document).off('keydown');
+            }
+        });
     }
 </script>
 

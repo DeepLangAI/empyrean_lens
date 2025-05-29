@@ -104,8 +104,8 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 	dao := dal_mongo_empyrean_lens.NewApiPerformanceStatsDao()
 	apiStats, err := dao.GetStatsByTimeRange(
 		ctx,
-		time.Now().AddDate(0, 0, -7), // 获取最近7天的数据
-		time.Now(),
+		time.Now().AddDate(0, 0, -10), // 获取最近7天的数据
+		time.Now().AddDate(0, 0, 1),
 	)
 	if err != nil {
 		c.String(consts.StatusInternalServerError, err.Error())
@@ -1308,7 +1308,51 @@ func GetApiPerformanceTrend(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp := new(empyrean_lens.ApiPerformanceTrendResp)
+	// 创建DAO实例
+	dao := dal_mongo_empyrean_lens.NewApiPerformanceTrendDao()
+
+	// 获取趋势数据
+	trends, err := dao.GetTrendByDateRange(ctx, req.StartTime, req.EndTime, req.System)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get trend error: %v", err)
+		c.String(consts.StatusInternalServerError, "获取趋势数据失败")
+		return
+	}
+
+	// 按时间点排序
+	sort.Slice(trends, func(i, j int) bool {
+		return trends[i].TimePoint < trends[j].TimePoint
+	})
+
+	// 构建响应数据
+	resp := &empyrean_lens.ApiPerformanceTrendResp{
+		Code: 0,
+		Msg:  "success",
+		Data: &empyrean_lens.ApiPerformanceTrendData{
+			Timestamps: make([]string, 0),
+			Intervals: map[string][]float64{
+				"0-2000":    make([]float64, 0),
+				"2000-3000": make([]float64, 0),
+				"3000-5000": make([]float64, 0),
+				"5000+":     make([]float64, 0),
+			},
+		},
+	}
+
+	// 处理每个时间点的数据
+	for _, trend := range trends {
+		// 添加时间点
+		resp.Data.Timestamps = append(resp.Data.Timestamps, trend.TimePoint)
+
+		// 处理每个区间的数据
+		for _, bucket := range trend.Buckets {
+			intervalKey := bucket.TimeInterval
+			if intervalKey == ">5000" {
+				intervalKey = "5000+"
+			}
+			resp.Data.Intervals[intervalKey] = append(resp.Data.Intervals[intervalKey], bucket.Percentage)
+		}
+	}
 
 	c.JSON(consts.StatusOK, resp)
 }

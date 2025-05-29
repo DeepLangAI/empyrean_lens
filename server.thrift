@@ -1047,17 +1047,20 @@ struct ApiPerformanceTrendReq {
     4: string version     // 版本号
 }
 
+struct TimeIntervalData {
+    1: string time_interval    // 时间区间，如"0~2000"
+    2: double percentage      // 占比
+}
+
 struct ApiPerformanceTrendData {
-    1: string time            // 时间点 YYYY-MM-DD HH:mm:ss
-    2: i64 total_requests     // 总请求数
-    3: double avg_duration    // 平均请求耗时(ms)
-    4: list<TimeIntervalStats> time_intervals  // 各时间区间的统计数据
+    1: list<string> timestamps           // 时间点数组
+    2: map<string, list<double>> intervals  // 各时间区间的统计数据，key为区间名称，value为对应时间点的数据数组
 }
 
 struct ApiPerformanceTrendResp {
     1: i64 code
     2: string msg
-    3: list<ApiPerformanceTrendData> data
+    3: ApiPerformanceTrendData data
 }
 
 service Rentention{

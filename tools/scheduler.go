@@ -24,15 +24,25 @@ func GetCurrentDate() string {
 func (self *ProbeRunner) Run(ctx context.Context) {
 	s := gocron.NewScheduler(time.Local)
 
-	// 首次同步数据
-	hlog.CtxInfof(ctx, "开始执行首次新内容形态页加载性能数据同步")
-	//startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
-	startTime := time.Date(2025, 5, 20, 0, 0, 0, 0, time.Local)
-	if err := shence.SyncApiPerformanceStats(ctx, startTime, time.Now()); err != nil {
-		hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能数据失败: %v", err)
-	} else {
-		hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能数据成功")
-	}
+	//// 首次同步数据
+	//hlog.CtxInfof(ctx, "开始执行首次新内容形态页加载性能数据同步")
+	////startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
+	//startTime := time.Date(2025, 5, 20, 0, 0, 0, 0, time.Local)
+	//if err := shence.SyncApiPerformanceStats(ctx, startTime, time.Now()); err != nil {
+	//	hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能数据失败: %v", err)
+	//} else {
+	//	hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能数据成功")
+	//}
+	//
+	//// 首次同步性能趋势数据
+	//hlog.CtxInfof(ctx, "开始执行首次新内容形态页加载性能趋势数据同步")
+	////startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
+	//startTime_2 := time.Date(2025, 5, 20, 0, 0, 0, 0, time.Local)
+	//if err := shence.SyncApiPerformanceTrend(ctx, startTime_2, time.Now()); err != nil {
+	//	hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能趋势数据失败: %v", err)
+	//} else {
+	//	hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能趋势数据成功")
+	//}
 
 	// 每1分钟同步新内容形态页加载性能数据
 	s.Every(1).Minutes().StartImmediately().Do(func() {
@@ -44,6 +54,18 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 			hlog.CtxInfof(ctx, "同步新内容形态页加载性能数据成功")
 		}
 	})
+
+	//// 每2小时同步一次新内容形态页加载性能趋势数据
+	//s.Every(2).Hours().StartImmediately().Do(func() {
+	//	hlog.CtxInfof(ctx, "开始同步新内容形态页加载性能趋势数据（每2小时）")
+	//	now := time.Now()
+	//	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	//	if err := shence.SyncApiPerformanceTrend(ctx, todayStart, now); err != nil {
+	//		hlog.CtxErrorf(ctx, "同步新内容形态页加载性能趋势数据失败: %v", err)
+	//	} else {
+	//		hlog.CtxInfof(ctx, "同步新内容形态页加载性能趋势数据成功")
+	//	}
+	//})
 
 	// 每1分钟刷新一下当天的最新数据
 	s.Every(1).Minutes().StartImmediately().Do(func() {

@@ -10,6 +10,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -227,4 +228,18 @@ func (d *ApiPerformanceStatsDao) GetStatsByTimeRange(ctx context.Context, startT
 	})
 
 	return result, nil
+}
+
+func (d *ApiPerformanceStatsDao) GetLatestCreatedAtBySystem(ctx context.Context, system string) (time.Time, error) {
+	var stat ApiPerformanceStats
+	opts := options.FindOne().SetSort(bson.M{"create_time": -1})
+	filter := bson.M{"system": system}
+	err := probeDatabase.Collection(TableNameApiPerformance).FindOne(ctx, filter, opts).Decode(&stat)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return time.Time{}, fmt.Errorf("no records found for system: %s", system)
+		}
+		return time.Time{}, err
+	}
+	return stat.CreatedAt, nil
 }

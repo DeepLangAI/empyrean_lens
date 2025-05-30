@@ -462,3 +462,8 @@ func _getapiperformancetrendMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _getapiperformancelatestversiontrendMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

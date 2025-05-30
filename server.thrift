@@ -1063,6 +1063,25 @@ struct ApiPerformanceTrendResp {
     3: ApiPerformanceTrendData data
 }
 
+# 最新版本API性能趋势数据
+struct ApiPerformanceLatestVersionTrendReq {
+    1: string start_time  // 开始时间 YYYY-MM-DD HH:mm:ss
+    2: string end_time    // 结束时间 YYYY-MM-DD HH:mm:ss
+    3: string system      // 系统类型
+}
+
+struct ApiPerformanceLatestVersionTrendData {
+    1: list<string> timestamps           // 时间点数组
+    2: map<string, list<double>> intervals  // 各时间区间的统计数据，key为区间名称，value为对应时间点的数据数组
+    3: string version                    // 最新版本号
+}
+
+struct ApiPerformanceLatestVersionTrendResp {
+    1: i64 code
+    2: string msg
+    3: ApiPerformanceLatestVersionTrendData data
+}
+
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
    EmptyResp ToolsRender(1: EmptyReq req) (api.get="/api/log/tools")
@@ -1189,6 +1208,11 @@ service Rentention{
    # 获取API性能趋势数据
    ApiPerformanceTrendResp GetApiPerformanceTrend(1: ApiPerformanceTrendReq req) (
        api.get="/api/v1/report/api_performance/trend"
+   )
+
+   # 获取最新版本API性能趋势数据
+   ApiPerformanceLatestVersionTrendResp GetApiPerformanceLatestVersionTrend(1: ApiPerformanceLatestVersionTrendReq req) (
+       api.get="/api/v1/report/api_performance/latest_version_trend"
    )
 }
 

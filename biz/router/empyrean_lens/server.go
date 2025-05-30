@@ -66,6 +66,7 @@ func Register(r *server.Hertz) {
 				_report.GET("/realtime", append(_systemrealtimescoreMw(), empyrean_lens.SystemRealtimeScore)...)
 				{
 					_api_performance := _report.Group("/api_performance", _api_performanceMw()...)
+					_api_performance.GET("/latest_version_trend", append(_getapiperformancelatestversiontrendMw(), empyrean_lens.GetApiPerformanceLatestVersionTrend)...)
 					_api_performance.GET("/trend", append(_getapiperformancetrendMw(), empyrean_lens.GetApiPerformanceTrend)...)
 				}
 				{

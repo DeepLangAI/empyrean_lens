@@ -1356,3 +1356,117 @@ func GetApiPerformanceTrend(ctx context.Context, c *app.RequestContext) {
 
 	c.JSON(consts.StatusOK, resp)
 }
+
+// GetApiPerformanceLatestVersionTrend .
+// @router /api/v1/report/api_performance/latest_version_trend [GET]
+func GetApiPerformanceLatestVersionTrend(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.ApiPerformanceLatestVersionTrendReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	// 参数验证
+	if req.StartTime == "" || req.EndTime == "" {
+		c.String(consts.StatusBadRequest, "start_time and end_time are required")
+		return
+	}
+
+	if req.System == "" {
+		c.String(consts.StatusBadRequest, "system is required")
+		return
+	}
+
+	// 解析时间
+	startTime, err := time.Parse("2006-01-02", req.StartTime)
+	if err != nil {
+		c.String(consts.StatusBadRequest, "invalid start_time format, should be YYYY-MM-DD")
+		return
+	}
+
+	endTime, err := time.Parse("2006-01-02", req.EndTime)
+	if err != nil {
+		c.String(consts.StatusBadRequest, "invalid end_time format, should be YYYY-MM-DD")
+		return
+	}
+
+	// 验证时间范围
+	if endTime.Before(startTime) {
+		c.String(consts.StatusBadRequest, "end_time should be after start_time")
+		return
+	}
+
+	// 创建DAO实例
+	dao := dal_mongo_empyrean_lens.NewApiPerformanceLatestVersionTrendDao()
+
+	// 获取趋势数据
+	trends, err := dao.GetTrendByDateRange(ctx, startTime, endTime, req.System)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get trend error: %v", err)
+		c.String(consts.StatusInternalServerError, "获取趋势数据失败")
+		return
+	}
+
+	// 按时间点排序
+	sort.Slice(trends, func(i, j int) bool {
+		return trends[i].TimePoint < trends[j].TimePoint
+	})
+
+	// 构建响应数据
+	resp := &empyrean_lens.ApiPerformanceLatestVersionTrendResp{
+		Code: 0,
+		Msg:  "success",
+		Data: &empyrean_lens.ApiPerformanceLatestVersionTrendData{
+			Timestamps: make([]string, 0),
+			Intervals:  make(map[string][]float64),
+			Version:    "",
+		},
+	}
+
+	// 如果没有数据，直接返回空响应
+	if len(trends) == 0 {
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+
+	// 获取所有时间区间
+	intervals := make(map[string]struct{})
+	for _, trend := range trends {
+		for _, bucket := range trend.Buckets {
+			intervals[bucket.TimeInterval] = struct{}{}
+		}
+	}
+
+	// 初始化区间数据
+	for interval := range intervals {
+		resp.Data.Intervals[interval] = make([]float64, 0)
+	}
+
+	// 处理每个时间点的数据
+	for _, trend := range trends {
+		// 添加时间点
+		resp.Data.Timestamps = append(resp.Data.Timestamps, trend.TimePoint)
+
+		// 处理每个区间的数据
+		for interval := range intervals {
+			var percentage float64
+			// 查找当前时间点的区间数据
+			for _, bucket := range trend.Buckets {
+				if bucket.TimeInterval == interval {
+					percentage = bucket.Percentage
+					break
+				}
+			}
+			resp.Data.Intervals[interval] = append(resp.Data.Intervals[interval], percentage)
+		}
+	}
+
+	// 设置版本号
+	if len(trends) > 0 {
+		resp.Data.Version = trends[0].Version
+	}
+
+	c.JSON(consts.StatusOK, resp)
+}

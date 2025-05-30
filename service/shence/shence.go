@@ -391,8 +391,8 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 
 	// 取最早的date的0点
 	if !minLatest.IsZero() {
-		minLatestZero := time.Date(minLatest.Year(), minLatest.Month(), minLatest.Day(), 0, 0, 0, 0, minLatest.Location()).AddDate(0, 0, -1)
-		if minLatestZero.Before(startTime) {
+		minLatestZero := time.Date(minLatest.Year(), minLatest.Month(), minLatest.Day(), 0, 0, 0, 0, minLatest.Location())
+		if minLatestZero.After(startTime) {
 			startTime = minLatestZero
 		}
 	}
@@ -403,46 +403,16 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 		End   time.Time
 	}, 0)
 
-	currentTime := startTime
-	for currentTime.Before(endTime) {
-		intervalEnd := currentTime.Add(2 * time.Hour)
-		if intervalEnd.After(endTime) {
-			intervalEnd = endTime
-		}
-
-		// 检查是否需要切换日期
-		if currentTime.Day() != intervalEnd.Day() {
-			// 如果跨越了日期，先处理当前日期到新日期00:00:00的时间段
-			timeIntervals = append(timeIntervals, struct {
-				Start time.Time
-				End   time.Time
-			}{
-				Start: currentTime,
-				End:   time.Date(intervalEnd.Year(), intervalEnd.Month(), intervalEnd.Day(), 0, 0, 0, 0, intervalEnd.Location()),
-			})
-
-			// 然后处理新日期的第一个时间段
-			timeIntervals = append(timeIntervals, struct {
-				Start time.Time
-				End   time.Time
-			}{
-				Start: time.Date(intervalEnd.Year(), intervalEnd.Month(), intervalEnd.Day(), 0, 0, 0, 0, intervalEnd.Location()),
-				End:   intervalEnd,
-			})
-
-			// 更新当前时间到新日期的下一个时间点
-			currentTime = intervalEnd
-			continue
-		}
-
+	currentEnd := startTime.Add(2 * time.Hour)
+	for currentEnd.Before(endTime) || currentEnd.Equal(endTime) {
 		timeIntervals = append(timeIntervals, struct {
 			Start time.Time
 			End   time.Time
 		}{
-			Start: currentTime,
-			End:   intervalEnd,
+			Start: startTime,
+			End:   currentEnd,
 		})
-		currentTime = intervalEnd
+		currentEnd = currentEnd.Add(2 * time.Hour)
 	}
 
 	// 按时间间隔处理数据
@@ -592,10 +562,14 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 					continue
 				}
 
+				// 使用time_point的日期部分作为date
+				timePoint := interval.End.Format("2006-01-02 15:04:05")
+				recordDate := interval.End.Format("2006-01-02")
+
 				trend = &empyrean_lens.ApiPerformanceTrend{
-					Date:      date,
+					Date:      recordDate,
 					System:    system,
-					TimePoint: interval.End.Format("2006-01-02 15:04:05"),
+					TimePoint: timePoint,
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 					Buckets: make([]struct {
@@ -637,6 +611,276 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 				hlog.CtxErrorf(ctx, "upsert trend error: %v", err)
 				return fmt.Errorf("upsert trend error: %v", err)
 			}
+		}
+	}
+
+	return nil
+}
+
+// SyncApiPerformanceVersionTrend 从神策同步所有版本API性能趋势数据到MongoDB
+func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time.Time) error {
+	// 确保集合存在
+	dao := empyrean_lens.NewApiPerformanceLatestVersionTrendDao()
+	if err := dao.EnsureCollection(ctx); err != nil {
+		hlog.CtxErrorf(ctx, "ensure collection error: %v", err)
+		return fmt.Errorf("ensure collection error: %v", err)
+	}
+
+	// 获取iOS和Android最新一条记录的时间
+	iosLatest, iosErr := dao.GetLatestCreatedAtBySystem(ctx, "iOS")
+	androidLatest, androidErr := dao.GetLatestCreatedAtBySystem(ctx, "Android")
+
+	// 取最早的那个
+	var minLatest time.Time
+	if iosErr != nil && androidErr != nil {
+		minLatest = startTime
+	} else if iosErr != nil {
+		minLatest = androidLatest
+	} else if androidErr != nil {
+		minLatest = iosLatest
+	} else if iosLatest.Before(androidLatest) {
+		minLatest = iosLatest
+	} else {
+		minLatest = androidLatest
+	}
+
+	// 取最早的date的0点
+	if !minLatest.IsZero() {
+		minLatestZero := time.Date(minLatest.Year(), minLatest.Month(), minLatest.Day(), 0, 0, 0, 0, minLatest.Location())
+		if minLatestZero.After(startTime) {
+			startTime = minLatestZero
+		}
+	}
+
+	hlog.CtxInfof(ctx, "Start time: %v, End time: %v", startTime, endTime)
+
+	// 计算时间间隔
+	timeIntervals := make([]struct {
+		Start time.Time
+		End   time.Time
+	}, 0)
+
+	currentEnd := startTime.Add(2 * time.Hour)
+	for currentEnd.Before(endTime) || currentEnd.Equal(endTime) {
+		timeIntervals = append(timeIntervals, struct {
+			Start time.Time
+			End   time.Time
+		}{
+			Start: startTime,
+			End:   currentEnd,
+		})
+		currentEnd = currentEnd.Add(2 * time.Hour)
+	}
+
+	hlog.CtxInfof(ctx, "Time intervals: %+v", timeIntervals)
+
+	// 按时间间隔处理数据
+	for _, interval := range timeIntervals {
+		// 构建SQL查询
+		sql := fmt.Sprintf(`
+			SELECT
+				date,
+				$os,
+				$os_version,
+				perf_article_title_shown,
+				time
+			FROM
+				events
+			WHERE
+				event = 'Performance_Metrics_PerformanceTime'
+				AND date BETWEEN '%s' AND '%s'
+				AND time BETWEEN '%s' AND '%s'
+				AND $os IN ('iOS', 'Android')
+			ORDER BY
+				date ASC, $os ASC, $os_version ASC, time ASC
+		`, interval.Start.Format("2006-01-02"), interval.End.Format("2006-01-02"),
+			interval.Start.Format("2006-01-02 15:04:05.000"), interval.End.Format("2006-01-02 15:04:05.000"))
+
+		// 构建请求体
+		reqBody := map[string]interface{}{
+			"sql":   sql,
+			"limit": 10000000,
+		}
+		reqBodyBytes, err := json.Marshal(reqBody)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "marshal request body error: %v", err)
+			return fmt.Errorf("marshal request body error: %v", err)
+		}
+
+		// 创建HTTP请求
+		httpReq, err := http.NewRequestWithContext(ctx, "POST", shenceAPIURL, nil)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "create request error: %v", err)
+			return fmt.Errorf("create request error: %v", err)
+		}
+		httpReq.Body = io.NopCloser(bytes.NewReader(reqBodyBytes))
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("api-key", apiKey)
+		httpReq.Header.Set("sensorsdata-project", project)
+
+		// 发送请求
+		client := &http.Client{}
+		resp, err := client.Do(httpReq)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "send request error: %v", err)
+			return fmt.Errorf("send request error: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// 读取响应
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "read response error: %v", err)
+			return fmt.Errorf("read response error: %v", err)
+		}
+
+		// 按行分割响应内容
+		lines := bytes.Split(respBody, []byte("\n"))
+
+		// 按日期和系统分组处理数据
+		trendMap := make(map[string]*empyrean_lens.ApiPerformanceLatestVersionTrend)
+		intervalCounts := make(map[string]map[string]int64) // 用于临时存储每个区间的请求数
+
+		// 处理每一行数据
+		for _, line := range lines {
+			if len(line) == 0 {
+				continue
+			}
+
+			// 解析单行JSON响应
+			var result struct {
+				Code      string `json:"code"`
+				RequestID string `json:"request_id"`
+				Data      struct {
+					Data    []interface{} `json:"data"`
+					Columns []string      `json:"columns"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(line, &result); err != nil {
+				hlog.CtxErrorf(ctx, "unmarshal response line error: %v, line: %s", err, string(line))
+				continue
+			}
+
+			// 检查API响应状态
+			if result.Code != "SUCCESS" {
+				hlog.CtxErrorf(ctx, "神策API返回错误: code=%s, request_id=%s", result.Code, result.RequestID)
+				continue
+			}
+
+			// 解析数据
+			data := result.Data.Data
+			if len(data) < 5 {
+				hlog.CtxErrorf(ctx, "数据长度不足，期望至少5个元素，实际长度: %d", len(data))
+				continue
+			}
+
+			// 辅助函数：将interface{}转换为string
+			toString := func(v interface{}) string {
+				switch val := v.(type) {
+				case string:
+					return val
+				case float64:
+					return strconv.FormatFloat(val, 'f', -1, 64)
+				case int:
+					return strconv.Itoa(val)
+				default:
+					return ""
+				}
+			}
+
+			// 辅助函数：将interface{}转换为float64
+			toFloat64 := func(v interface{}) float64 {
+				switch val := v.(type) {
+				case string:
+					f, _ := strconv.ParseFloat(val, 64)
+					return f
+				case float64:
+					return val
+				case int:
+					return float64(val)
+				default:
+					return 0
+				}
+			}
+
+			// 解析数据
+			date := toString(data[0])
+			system := toString(data[2])
+			version := toString(data[1])
+			duration := toFloat64(data[3])
+			timeStr := toString(data[4])
+
+			// 使用date、system和version作为唯一标识
+			key := fmt.Sprintf("%s_%s_%s", date, system, version)
+			trend, exists := trendMap[key]
+			if !exists {
+				// 解析时间
+				_, err := parseShenceTime(timeStr)
+				if err != nil {
+					hlog.CtxErrorf(ctx, "parse time error: %v, time string: %s", err, timeStr)
+					continue
+				}
+
+				// 使用time_point的日期部分作为date
+				timePoint := interval.End.Format("2006-01-02 15:04:05")
+				recordDate := interval.End.Format("2006-01-02")
+
+				trend = &empyrean_lens.ApiPerformanceLatestVersionTrend{
+					Date:      recordDate,
+					System:    system,
+					Version:   version,
+					TimePoint: timePoint,
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+					Buckets: make([]struct {
+						TimeInterval string  `bson:"time_interval"`
+						Percentage   float64 `bson:"percentage"`
+					}, 0),
+				}
+				trendMap[key] = trend
+				intervalCounts[key] = make(map[string]int64)
+			}
+
+			// 计算时间区间
+			timeInterval := getTimeInterval(duration)
+			intervalCounts[key][timeInterval]++
+		}
+
+		// 计算每个时间点的百分比
+		for key, trend := range trendMap {
+			var totalRequests int64
+			for _, count := range intervalCounts[key] {
+				totalRequests += count
+			}
+
+			if totalRequests > 0 {
+				for interval, count := range intervalCounts[key] {
+					percentage := float64(count) / float64(totalRequests) * 100
+					trend.Buckets = append(trend.Buckets, struct {
+						TimeInterval string  `bson:"time_interval"`
+						Percentage   float64 `bson:"percentage"`
+					}{
+						TimeInterval: interval,
+						Percentage:   percentage,
+					})
+				}
+			}
+
+			// 保存到MongoDB
+			if err := dao.UpsertTrend(ctx, trend); err != nil {
+				hlog.CtxErrorf(ctx, "upsert trend error: %v", err)
+				return fmt.Errorf("upsert trend error: %v", err)
+			}
+		}
+
+		// 打印每个时间点的版本数量
+		versionCount := make(map[string]int)
+		for _, trend := range trendMap {
+			timePointKey := fmt.Sprintf("%s_%s", trend.Date, trend.System)
+			versionCount[timePointKey]++
+		}
+		for timePointKey, count := range versionCount {
+			hlog.CtxInfof(ctx, "时间点 %s 的版本数量: %d", timePointKey, count)
 		}
 	}
 

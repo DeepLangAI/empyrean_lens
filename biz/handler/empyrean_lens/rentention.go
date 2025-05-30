@@ -1329,29 +1329,14 @@ func GetApiPerformanceTrend(ctx context.Context, c *app.RequestContext) {
 		Code: 0,
 		Msg:  "success",
 		Data: &empyrean_lens.ApiPerformanceTrendData{
-			Timestamps: make([]string, 0),
-			Intervals: map[string][]float64{
-				"0-2000":    make([]float64, 0),
-				"2000-3000": make([]float64, 0),
-				"3000-5000": make([]float64, 0),
-				"5000+":     make([]float64, 0),
-			},
+			Timestamps:   make([]string, 0, len(trends)),
+			AvgDurations: make([]float64, 0, len(trends)),
 		},
 	}
 
-	// 处理每个时间点的数据
 	for _, trend := range trends {
-		// 添加时间点
 		resp.Data.Timestamps = append(resp.Data.Timestamps, trend.TimePoint)
-
-		// 处理每个区间的数据
-		for _, bucket := range trend.Buckets {
-			intervalKey := bucket.TimeInterval
-			if intervalKey == ">5000" {
-				intervalKey = "5000+"
-			}
-			resp.Data.Intervals[intervalKey] = append(resp.Data.Intervals[intervalKey], bucket.Percentage)
-		}
+		resp.Data.AvgDurations = append(resp.Data.AvgDurations, trend.AvgDuration)
 	}
 
 	c.JSON(consts.StatusOK, resp)
@@ -1414,59 +1399,27 @@ func GetApiPerformanceLatestVersionTrend(ctx context.Context, c *app.RequestCont
 		return trends[i].TimePoint < trends[j].TimePoint
 	})
 
-	// 构建响应数据
 	resp := &empyrean_lens.ApiPerformanceLatestVersionTrendResp{
 		Code: 0,
 		Msg:  "success",
 		Data: &empyrean_lens.ApiPerformanceLatestVersionTrendData{
-			Timestamps: make([]string, 0),
-			Intervals:  make(map[string][]float64),
-			Version:    "",
+			Timestamps:   make([]string, 0, len(trends)),
+			AvgDurations: make([]float64, 0, len(trends)),
+			Version:      "",
 		},
 	}
 
-	// 如果没有数据，直接返回空响应
 	if len(trends) == 0 {
 		c.JSON(consts.StatusOK, resp)
 		return
 	}
 
-	// 获取所有时间区间
-	intervals := make(map[string]struct{})
 	for _, trend := range trends {
-		for _, bucket := range trend.Buckets {
-			intervals[bucket.TimeInterval] = struct{}{}
-		}
-	}
-
-	// 初始化区间数据
-	for interval := range intervals {
-		resp.Data.Intervals[interval] = make([]float64, 0)
-	}
-
-	// 处理每个时间点的数据
-	for _, trend := range trends {
-		// 添加时间点
 		resp.Data.Timestamps = append(resp.Data.Timestamps, trend.TimePoint)
-
-		// 处理每个区间的数据
-		for interval := range intervals {
-			var percentage float64
-			// 查找当前时间点的区间数据
-			for _, bucket := range trend.Buckets {
-				if bucket.TimeInterval == interval {
-					percentage = bucket.Percentage
-					break
-				}
-			}
-			resp.Data.Intervals[interval] = append(resp.Data.Intervals[interval], percentage)
-		}
+		resp.Data.AvgDurations = append(resp.Data.AvgDurations, trend.AvgDuration)
 	}
 
-	// 设置版本号
-	if len(trends) > 0 {
-		resp.Data.Version = trends[0].Version
-	}
+	resp.Data.Version = trends[0].Version
 
 	c.JSON(consts.StatusOK, resp)
 }

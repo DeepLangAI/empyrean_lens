@@ -36657,197 +36657,11 @@ func (p *ApiPerformanceTrendReq) String() string {
 
 }
 
-type TimeIntervalData struct {
-	// 时间区间，如"0~2000"
-	TimeInterval string `thrift:"time_interval,1" form:"time_interval" json:"time_interval" query:"time_interval"`
-	// 占比
-	Percentage float64 `thrift:"percentage,2" form:"percentage" json:"percentage" query:"percentage"`
-}
-
-func NewTimeIntervalData() *TimeIntervalData {
-	return &TimeIntervalData{}
-}
-
-func (p *TimeIntervalData) InitDefault() {
-}
-
-func (p *TimeIntervalData) GetTimeInterval() (v string) {
-	return p.TimeInterval
-}
-
-func (p *TimeIntervalData) GetPercentage() (v float64) {
-	return p.Percentage
-}
-
-var fieldIDToName_TimeIntervalData = map[int16]string{
-	1: "time_interval",
-	2: "percentage",
-}
-
-func (p *TimeIntervalData) Read(iprot thrift.TProtocol) (err error) {
-	var fieldTypeId thrift.TType
-	var fieldId int16
-
-	if _, err = iprot.ReadStructBegin(); err != nil {
-		goto ReadStructBeginError
-	}
-
-	for {
-		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
-		if err != nil {
-			goto ReadFieldBeginError
-		}
-		if fieldTypeId == thrift.STOP {
-			break
-		}
-
-		switch fieldId {
-		case 1:
-			if fieldTypeId == thrift.STRING {
-				if err = p.ReadField1(iprot); err != nil {
-					goto ReadFieldError
-				}
-			} else if err = iprot.Skip(fieldTypeId); err != nil {
-				goto SkipFieldError
-			}
-		case 2:
-			if fieldTypeId == thrift.DOUBLE {
-				if err = p.ReadField2(iprot); err != nil {
-					goto ReadFieldError
-				}
-			} else if err = iprot.Skip(fieldTypeId); err != nil {
-				goto SkipFieldError
-			}
-		default:
-			if err = iprot.Skip(fieldTypeId); err != nil {
-				goto SkipFieldError
-			}
-		}
-		if err = iprot.ReadFieldEnd(); err != nil {
-			goto ReadFieldEndError
-		}
-	}
-	if err = iprot.ReadStructEnd(); err != nil {
-		goto ReadStructEndError
-	}
-
-	return nil
-ReadStructBeginError:
-	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
-ReadFieldBeginError:
-	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
-ReadFieldError:
-	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_TimeIntervalData[fieldId]), err)
-SkipFieldError:
-	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
-
-ReadFieldEndError:
-	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
-ReadStructEndError:
-	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
-}
-
-func (p *TimeIntervalData) ReadField1(iprot thrift.TProtocol) error {
-
-	var _field string
-	if v, err := iprot.ReadString(); err != nil {
-		return err
-	} else {
-		_field = v
-	}
-	p.TimeInterval = _field
-	return nil
-}
-func (p *TimeIntervalData) ReadField2(iprot thrift.TProtocol) error {
-
-	var _field float64
-	if v, err := iprot.ReadDouble(); err != nil {
-		return err
-	} else {
-		_field = v
-	}
-	p.Percentage = _field
-	return nil
-}
-
-func (p *TimeIntervalData) Write(oprot thrift.TProtocol) (err error) {
-	var fieldId int16
-	if err = oprot.WriteStructBegin("TimeIntervalData"); err != nil {
-		goto WriteStructBeginError
-	}
-	if p != nil {
-		if err = p.writeField1(oprot); err != nil {
-			fieldId = 1
-			goto WriteFieldError
-		}
-		if err = p.writeField2(oprot); err != nil {
-			fieldId = 2
-			goto WriteFieldError
-		}
-	}
-	if err = oprot.WriteFieldStop(); err != nil {
-		goto WriteFieldStopError
-	}
-	if err = oprot.WriteStructEnd(); err != nil {
-		goto WriteStructEndError
-	}
-	return nil
-WriteStructBeginError:
-	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
-WriteFieldError:
-	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
-WriteFieldStopError:
-	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
-WriteStructEndError:
-	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
-}
-
-func (p *TimeIntervalData) writeField1(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("time_interval", thrift.STRING, 1); err != nil {
-		goto WriteFieldBeginError
-	}
-	if err := oprot.WriteString(p.TimeInterval); err != nil {
-		return err
-	}
-	if err = oprot.WriteFieldEnd(); err != nil {
-		goto WriteFieldEndError
-	}
-	return nil
-WriteFieldBeginError:
-	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
-WriteFieldEndError:
-	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
-}
-func (p *TimeIntervalData) writeField2(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("percentage", thrift.DOUBLE, 2); err != nil {
-		goto WriteFieldBeginError
-	}
-	if err := oprot.WriteDouble(p.Percentage); err != nil {
-		return err
-	}
-	if err = oprot.WriteFieldEnd(); err != nil {
-		goto WriteFieldEndError
-	}
-	return nil
-WriteFieldBeginError:
-	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
-WriteFieldEndError:
-	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
-}
-
-func (p *TimeIntervalData) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("TimeIntervalData(%+v)", *p)
-
-}
-
 type ApiPerformanceTrendData struct {
 	// 时间点数组
 	Timestamps []string `thrift:"timestamps,1" form:"timestamps" json:"timestamps" query:"timestamps"`
-	// 各时间区间的统计数据，key为区间名称，value为对应时间点的数据数组
-	Intervals map[string][]float64 `thrift:"intervals,2" form:"intervals" json:"intervals" query:"intervals"`
+	// 各时间点的平均耗时
+	AvgDurations []float64 `thrift:"avg_durations,2" form:"avg_durations" json:"avg_durations" query:"avg_durations"`
 }
 
 func NewApiPerformanceTrendData() *ApiPerformanceTrendData {
@@ -36861,13 +36675,13 @@ func (p *ApiPerformanceTrendData) GetTimestamps() (v []string) {
 	return p.Timestamps
 }
 
-func (p *ApiPerformanceTrendData) GetIntervals() (v map[string][]float64) {
-	return p.Intervals
+func (p *ApiPerformanceTrendData) GetAvgDurations() (v []float64) {
+	return p.AvgDurations
 }
 
 var fieldIDToName_ApiPerformanceTrendData = map[int16]string{
 	1: "timestamps",
-	2: "intervals",
+	2: "avg_durations",
 }
 
 func (p *ApiPerformanceTrendData) Read(iprot thrift.TProtocol) (err error) {
@@ -36897,7 +36711,7 @@ func (p *ApiPerformanceTrendData) Read(iprot thrift.TProtocol) (err error) {
 				goto SkipFieldError
 			}
 		case 2:
-			if fieldTypeId == thrift.MAP {
+			if fieldTypeId == thrift.LIST {
 				if err = p.ReadField2(iprot); err != nil {
 					goto ReadFieldError
 				}
@@ -36957,44 +36771,26 @@ func (p *ApiPerformanceTrendData) ReadField1(iprot thrift.TProtocol) error {
 	return nil
 }
 func (p *ApiPerformanceTrendData) ReadField2(iprot thrift.TProtocol) error {
-	_, _, size, err := iprot.ReadMapBegin()
+	_, size, err := iprot.ReadListBegin()
 	if err != nil {
 		return err
 	}
-	_field := make(map[string][]float64, size)
+	_field := make([]float64, 0, size)
 	for i := 0; i < size; i++ {
-		var _key string
-		if v, err := iprot.ReadString(); err != nil {
+
+		var _elem float64
+		if v, err := iprot.ReadDouble(); err != nil {
 			return err
 		} else {
-			_key = v
-		}
-		_, size, err := iprot.ReadListBegin()
-		if err != nil {
-			return err
-		}
-		_val := make([]float64, 0, size)
-		for i := 0; i < size; i++ {
-
-			var _elem float64
-			if v, err := iprot.ReadDouble(); err != nil {
-				return err
-			} else {
-				_elem = v
-			}
-
-			_val = append(_val, _elem)
-		}
-		if err := iprot.ReadListEnd(); err != nil {
-			return err
+			_elem = v
 		}
 
-		_field[_key] = _val
+		_field = append(_field, _elem)
 	}
-	if err := iprot.ReadMapEnd(); err != nil {
+	if err := iprot.ReadListEnd(); err != nil {
 		return err
 	}
-	p.Intervals = _field
+	p.AvgDurations = _field
 	return nil
 }
 
@@ -37055,29 +36851,18 @@ WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
 }
 func (p *ApiPerformanceTrendData) writeField2(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("intervals", thrift.MAP, 2); err != nil {
+	if err = oprot.WriteFieldBegin("avg_durations", thrift.LIST, 2); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteMapBegin(thrift.STRING, thrift.LIST, len(p.Intervals)); err != nil {
+	if err := oprot.WriteListBegin(thrift.DOUBLE, len(p.AvgDurations)); err != nil {
 		return err
 	}
-	for k, v := range p.Intervals {
-		if err := oprot.WriteString(k); err != nil {
-			return err
-		}
-		if err := oprot.WriteListBegin(thrift.DOUBLE, len(v)); err != nil {
-			return err
-		}
-		for _, v := range v {
-			if err := oprot.WriteDouble(v); err != nil {
-				return err
-			}
-		}
-		if err := oprot.WriteListEnd(); err != nil {
+	for _, v := range p.AvgDurations {
+		if err := oprot.WriteDouble(v); err != nil {
 			return err
 		}
 	}
-	if err := oprot.WriteMapEnd(); err != nil {
+	if err := oprot.WriteListEnd(); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {
@@ -37569,8 +37354,8 @@ func (p *ApiPerformanceLatestVersionTrendReq) String() string {
 type ApiPerformanceLatestVersionTrendData struct {
 	// 时间点数组
 	Timestamps []string `thrift:"timestamps,1" form:"timestamps" json:"timestamps" query:"timestamps"`
-	// 各时间区间的统计数据，key为区间名称，value为对应时间点的数据数组
-	Intervals map[string][]float64 `thrift:"intervals,2" form:"intervals" json:"intervals" query:"intervals"`
+	// 各时间点的平均耗时
+	AvgDurations []float64 `thrift:"avg_durations,2" form:"avg_durations" json:"avg_durations" query:"avg_durations"`
 	// 最新版本号
 	Version string `thrift:"version,3" form:"version" json:"version" query:"version"`
 }
@@ -37586,8 +37371,8 @@ func (p *ApiPerformanceLatestVersionTrendData) GetTimestamps() (v []string) {
 	return p.Timestamps
 }
 
-func (p *ApiPerformanceLatestVersionTrendData) GetIntervals() (v map[string][]float64) {
-	return p.Intervals
+func (p *ApiPerformanceLatestVersionTrendData) GetAvgDurations() (v []float64) {
+	return p.AvgDurations
 }
 
 func (p *ApiPerformanceLatestVersionTrendData) GetVersion() (v string) {
@@ -37596,7 +37381,7 @@ func (p *ApiPerformanceLatestVersionTrendData) GetVersion() (v string) {
 
 var fieldIDToName_ApiPerformanceLatestVersionTrendData = map[int16]string{
 	1: "timestamps",
-	2: "intervals",
+	2: "avg_durations",
 	3: "version",
 }
 
@@ -37627,7 +37412,7 @@ func (p *ApiPerformanceLatestVersionTrendData) Read(iprot thrift.TProtocol) (err
 				goto SkipFieldError
 			}
 		case 2:
-			if fieldTypeId == thrift.MAP {
+			if fieldTypeId == thrift.LIST {
 				if err = p.ReadField2(iprot); err != nil {
 					goto ReadFieldError
 				}
@@ -37695,44 +37480,26 @@ func (p *ApiPerformanceLatestVersionTrendData) ReadField1(iprot thrift.TProtocol
 	return nil
 }
 func (p *ApiPerformanceLatestVersionTrendData) ReadField2(iprot thrift.TProtocol) error {
-	_, _, size, err := iprot.ReadMapBegin()
+	_, size, err := iprot.ReadListBegin()
 	if err != nil {
 		return err
 	}
-	_field := make(map[string][]float64, size)
+	_field := make([]float64, 0, size)
 	for i := 0; i < size; i++ {
-		var _key string
-		if v, err := iprot.ReadString(); err != nil {
+
+		var _elem float64
+		if v, err := iprot.ReadDouble(); err != nil {
 			return err
 		} else {
-			_key = v
-		}
-		_, size, err := iprot.ReadListBegin()
-		if err != nil {
-			return err
-		}
-		_val := make([]float64, 0, size)
-		for i := 0; i < size; i++ {
-
-			var _elem float64
-			if v, err := iprot.ReadDouble(); err != nil {
-				return err
-			} else {
-				_elem = v
-			}
-
-			_val = append(_val, _elem)
-		}
-		if err := iprot.ReadListEnd(); err != nil {
-			return err
+			_elem = v
 		}
 
-		_field[_key] = _val
+		_field = append(_field, _elem)
 	}
-	if err := iprot.ReadMapEnd(); err != nil {
+	if err := iprot.ReadListEnd(); err != nil {
 		return err
 	}
-	p.Intervals = _field
+	p.AvgDurations = _field
 	return nil
 }
 func (p *ApiPerformanceLatestVersionTrendData) ReadField3(iprot thrift.TProtocol) error {
@@ -37808,29 +37575,18 @@ WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
 }
 func (p *ApiPerformanceLatestVersionTrendData) writeField2(oprot thrift.TProtocol) (err error) {
-	if err = oprot.WriteFieldBegin("intervals", thrift.MAP, 2); err != nil {
+	if err = oprot.WriteFieldBegin("avg_durations", thrift.LIST, 2); err != nil {
 		goto WriteFieldBeginError
 	}
-	if err := oprot.WriteMapBegin(thrift.STRING, thrift.LIST, len(p.Intervals)); err != nil {
+	if err := oprot.WriteListBegin(thrift.DOUBLE, len(p.AvgDurations)); err != nil {
 		return err
 	}
-	for k, v := range p.Intervals {
-		if err := oprot.WriteString(k); err != nil {
-			return err
-		}
-		if err := oprot.WriteListBegin(thrift.DOUBLE, len(v)); err != nil {
-			return err
-		}
-		for _, v := range v {
-			if err := oprot.WriteDouble(v); err != nil {
-				return err
-			}
-		}
-		if err := oprot.WriteListEnd(); err != nil {
+	for _, v := range p.AvgDurations {
+		if err := oprot.WriteDouble(v); err != nil {
 			return err
 		}
 	}
-	if err := oprot.WriteMapEnd(); err != nil {
+	if err := oprot.WriteListEnd(); err != nil {
 		return err
 	}
 	if err = oprot.WriteFieldEnd(); err != nil {

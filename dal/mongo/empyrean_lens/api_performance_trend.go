@@ -23,8 +23,9 @@ type ApiPerformanceTrend struct {
 		TimeInterval string  `bson:"time_interval"` // 耗时区间
 		Percentage   float64 `bson:"percentage"`    // 占比
 	} `bson:"buckets"`
-	CreatedAt time.Time `bson:"created_at"`
-	UpdatedAt time.Time `bson:"updated_at"`
+	AvgDuration float64   `bson:"avg_duration"` // 平均耗时（新增）
+	CreatedAt   time.Time `bson:"created_at"`
+	UpdatedAt   time.Time `bson:"updated_at"`
 }
 
 // ApiPerformanceTrendDao 处理API性能趋势数据的数据库操作
@@ -68,8 +69,9 @@ func (d *ApiPerformanceTrendDao) UpsertTrend(ctx context.Context, trend *ApiPerf
 	}
 	update := bson.M{
 		"$set": bson.M{
-			"updated_at": trend.UpdatedAt,
-			"buckets":    trend.Buckets,
+			"updated_at":   trend.UpdatedAt,
+			"buckets":      trend.Buckets,
+			"avg_duration": trend.AvgDuration,
 		},
 		"$setOnInsert": bson.M{
 			"created_at": trend.CreatedAt,
@@ -147,8 +149,9 @@ func (d *ApiPerformanceTrendDao) GetLatestCreatedAtBySystem(ctx context.Context,
 		}
 		return time.Time{}, err
 	}
-	// 解析time_point字符串为time.Time
-	timePoint, err := time.Parse("2006-01-02 15:04:05", trend.TimePoint)
+	// 解析time_point字符串为北京时间
+	loc, _ := time.LoadLocation("Asia/Shanghai")
+	timePoint, err := time.ParseInLocation("2006-01-02 15:04:05", trend.TimePoint, loc)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("parse time_point failed: %v", err)
 	}

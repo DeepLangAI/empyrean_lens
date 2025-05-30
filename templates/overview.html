@@ -3944,39 +3944,34 @@
         const $cell = $(cell);
         const date = $cell.closest('tr').find('[data-label="日期"]').text();
         const system = $cell.closest('tr').find('[data-label="系统"]').text();
-        
         // 计算一周前的时间
         const endDate = new Date(date);
         const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-        
         const startTime = formatDate(startDate);
         const endTime = formatDate(endDate);
-
-        console.log('Requesting API performance trend with params:', {
-            start_time: startTime,
-            end_time: endTime,
-            system: system
-        });
-
-        axios.get('/api/v1/report/api_performance/trend', {
-            params: {
-                start_time: startTime,
-                end_time: endTime,
-                system: system
-            }
-        }).then(response => {
-            console.log('API response:', response.data);
-            if (!response.data.data) {
-                console.error('No data received from API');
+        // 并发请求两个接口
+        Promise.all([
+            axios.get('/api/v1/report/api_performance/trend', {
+                params: {
+                    start_time: startTime,
+                    end_time: endTime,
+                    system: system
+                }
+            }),
+            axios.get('/api/v1/report/api_performance/latest_version_trend', {
+                params: {
+                    start_time: startTime,
+                    end_time: endTime,
+                    system: system
+                }
+            })
+        ]).then(([trendResp, versionResp]) => {
+            if (!trendResp.data.data || !versionResp.data.data) {
+                Swal.fire({ icon: 'error', title: '无数据', text: '未获取到性能趋势数据' });
                 return;
             }
-            if (!response.data.data.timestamps || !response.data.data.intervals) {
-                console.error('Invalid data structure received:', response.data.data);
-                return;
-            }
-            displayApiPerformanceTrend(response.data.data, date, system);
+            displayApiPerformanceAvgDurationTrendWithVersion(trendResp.data.data, versionResp.data.data, date, system);
         }).catch(error => {
-            console.error('Error fetching API performance trend:', error);
             Swal.fire({
                 icon: 'error',
                 title: '获取数据失败',
@@ -3985,20 +3980,22 @@
         });
     }
 
-    function displayApiPerformanceTrend(data, date, system) {
+    function displayApiPerformanceAvgDurationTrendWithVersion(trendData, versionData, date, system) {
         menus = ['性能趋势详情'];
+        // 获取最新版本号
+        let versionName = versionData.version || '最新版本';
         Swal.fire({
             html: `
                 <div id="sidebar">
                     <div id="loading-container" class="loading-container">
                         <div class="loading-spinner"></div>
                     </div>
-
                     <div id="menu">
                         <div id="back" onclick="back()"><</div>
                     </div>
                     <div id="性能趋势详情">
-                        <h2>${system}系统 ${date} 前一周内性能趋势</h2>
+                        <h2>${system}系统 ${date} 前一周内平均耗时趋势</h2>
+
                         <div id="api-performance-chart" style="width: 100%; height: 400px;"></div>
                     </div>
                 </div>
@@ -4009,7 +4006,6 @@
             },
             didOpen: () => {
                 try {
-                    console.log('开始初始化图表...');
                     modifySidebar();
                     if (typeof echarts === 'undefined') {
                         throw new Error('ECharts 库未加载');
@@ -4019,256 +4015,89 @@
                         throw new Error('图表容器未找到');
                     }
                     const chart = echarts.init(chartContainer);
-                    
-                    // 添加处理缺失数据的函数
-                    function fillMissingData(data) {
-                        const timestamps = data.timestamps;
-                        const intervals = data.intervals;
-                        
-                        // 对每个区间进行处理
-                        Object.keys(intervals).forEach(key => {
-                            const values = intervals[key];
-                            if (values.length < timestamps.length) {
-                                // 找到最接近的数据点
-                                for (let i = 0; i < timestamps.length; i++) {
-                                    if (i >= values.length) {
-                                        // 找到最接近的前一个有效值
-                                        let prevValidIndex = i - 1;
-                                        while (prevValidIndex >= 0 && values[prevValidIndex] === undefined) {
-                                            prevValidIndex--;
-                                        }
-                                        
-                                        // 找到最接近的后一个有效值
-                                        let nextValidIndex = i + 1;
-                                        while (nextValidIndex < values.length && values[nextValidIndex] === undefined) {
-                                            nextValidIndex++;
-                                        }
-                                        
-                                        // 如果前后都有有效值，取平均值
-                                        if (prevValidIndex >= 0 && nextValidIndex < values.length) {
-                                            values[i] = (values[prevValidIndex] + values[nextValidIndex]) / 2;
-                                        }
-                                        // 如果只有前一个有效值
-                                        else if (prevValidIndex >= 0) {
-                                            values[i] = values[prevValidIndex];
-                                        }
-                                        // 如果只有后一个有效值
-                                        else if (nextValidIndex < values.length) {
-                                            values[i] = values[nextValidIndex];
-                                        }
-                                        // 如果都没有有效值，使用0
-                                        else {
-                                            values[i] = 0;
-                                        }
-                                    }
-                                }
+                    // 处理数据
+                    const timestamps = trendData.timestamps || [];
+                    const avgDurations = trendData.avg_durations || [];
+                    const versionTimestamps = versionData.timestamps || [];
+                    const versionAvgDurations = versionData.avg_durations || [];
+                    // 组装series数据
+                    const overallSeriesData = timestamps.map((t, i) => [new Date(t.replace(/-/g, '/')).getTime(), avgDurations[i] ?? 0]);
+                    const versionSeriesData = versionTimestamps.map((t, i) => [new Date(t.replace(/-/g, '/')).getTime(), versionAvgDurations[i] ?? 0]);
+                    // ECharts option
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis',
+                            formatter: function(params) {
+                                let result = '';
+                                params.forEach(param => {
+                                    const date = new Date(param.value[0]);
+                                    let dateStr = date.getFullYear() + '-' + (date.getMonth()+1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0') + ' ' + date.toTimeString().slice(0,8);
+                                    result += `<span style='display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background:${param.color}'></span>`;
+                                    result += param.seriesName + ': ' + (param.value[1] ? param.value[1].toFixed(2) : '-') + ' ms<br/>';
+                                });
+                                return result;
                             }
-                        });
-                        return data;
-                    }
-
-                    // 保证所有区间都初始化为数组
-                    function ensureIntervals(data) {
-                        const keys = ['0-2000', '2000-3000', '3000-5000', '>5000'];
-                        // 兼容后端返回的 '5000+' 或 '>5000'
-                        if (data.intervals['5000+'] && !data.intervals['>5000']) {
-                            data.intervals['>5000'] = data.intervals['5000+'];
-                        }
-                        keys.forEach(key => {
-                            if (!data.intervals[key] || !Array.isArray(data.intervals[key])) {
-                                data.intervals[key] = new Array(data.timestamps.length).fill(0);
-                            } else if (data.intervals[key].length < data.timestamps.length) {
-                                data.intervals[key] = data.intervals[key].concat(
-                                    new Array(data.timestamps.length - data.intervals[key].length).fill(0)
-                                );
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            top: '60px',
+                            containLabel: true
+                        },
+                        xAxis: {
+                            type: 'time',
+                            splitLine: { show: false },
+                            axisLabel: { fontSize: 12 }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: {
+                                formatter: '{value} ms'
                             }
-                        });
-                        return data;
-                    }
-
-                    // 数据转换为 [{time, value}] 格式
-                    function toTimeSeries(timestamps, values) {
-                        if (!Array.isArray(values)) values = [];
-                        return timestamps.map((t, i) => [new Date(t.replace(/-/g, '/')).getTime(), values[i] ?? 0]);
-                    }
-
-                    const seriesNames = [
-                        {key: '0-2000', name: '0-2000ms', color: '#1890ff'},
-                        {key: '2000-3000', name: '2000-3000ms', color: '#52c41a'},
-                        {key: '3000-5000', name: '3000-5000ms', color: '#faad14'},
-                        {key: '>5000', name: '>5000ms', color: '#ff4d4f'}
-                    ];
-
-                    // 获取最新版本数据
-                    if (!data.timestamps || data.timestamps.length === 0) {
-                        console.error('Invalid timestamps data:', data);
-                        return;
-                    }
-
-                    const startTime = data.timestamps[0].split(' ')[0];
-                    const endTime = data.timestamps[data.timestamps.length - 1].split(' ')[0];
-
-                    // 先处理原始数据
-                    const filledOriginalData = ensureIntervals(fillMissingData(data));
-
-                    axios.get('/api/v1/report/api_performance/latest_version_trend', {
-                        params: {
-                            start_time: startTime,
-                            end_time: endTime,
-                            system: system
-                        }
-                    }).then(latestResponse => {
-                        const latestData = latestResponse.data.data;
-                        if (!latestData || !latestData.timestamps || !latestData.intervals || !latestData.version) {
-                            console.error('Invalid latest version data structure:', latestData);
-                            Swal.fire({
-                                icon: 'error',
-                                title: '数据错误',
-                                text: '最新版本数据结构无效'
-                            });
-                            return;
-                        }
-                        const filledLatestData = ensureIntervals(fillMissingData(latestData));
-
-                        // 合并所有数据系列
-                        const allSeries = [
-                            // 原有数据系列
-                            ...seriesNames.map(s => ({
-                                name: s.name,
+                        },
+                        legend: {
+                            data: ['系统整体平均耗时', `${system}最新版本(${versionName})平均耗时`],
+                            top: 30
+                        },
+                        series: [
+                            {
+                                name: '系统整体平均耗时',
                                 type: 'line',
-                                data: toTimeSeries(filledOriginalData.timestamps, filledOriginalData.intervals[s.key]),
+                                data: overallSeriesData,
                                 showSymbol: false,
                                 smooth: true,
-                                itemStyle: { color: s.color },
-                                lineStyle: { color: s.color },
-                            })),
-                            // 最新版本数据系列
-                            ...seriesNames.map(s => ({
-                                name: `${system} V${filledLatestData.version}_${s.name}`,
+                                itemStyle: { color: '#1890ff' },
+                                lineStyle: { color: '#1890ff' },
+                                visible: true
+                            },
+                            {
+                                name: `${system}最新版本(${versionName})平均耗时`,
                                 type: 'line',
-                                data: toTimeSeries(filledLatestData.timestamps, filledLatestData.intervals[s.key]),
+                                data: versionSeriesData,
                                 showSymbol: false,
                                 smooth: true,
-                                itemStyle: { color: s.color },
-                                lineStyle: { 
-                                    color: s.color,
-                                    type: 'dashed'  // 使用虚线区分最新版本
-                                },
-                            }))
-                        ];
-
-                        const legendData1 = seriesNames.map(s => s.name);
-                        const legendData2 = seriesNames.map(s => `${system} V${filledLatestData.version}_${s.name}`);
-
-                        const option = {
-                            tooltip: {
-                                trigger: 'axis',
-                                formatter: function(params) {
-                                    let result = '';
-                                    params.forEach(param => {
-                                        const date = new Date(param.value[0]);
-                                        let dateStr = date.getFullYear() + '-' + (date.getMonth()+1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0') + ' ' + date.toTimeString().slice(0,8);
-                                        result += dateStr + '<br/>' + param.seriesName + ': ' + param.value[1].toFixed(2) + '%<br/>';
-                                    });
-                                    return result;
-                                }
-                            },
-                            legend: [
-                                {
-                                    data: legendData1,
-                                    top: '30px',
-                                    left: 'center',
-                                    orient: 'horizontal',
-                                    itemGap: 30,
-                                    textStyle: { fontSize: 12 }
-                                },
-                                {
-                                    data: legendData2,
-                                    top: '60px',
-                                    left: 'center',
-                                    orient: 'horizontal',
-                                    itemGap: 30,
-                                    textStyle: { fontSize: 12 }
-                                }
-                            ],
-                            grid: {
-                                left: '3%',
-                                right: '4%',
-                                bottom: '3%',
-                                top: '100px', // 下移，避免遮挡
-                                containLabel: true
-                            },
-                            xAxis: {
-                                type: 'time',
-                                splitLine: { show: false },
-                                axisLabel: { fontSize: 12 }
-                            },
-                            yAxis: {
-                                type: 'value',
-                                axisLabel: {
-                                    formatter: '{value}%'
-                                }
-                            },
-                            series: allSeries
-                        };
-                        chart.setOption(option);
-                    }).catch(error => {
-                        console.error('Error fetching latest version data:', error);
-                        // 如果获取最新版本数据失败，仍然显示原有数据
-                        const option = {
-                            tooltip: {
-                                trigger: 'axis',
-                                formatter: function(params) {
-                                    let result = '';
-                                    params.forEach(param => {
-                                        const date = new Date(param.value[0]);
-                                        let dateStr = date.getFullYear() + '-' + (date.getMonth()+1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0') + ' ' + date.toTimeString().slice(0,8);
-                                        result += dateStr + '<br/>' + param.seriesName + ': ' + param.value[1].toFixed(2) + '%<br/>';
-                                    });
-                                    return result;
-                                }
-                            },
-                            legend: {
-                                data: seriesNames.map(s => s.name),
-                                top: '30px',
-                                left: 'center',
-                            },
-                            grid: {
-                                left: '3%',
-                                right: '4%',
-                                bottom: '3%',
-                                containLabel: true
-                            },
-                            xAxis: {
-                                type: 'time',
-                                splitLine: { show: false },
-                                axisLabel: { fontSize: 12 }
-                            },
-                            yAxis: {
-                                type: 'value',
-                                axisLabel: {
-                                    formatter: '{value}%'
-                                }
-                            },
-                            series: seriesNames.map(s => ({
-                                name: s.name,
-                                type: 'line',
-                                data: toTimeSeries(filledOriginalData.timestamps, filledOriginalData.intervals[s.key]),
-                                showSymbol: false,
-                                smooth: true,
-                                itemStyle: { color: s.color },
-                                lineStyle: { color: s.color },
-                            }))
-                        };
-                        chart.setOption(option);
+                                itemStyle: { color: '#faad14' },
+                                lineStyle: { color: '#faad14' },
+                                visible: true
+                            }
+                        ]
+                    };
+                    chart.setOption(option);
+                    // 复选框事件
+                    $('#show-overall').on('change', function() {
+                        option.series[0].show = this.checked;
+                        chart.setOption({ series: option.series });
                     });
-
+                    $('#show-version').on('change', function() {
+                        option.series[1].show = this.checked;
+                        chart.setOption({ series: option.series });
+                    });
                     window.addEventListener('resize', function() {
                         chart.resize();
                     });
                     hideLoadingStatus();
                 } catch (error) {
-                    console.error('图表初始化详细错误:', error);
                     Swal.fire({
                         icon: 'error',
                         title: '图表初始化失败',

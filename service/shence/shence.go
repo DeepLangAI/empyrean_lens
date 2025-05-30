@@ -487,6 +487,9 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 		// 按日期和系统分组处理数据
 		trendMap := make(map[string]*empyrean_lens.ApiPerformanceTrend)
 		intervalCounts := make(map[string]map[string]int64) // 用于临时存储每个区间的请求数
+		// 新增：用于统计总耗时和请求数
+		totalDurationMap := make(map[string]float64)
+		totalCountMap := make(map[string]int64)
 
 		// 处理每一行数据
 		for _, line := range lines {
@@ -591,6 +594,9 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 			// 计算时间区间
 			timeInterval := getTimeInterval(duration)
 			intervalCounts[key][timeInterval]++
+			// 新增：统计总耗时和请求数
+			totalDurationMap[key] += duration
+			totalCountMap[key]++
 		}
 
 		// 计算每个时间点的百分比
@@ -611,6 +617,11 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 						Percentage:   percentage,
 					})
 				}
+			}
+
+			// 新增：计算平均耗时
+			if totalCountMap[key] > 0 {
+				trend.AvgDuration = totalDurationMap[key] / float64(totalCountMap[key])
 			}
 
 			// 保存到MongoDB
@@ -750,7 +761,10 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 
 		// 按日期和系统分组处理数据
 		trendMap := make(map[string]*empyrean_lens.ApiPerformanceLatestVersionTrend)
-		intervalCounts := make(map[string]map[string]int64) // 用于临时存储每个区间的请求数
+		intervalCounts := make(map[string]map[string]int64)
+		// 新增：用于统计总耗时和请求数
+		totalDurationMap := make(map[string]float64)
+		totalCountMap := make(map[string]int64)
 
 		// 处理每一行数据
 		for _, line := range lines {
@@ -845,6 +859,9 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 			// 计算时间区间
 			timeInterval := getTimeInterval(duration)
 			intervalCounts[key][timeInterval]++
+			// 新增：统计总耗时和请求数
+			totalDurationMap[key] += duration
+			totalCountMap[key]++
 		}
 
 		// 计算每个时间点的百分比
@@ -880,6 +897,11 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 						Percentage:   percentage,
 					})
 				}
+			}
+
+			// 新增：计算平均耗时
+			if totalCountMap[key] > 0 {
+				trend.AvgDuration = totalDurationMap[key] / float64(totalCountMap[key])
 			}
 
 			// 保存到MongoDB

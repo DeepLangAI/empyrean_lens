@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"empyrean_lens/consts"
-	"empyrean_lens/service/aliyun"
 	"empyrean_lens/service/mongo/empyrean_lens"
 	"empyrean_lens/service/shence"
 	"time"
@@ -24,30 +23,30 @@ func GetCurrentDate() string {
 func (self *ProbeRunner) Run(ctx context.Context) {
 	s := gocron.NewScheduler(time.Local)
 
-	////// 首次同步数据
-	//hlog.CtxInfof(ctx, "开始执行首次新内容形态页加载性能数据及趋势数据同步")
-	//startTime := time.Date(2025, 5, 20, 0, 0, 0, 0, time.Local)
-	//endTime := time.Now()
-	//
-	//if err := shence.SyncApiPerformanceStats(ctx, startTime, endTime); err != nil {
-	//	hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能数据失败: %v", err)
-	//} else {
-	//	hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能数据成功")
-	//}
-	//
-	//if err := shence.SyncApiPerformanceTrend(ctx, startTime, endTime); err != nil {
-	//	hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能趋势数据失败: %v", err)
-	//} else {
-	//	hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能趋势数据成功")
-	//}
-	//
-	//if err := shence.SyncApiPerformanceVersionTrend(ctx, startTime, endTime); err != nil {
-	//	hlog.CtxErrorf(ctx, "首次同步系统最新版本新内容形态页加载性能数据失败: %v", err)
-	//} else {
-	//	hlog.CtxInfof(ctx, "首次同步系统最新版本新内容形态页加载性能数据成功")
-	//}
+	//// 首次同步数据
+	hlog.CtxInfof(ctx, "开始执行首次新内容形态页加载性能数据及趋势数据同步")
+	startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
+	endTime := time.Now()
 
-	// 每1分钟同步新内容形态页加载性能数据
+	if err := shence.SyncApiPerformanceStats(ctx, startTime, endTime); err != nil {
+		hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能数据失败: %v", err)
+	} else {
+		hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能数据成功")
+	}
+
+	if err := shence.SyncApiPerformanceTrend(ctx, startTime, endTime); err != nil {
+		hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能趋势数据失败: %v", err)
+	} else {
+		hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能趋势数据成功")
+	}
+
+	if err := shence.SyncApiPerformanceVersionTrend(ctx, startTime, endTime); err != nil {
+		hlog.CtxErrorf(ctx, "首次同步系统所有版本新内容形态页加载性能数据失败: %v", err)
+	} else {
+		hlog.CtxInfof(ctx, "首次同步系统所有版本新内容形态页加载性能数据成功")
+	}
+
+	//每1分钟同步新内容形态页加载性能数据
 	s.Every(1).Minutes().StartImmediately().Do(func() {
 		hlog.CtxInfof(ctx, "开始同步新内容形态页加载性能数据")
 		now := time.Now()
@@ -58,7 +57,7 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 		}
 	})
 
-	// 每2小时同步一次新内容形态页加载性能趋势数据
+	//每2小时同步一次新内容形态页加载性能趋势数据
 	s.Every(2).Hours().StartImmediately().Do(func() {
 		hlog.CtxInfof(ctx, "开始同步新内容形态页加载性能趋势数据（每2小时）")
 		now := time.Now()
@@ -76,12 +75,12 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 		}
 	})
 
-	// 每1分钟刷新一下当天的最新数据
-	s.Every(1).Minutes().StartImmediately().Do(func() {
-		//empyrean_lens.UpdateLatestScoreInfo(ctx)
-		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_TODAY, false)
-		empyrean_lens.UpdateLatestScoreInfo(ctx) // 更新当天的分数同比、环比信息
-	})
+	//// 每1分钟刷新一下当天的最新数据
+	//s.Every(1).Minutes().StartImmediately().Do(func() {
+	//	//empyrean_lens.UpdateLatestScoreInfo(ctx)
+	//	aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_TODAY, false)
+	//	empyrean_lens.UpdateLatestScoreInfo(ctx) // 更新当天的分数同比、环比信息
+	//})
 
 	//// 由于采集日志不及时，需要晚上刷一下近一周的数据
 	//s.Every(1).Day().At("23:50").Do(func() {

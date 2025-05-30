@@ -1047,14 +1047,9 @@ struct ApiPerformanceTrendReq {
     4: string version     // 版本号
 }
 
-struct TimeIntervalData {
-    1: string time_interval    // 时间区间，如"0~2000"
-    2: double percentage      // 占比
-}
-
 struct ApiPerformanceTrendData {
     1: list<string> timestamps           // 时间点数组
-    2: map<string, list<double>> intervals  // 各时间区间的统计数据，key为区间名称，value为对应时间点的数据数组
+    2: list<double> avg_durations        // 各时间点的平均耗时
 }
 
 struct ApiPerformanceTrendResp {
@@ -1072,7 +1067,7 @@ struct ApiPerformanceLatestVersionTrendReq {
 
 struct ApiPerformanceLatestVersionTrendData {
     1: list<string> timestamps           // 时间点数组
-    2: map<string, list<double>> intervals  // 各时间区间的统计数据，key为区间名称，value为对应时间点的数据数组
+    2: list<double> avg_durations        // 各时间点的平均耗时
     3: string version                    // 最新版本号
 }
 

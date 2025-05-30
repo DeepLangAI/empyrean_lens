@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -226,35 +227,35 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 		}
 
 		// 根据新的响应格式解析数据
-		date := toString(data[0])
+		// date := toString(data[0]) // 已不再使用
 		avgDuration := toFloat64(data[1])
 		version := toString(data[2])
 		system := toString(data[3])
 		totalRequests := int64(toFloat64(data[4]))
 		duration := toFloat64(data[5])
-		timeStr := toString(data[6])
+		// timeStr := toString(data[6]) // 已不再使用
 
 		// 使用date、system和version作为唯一标识
-		key := fmt.Sprintf("%s_%s_%s", date, system, version)
+		key := fmt.Sprintf("%s_%s_%s", toString(data[0]), system, version)
 		stats, exists := statsMap[key]
 		if !exists {
 			// 解析时间
-			_, err := parseShenceTime(timeStr)
+			_, err := parseShenceTime(toString(data[6]))
 			if err != nil {
-				hlog.CtxErrorf(ctx, "parse time error: %v, time string: %s", err, timeStr)
+				hlog.CtxErrorf(ctx, "parse time error: %v, time string: %s", err, toString(data[6]))
 				continue
 			}
 
 			// 将时间转换为当天的 UTC 时间
 			// 从日期字符串中提取日期部分（去掉时间部分）
-			dateParts := strings.Split(date, " ")
+			dateParts := strings.Split(toString(data[0]), " ")
 			if len(dateParts) == 0 {
-				hlog.CtxErrorf(ctx, "invalid date format: %s", date)
+				hlog.CtxErrorf(ctx, "invalid date format: %s", toString(data[0]))
 				continue
 			}
 			dateTime, err := time.Parse("2006-01-02", dateParts[0])
 			if err != nil {
-				hlog.CtxErrorf(ctx, "parse date error: %v, date: %s", err, date)
+				hlog.CtxErrorf(ctx, "parse date error: %v, date: %s", err, toString(data[0]))
 				continue
 			}
 			utcTime := time.Date(dateTime.Year(), dateTime.Month(), dateTime.Day(), 0, 0, 0, 0, time.UTC)
@@ -262,7 +263,7 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 			stats = &empyrean_lens.ApiPerformanceStats{
 				System:    system,
 				Version:   version,
-				Date:      date,
+				Date:      toString(data[0]),
 				CreatedAt: utcTime,
 				UpdatedAt: time.Now(),
 				Summary: struct {
@@ -282,22 +283,22 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 			statsMap[key] = stats
 		} else {
 			// 更新最新时间
-			itemTime, err := parseShenceTime(timeStr)
+			itemTime, err := parseShenceTime(toString(data[6]))
 			if err != nil {
-				hlog.CtxErrorf(ctx, "parse item time error: %v, time string: %s", err, timeStr)
+				hlog.CtxErrorf(ctx, "parse item time error: %v, time string: %s", err, toString(data[6]))
 				continue
 			}
 			if itemTime.After(stats.CreatedAt) {
 				// 将时间转换为当天的 UTC 时间
 				// 从日期字符串中提取日期部分（去掉时间部分）
-				dateParts := strings.Split(date, " ")
+				dateParts := strings.Split(toString(data[0]), " ")
 				if len(dateParts) == 0 {
-					hlog.CtxErrorf(ctx, "invalid date format: %s", date)
+					hlog.CtxErrorf(ctx, "invalid date format: %s", toString(data[0]))
 					continue
 				}
 				dateTime, err := time.Parse("2006-01-02", dateParts[0])
 				if err != nil {
-					hlog.CtxErrorf(ctx, "parse date error: %v, date: %s", err, date)
+					hlog.CtxErrorf(ctx, "parse date error: %v, date: %s", err, toString(data[0]))
 					continue
 				}
 				utcTime := time.Date(dateTime.Year(), dateTime.Month(), dateTime.Day(), 0, 0, 0, 0, time.UTC)
@@ -375,26 +376,32 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 	iosLatest, iosErr := dao.GetLatestCreatedAtBySystem(ctx, "iOS")
 	androidLatest, androidErr := dao.GetLatestCreatedAtBySystem(ctx, "Android")
 
-	// 取最早的那个
-	var minLatest time.Time
+	// 取最晚的那个
+	var maxLatest time.Time
 	if iosErr != nil && androidErr != nil {
-		minLatest = startTime
+		maxLatest = startTime
 	} else if iosErr != nil {
-		minLatest = androidLatest
+		maxLatest = androidLatest
 	} else if androidErr != nil {
-		minLatest = iosLatest
-	} else if iosLatest.Before(androidLatest) {
-		minLatest = iosLatest
+		maxLatest = iosLatest
+	} else if iosLatest.After(androidLatest) {
+		maxLatest = iosLatest
 	} else {
-		minLatest = androidLatest
+		maxLatest = androidLatest
 	}
 
-	// 取最早的date的0点
-	if !minLatest.IsZero() {
-		minLatestZero := time.Date(minLatest.Year(), minLatest.Month(), minLatest.Day(), 0, 0, 0, 0, minLatest.Location())
-		if minLatestZero.After(startTime) {
-			startTime = minLatestZero
+	// 将最新记录时间向上取整到最近的2小时时间点
+	var firstEndTime time.Time
+	if !maxLatest.IsZero() {
+		hours := maxLatest.Hour()
+		roundedHours := ((hours + 1) / 2) * 2
+		if roundedHours == 24 {
+			roundedHours = 0
+			maxLatest = maxLatest.AddDate(0, 0, 1)
 		}
+		firstEndTime = time.Date(maxLatest.Year(), maxLatest.Month(), maxLatest.Day(), roundedHours, 0, 0, 0, maxLatest.Location())
+	} else {
+		firstEndTime = startTime.Add(2 * time.Hour)
 	}
 
 	// 计算时间间隔
@@ -403,14 +410,14 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 		End   time.Time
 	}, 0)
 
-	currentEnd := startTime.Add(2 * time.Hour)
+	currentEnd := firstEndTime
 	for currentEnd.Before(endTime) || currentEnd.Equal(endTime) {
 		timeIntervals = append(timeIntervals, struct {
 			Start time.Time
 			End   time.Time
 		}{
-			Start: startTime,
-			End:   currentEnd,
+			Start: startTime,  // 始终从开始时间开始
+			End:   currentEnd, // 结束时间逐渐增加
 		})
 		currentEnd = currentEnd.Add(2 * time.Hour)
 	}
@@ -546,19 +553,19 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 			}
 
 			// 解析数据
-			date := toString(data[0])
+			// date := toString(data[0]) // 已不再使用
 			system := toString(data[1])
 			duration := toFloat64(data[2])
-			timeStr := toString(data[3])
+			// timeStr := toString(data[3]) // 已不再使用
 
 			// 使用date和system作为唯一标识
-			key := fmt.Sprintf("%s_%s", date, system)
+			key := fmt.Sprintf("%s_%s", toString(data[0]), system)
 			trend, exists := trendMap[key]
 			if !exists {
 				// 解析时间
-				_, err := parseShenceTime(timeStr)
+				_, err := parseShenceTime(toString(data[3]))
 				if err != nil {
-					hlog.CtxErrorf(ctx, "parse time error: %v, time string: %s", err, timeStr)
+					hlog.CtxErrorf(ctx, "parse time error: %v, time string: %s", err, toString(data[3]))
 					continue
 				}
 
@@ -630,29 +637,35 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 	iosLatest, iosErr := dao.GetLatestCreatedAtBySystem(ctx, "iOS")
 	androidLatest, androidErr := dao.GetLatestCreatedAtBySystem(ctx, "Android")
 
-	// 取最早的那个
-	var minLatest time.Time
+	// 取最晚的那个
+	var maxLatest time.Time
 	if iosErr != nil && androidErr != nil {
-		minLatest = startTime
+		maxLatest = startTime
 	} else if iosErr != nil {
-		minLatest = androidLatest
+		maxLatest = androidLatest
 	} else if androidErr != nil {
-		minLatest = iosLatest
-	} else if iosLatest.Before(androidLatest) {
-		minLatest = iosLatest
+		maxLatest = iosLatest
+	} else if iosLatest.After(androidLatest) {
+		maxLatest = iosLatest
 	} else {
-		minLatest = androidLatest
+		maxLatest = androidLatest
 	}
 
-	// 取最早的date的0点
-	if !minLatest.IsZero() {
-		minLatestZero := time.Date(minLatest.Year(), minLatest.Month(), minLatest.Day(), 0, 0, 0, 0, minLatest.Location())
-		if minLatestZero.After(startTime) {
-			startTime = minLatestZero
+	// 将最新记录时间向上取整到最近的2小时时间点
+	var firstEndTime time.Time
+	if !maxLatest.IsZero() {
+		hours := maxLatest.Hour()
+		roundedHours := ((hours + 1) / 2) * 2
+		if roundedHours == 24 {
+			roundedHours = 0
+			maxLatest = maxLatest.AddDate(0, 0, 1)
 		}
+		firstEndTime = time.Date(maxLatest.Year(), maxLatest.Month(), maxLatest.Day(), roundedHours, 0, 0, 0, maxLatest.Location())
+	} else {
+		firstEndTime = startTime.Add(2 * time.Hour)
 	}
 
-	hlog.CtxInfof(ctx, "Start time: %v, End time: %v", startTime, endTime)
+	hlog.CtxInfof(ctx, "Start time: %v, First end time: %v, End time: %v", startTime, firstEndTime, endTime)
 
 	// 计算时间间隔
 	timeIntervals := make([]struct {
@@ -660,19 +673,17 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 		End   time.Time
 	}, 0)
 
-	currentEnd := startTime.Add(2 * time.Hour)
+	currentEnd := firstEndTime
 	for currentEnd.Before(endTime) || currentEnd.Equal(endTime) {
 		timeIntervals = append(timeIntervals, struct {
 			Start time.Time
 			End   time.Time
 		}{
-			Start: startTime,
-			End:   currentEnd,
+			Start: startTime,  // 始终从开始时间开始
+			End:   currentEnd, // 结束时间逐渐增加
 		})
 		currentEnd = currentEnd.Add(2 * time.Hour)
 	}
-
-	hlog.CtxInfof(ctx, "Time intervals: %+v", timeIntervals)
 
 	// 按时间间隔处理数据
 	for _, interval := range timeIntervals {
@@ -693,8 +704,8 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 				AND $os IN ('iOS', 'Android')
 			ORDER BY
 				date ASC, $os ASC, $os_version ASC, time ASC
-		`, interval.Start.Format("2006-01-02"), interval.End.Format("2006-01-02"),
-			interval.Start.Format("2006-01-02 15:04:05.000"), interval.End.Format("2006-01-02 15:04:05.000"))
+		`, startTime.Format("2006-01-02"), interval.End.Format("2006-01-02"),
+			startTime.Format("2006-01-02 15:04:05.000"), interval.End.Format("2006-01-02 15:04:05.000"))
 
 		// 构建请求体
 		reqBody := map[string]interface{}{
@@ -804,27 +815,18 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 			}
 
 			// 解析数据
-			date := toString(data[0])
+			// date := toString(data[0]) // 已不再使用
 			system := toString(data[2])
 			version := toString(data[1])
 			duration := toFloat64(data[3])
-			timeStr := toString(data[4])
+			// timeStr := toString(data[4]) // 已不再使用
 
-			// 使用date、system和version作为唯一标识
-			key := fmt.Sprintf("%s_%s_%s", date, system, version)
+			// 以recordDate、system、version、timePoint唯一标识一条入库记录
+			timePoint := interval.End.Format("2006-01-02 15:04:05")
+			recordDate := interval.End.Format("2006-01-02")
+			key := fmt.Sprintf("%s_%s_%s_%s", recordDate, system, version, timePoint)
 			trend, exists := trendMap[key]
 			if !exists {
-				// 解析时间
-				_, err := parseShenceTime(timeStr)
-				if err != nil {
-					hlog.CtxErrorf(ctx, "parse time error: %v, time string: %s", err, timeStr)
-					continue
-				}
-
-				// 使用time_point的日期部分作为date
-				timePoint := interval.End.Format("2006-01-02 15:04:05")
-				recordDate := interval.End.Format("2006-01-02")
-
 				trend = &empyrean_lens.ApiPerformanceLatestVersionTrend{
 					Date:      recordDate,
 					System:    system,
@@ -840,7 +842,6 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 				trendMap[key] = trend
 				intervalCounts[key] = make(map[string]int64)
 			}
-
 			// 计算时间区间
 			timeInterval := getTimeInterval(duration)
 			intervalCounts[key][timeInterval]++
@@ -854,7 +855,22 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 			}
 
 			if totalRequests > 0 {
-				for interval, count := range intervalCounts[key] {
+				// 清空之前的buckets，因为我们要重新计算累积数据
+				trend.Buckets = make([]struct {
+					TimeInterval string  `bson:"time_interval"`
+					Percentage   float64 `bson:"percentage"`
+				}, 0)
+
+				// 按时间区间排序
+				intervals := make([]string, 0)
+				for interval := range intervalCounts[key] {
+					intervals = append(intervals, interval)
+				}
+				sort.Strings(intervals)
+
+				// 计算每个区间的百分比
+				for _, interval := range intervals {
+					count := intervalCounts[key][interval]
 					percentage := float64(count) / float64(totalRequests) * 100
 					trend.Buckets = append(trend.Buckets, struct {
 						TimeInterval string  `bson:"time_interval"`

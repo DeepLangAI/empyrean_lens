@@ -202,7 +202,7 @@ func (d *ApiPerformanceLatestVersionTrendDao) GetTrendByDateRange(ctx context.Co
 // GetLatestCreatedAtBySystem 获取指定系统的最新记录时间
 func (d *ApiPerformanceLatestVersionTrendDao) GetLatestCreatedAtBySystem(ctx context.Context, system string) (time.Time, error) {
 	var trend ApiPerformanceLatestVersionTrend
-	opts := options.FindOne().SetSort(bson.M{"created_at": -1})
+	opts := options.FindOne().SetSort(bson.M{"time_point": -1})
 	filter := bson.M{"system": system}
 	err := probeDatabase.Collection(TableNameApiPerformanceLatestVersionTrend).FindOne(ctx, filter, opts).Decode(&trend)
 	if err != nil {
@@ -211,5 +211,10 @@ func (d *ApiPerformanceLatestVersionTrendDao) GetLatestCreatedAtBySystem(ctx con
 		}
 		return time.Time{}, err
 	}
-	return trend.CreatedAt, nil
+	// 解析time_point字符串为time.Time
+	timePoint, err := time.Parse("2006-01-02 15:04:05", trend.TimePoint)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parse time_point failed: %v", err)
+	}
+	return timePoint, nil
 }

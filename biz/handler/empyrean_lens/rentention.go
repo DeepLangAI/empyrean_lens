@@ -104,7 +104,7 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 	dao := dal_mongo_empyrean_lens.NewApiPerformanceStatsDao()
 	apiStats, err := dao.GetStatsByTimeRange(
 		ctx,
-		time.Now().AddDate(0, 0, -10), // 获取最近7天的数据
+		time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local), // 获取最早2024-10-17的数据
 		time.Now().AddDate(0, 0, 1),
 	)
 	if err != nil {

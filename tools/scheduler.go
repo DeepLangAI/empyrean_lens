@@ -25,7 +25,7 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 
 	// 首次同步数据
 	hlog.CtxInfof(ctx, "开始执行首次新内容形态页加载性能数据及趋势数据同步")
-	startTime := time.Date(2025, 05, 25, 0, 0, 0, 0, time.Local)
+	startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
 	endTime := time.Now()
 
 	if err := shence.SyncApiPerformanceStats(ctx, startTime, endTime); err != nil {

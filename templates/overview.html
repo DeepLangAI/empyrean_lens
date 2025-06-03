@@ -4022,7 +4022,7 @@
                     const versionAvgDurations = versionData.avg_durations || [];
                     // 组装series数据
                     const overallSeriesData = timestamps.map((t, i) => [new Date(t.replace(/-/g, '/')).getTime(), avgDurations[i] ?? 0]);
-                    const versionSeriesData = versionTimestamps.map((t, i) => [new Date(t.replace(/-/g, '/')).getTime(), versionAvgDurations[i] ?? 0]);
+                    // const versionSeriesData = versionTimestamps.map((t, i) => [new Date(t.replace(/-/g, '/')).getTime(), versionAvgDurations[i] ?? 0]);
                     // ECharts option
                     const option = {
                         tooltip: {
@@ -4069,7 +4069,7 @@
                             }
                         },
                         legend: {
-                            data: ['系统整体平均耗时', `${system}最新版本(${versionName})平均耗时`],
+                            data: ['系统整体平均耗时'], // 只保留系统整体平均耗时
                             top: 30
                         },
                         series: [
@@ -4082,29 +4082,29 @@
                                 itemStyle: { color: '#1890ff' },
                                 lineStyle: { color: '#1890ff' },
                                 visible: true
-                            },
-                            {
-                                name: `${system}最新版本(${versionName})平均耗时`,
-                                type: 'line',
-                                data: versionSeriesData,
-                                showSymbol: false,
-                                smooth: true,
-                                itemStyle: { color: '#faad14' },
-                                lineStyle: { color: '#faad14' },
-                                visible: true
                             }
+                            // ,{
+                            //     name: `${system}最新版本(${versionName})平均耗时`,
+                            //     type: 'line',
+                            //     data: versionSeriesData,
+                            //     showSymbol: false,
+                            //     smooth: true,
+                            //     itemStyle: { color: '#faad14' },
+                            //     lineStyle: { color: '#faad14' },
+                            //     visible: true
+                            // }
                         ]
                     };
                     chart.setOption(option);
                     // 复选框事件
-                    $('#show-overall').on('change', function() {
-                        option.series[0].show = this.checked;
-                        chart.setOption({ series: option.series });
-                    });
-                    $('#show-version').on('change', function() {
-                        option.series[1].show = this.checked;
-                        chart.setOption({ series: option.series });
-                    });
+                    // $('#show-overall').on('change', function() {
+                    //     option.series[0].show = this.checked;
+                    //     chart.setOption({ series: option.series });
+                    // });
+                    // $('#show-version').on('change', function() {
+                    //     option.series[1].show = this.checked;
+                    //     chart.setOption({ series: option.series });
+                    // });
                     window.addEventListener('resize', function() {
                         chart.resize();
                     });

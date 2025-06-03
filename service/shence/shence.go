@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"empyrean_lens/dal/mongo/empyrean_lens"
-
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 const (
@@ -59,7 +57,6 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 	// 确保集合存在
 	dao := empyrean_lens.NewApiPerformanceStatsDao()
 	if err := dao.EnsureCollection(ctx); err != nil {
-		hlog.CtxErrorf(ctx, "ensure collection error: %v", err)
 		return fmt.Errorf("ensure collection error: %v", err)
 	}
 
@@ -111,8 +108,6 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 		    date DESC, $os ASC, time ASC
 	`, startTime.Format("2006-01-02"), endTime.Format("2006-01-02"))
 
-	hlog.CtxInfof(ctx, "神策查询SQL: %s", sql)
-
 	// 构建请求体
 	reqBody := map[string]interface{}{
 		"sql":   sql,
@@ -120,14 +115,12 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 	}
 	reqBodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "marshal request body error: %v", err)
 		return fmt.Errorf("marshal request body error: %v", err)
 	}
 
 	// 创建HTTP请求
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", shenceAPIURL, nil)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "create request error: %v", err)
 		return fmt.Errorf("create request error: %v", err)
 	}
 	httpReq.Body = io.NopCloser(bytes.NewReader(reqBodyBytes))
@@ -139,7 +132,6 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 	client := &http.Client{}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "send request error: %v", err)
 		return fmt.Errorf("send request error: %v", err)
 	}
 	defer resp.Body.Close()
@@ -147,12 +139,8 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 	// 读取响应
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		hlog.CtxErrorf(ctx, "read response error: %v", err)
 		return fmt.Errorf("read response error: %v", err)
 	}
-
-	// 打印响应内容以便调试
-	hlog.CtxInfof(ctx, "神策API响应内容: %s", string(respBody))
 
 	// 按行分割响应内容
 	lines := bytes.Split(respBody, []byte("\n"))
@@ -176,25 +164,19 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 			} `json:"data"`
 		}
 		if err := json.Unmarshal(line, &result); err != nil {
-			hlog.CtxErrorf(ctx, "unmarshal response line error: %v, line: %s", err, string(line))
 			continue
 		}
 
 		// 检查API响应状态
 		if result.Code != "SUCCESS" {
-			hlog.CtxErrorf(ctx, "神策API返回错误: code=%s, request_id=%s", result.Code, result.RequestID)
 			continue
 		}
-
-		// 打印数据长度
-		hlog.CtxInfof(ctx, "神策返回数据长度: %d", len(result.Data.Data))
 
 		// 解析数据
 		data := result.Data.Data
 
 		// 验证数据长度
 		if len(data) < 7 {
-			hlog.CtxErrorf(ctx, "数据长度不足，期望至少7个元素，实际长度: %d", len(data))
 			continue
 		}
 
@@ -243,7 +225,6 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 			// 解析时间
 			_, err := parseShenceTime(toString(data[6]))
 			if err != nil {
-				hlog.CtxErrorf(ctx, "parse time error: %v, time string: %s", err, toString(data[6]))
 				continue
 			}
 
@@ -251,12 +232,10 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 			// 从日期字符串中提取日期部分（去掉时间部分）
 			dateParts := strings.Split(toString(data[0]), " ")
 			if len(dateParts) == 0 {
-				hlog.CtxErrorf(ctx, "invalid date format: %s", toString(data[0]))
 				continue
 			}
 			dateTime, err := time.Parse("2006-01-02", dateParts[0])
 			if err != nil {
-				hlog.CtxErrorf(ctx, "parse date error: %v, date: %s", err, toString(data[0]))
 				continue
 			}
 			utcTime := time.Date(dateTime.Year(), dateTime.Month(), dateTime.Day(), 0, 0, 0, 0, time.UTC)
@@ -286,7 +265,6 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 			// 更新最新时间
 			itemTime, err := parseShenceTime(toString(data[6]))
 			if err != nil {
-				hlog.CtxErrorf(ctx, "parse item time error: %v, time string: %s", err, toString(data[6]))
 				continue
 			}
 			if itemTime.After(stats.CreatedAt) {
@@ -294,12 +272,10 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 				// 从日期字符串中提取日期部分（去掉时间部分）
 				dateParts := strings.Split(toString(data[0]), " ")
 				if len(dateParts) == 0 {
-					hlog.CtxErrorf(ctx, "invalid date format: %s", toString(data[0]))
 					continue
 				}
 				dateTime, err := time.Parse("2006-01-02", dateParts[0])
 				if err != nil {
-					hlog.CtxErrorf(ctx, "parse date error: %v, date: %s", err, toString(data[0]))
 					continue
 				}
 				utcTime := time.Date(dateTime.Year(), dateTime.Month(), dateTime.Day(), 0, 0, 0, 0, time.UTC)
@@ -342,7 +318,6 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 	}
 
 	// 保存到MongoDB
-	hlog.CtxInfof(ctx, "准备保存到MongoDB的数据条数: %d", len(statsMap))
 	for _, stats := range statsMap {
 		// 验证总请求数是否等于所有区间请求数的总和
 		var totalBucketRequests int64
@@ -351,12 +326,10 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 		}
 
 		if totalBucketRequests != stats.Summary.TotalRequests {
-			hlog.CtxWarnf(ctx, "总请求数(%d)与区间请求数总和(%d)不一致，系统: %s, 版本: %s",
-				stats.Summary.TotalRequests, totalBucketRequests, stats.System, stats.Version)
+			continue
 		}
 
 		if err := dao.UpsertStats(ctx, stats); err != nil {
-			hlog.CtxErrorf(ctx, "upsert stats error: %v", err)
 			return fmt.Errorf("upsert stats error: %v", err)
 		}
 	}
@@ -369,7 +342,6 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 	// 确保集合存在
 	dao := empyrean_lens.NewApiPerformanceTrendDao()
 	if err := dao.EnsureCollection(ctx); err != nil {
-		hlog.CtxErrorf(ctx, "ensure collection error: %v", err)
 		return fmt.Errorf("ensure collection error: %v", err)
 	}
 
@@ -453,14 +425,12 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 		}
 		reqBodyBytes, err := json.Marshal(reqBody)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "marshal request body error: %v", err)
 			return fmt.Errorf("marshal request body error: %v", err)
 		}
 
 		// 创建HTTP请求
 		httpReq, err := http.NewRequestWithContext(ctx, "POST", shenceAPIURL, nil)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "create request error: %v", err)
 			return fmt.Errorf("create request error: %v", err)
 		}
 		httpReq.Body = io.NopCloser(bytes.NewReader(reqBodyBytes))
@@ -472,7 +442,6 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 		client := &http.Client{}
 		resp, err := client.Do(httpReq)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "send request error: %v", err)
 			return fmt.Errorf("send request error: %v", err)
 		}
 		defer resp.Body.Close()
@@ -480,7 +449,6 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 		// 读取响应
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "read response error: %v", err)
 			return fmt.Errorf("read response error: %v", err)
 		}
 
@@ -510,13 +478,11 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 				} `json:"data"`
 			}
 			if err := json.Unmarshal(line, &result); err != nil {
-				hlog.CtxErrorf(ctx, "unmarshal response line error: %v, line: %s", err, string(line))
 				continue
 			}
 
 			// 检查API响应状态
 			if result.Code != "SUCCESS" {
-				hlog.CtxErrorf(ctx, "神策API返回错误: code=%s, request_id=%s", result.Code, result.RequestID)
 				continue
 			}
 
@@ -525,7 +491,6 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 
 			// 验证数据长度
 			if len(data) < 4 {
-				hlog.CtxErrorf(ctx, "数据长度不足，期望至少4个元素，实际长度: %d", len(data))
 				continue
 			}
 
@@ -571,7 +536,6 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 				// 解析时间
 				_, err := parseShenceTime(toString(data[3]))
 				if err != nil {
-					hlog.CtxErrorf(ctx, "parse time error: %v, time string: %s", err, toString(data[3]))
 					continue
 				}
 
@@ -629,7 +593,6 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 
 			// 保存到MongoDB
 			if err := dao.UpsertTrend(ctx, trend); err != nil {
-				hlog.CtxErrorf(ctx, "upsert trend error: %v", err)
 				return fmt.Errorf("upsert trend error: %v", err)
 			}
 		}
@@ -643,7 +606,6 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 	// 确保集合存在
 	dao := empyrean_lens.NewApiPerformanceLatestVersionTrendDao()
 	if err := dao.EnsureCollection(ctx); err != nil {
-		hlog.CtxErrorf(ctx, "ensure collection error: %v", err)
 		return fmt.Errorf("ensure collection error: %v", err)
 	}
 
@@ -679,8 +641,6 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 	} else {
 		firstEndTime = startTime.Add(30 * time.Minute)
 	}
-
-	hlog.CtxInfof(ctx, "Start time: %v, First end time: %v, End time: %v", startTime, firstEndTime, endTime)
 
 	// 计算时间间隔
 	timeIntervals := make([]struct {
@@ -730,14 +690,12 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 		}
 		reqBodyBytes, err := json.Marshal(reqBody)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "marshal request body error: %v", err)
 			return fmt.Errorf("marshal request body error: %v", err)
 		}
 
 		// 创建HTTP请求
 		httpReq, err := http.NewRequestWithContext(ctx, "POST", shenceAPIURL, nil)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "create request error: %v", err)
 			return fmt.Errorf("create request error: %v", err)
 		}
 		httpReq.Body = io.NopCloser(bytes.NewReader(reqBodyBytes))
@@ -749,7 +707,6 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 		client := &http.Client{}
 		resp, err := client.Do(httpReq)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "send request error: %v", err)
 			return fmt.Errorf("send request error: %v", err)
 		}
 		defer resp.Body.Close()
@@ -757,7 +714,6 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 		// 读取响应
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "read response error: %v", err)
 			return fmt.Errorf("read response error: %v", err)
 		}
 
@@ -787,20 +743,17 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 				} `json:"data"`
 			}
 			if err := json.Unmarshal(line, &result); err != nil {
-				hlog.CtxErrorf(ctx, "unmarshal response line error: %v, line: %s", err, string(line))
 				continue
 			}
 
 			// 检查API响应状态
 			if result.Code != "SUCCESS" {
-				hlog.CtxErrorf(ctx, "神策API返回错误: code=%s, request_id=%s", result.Code, result.RequestID)
 				continue
 			}
 
 			// 解析数据
 			data := result.Data.Data
 			if len(data) < 5 {
-				hlog.CtxErrorf(ctx, "数据长度不足，期望至少5个元素，实际长度: %d", len(data))
 				continue
 			}
 
@@ -911,20 +864,10 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 
 			// 保存到MongoDB
 			if err := dao.UpsertTrend(ctx, trend); err != nil {
-				hlog.CtxErrorf(ctx, "upsert trend error: %v", err)
 				return fmt.Errorf("upsert trend error: %v", err)
 			}
 		}
 
-		// 打印每个时间点的版本数量
-		versionCount := make(map[string]int)
-		for _, trend := range trendMap {
-			timePointKey := fmt.Sprintf("%s_%s", trend.Date, trend.System)
-			versionCount[timePointKey]++
-		}
-		for timePointKey, count := range versionCount {
-			hlog.CtxInfof(ctx, "时间点 %s 的版本数量: %d", timePointKey, count)
-		}
 	}
 
 	return nil

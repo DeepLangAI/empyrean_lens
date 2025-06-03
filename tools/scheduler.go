@@ -28,11 +28,11 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	startTime := time.Date(2025, 05, 25, 0, 0, 0, 0, time.Local)
 	endTime := time.Now()
 
-	//if err := shence.SyncApiPerformanceStats(ctx, startTime, endTime); err != nil {
-	//	hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能数据失败: %v", err)
-	//} else {
-	//	hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能数据成功")
-	//}
+	if err := shence.SyncApiPerformanceStats(ctx, startTime, endTime); err != nil {
+		hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能数据失败: %v", err)
+	} else {
+		hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能数据成功")
+	}
 
 	if err := shence.SyncApiPerformanceTrend(ctx, startTime, endTime); err != nil {
 		hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能趋势数据失败: %v", err)

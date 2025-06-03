@@ -325,30 +325,6 @@ const (
 	SCENE_REPORT_TYPE_QA_RECOMMEND
 )
 
-// 判断是否为新增的 feed 接口
-func isNewFeedApi(apiPath string) bool {
-	// 只对你新增的接口做判断
-	switch apiPath {
-	case "/api/feed/v1/lingowhale_daily/list",
-		"/api/feed/v1/lingowhale_daily/get",
-		"/api/feed/v1/topic/list",
-		"/api/feed/v1/topic/get",
-		"/api/feed/v1/feed/topic",
-		"/api/feed/v1/user_subscribe/list",
-		"/api/feed/v2/feed/subscription",
-		"/api/feed/v1/search/list",
-		"/api/feed/v1/subscription_channel/search",
-		"/api/feed/v1/user_subscribe/upsert",
-		"/api/feed/v1/subscription_channel/upsert",
-		"/api/feed/v1/subscription_channel/category",
-		"/api/feed/v1/feed/recommend",
-		"/api/feed/v1/subscription_channel/get":
-		return true
-	default:
-		return false
-	}
-}
-
 func aigcCostAnlz(report SceneOverview, slowQueryThreshold int, autoModify bool, reportType int) SceneOverview {
 	if autoModify {
 		if report.FailReq == 0 {
@@ -365,13 +341,7 @@ func aigcCostAnlz(report SceneOverview, slowQueryThreshold int, autoModify bool,
 	for i, cost := range report.Costs {
 		switch reportType {
 		case SCENE_REPORT_TYPE_GENERAL:
-			var threshold float64
-			if isNewFeedApi(report.Name) {
-				threshold = 1.0
-			} else {
-				threshold = float64(slowQueryThreshold)
-			}
-			if cost > threshold {
+			if cost > float64(slowQueryThreshold) {
 				report.SlowReq++
 			}
 		case SCENE_REPORT_TYPE_OUTLINE:

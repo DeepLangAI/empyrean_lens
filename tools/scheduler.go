@@ -25,7 +25,7 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	s := gocron.NewScheduler(time.Local)
 
 	// 系统启动时异步执行一次同步
-	go func() {
+	s.StartImmediately().Do(func() {
 		hlog.CtxInfof(ctx, "开始执行首次新内容形态页加载性能数据及趋势数据同步")
 		startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
 		endTime := time.Now()
@@ -47,7 +47,7 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 		} else {
 			hlog.CtxInfof(ctx, "首次同步系统所有版本新内容形态页加载性能数据成功")
 		}
-	}()
+	})
 
 	////每1分钟同步新内容形态页加载性能数据
 	//s.Every(1).Minutes().StartImmediately().Do(func() {

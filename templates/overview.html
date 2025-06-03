@@ -4029,9 +4029,21 @@
                             trigger: 'axis',
                             formatter: function(params) {
                                 let result = '';
+                                // 只取第一个点的横坐标索引
+                                let idx = -1;
+                                if (params.length > 0) {
+                                    // 找到当前点的原始时间字符串（只用主曲线的timestamps）
+                                    const timestampMs = params[0].value[0];
+                                    if (trendData && trendData.timestamps) {
+                                        idx = trendData.timestamps.findIndex(t => {
+                                            return new Date(t.replace(/-/g, '/')).getTime() === timestampMs;
+                                        });
+                                        if (idx !== -1) {
+                                            result += `<div>时间: ${trendData.timestamps[idx]}</div>`;
+                                        }
+                                    }
+                                }
                                 params.forEach(param => {
-                                    const date = new Date(param.value[0]);
-                                    let dateStr = date.getFullYear() + '-' + (date.getMonth()+1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0') + ' ' + date.toTimeString().slice(0,8);
                                     result += `<span style='display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background:${param.color}'></span>`;
                                     result += param.seriesName + ': ' + (param.value[1] ? param.value[1].toFixed(2) : '-') + ' ms<br/>';
                                 });

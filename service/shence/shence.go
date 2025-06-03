@@ -104,6 +104,7 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 			events
 		WHERE
 			event = 'Performance_Metrics_PerformanceTime'
+		    AND perf_article_title_shown < 20000
 			AND date BETWEEN '%s' AND '%s'
 		    AND $os IN ('iOS', 'Android')
 		ORDER BY
@@ -390,18 +391,19 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 		maxLatest = androidLatest
 	}
 
-	// 将最新记录时间向上取整到最近的2小时时间点
+	// 将最新记录时间向上取整到最近的30分钟时间点
 	var firstEndTime time.Time
 	if !maxLatest.IsZero() {
 		hours := maxLatest.Hour()
-		roundedHours := ((hours + 1) / 2) * 2
-		if roundedHours == 24 {
-			roundedHours = 0
-			maxLatest = maxLatest.AddDate(0, 0, 1)
+		minutes := maxLatest.Minute()
+		roundedMinutes := ((minutes + 29) / 30) * 30
+		if roundedMinutes == 60 {
+			roundedMinutes = 0
+			hours++
 		}
-		firstEndTime = time.Date(maxLatest.Year(), maxLatest.Month(), maxLatest.Day(), roundedHours, 0, 0, 0, maxLatest.Location())
+		firstEndTime = time.Date(maxLatest.Year(), maxLatest.Month(), maxLatest.Day(), hours, roundedMinutes, 0, 0, maxLatest.Location())
 	} else {
-		firstEndTime = startTime.Add(2 * time.Hour)
+		firstEndTime = startTime.Add(30 * time.Minute)
 	}
 
 	// 计算时间间隔
@@ -416,10 +418,10 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 			Start time.Time
 			End   time.Time
 		}{
-			Start: startTime,  // 始终从开始时间开始
-			End:   currentEnd, // 结束时间逐渐增加
+			Start: currentEnd.Add(-30 * time.Minute), // 从当前时间点往前推30分钟
+			End:   currentEnd,                        // 当前时间点
 		})
-		currentEnd = currentEnd.Add(2 * time.Hour)
+		currentEnd = currentEnd.Add(30 * time.Minute)
 	}
 
 	// 按时间间隔处理数据
@@ -435,6 +437,7 @@ func SyncApiPerformanceTrend(ctx context.Context, startTime, endTime time.Time) 
 				events
 			WHERE
 				event = 'Performance_Metrics_PerformanceTime'
+			    AND perf_article_title_shown < 20000
 				AND date BETWEEN '%s' AND '%s'
 				AND time BETWEEN '%s' AND '%s'
 				AND $os IN ('iOS', 'Android')
@@ -662,18 +665,19 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 		maxLatest = androidLatest
 	}
 
-	// 将最新记录时间向上取整到最近的2小时时间点
+	// 将最新记录时间向上取整到最近的30分钟时间点
 	var firstEndTime time.Time
 	if !maxLatest.IsZero() {
 		hours := maxLatest.Hour()
-		roundedHours := ((hours + 1) / 2) * 2
-		if roundedHours == 24 {
-			roundedHours = 0
-			maxLatest = maxLatest.AddDate(0, 0, 1)
+		minutes := maxLatest.Minute()
+		roundedMinutes := ((minutes + 29) / 30) * 30
+		if roundedMinutes == 60 {
+			roundedMinutes = 0
+			hours++
 		}
-		firstEndTime = time.Date(maxLatest.Year(), maxLatest.Month(), maxLatest.Day(), roundedHours, 0, 0, 0, maxLatest.Location())
+		firstEndTime = time.Date(maxLatest.Year(), maxLatest.Month(), maxLatest.Day(), hours, roundedMinutes, 0, 0, maxLatest.Location())
 	} else {
-		firstEndTime = startTime.Add(2 * time.Hour)
+		firstEndTime = startTime.Add(30 * time.Minute)
 	}
 
 	hlog.CtxInfof(ctx, "Start time: %v, First end time: %v, End time: %v", startTime, firstEndTime, endTime)
@@ -690,10 +694,10 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 			Start time.Time
 			End   time.Time
 		}{
-			Start: startTime,  // 始终从开始时间开始
-			End:   currentEnd, // 结束时间逐渐增加
+			Start: currentEnd.Add(-30 * time.Minute), // 从当前时间点往前推30分钟
+			End:   currentEnd,                        // 当前时间点
 		})
-		currentEnd = currentEnd.Add(2 * time.Hour)
+		currentEnd = currentEnd.Add(30 * time.Minute)
 	}
 
 	// 按时间间隔处理数据
@@ -710,13 +714,14 @@ func SyncApiPerformanceVersionTrend(ctx context.Context, startTime, endTime time
 				events
 			WHERE
 				event = 'Performance_Metrics_PerformanceTime'
+			    AND perf_article_title_shown < 20000
 				AND date BETWEEN '%s' AND '%s'
 				AND time BETWEEN '%s' AND '%s'
 				AND $os IN ('iOS', 'Android')
 			ORDER BY
 				date ASC, $os ASC, $os_version ASC, time ASC
-		`, startTime.Format("2006-01-02"), interval.End.Format("2006-01-02"),
-			startTime.Format("2006-01-02 15:04:05.000"), interval.End.Format("2006-01-02 15:04:05.000"))
+		`, interval.Start.Format("2006-01-02"), interval.End.Format("2006-01-02"),
+			interval.Start.Format("2006-01-02 15:04:05.000"), interval.End.Format("2006-01-02 15:04:05.000"))
 
 		// 构建请求体
 		reqBody := map[string]interface{}{

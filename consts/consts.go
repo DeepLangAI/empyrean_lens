@@ -135,6 +135,62 @@ const (
 var NGINX_INGRESS_APIS = map[string][]API{
 	HOST_LINGO_PUBLIC_BACKEND: {
 		{
+			Api:   "/api/feed/v1/lingowhale_daily/list",
+			Alias: "【今日TAB】【后端】自动拉取日报列表",
+		},
+		{
+			Api:   "/api/feed/v1/lingowhale_daily/get",
+			Alias: "【今日TAB】【后端】打开日报详情",
+		},
+		{
+			Api:   "/api/feed/v1/topic/list",
+			Alias: "【今日TAB】【后端】我的专题聚览列表",
+		},
+		{
+			Api:   "/api/feed/v1/topic/get",
+			Alias: "【今日TAB】【后端】打开专题详情",
+		},
+		{
+			Api:   "/api/feed/v1/feed/topic",
+			Alias: "【今日TAB】【后端】专题feed流",
+		},
+		{
+			Api:   "/api/feed/v1/user_subscribe/list",
+			Alias: "【订阅TAB】【后端】我的订阅列表",
+		},
+		{
+			Api:   "/api/feed/v2/feed/subscription",
+			Alias: "【订阅TAB】【后端】订阅频道feed",
+		},
+		{
+			Api:   "/api/feed/v1/search/list",
+			Alias: "【订阅TAB】【后端】频道下内容搜索",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/search",
+			Alias: "【订阅TAB】【后端】我创建的频道",
+		},
+		{
+			Api:   "/api/feed/v1/user_subscribe/upsert",
+			Alias: "【订阅TAB】【后端】订阅频道",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/upsert",
+			Alias: "【订阅TAB】【后端】创建频道",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/category",
+			Alias: "【发现页】【后端】频道广场分类",
+		},
+		{
+			Api:   "/api/feed/v1/feed/recommend",
+			Alias: "【发现页】【后端】文章推荐",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/get",
+			Alias: "【发现页】【后端】频道详情",
+		},
+		{
 			Api:   "/api/feed/v1/subscription/upsert",
 			Alias: "【订阅】【后端】添加订阅源",
 		},
@@ -161,10 +217,6 @@ var NGINX_INGRESS_APIS = map[string][]API{
 		{
 			Api:   "/api/feed/v1/subscription/delete",
 			Alias: "【订阅】【后端】删除用户订阅",
-		},
-		{
-			Api:   "/api/feed/v1/search/list",
-			Alias: "【订阅】【后端】展示搜索记录",
 		},
 		{
 			Api:   "/api/feed/v1/search_history/delete",
@@ -224,15 +276,19 @@ var NGINX_INGRESS_APIS = map[string][]API{
 		},
 		{
 			Api:   "/api/novel_form/get",
-			Alias: "【新形态内容】【后端】新形态内容获取",
+			Alias: "【阅读器】【后端】新内容形态",
 		},
 		{
 			Api:   "/api/novel_form/resource/get",
-			Alias: "【新形态内容】【后端】获取新形态绑定资源详情",
+			Alias: "【阅读器】【后端】资源详情",
 		},
 		{
 			Api:   "/api/novel_form/feed/recommend",
-			Alias: "【新形态内容】【后端】读后推荐",
+			Alias: "【阅读器】【后端】更多内容推荐",
+		},
+		{
+			Api:   "/api/readers/resource/copy",
+			Alias: "【阅读器】【后端】拷贝",
 		},
 		{
 			Api:   "/api/plugin/articles/summary_inc/outline",

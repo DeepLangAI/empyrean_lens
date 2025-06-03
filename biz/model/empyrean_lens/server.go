@@ -35320,6 +35320,2544 @@ func (p *DailyModelAutomationStatsResp) String() string {
 
 }
 
+// API性能统计数据
+type ApiPerformanceStatsReq struct {
+	// 开始时间 YYYY-MM-DD HH:mm:ss
+	StartTime string `thrift:"start_time,1" form:"start_time" json:"start_time" query:"start_time"`
+	// 结束时间 YYYY-MM-DD HH:mm:ss
+	EndTime string `thrift:"end_time,2" form:"end_time" json:"end_time" query:"end_time"`
+}
+
+func NewApiPerformanceStatsReq() *ApiPerformanceStatsReq {
+	return &ApiPerformanceStatsReq{}
+}
+
+func (p *ApiPerformanceStatsReq) InitDefault() {
+}
+
+func (p *ApiPerformanceStatsReq) GetStartTime() (v string) {
+	return p.StartTime
+}
+
+func (p *ApiPerformanceStatsReq) GetEndTime() (v string) {
+	return p.EndTime
+}
+
+var fieldIDToName_ApiPerformanceStatsReq = map[int16]string{
+	1: "start_time",
+	2: "end_time",
+}
+
+func (p *ApiPerformanceStatsReq) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ApiPerformanceStatsReq[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceStatsReq) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.StartTime = _field
+	return nil
+}
+func (p *ApiPerformanceStatsReq) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.EndTime = _field
+	return nil
+}
+
+func (p *ApiPerformanceStatsReq) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("ApiPerformanceStatsReq"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceStatsReq) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("start_time", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.StartTime); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *ApiPerformanceStatsReq) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("end_time", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.EndTime); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *ApiPerformanceStatsReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ApiPerformanceStatsReq(%+v)", *p)
+
+}
+
+type TimeIntervalStats struct {
+	// 时间区间，如"0~2000"
+	TimeInterval string `thrift:"time_interval,1" form:"time_interval" json:"time_interval" query:"time_interval"`
+	// 请求数
+	RequestCount int64 `thrift:"request_count,2" form:"request_count" json:"request_count" query:"request_count"`
+	// 占比
+	Proportion float64 `thrift:"proportion,3" form:"proportion" json:"proportion" query:"proportion"`
+}
+
+func NewTimeIntervalStats() *TimeIntervalStats {
+	return &TimeIntervalStats{}
+}
+
+func (p *TimeIntervalStats) InitDefault() {
+}
+
+func (p *TimeIntervalStats) GetTimeInterval() (v string) {
+	return p.TimeInterval
+}
+
+func (p *TimeIntervalStats) GetRequestCount() (v int64) {
+	return p.RequestCount
+}
+
+func (p *TimeIntervalStats) GetProportion() (v float64) {
+	return p.Proportion
+}
+
+var fieldIDToName_TimeIntervalStats = map[int16]string{
+	1: "time_interval",
+	2: "request_count",
+	3: "proportion",
+}
+
+func (p *TimeIntervalStats) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_TimeIntervalStats[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *TimeIntervalStats) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TimeInterval = _field
+	return nil
+}
+func (p *TimeIntervalStats) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.RequestCount = _field
+	return nil
+}
+func (p *TimeIntervalStats) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Proportion = _field
+	return nil
+}
+
+func (p *TimeIntervalStats) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("TimeIntervalStats"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *TimeIntervalStats) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time_interval", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.TimeInterval); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *TimeIntervalStats) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("request_count", thrift.I64, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.RequestCount); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+func (p *TimeIntervalStats) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("proportion", thrift.DOUBLE, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.Proportion); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *TimeIntervalStats) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("TimeIntervalStats(%+v)", *p)
+
+}
+
+type ApiPerformanceStatsData struct {
+	// 日期 YYYY-MM-DD
+	Date string `thrift:"date,1" form:"date" json:"date" query:"date"`
+	// 系统类型
+	System string `thrift:"system,2" form:"system" json:"system" query:"system"`
+	// 版本号
+	Version string `thrift:"version,3" form:"version" json:"version" query:"version"`
+	// 总请求数
+	TotalRequests int64 `thrift:"total_requests,4" form:"total_requests" json:"total_requests" query:"total_requests"`
+	// 平均请求耗时(ms)
+	AvgDuration float64 `thrift:"avg_duration,5" form:"avg_duration" json:"avg_duration" query:"avg_duration"`
+	// 各时间区间的统计数据
+	TimeIntervals []*TimeIntervalStats `thrift:"time_intervals,6" form:"time_intervals" json:"time_intervals" query:"time_intervals"`
+}
+
+func NewApiPerformanceStatsData() *ApiPerformanceStatsData {
+	return &ApiPerformanceStatsData{}
+}
+
+func (p *ApiPerformanceStatsData) InitDefault() {
+}
+
+func (p *ApiPerformanceStatsData) GetDate() (v string) {
+	return p.Date
+}
+
+func (p *ApiPerformanceStatsData) GetSystem() (v string) {
+	return p.System
+}
+
+func (p *ApiPerformanceStatsData) GetVersion() (v string) {
+	return p.Version
+}
+
+func (p *ApiPerformanceStatsData) GetTotalRequests() (v int64) {
+	return p.TotalRequests
+}
+
+func (p *ApiPerformanceStatsData) GetAvgDuration() (v float64) {
+	return p.AvgDuration
+}
+
+func (p *ApiPerformanceStatsData) GetTimeIntervals() (v []*TimeIntervalStats) {
+	return p.TimeIntervals
+}
+
+var fieldIDToName_ApiPerformanceStatsData = map[int16]string{
+	1: "date",
+	2: "system",
+	3: "version",
+	4: "total_requests",
+	5: "avg_duration",
+	6: "time_intervals",
+}
+
+func (p *ApiPerformanceStatsData) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 4:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField4(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 5:
+			if fieldTypeId == thrift.DOUBLE {
+				if err = p.ReadField5(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 6:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField6(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ApiPerformanceStatsData[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceStatsData) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Date = _field
+	return nil
+}
+func (p *ApiPerformanceStatsData) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.System = _field
+	return nil
+}
+func (p *ApiPerformanceStatsData) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Version = _field
+	return nil
+}
+func (p *ApiPerformanceStatsData) ReadField4(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.TotalRequests = _field
+	return nil
+}
+func (p *ApiPerformanceStatsData) ReadField5(iprot thrift.TProtocol) error {
+
+	var _field float64
+	if v, err := iprot.ReadDouble(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.AvgDuration = _field
+	return nil
+}
+func (p *ApiPerformanceStatsData) ReadField6(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]*TimeIntervalStats, 0, size)
+	values := make([]TimeIntervalStats, size)
+	for i := 0; i < size; i++ {
+		_elem := &values[i]
+		_elem.InitDefault()
+
+		if err := _elem.Read(iprot); err != nil {
+			return err
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.TimeIntervals = _field
+	return nil
+}
+
+func (p *ApiPerformanceStatsData) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("ApiPerformanceStatsData"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+		if err = p.writeField4(oprot); err != nil {
+			fieldId = 4
+			goto WriteFieldError
+		}
+		if err = p.writeField5(oprot); err != nil {
+			fieldId = 5
+			goto WriteFieldError
+		}
+		if err = p.writeField6(oprot); err != nil {
+			fieldId = 6
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceStatsData) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("date", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Date); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *ApiPerformanceStatsData) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("system", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.System); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+func (p *ApiPerformanceStatsData) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("version", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Version); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+func (p *ApiPerformanceStatsData) writeField4(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("total_requests", thrift.I64, 4); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.TotalRequests); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
+}
+func (p *ApiPerformanceStatsData) writeField5(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("avg_duration", thrift.DOUBLE, 5); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteDouble(p.AvgDuration); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 5 end error: ", p), err)
+}
+func (p *ApiPerformanceStatsData) writeField6(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("time_intervals", thrift.LIST, 6); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.STRUCT, len(p.TimeIntervals)); err != nil {
+		return err
+	}
+	for _, v := range p.TimeIntervals {
+		if err := v.Write(oprot); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 6 end error: ", p), err)
+}
+
+func (p *ApiPerformanceStatsData) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ApiPerformanceStatsData(%+v)", *p)
+
+}
+
+type ApiPerformanceStatsResp struct {
+	Code int64                      `thrift:"code,1" form:"code" json:"code" query:"code"`
+	Msg  string                     `thrift:"msg,2" form:"msg" json:"msg" query:"msg"`
+	Data []*ApiPerformanceStatsData `thrift:"data,3" form:"data" json:"data" query:"data"`
+}
+
+func NewApiPerformanceStatsResp() *ApiPerformanceStatsResp {
+	return &ApiPerformanceStatsResp{}
+}
+
+func (p *ApiPerformanceStatsResp) InitDefault() {
+}
+
+func (p *ApiPerformanceStatsResp) GetCode() (v int64) {
+	return p.Code
+}
+
+func (p *ApiPerformanceStatsResp) GetMsg() (v string) {
+	return p.Msg
+}
+
+func (p *ApiPerformanceStatsResp) GetData() (v []*ApiPerformanceStatsData) {
+	return p.Data
+}
+
+var fieldIDToName_ApiPerformanceStatsResp = map[int16]string{
+	1: "code",
+	2: "msg",
+	3: "data",
+}
+
+func (p *ApiPerformanceStatsResp) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ApiPerformanceStatsResp[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceStatsResp) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Code = _field
+	return nil
+}
+func (p *ApiPerformanceStatsResp) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Msg = _field
+	return nil
+}
+func (p *ApiPerformanceStatsResp) ReadField3(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]*ApiPerformanceStatsData, 0, size)
+	values := make([]ApiPerformanceStatsData, size)
+	for i := 0; i < size; i++ {
+		_elem := &values[i]
+		_elem.InitDefault()
+
+		if err := _elem.Read(iprot); err != nil {
+			return err
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.Data = _field
+	return nil
+}
+
+func (p *ApiPerformanceStatsResp) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("ApiPerformanceStatsResp"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceStatsResp) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("code", thrift.I64, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.Code); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *ApiPerformanceStatsResp) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("msg", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Msg); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+func (p *ApiPerformanceStatsResp) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("data", thrift.LIST, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.STRUCT, len(p.Data)); err != nil {
+		return err
+	}
+	for _, v := range p.Data {
+		if err := v.Write(oprot); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *ApiPerformanceStatsResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ApiPerformanceStatsResp(%+v)", *p)
+
+}
+
+// API性能趋势数据
+type ApiPerformanceTrendReq struct {
+	// 开始时间 YYYY-MM-DD HH:mm:ss
+	StartTime string `thrift:"start_time,1" form:"start_time" json:"start_time" query:"start_time"`
+	// 结束时间 YYYY-MM-DD HH:mm:ss
+	EndTime string `thrift:"end_time,2" form:"end_time" json:"end_time" query:"end_time"`
+	// 系统类型
+	System string `thrift:"system,3" form:"system" json:"system" query:"system"`
+	// 版本号
+	Version string `thrift:"version,4" form:"version" json:"version" query:"version"`
+}
+
+func NewApiPerformanceTrendReq() *ApiPerformanceTrendReq {
+	return &ApiPerformanceTrendReq{}
+}
+
+func (p *ApiPerformanceTrendReq) InitDefault() {
+}
+
+func (p *ApiPerformanceTrendReq) GetStartTime() (v string) {
+	return p.StartTime
+}
+
+func (p *ApiPerformanceTrendReq) GetEndTime() (v string) {
+	return p.EndTime
+}
+
+func (p *ApiPerformanceTrendReq) GetSystem() (v string) {
+	return p.System
+}
+
+func (p *ApiPerformanceTrendReq) GetVersion() (v string) {
+	return p.Version
+}
+
+var fieldIDToName_ApiPerformanceTrendReq = map[int16]string{
+	1: "start_time",
+	2: "end_time",
+	3: "system",
+	4: "version",
+}
+
+func (p *ApiPerformanceTrendReq) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 4:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField4(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ApiPerformanceTrendReq[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceTrendReq) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.StartTime = _field
+	return nil
+}
+func (p *ApiPerformanceTrendReq) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.EndTime = _field
+	return nil
+}
+func (p *ApiPerformanceTrendReq) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.System = _field
+	return nil
+}
+func (p *ApiPerformanceTrendReq) ReadField4(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Version = _field
+	return nil
+}
+
+func (p *ApiPerformanceTrendReq) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("ApiPerformanceTrendReq"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+		if err = p.writeField4(oprot); err != nil {
+			fieldId = 4
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceTrendReq) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("start_time", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.StartTime); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *ApiPerformanceTrendReq) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("end_time", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.EndTime); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+func (p *ApiPerformanceTrendReq) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("system", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.System); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+func (p *ApiPerformanceTrendReq) writeField4(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("version", thrift.STRING, 4); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Version); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
+}
+
+func (p *ApiPerformanceTrendReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ApiPerformanceTrendReq(%+v)", *p)
+
+}
+
+type ApiPerformanceTrendData struct {
+	// 时间点数组
+	Timestamps []string `thrift:"timestamps,1" form:"timestamps" json:"timestamps" query:"timestamps"`
+	// 各时间点的平均耗时
+	AvgDurations []float64 `thrift:"avg_durations,2" form:"avg_durations" json:"avg_durations" query:"avg_durations"`
+}
+
+func NewApiPerformanceTrendData() *ApiPerformanceTrendData {
+	return &ApiPerformanceTrendData{}
+}
+
+func (p *ApiPerformanceTrendData) InitDefault() {
+}
+
+func (p *ApiPerformanceTrendData) GetTimestamps() (v []string) {
+	return p.Timestamps
+}
+
+func (p *ApiPerformanceTrendData) GetAvgDurations() (v []float64) {
+	return p.AvgDurations
+}
+
+var fieldIDToName_ApiPerformanceTrendData = map[int16]string{
+	1: "timestamps",
+	2: "avg_durations",
+}
+
+func (p *ApiPerformanceTrendData) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ApiPerformanceTrendData[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceTrendData) ReadField1(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]string, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem string
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_elem = v
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.Timestamps = _field
+	return nil
+}
+func (p *ApiPerformanceTrendData) ReadField2(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]float64, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem float64
+		if v, err := iprot.ReadDouble(); err != nil {
+			return err
+		} else {
+			_elem = v
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.AvgDurations = _field
+	return nil
+}
+
+func (p *ApiPerformanceTrendData) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("ApiPerformanceTrendData"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceTrendData) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("timestamps", thrift.LIST, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.STRING, len(p.Timestamps)); err != nil {
+		return err
+	}
+	for _, v := range p.Timestamps {
+		if err := oprot.WriteString(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *ApiPerformanceTrendData) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("avg_durations", thrift.LIST, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.DOUBLE, len(p.AvgDurations)); err != nil {
+		return err
+	}
+	for _, v := range p.AvgDurations {
+		if err := oprot.WriteDouble(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+
+func (p *ApiPerformanceTrendData) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ApiPerformanceTrendData(%+v)", *p)
+
+}
+
+type ApiPerformanceTrendResp struct {
+	Code int64                    `thrift:"code,1" form:"code" json:"code" query:"code"`
+	Msg  string                   `thrift:"msg,2" form:"msg" json:"msg" query:"msg"`
+	Data *ApiPerformanceTrendData `thrift:"data,3" form:"data" json:"data" query:"data"`
+}
+
+func NewApiPerformanceTrendResp() *ApiPerformanceTrendResp {
+	return &ApiPerformanceTrendResp{}
+}
+
+func (p *ApiPerformanceTrendResp) InitDefault() {
+}
+
+func (p *ApiPerformanceTrendResp) GetCode() (v int64) {
+	return p.Code
+}
+
+func (p *ApiPerformanceTrendResp) GetMsg() (v string) {
+	return p.Msg
+}
+
+var ApiPerformanceTrendResp_Data_DEFAULT *ApiPerformanceTrendData
+
+func (p *ApiPerformanceTrendResp) GetData() (v *ApiPerformanceTrendData) {
+	if !p.IsSetData() {
+		return ApiPerformanceTrendResp_Data_DEFAULT
+	}
+	return p.Data
+}
+
+var fieldIDToName_ApiPerformanceTrendResp = map[int16]string{
+	1: "code",
+	2: "msg",
+	3: "data",
+}
+
+func (p *ApiPerformanceTrendResp) IsSetData() bool {
+	return p.Data != nil
+}
+
+func (p *ApiPerformanceTrendResp) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ApiPerformanceTrendResp[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceTrendResp) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Code = _field
+	return nil
+}
+func (p *ApiPerformanceTrendResp) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Msg = _field
+	return nil
+}
+func (p *ApiPerformanceTrendResp) ReadField3(iprot thrift.TProtocol) error {
+	_field := NewApiPerformanceTrendData()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Data = _field
+	return nil
+}
+
+func (p *ApiPerformanceTrendResp) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("ApiPerformanceTrendResp"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceTrendResp) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("code", thrift.I64, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.Code); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *ApiPerformanceTrendResp) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("msg", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Msg); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+func (p *ApiPerformanceTrendResp) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("data", thrift.STRUCT, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Data.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *ApiPerformanceTrendResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ApiPerformanceTrendResp(%+v)", *p)
+
+}
+
+// 最新版本API性能趋势数据
+type ApiPerformanceLatestVersionTrendReq struct {
+	// 开始时间 YYYY-MM-DD HH:mm:ss
+	StartTime string `thrift:"start_time,1" form:"start_time" json:"start_time" query:"start_time"`
+	// 结束时间 YYYY-MM-DD HH:mm:ss
+	EndTime string `thrift:"end_time,2" form:"end_time" json:"end_time" query:"end_time"`
+	// 系统类型
+	System string `thrift:"system,3" form:"system" json:"system" query:"system"`
+}
+
+func NewApiPerformanceLatestVersionTrendReq() *ApiPerformanceLatestVersionTrendReq {
+	return &ApiPerformanceLatestVersionTrendReq{}
+}
+
+func (p *ApiPerformanceLatestVersionTrendReq) InitDefault() {
+}
+
+func (p *ApiPerformanceLatestVersionTrendReq) GetStartTime() (v string) {
+	return p.StartTime
+}
+
+func (p *ApiPerformanceLatestVersionTrendReq) GetEndTime() (v string) {
+	return p.EndTime
+}
+
+func (p *ApiPerformanceLatestVersionTrendReq) GetSystem() (v string) {
+	return p.System
+}
+
+var fieldIDToName_ApiPerformanceLatestVersionTrendReq = map[int16]string{
+	1: "start_time",
+	2: "end_time",
+	3: "system",
+}
+
+func (p *ApiPerformanceLatestVersionTrendReq) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ApiPerformanceLatestVersionTrendReq[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceLatestVersionTrendReq) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.StartTime = _field
+	return nil
+}
+func (p *ApiPerformanceLatestVersionTrendReq) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.EndTime = _field
+	return nil
+}
+func (p *ApiPerformanceLatestVersionTrendReq) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.System = _field
+	return nil
+}
+
+func (p *ApiPerformanceLatestVersionTrendReq) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("ApiPerformanceLatestVersionTrendReq"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceLatestVersionTrendReq) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("start_time", thrift.STRING, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.StartTime); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *ApiPerformanceLatestVersionTrendReq) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("end_time", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.EndTime); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+func (p *ApiPerformanceLatestVersionTrendReq) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("system", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.System); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *ApiPerformanceLatestVersionTrendReq) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ApiPerformanceLatestVersionTrendReq(%+v)", *p)
+
+}
+
+type ApiPerformanceLatestVersionTrendData struct {
+	// 时间点数组
+	Timestamps []string `thrift:"timestamps,1" form:"timestamps" json:"timestamps" query:"timestamps"`
+	// 各时间点的平均耗时
+	AvgDurations []float64 `thrift:"avg_durations,2" form:"avg_durations" json:"avg_durations" query:"avg_durations"`
+	// 最新版本号
+	Version string `thrift:"version,3" form:"version" json:"version" query:"version"`
+}
+
+func NewApiPerformanceLatestVersionTrendData() *ApiPerformanceLatestVersionTrendData {
+	return &ApiPerformanceLatestVersionTrendData{}
+}
+
+func (p *ApiPerformanceLatestVersionTrendData) InitDefault() {
+}
+
+func (p *ApiPerformanceLatestVersionTrendData) GetTimestamps() (v []string) {
+	return p.Timestamps
+}
+
+func (p *ApiPerformanceLatestVersionTrendData) GetAvgDurations() (v []float64) {
+	return p.AvgDurations
+}
+
+func (p *ApiPerformanceLatestVersionTrendData) GetVersion() (v string) {
+	return p.Version
+}
+
+var fieldIDToName_ApiPerformanceLatestVersionTrendData = map[int16]string{
+	1: "timestamps",
+	2: "avg_durations",
+	3: "version",
+}
+
+func (p *ApiPerformanceLatestVersionTrendData) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.LIST {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ApiPerformanceLatestVersionTrendData[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceLatestVersionTrendData) ReadField1(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]string, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem string
+		if v, err := iprot.ReadString(); err != nil {
+			return err
+		} else {
+			_elem = v
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.Timestamps = _field
+	return nil
+}
+func (p *ApiPerformanceLatestVersionTrendData) ReadField2(iprot thrift.TProtocol) error {
+	_, size, err := iprot.ReadListBegin()
+	if err != nil {
+		return err
+	}
+	_field := make([]float64, 0, size)
+	for i := 0; i < size; i++ {
+
+		var _elem float64
+		if v, err := iprot.ReadDouble(); err != nil {
+			return err
+		} else {
+			_elem = v
+		}
+
+		_field = append(_field, _elem)
+	}
+	if err := iprot.ReadListEnd(); err != nil {
+		return err
+	}
+	p.AvgDurations = _field
+	return nil
+}
+func (p *ApiPerformanceLatestVersionTrendData) ReadField3(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Version = _field
+	return nil
+}
+
+func (p *ApiPerformanceLatestVersionTrendData) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("ApiPerformanceLatestVersionTrendData"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceLatestVersionTrendData) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("timestamps", thrift.LIST, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.STRING, len(p.Timestamps)); err != nil {
+		return err
+	}
+	for _, v := range p.Timestamps {
+		if err := oprot.WriteString(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *ApiPerformanceLatestVersionTrendData) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("avg_durations", thrift.LIST, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteListBegin(thrift.DOUBLE, len(p.AvgDurations)); err != nil {
+		return err
+	}
+	for _, v := range p.AvgDurations {
+		if err := oprot.WriteDouble(v); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteListEnd(); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+func (p *ApiPerformanceLatestVersionTrendData) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("version", thrift.STRING, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Version); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *ApiPerformanceLatestVersionTrendData) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ApiPerformanceLatestVersionTrendData(%+v)", *p)
+
+}
+
+type ApiPerformanceLatestVersionTrendResp struct {
+	Code int64                                 `thrift:"code,1" form:"code" json:"code" query:"code"`
+	Msg  string                                `thrift:"msg,2" form:"msg" json:"msg" query:"msg"`
+	Data *ApiPerformanceLatestVersionTrendData `thrift:"data,3" form:"data" json:"data" query:"data"`
+}
+
+func NewApiPerformanceLatestVersionTrendResp() *ApiPerformanceLatestVersionTrendResp {
+	return &ApiPerformanceLatestVersionTrendResp{}
+}
+
+func (p *ApiPerformanceLatestVersionTrendResp) InitDefault() {
+}
+
+func (p *ApiPerformanceLatestVersionTrendResp) GetCode() (v int64) {
+	return p.Code
+}
+
+func (p *ApiPerformanceLatestVersionTrendResp) GetMsg() (v string) {
+	return p.Msg
+}
+
+var ApiPerformanceLatestVersionTrendResp_Data_DEFAULT *ApiPerformanceLatestVersionTrendData
+
+func (p *ApiPerformanceLatestVersionTrendResp) GetData() (v *ApiPerformanceLatestVersionTrendData) {
+	if !p.IsSetData() {
+		return ApiPerformanceLatestVersionTrendResp_Data_DEFAULT
+	}
+	return p.Data
+}
+
+var fieldIDToName_ApiPerformanceLatestVersionTrendResp = map[int16]string{
+	1: "code",
+	2: "msg",
+	3: "data",
+}
+
+func (p *ApiPerformanceLatestVersionTrendResp) IsSetData() bool {
+	return p.Data != nil
+}
+
+func (p *ApiPerformanceLatestVersionTrendResp) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 2:
+			if fieldTypeId == thrift.STRING {
+				if err = p.ReadField2(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 3:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ApiPerformanceLatestVersionTrendResp[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceLatestVersionTrendResp) ReadField1(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Code = _field
+	return nil
+}
+func (p *ApiPerformanceLatestVersionTrendResp) ReadField2(iprot thrift.TProtocol) error {
+
+	var _field string
+	if v, err := iprot.ReadString(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Msg = _field
+	return nil
+}
+func (p *ApiPerformanceLatestVersionTrendResp) ReadField3(iprot thrift.TProtocol) error {
+	_field := NewApiPerformanceLatestVersionTrendData()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Data = _field
+	return nil
+}
+
+func (p *ApiPerformanceLatestVersionTrendResp) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("ApiPerformanceLatestVersionTrendResp"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+		if err = p.writeField2(oprot); err != nil {
+			fieldId = 2
+			goto WriteFieldError
+		}
+		if err = p.writeField3(oprot); err != nil {
+			fieldId = 3
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *ApiPerformanceLatestVersionTrendResp) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("code", thrift.I64, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.Code); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+func (p *ApiPerformanceLatestVersionTrendResp) writeField2(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("msg", thrift.STRING, 2); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteString(p.Msg); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 2 end error: ", p), err)
+}
+func (p *ApiPerformanceLatestVersionTrendResp) writeField3(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("data", thrift.STRUCT, 3); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Data.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *ApiPerformanceLatestVersionTrendResp) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("ApiPerformanceLatestVersionTrendResp(%+v)", *p)
+
+}
+
 // 更新entry info
 type UpdateEntryInfoReq struct {
 	EntryType  int32  `thrift:"entry_type,1" form:"entry_type" json:"entry_type" query:"entry_type"`
@@ -38619,6 +41157,10 @@ type Rentention interface {
 	GetApiStatsDaily(ctx context.Context, req *GetApiStatsDailyReq) (r *GetApiStatsDailyResp, err error)
 	// 获取API测试详情
 	GetApiTestDetails(ctx context.Context, req *GetApiTestDetailsReq) (r *GetApiTestDetailsResp, err error)
+	// 获取API性能趋势数据
+	GetApiPerformanceTrend(ctx context.Context, req *ApiPerformanceTrendReq) (r *ApiPerformanceTrendResp, err error)
+	// 获取最新版本API性能趋势数据
+	GetApiPerformanceLatestVersionTrend(ctx context.Context, req *ApiPerformanceLatestVersionTrendReq) (r *ApiPerformanceLatestVersionTrendResp, err error)
 }
 
 type RententionClient struct {
@@ -38917,6 +41459,24 @@ func (p *RententionClient) GetApiTestDetails(ctx context.Context, req *GetApiTes
 	}
 	return _result.GetSuccess(), nil
 }
+func (p *RententionClient) GetApiPerformanceTrend(ctx context.Context, req *ApiPerformanceTrendReq) (r *ApiPerformanceTrendResp, err error) {
+	var _args RententionGetApiPerformanceTrendArgs
+	_args.Req = req
+	var _result RententionGetApiPerformanceTrendResult
+	if err = p.Client_().Call(ctx, "GetApiPerformanceTrend", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+func (p *RententionClient) GetApiPerformanceLatestVersionTrend(ctx context.Context, req *ApiPerformanceLatestVersionTrendReq) (r *ApiPerformanceLatestVersionTrendResp, err error) {
+	var _args RententionGetApiPerformanceLatestVersionTrendArgs
+	_args.Req = req
+	var _result RententionGetApiPerformanceLatestVersionTrendResult
+	if err = p.Client_().Call(ctx, "GetApiPerformanceLatestVersionTrend", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
 
 type LinkTrace interface {
 	// 查用户行为列表
@@ -39193,6 +41753,8 @@ func NewRententionProcessor(handler Rentention) *RententionProcessor {
 	self.AddToProcessorMap("SaveApiTestDetail", &rententionProcessorSaveApiTestDetail{handler: handler})
 	self.AddToProcessorMap("GetApiStatsDaily", &rententionProcessorGetApiStatsDaily{handler: handler})
 	self.AddToProcessorMap("GetApiTestDetails", &rententionProcessorGetApiTestDetails{handler: handler})
+	self.AddToProcessorMap("GetApiPerformanceTrend", &rententionProcessorGetApiPerformanceTrend{handler: handler})
+	self.AddToProcessorMap("GetApiPerformanceLatestVersionTrend", &rententionProcessorGetApiPerformanceLatestVersionTrend{handler: handler})
 	return self
 }
 func (p *RententionProcessor) Process(ctx context.Context, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
@@ -40636,6 +43198,102 @@ func (p *rententionProcessorGetApiTestDetails) Process(ctx context.Context, seqI
 		result.Success = retval
 	}
 	if err2 = oprot.WriteMessageBegin("GetApiTestDetails", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 = result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.Flush(ctx); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
+}
+
+type rententionProcessorGetApiPerformanceTrend struct {
+	handler Rentention
+}
+
+func (p *rententionProcessorGetApiPerformanceTrend) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := RententionGetApiPerformanceTrendArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("GetApiPerformanceTrend", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	var err2 error
+	result := RententionGetApiPerformanceTrendResult{}
+	var retval *ApiPerformanceTrendResp
+	if retval, err2 = p.handler.GetApiPerformanceTrend(ctx, args.Req); err2 != nil {
+		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing GetApiPerformanceTrend: "+err2.Error())
+		oprot.WriteMessageBegin("GetApiPerformanceTrend", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return true, err2
+	} else {
+		result.Success = retval
+	}
+	if err2 = oprot.WriteMessageBegin("GetApiPerformanceTrend", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 = result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.Flush(ctx); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
+}
+
+type rententionProcessorGetApiPerformanceLatestVersionTrend struct {
+	handler Rentention
+}
+
+func (p *rententionProcessorGetApiPerformanceLatestVersionTrend) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := RententionGetApiPerformanceLatestVersionTrendArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("GetApiPerformanceLatestVersionTrend", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	var err2 error
+	result := RententionGetApiPerformanceLatestVersionTrendResult{}
+	var retval *ApiPerformanceLatestVersionTrendResp
+	if retval, err2 = p.handler.GetApiPerformanceLatestVersionTrend(ctx, args.Req); err2 != nil {
+		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing GetApiPerformanceLatestVersionTrend: "+err2.Error())
+		oprot.WriteMessageBegin("GetApiPerformanceLatestVersionTrend", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush(ctx)
+		return true, err2
+	} else {
+		result.Success = retval
+	}
+	if err2 = oprot.WriteMessageBegin("GetApiPerformanceLatestVersionTrend", thrift.REPLY, seqId); err2 != nil {
 		err = err2
 	}
 	if err2 = result.Write(oprot); err == nil && err2 != nil {
@@ -49410,6 +52068,590 @@ func (p *RententionGetApiTestDetailsResult) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("RententionGetApiTestDetailsResult(%+v)", *p)
+
+}
+
+type RententionGetApiPerformanceTrendArgs struct {
+	Req *ApiPerformanceTrendReq `thrift:"req,1"`
+}
+
+func NewRententionGetApiPerformanceTrendArgs() *RententionGetApiPerformanceTrendArgs {
+	return &RententionGetApiPerformanceTrendArgs{}
+}
+
+func (p *RententionGetApiPerformanceTrendArgs) InitDefault() {
+}
+
+var RententionGetApiPerformanceTrendArgs_Req_DEFAULT *ApiPerformanceTrendReq
+
+func (p *RententionGetApiPerformanceTrendArgs) GetReq() (v *ApiPerformanceTrendReq) {
+	if !p.IsSetReq() {
+		return RententionGetApiPerformanceTrendArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+
+var fieldIDToName_RententionGetApiPerformanceTrendArgs = map[int16]string{
+	1: "req",
+}
+
+func (p *RententionGetApiPerformanceTrendArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *RententionGetApiPerformanceTrendArgs) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_RententionGetApiPerformanceTrendArgs[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceTrendArgs) ReadField1(iprot thrift.TProtocol) error {
+	_field := NewApiPerformanceTrendReq()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Req = _field
+	return nil
+}
+
+func (p *RententionGetApiPerformanceTrendArgs) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("GetApiPerformanceTrend_args"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceTrendArgs) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("req", thrift.STRUCT, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Req.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceTrendArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RententionGetApiPerformanceTrendArgs(%+v)", *p)
+
+}
+
+type RententionGetApiPerformanceTrendResult struct {
+	Success *ApiPerformanceTrendResp `thrift:"success,0,optional"`
+}
+
+func NewRententionGetApiPerformanceTrendResult() *RententionGetApiPerformanceTrendResult {
+	return &RententionGetApiPerformanceTrendResult{}
+}
+
+func (p *RententionGetApiPerformanceTrendResult) InitDefault() {
+}
+
+var RententionGetApiPerformanceTrendResult_Success_DEFAULT *ApiPerformanceTrendResp
+
+func (p *RententionGetApiPerformanceTrendResult) GetSuccess() (v *ApiPerformanceTrendResp) {
+	if !p.IsSetSuccess() {
+		return RententionGetApiPerformanceTrendResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var fieldIDToName_RententionGetApiPerformanceTrendResult = map[int16]string{
+	0: "success",
+}
+
+func (p *RententionGetApiPerformanceTrendResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *RententionGetApiPerformanceTrendResult) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 0:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField0(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_RententionGetApiPerformanceTrendResult[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceTrendResult) ReadField0(iprot thrift.TProtocol) error {
+	_field := NewApiPerformanceTrendResp()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Success = _field
+	return nil
+}
+
+func (p *RententionGetApiPerformanceTrendResult) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("GetApiPerformanceTrend_result"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField0(oprot); err != nil {
+			fieldId = 0
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceTrendResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.IsSetSuccess() {
+		if err = oprot.WriteFieldBegin("success", thrift.STRUCT, 0); err != nil {
+			goto WriteFieldBeginError
+		}
+		if err := p.Success.Write(oprot); err != nil {
+			return err
+		}
+		if err = oprot.WriteFieldEnd(); err != nil {
+			goto WriteFieldEndError
+		}
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceTrendResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RententionGetApiPerformanceTrendResult(%+v)", *p)
+
+}
+
+type RententionGetApiPerformanceLatestVersionTrendArgs struct {
+	Req *ApiPerformanceLatestVersionTrendReq `thrift:"req,1"`
+}
+
+func NewRententionGetApiPerformanceLatestVersionTrendArgs() *RententionGetApiPerformanceLatestVersionTrendArgs {
+	return &RententionGetApiPerformanceLatestVersionTrendArgs{}
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendArgs) InitDefault() {
+}
+
+var RententionGetApiPerformanceLatestVersionTrendArgs_Req_DEFAULT *ApiPerformanceLatestVersionTrendReq
+
+func (p *RententionGetApiPerformanceLatestVersionTrendArgs) GetReq() (v *ApiPerformanceLatestVersionTrendReq) {
+	if !p.IsSetReq() {
+		return RententionGetApiPerformanceLatestVersionTrendArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+
+var fieldIDToName_RententionGetApiPerformanceLatestVersionTrendArgs = map[int16]string{
+	1: "req",
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendArgs) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 1:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField1(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_RententionGetApiPerformanceLatestVersionTrendArgs[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendArgs) ReadField1(iprot thrift.TProtocol) error {
+	_field := NewApiPerformanceLatestVersionTrendReq()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Req = _field
+	return nil
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendArgs) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("GetApiPerformanceLatestVersionTrend_args"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField1(oprot); err != nil {
+			fieldId = 1
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendArgs) writeField1(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("req", thrift.STRUCT, 1); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := p.Req.Write(oprot); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 1 end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RententionGetApiPerformanceLatestVersionTrendArgs(%+v)", *p)
+
+}
+
+type RententionGetApiPerformanceLatestVersionTrendResult struct {
+	Success *ApiPerformanceLatestVersionTrendResp `thrift:"success,0,optional"`
+}
+
+func NewRententionGetApiPerformanceLatestVersionTrendResult() *RententionGetApiPerformanceLatestVersionTrendResult {
+	return &RententionGetApiPerformanceLatestVersionTrendResult{}
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendResult) InitDefault() {
+}
+
+var RententionGetApiPerformanceLatestVersionTrendResult_Success_DEFAULT *ApiPerformanceLatestVersionTrendResp
+
+func (p *RententionGetApiPerformanceLatestVersionTrendResult) GetSuccess() (v *ApiPerformanceLatestVersionTrendResp) {
+	if !p.IsSetSuccess() {
+		return RententionGetApiPerformanceLatestVersionTrendResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var fieldIDToName_RententionGetApiPerformanceLatestVersionTrendResult = map[int16]string{
+	0: "success",
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendResult) Read(iprot thrift.TProtocol) (err error) {
+	var fieldTypeId thrift.TType
+	var fieldId int16
+
+	if _, err = iprot.ReadStructBegin(); err != nil {
+		goto ReadStructBeginError
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		if err != nil {
+			goto ReadFieldBeginError
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+
+		switch fieldId {
+		case 0:
+			if fieldTypeId == thrift.STRUCT {
+				if err = p.ReadField0(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		default:
+			if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		}
+		if err = iprot.ReadFieldEnd(); err != nil {
+			goto ReadFieldEndError
+		}
+	}
+	if err = iprot.ReadStructEnd(); err != nil {
+		goto ReadStructEndError
+	}
+
+	return nil
+ReadStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct begin error: ", p), err)
+ReadFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
+ReadFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_RententionGetApiPerformanceLatestVersionTrendResult[fieldId]), err)
+SkipFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+
+ReadFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read field end error", p), err)
+ReadStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendResult) ReadField0(iprot thrift.TProtocol) error {
+	_field := NewApiPerformanceLatestVersionTrendResp()
+	if err := _field.Read(iprot); err != nil {
+		return err
+	}
+	p.Success = _field
+	return nil
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendResult) Write(oprot thrift.TProtocol) (err error) {
+	var fieldId int16
+	if err = oprot.WriteStructBegin("GetApiPerformanceLatestVersionTrend_result"); err != nil {
+		goto WriteStructBeginError
+	}
+	if p != nil {
+		if err = p.writeField0(oprot); err != nil {
+			fieldId = 0
+			goto WriteFieldError
+		}
+	}
+	if err = oprot.WriteFieldStop(); err != nil {
+		goto WriteFieldStopError
+	}
+	if err = oprot.WriteStructEnd(); err != nil {
+		goto WriteStructEndError
+	}
+	return nil
+WriteStructBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+WriteFieldError:
+	return thrift.PrependError(fmt.Sprintf("%T write field %d error: ", p, fieldId), err)
+WriteFieldStopError:
+	return thrift.PrependError(fmt.Sprintf("%T write field stop error: ", p), err)
+WriteStructEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write struct end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.IsSetSuccess() {
+		if err = oprot.WriteFieldBegin("success", thrift.STRUCT, 0); err != nil {
+			goto WriteFieldBeginError
+		}
+		if err := p.Success.Write(oprot); err != nil {
+			return err
+		}
+		if err = oprot.WriteFieldEnd(); err != nil {
+			goto WriteFieldEndError
+		}
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 0 end error: ", p), err)
+}
+
+func (p *RententionGetApiPerformanceLatestVersionTrendResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RententionGetApiPerformanceLatestVersionTrendResult(%+v)", *p)
 
 }
 

@@ -35,13 +35,14 @@ import (
 
 type Overview struct {
 	//DailyOverview    []utils.ReventResult
-	DailyOverview    []empyrean_lens2.ScoreListItem
-	RealtimeOverview aliyun2.RealtimeReport
-	SceneOverviews   []map[string]string
-	DailyAppCrash    []empyrean_lens2.AppCrashRespData
-	DailyModelResult []empyrean_lens2.DailyModelAutomationData
-	Pages            []int // 添加页码数组
-	CurrentPage      int64 // 添加当前页码
+	DailyOverview       []empyrean_lens2.ScoreListItem
+	RealtimeOverview    aliyun2.RealtimeReport
+	SceneOverviews      []map[string]string
+	DailyAppCrash       []empyrean_lens2.AppCrashRespData
+	DailyModelResult    []empyrean_lens2.DailyModelAutomationData
+	ApiPerformanceStats []*empyrean_lens.ApiPerformanceStatsData
+	Pages               []int // 添加页码数组
+	CurrentPage         int64 // 添加当前页码
 }
 
 // OverviewRender .
@@ -99,6 +100,53 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
+	// 获取新内容形态页加载性能数据
+	dao := dal_mongo_empyrean_lens.NewApiPerformanceStatsDao()
+	apiStats, err := dao.GetStatsByTimeRange(
+		ctx,
+		time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local), // 获取最早2024-10-17的数据
+		time.Now().AddDate(0, 0, 1),
+	)
+	if err != nil {
+		c.String(consts.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// 转换为响应格式
+	apiPerformanceStats := make([]*empyrean_lens.ApiPerformanceStatsData, 0, len(apiStats))
+	for _, stats := range apiStats {
+		respData := &empyrean_lens.ApiPerformanceStatsData{
+			Date:          stats.CreatedAt.Format("2006-01-02"),
+			System:        stats.System,
+			TotalRequests: stats.Summary.TotalRequests,
+			AvgDuration:   stats.Summary.AvgDuration,
+			TimeIntervals: make([]*empyrean_lens.TimeIntervalStats, 0, len(stats.Buckets)),
+		}
+
+		// 计算各时间区间的占比
+		var totalBucketRequests int64
+		for _, bucket := range stats.Buckets {
+			totalBucketRequests += bucket.RequestCount
+		}
+
+		for _, bucket := range stats.Buckets {
+			proportion := float64(bucket.RequestCount) / float64(totalBucketRequests) * 100
+			respData.TimeIntervals = append(
+				respData.TimeIntervals,
+				&empyrean_lens.TimeIntervalStats{
+					TimeInterval: bucket.TimeInterval,
+					RequestCount: bucket.RequestCount,
+					Proportion:   proportion,
+				},
+			)
+		}
+
+		// 更新总请求数为区间请求数的总和
+		respData.TotalRequests = totalBucketRequests
+
+		apiPerformanceStats = append(apiPerformanceStats, respData)
+	}
+
 	// 计算总页数
 	totalPages := (len(dailyModelResult) + 9) / 10 // 每页10条数据
 	pages := make([]int, totalPages)
@@ -108,13 +156,13 @@ func OverviewRender(ctx context.Context, c *app.RequestContext) {
 
 	rw := adaptor.GetCompatResponseWriter(&c.Response)
 	overview := Overview{
-		DailyOverview:    dailyOverview,
-		RealtimeOverview: *realtimeOverview,
-		DailyAppCrash:    dailyAppCrashOverview,
-		DailyModelResult: dailyModelResult,
-		//SceneOverviews:   aigcCostOverview,
-		Pages:       pages,
-		CurrentPage: 1, // 默认第一页
+		DailyOverview:       dailyOverview,
+		RealtimeOverview:    *realtimeOverview,
+		DailyAppCrash:       dailyAppCrashOverview,
+		DailyModelResult:    dailyModelResult,
+		ApiPerformanceStats: apiPerformanceStats,
+		Pages:               pages,
+		CurrentPage:         1, // 默认第一页
 	}
 
 	tpl, err := template.ParseFiles(filepath.Join(utils.GetProjectPath(), consts2.OVERVIEW_TEMPLATE_PATH))
@@ -1247,4 +1295,131 @@ func GetApiTestDetails(ctx context.Context, c *app.RequestContext) {
 	}
 
 	base.SuccessResponse(c, resp)
+}
+
+// GetApiPerformanceTrend .
+// @router /api/v1/report/api_performance/trend [GET]
+func GetApiPerformanceTrend(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.ApiPerformanceTrendReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	// 创建DAO实例
+	dao := dal_mongo_empyrean_lens.NewApiPerformanceTrendDao()
+
+	// 获取趋势数据
+	trends, err := dao.GetTrendByDateRange(ctx, req.StartTime, req.EndTime, req.System)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get trend error: %v", err)
+		c.String(consts.StatusInternalServerError, "获取趋势数据失败")
+		return
+	}
+
+	// 按时间点排序
+	sort.Slice(trends, func(i, j int) bool {
+		return trends[i].TimePoint < trends[j].TimePoint
+	})
+
+	// 构建响应数据
+	resp := &empyrean_lens.ApiPerformanceTrendResp{
+		Code: 0,
+		Msg:  "success",
+		Data: &empyrean_lens.ApiPerformanceTrendData{
+			Timestamps:   make([]string, 0, len(trends)),
+			AvgDurations: make([]float64, 0, len(trends)),
+		},
+	}
+
+	for _, trend := range trends {
+		resp.Data.Timestamps = append(resp.Data.Timestamps, trend.TimePoint)
+		resp.Data.AvgDurations = append(resp.Data.AvgDurations, trend.AvgDuration)
+	}
+
+	c.JSON(consts.StatusOK, resp)
+}
+
+// GetApiPerformanceLatestVersionTrend .
+// @router /api/v1/report/api_performance/latest_version_trend [GET]
+func GetApiPerformanceLatestVersionTrend(ctx context.Context, c *app.RequestContext) {
+	var err error
+	var req empyrean_lens.ApiPerformanceLatestVersionTrendReq
+	err = c.BindAndValidate(&req)
+	if err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+
+	// 参数验证
+	if req.StartTime == "" || req.EndTime == "" {
+		c.String(consts.StatusBadRequest, "start_time and end_time are required")
+		return
+	}
+
+	if req.System == "" {
+		c.String(consts.StatusBadRequest, "system is required")
+		return
+	}
+
+	// 解析时间
+	startTime, err := time.Parse("2006-01-02", req.StartTime)
+	if err != nil {
+		c.String(consts.StatusBadRequest, "invalid start_time format, should be YYYY-MM-DD")
+		return
+	}
+
+	endTime, err := time.Parse("2006-01-02", req.EndTime)
+	if err != nil {
+		c.String(consts.StatusBadRequest, "invalid end_time format, should be YYYY-MM-DD")
+		return
+	}
+
+	// 验证时间范围
+	if endTime.Before(startTime) {
+		c.String(consts.StatusBadRequest, "end_time should be after start_time")
+		return
+	}
+
+	// 创建DAO实例
+	dao := dal_mongo_empyrean_lens.NewApiPerformanceLatestVersionTrendDao()
+
+	// 获取趋势数据
+	trends, err := dao.GetTrendByDateRange(ctx, startTime, endTime, req.System)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "get trend error: %v", err)
+		c.String(consts.StatusInternalServerError, "获取趋势数据失败")
+		return
+	}
+
+	// 按时间点排序
+	sort.Slice(trends, func(i, j int) bool {
+		return trends[i].TimePoint < trends[j].TimePoint
+	})
+
+	resp := &empyrean_lens.ApiPerformanceLatestVersionTrendResp{
+		Code: 0,
+		Msg:  "success",
+		Data: &empyrean_lens.ApiPerformanceLatestVersionTrendData{
+			Timestamps:   make([]string, 0, len(trends)),
+			AvgDurations: make([]float64, 0, len(trends)),
+			Version:      "",
+		},
+	}
+
+	if len(trends) == 0 {
+		c.JSON(consts.StatusOK, resp)
+		return
+	}
+
+	for _, trend := range trends {
+		resp.Data.Timestamps = append(resp.Data.Timestamps, trend.TimePoint)
+		resp.Data.AvgDurations = append(resp.Data.AvgDurations, trend.AvgDuration)
+	}
+
+	resp.Data.Version = trends[0].Version
+
+	c.JSON(consts.StatusOK, resp)
 }

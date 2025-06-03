@@ -1012,7 +1012,70 @@ struct DailyModelAutomationStatsResp {
     3: list<DailyModelAutomationStatsRespData> data
 }
 
+# API性能统计数据
+struct ApiPerformanceStatsReq {
+    1: string start_time  // 开始时间 YYYY-MM-DD HH:mm:ss
+    2: string end_time    // 结束时间 YYYY-MM-DD HH:mm:ss
+}
 
+struct TimeIntervalStats {
+    1: string time_interval    // 时间区间，如"0~2000"
+    2: i64 request_count      // 请求数
+    3: double proportion      // 占比
+}
+
+struct ApiPerformanceStatsData {
+    1: string date            // 日期 YYYY-MM-DD
+    2: string system          // 系统类型
+    3: string version         // 版本号
+    4: i64 total_requests     // 总请求数
+    5: double avg_duration    // 平均请求耗时(ms)
+    6: list<TimeIntervalStats> time_intervals  // 各时间区间的统计数据
+}
+
+struct ApiPerformanceStatsResp {
+    1: i64 code
+    2: string msg
+    3: list<ApiPerformanceStatsData> data
+}
+
+# API性能趋势数据
+struct ApiPerformanceTrendReq {
+    1: string start_time  // 开始时间 YYYY-MM-DD HH:mm:ss
+    2: string end_time    // 结束时间 YYYY-MM-DD HH:mm:ss
+    3: string system      // 系统类型
+    4: string version     // 版本号
+}
+
+struct ApiPerformanceTrendData {
+    1: list<string> timestamps           // 时间点数组
+    2: list<double> avg_durations        // 各时间点的平均耗时
+}
+
+struct ApiPerformanceTrendResp {
+    1: i64 code
+    2: string msg
+    3: ApiPerformanceTrendData data
+}
+
+# 最新版本API性能趋势数据
+struct ApiPerformanceLatestVersionTrendReq {
+    1: string start_time  // 开始时间 YYYY-MM-DD HH:mm:ss
+    2: string end_time    // 结束时间 YYYY-MM-DD HH:mm:ss
+    3: string system      // 系统类型
+}
+
+struct ApiPerformanceLatestVersionTrendData {
+    1: list<string> timestamps           // 时间点数组
+    2: list<double> avg_durations        // 各时间点的平均耗时
+    3: string version                    // 最新版本号
+}
+
+struct ApiPerformanceLatestVersionTrendResp {
+    1: i64 code
+    2: string msg
+    3: ApiPerformanceLatestVersionTrendData data
+}
 
 service Rentention{
    EmptyResp OverviewRender(1: EmptyReq req) (api.get="/api/log/overview")
@@ -1135,6 +1198,16 @@ service Rentention{
    # 获取API测试详情
    GetApiTestDetailsResp GetApiTestDetails(1: GetApiTestDetailsReq req) (
        api.get="/api/v1/report/api_test/details"
+   )
+
+   # 获取API性能趋势数据
+   ApiPerformanceTrendResp GetApiPerformanceTrend(1: ApiPerformanceTrendReq req) (
+       api.get="/api/v1/report/api_performance/trend"
+   )
+
+   # 获取最新版本API性能趋势数据
+   ApiPerformanceLatestVersionTrendResp GetApiPerformanceLatestVersionTrend(1: ApiPerformanceLatestVersionTrendReq req) (
+       api.get="/api/v1/report/api_performance/latest_version_trend"
    )
 }
 

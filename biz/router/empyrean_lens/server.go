@@ -23,7 +23,6 @@ func Register(r *server.Hertz) {
 			_log := _api.Group("/log", _logMw()...)
 			_log.GET("/overview", append(_overviewrenderMw(), empyrean_lens.OverviewRender)...)
 			_log.GET("/tools", append(_toolsrenderMw(), empyrean_lens.ToolsRender)...)
-			_log.GET("/data_service", append(_dataservicerenderMw(), empyrean_lens.DataServiceRender)...)
 		}
 		{
 			_v1 := _api.Group("/v1", _v1Mw()...)
@@ -65,6 +64,11 @@ func Register(r *server.Hertz) {
 				_report.GET("/model_case_result", append(_modelcaseresultMw(), empyrean_lens.ModelCaseResult)...)
 				_report.GET("/online_operation", append(_getonlineoperationMw(), empyrean_lens.GetOnlineOperation)...)
 				_report.GET("/realtime", append(_systemrealtimescoreMw(), empyrean_lens.SystemRealtimeScore)...)
+				{
+					_api_performance := _report.Group("/api_performance", _api_performanceMw()...)
+					_api_performance.GET("/latest_version_trend", append(_getapiperformancelatestversiontrendMw(), empyrean_lens.GetApiPerformanceLatestVersionTrend)...)
+					_api_performance.GET("/trend", append(_getapiperformancetrendMw(), empyrean_lens.GetApiPerformanceTrend)...)
+				}
 				{
 					_api_stats := _report.Group("/api_stats", _api_statsMw()...)
 					_api_stats.GET("/daily", append(_getapistatsdailyMw(), empyrean_lens.GetApiStatsDaily)...)

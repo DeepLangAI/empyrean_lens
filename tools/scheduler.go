@@ -27,7 +27,7 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	// 每年执行一次新内容形态页加载性能数据同步
 	s.Every(365).Days().StartImmediately().Do(func() {
 		hlog.CtxInfof(ctx, "开始执行年度新内容形态页加载性能数据同步")
-		startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
+		startTime := time.Date(2024, 12, 10, 0, 0, 0, 0, time.Local)
 		endTime := time.Now()
 		if err := shence.SyncApiPerformanceStats(ctx, startTime, endTime); err != nil {
 			hlog.CtxErrorf(ctx, "年度同步新内容形态页加载性能数据失败: %v", err)
@@ -39,7 +39,7 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	// 每年执行一次新内容形态页加载性能趋势数据同步
 	s.Every(365).Days().StartImmediately().Do(func() {
 		hlog.CtxInfof(ctx, "开始执行年度新内容形态页加载性能趋势数据同步")
-		startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
+		startTime := time.Date(2024, 12, 10, 0, 0, 0, 0, time.Local)
 		endTime := time.Now()
 		if err := shence.SyncApiPerformanceTrend(ctx, startTime, endTime); err != nil {
 			hlog.CtxErrorf(ctx, "年度同步新内容形态页加载性能趋势数据失败: %v", err)
@@ -51,7 +51,7 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	// 每年执行一次系统所有版本新内容形态页加载性能数据同步
 	s.Every(365).Days().StartImmediately().Do(func() {
 		hlog.CtxInfof(ctx, "开始执行年度系统所有版本新内容形态页加载性能数据同步")
-		startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
+		startTime := time.Date(2024, 12, 10, 0, 0, 0, 0, time.Local)
 		endTime := time.Now()
 		if err := shence.SyncApiPerformanceVersionTrend(ctx, startTime, endTime); err != nil {
 			hlog.CtxErrorf(ctx, "年度同步系统所有版本新内容形态页加载性能数据失败: %v", err)

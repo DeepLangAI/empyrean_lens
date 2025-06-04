@@ -1005,8 +1005,8 @@
         <tr>
             <td data-label="日期">{{ .Date }}</td>
             <td data-label="系统">{{ .System }}</td>
-            <td data-label="总请求数" onclick="showApiPerformanceTrend(this)" class="clickable">{{ .TotalRequests }}</td>
-            <td data-label="平均请求耗时">{{ printf "%.2f" .AvgDuration }}</td>
+            <td data-label="总请求数" >{{ .TotalRequests }}</td>
+            <td data-label="平均请求耗时" onclick="showApiPerformanceTrend(this)" class="clickable">{{ printf "%.2f" .AvgDuration }}</td>
             {{ range .TimeIntervals }}
             <td data-label="耗时区间占比">{{ printf "%.2f" .Proportion }}%</td>
             {{ end }}
@@ -3994,7 +3994,7 @@
                         <div id="back" onclick="back()"><</div>
                     </div>
                     <div id="性能趋势详情">
-                        <h2>${system}系统 ${date} 前一周内平均耗时趋势</h2>
+                        <h2>${system}端新内容形态页加载一周内平均耗时趋势</h2>
 
                         <div id="api-performance-chart" style="width: 100%; height: 400px;"></div>
                     </div>

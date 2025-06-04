@@ -319,16 +319,6 @@ func SyncApiPerformanceStats(ctx context.Context, startTime, endTime time.Time) 
 
 	// 保存到MongoDB
 	for _, stats := range statsMap {
-		// 验证总请求数是否等于所有区间请求数的总和
-		var totalBucketRequests int64
-		for _, bucket := range stats.Buckets {
-			totalBucketRequests += bucket.RequestCount
-		}
-
-		if totalBucketRequests != stats.Summary.TotalRequests {
-			continue
-		}
-
 		if err := dao.UpsertStats(ctx, stats); err != nil {
 			return fmt.Errorf("upsert stats error: %v", err)
 		}

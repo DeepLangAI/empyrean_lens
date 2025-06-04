@@ -24,28 +24,39 @@ func GetCurrentDate() string {
 func (self *ProbeRunner) Run(ctx context.Context) {
 	s := gocron.NewScheduler(time.Local)
 
-	// 系统启动时异步执行一次同步
-	s.StartImmediately().Do(func() {
-		hlog.CtxInfof(ctx, "开始执行首次新内容形态页加载性能数据及趋势数据同步")
+	// 每年执行一次新内容形态页加载性能数据同步
+	s.Every(365).Days().StartImmediately().Do(func() {
+		hlog.CtxInfof(ctx, "开始执行年度新内容形态页加载性能数据同步")
 		startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
 		endTime := time.Now()
-
 		if err := shence.SyncApiPerformanceStats(ctx, startTime, endTime); err != nil {
-			hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能数据失败: %v", err)
+			hlog.CtxErrorf(ctx, "年度同步新内容形态页加载性能数据失败: %v", err)
 		} else {
-			hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能数据成功")
+			hlog.CtxInfof(ctx, "年度同步新内容形态页加载性能数据成功")
 		}
+	})
 
+	// 每年执行一次新内容形态页加载性能趋势数据同步
+	s.Every(365).Days().StartImmediately().Do(func() {
+		hlog.CtxInfof(ctx, "开始执行年度新内容形态页加载性能趋势数据同步")
+		startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
+		endTime := time.Now()
 		if err := shence.SyncApiPerformanceTrend(ctx, startTime, endTime); err != nil {
-			hlog.CtxErrorf(ctx, "首次同步新内容形态页加载性能趋势数据失败: %v", err)
+			hlog.CtxErrorf(ctx, "年度同步新内容形态页加载性能趋势数据失败: %v", err)
 		} else {
-			hlog.CtxInfof(ctx, "首次同步新内容形态页加载性能趋势数据成功")
+			hlog.CtxInfof(ctx, "年度同步新内容形态页加载性能趋势数据成功")
 		}
+	})
 
+	// 每年执行一次系统所有版本新内容形态页加载性能数据同步
+	s.Every(365).Days().StartImmediately().Do(func() {
+		hlog.CtxInfof(ctx, "开始执行年度系统所有版本新内容形态页加载性能数据同步")
+		startTime := time.Date(2024, 10, 17, 0, 0, 0, 0, time.Local)
+		endTime := time.Now()
 		if err := shence.SyncApiPerformanceVersionTrend(ctx, startTime, endTime); err != nil {
-			hlog.CtxErrorf(ctx, "首次同步系统所有版本新内容形态页加载性能数据失败: %v", err)
+			hlog.CtxErrorf(ctx, "年度同步系统所有版本新内容形态页加载性能数据失败: %v", err)
 		} else {
-			hlog.CtxInfof(ctx, "首次同步系统所有版本新内容形态页加载性能数据成功")
+			hlog.CtxInfof(ctx, "年度同步系统所有版本新内容形态页加载性能数据成功")
 		}
 	})
 
@@ -70,7 +81,13 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 	//	} else {
 	//		hlog.CtxInfof(ctx, "同步新内容形态页加载性能趋势数据成功")
 	//	}
-	//	// 新增：同步所有版本API性能趋势数据
+	//})
+	//
+	////每2小时同步一次所有版本API性能趋势数据
+	//s.Every(2).Hours().StartImmediately().Do(func() {
+	//	hlog.CtxInfof(ctx, "开始同步所有版本API性能趋势数据（每2小时）")
+	//	now := time.Now()
+	//	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	//	if err := shence.SyncApiPerformanceVersionTrend(ctx, todayStart, now); err != nil {
 	//		hlog.CtxErrorf(ctx, "同步所有版本API性能趋势数据失败: %v", err)
 	//	} else {

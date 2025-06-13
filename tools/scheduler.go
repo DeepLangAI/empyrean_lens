@@ -1,11 +1,13 @@
 package tools
 
 import (
+	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"context"
 	"empyrean_lens/consts"
 	"empyrean_lens/service/aliyun"
 	"empyrean_lens/service/mongo/empyrean_lens"
 	"empyrean_lens/service/shence"
+	"os"
 	"time"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -97,6 +99,14 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 
 	// 每1分钟刷新一下当天的最新数据
 	s.Every(1).Minutes().StartImmediately().Do(func() {
+		if modeEnv := os.Getenv(constslib.ModeEnvName); modeEnv == constslib.ModeEnvPre {
+			// 如果是今天最后5分钟、今天前5分钟，则不刷新
+			if now := time.Now(); (now.Hour() == 23 && now.Minute() >= 55) ||
+				(now.Hour() == 0 && now.Minute() <= 4) {
+				hlog.CtxInfof(ctx, "pre环境，当前时间不在刷新时间范围内，跳过刷新，避免跨天刷错数据")
+				return
+			}
+		}
 		//empyrean_lens.UpdateLatestScoreInfo(ctx)
 		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_TODAY, false)
 		empyrean_lens.UpdateLatestScoreInfo(ctx) // 更新当天的分数同比、环比信息

@@ -112,6 +112,9 @@ const (
 	HOST_QUERY_EMBEDDING = "search-embedding-v2.shenyandayi.com"
 	HOST_MULTI_MODEL     = "ai-infra-service.shenyandayi.com"
 )
+const (
+	AVALIABILITY_TASK_LOCK = "empyrean_lens::availability_task_lock"
+)
 
 type API struct {
 	Api   string

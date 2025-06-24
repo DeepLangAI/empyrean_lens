@@ -26,6 +26,7 @@ require (
 require (
 	github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/avast/retry-go v2.7.0+incompatible // indirect
 	github.com/biessek/golang-ico v0.0.0-20180326222316-d348d9ea4670 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fishtailstudio/imgo v0.0.3 // indirect

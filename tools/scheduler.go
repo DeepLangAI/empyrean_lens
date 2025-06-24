@@ -4,6 +4,7 @@ import (
 	constslib "codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/consts"
 	"context"
 	"empyrean_lens/consts"
+	"empyrean_lens/dal/redis"
 	"empyrean_lens/service/aliyun"
 	"empyrean_lens/service/mongo/empyrean_lens"
 	"empyrean_lens/service/shence"
@@ -107,6 +108,15 @@ func (self *ProbeRunner) Run(ctx context.Context) {
 				return
 			}
 		}
+		// 加锁，防止并发刷新导致数据因并发写导致脏数据
+		locker := redis.GetLocker(ctx, consts.AVALIABILITY_TASK_LOCK)
+		err := locker.Lock(time.Minute)
+		if err != nil {
+			hlog.CtxInfof(ctx, "failed to lock %v, err: %v", consts.AVALIABILITY_TASK_LOCK, err)
+			return
+		}
+		defer locker.Unlock()
+
 		//empyrean_lens.UpdateLatestScoreInfo(ctx)
 		aliyun.CreateOrUpdateDatabase(ctx, consts.TIMESPAN_TODAY, false)
 		empyrean_lens.UpdateLatestScoreInfo(ctx) // 更新当天的分数同比、环比信息

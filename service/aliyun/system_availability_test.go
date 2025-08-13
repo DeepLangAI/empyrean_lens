@@ -5,8 +5,11 @@ import (
 	"empyrean_lens/conf"
 	"empyrean_lens/consts"
 	"empyrean_lens/dal"
+	"empyrean_lens/dal/redis"
+	"empyrean_lens/utils"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestSystemAvailability(t *testing.T) {
@@ -77,4 +80,19 @@ func TestRealtimeSlowqueryLoganlz(t *testing.T) {
 	} else {
 		fmt.Println(loganlz)
 	}
+}
+
+func TestZSet_Contains(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	dal.Init()
+
+	zset := utils.NewZSet(redis.GetRdb(), "test", time.Second*5)
+	//zset.Add(ctx, "wenhao1")
+
+	contains := zset.Contains(ctx, "wenhao")
+	fmt.Println(contains)
+
+	contains = zset.Contains(ctx, "wenhao1")
+	fmt.Println(contains)
 }

@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"empyrean_lens/utils"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -102,7 +101,7 @@ func InitConfig() {
 	}
 
 	configPath := fmt.Sprintf(ConfigPath, env)
-	configPath = filepath.Join(utils.GetProjectPath(), configPath)
+	configPath = filepath.Join(GetProjectPath(), configPath)
 	hlog.Info("read config from ", configPath)
 	dataBytes, err := os.ReadFile(configPath)
 	if err != nil {
@@ -130,7 +129,7 @@ func ensureDirExists(dir string) {
 
 func TestInit() {
 	// 绝对路径
-	dirPath := utils.GetProjectPath()
+	dirPath := GetProjectPath()
 	filePath := fmt.Sprintf("./conf/config_test.yaml")
 	configPath := filepath.Join(dirPath, filePath)
 	hlog.Info("read config from ", configPath)
@@ -142,4 +141,39 @@ func TestInit() {
 	if err = yaml.Unmarshal(dataBytes, &conf); err != nil {
 		panic("conf.yaml配置文件读取失败:" + err.Error())
 	}
+}
+
+var projPath = ""
+
+func GetProjectPath() string {
+	if projPath != "" {
+		return projPath
+	}
+	// 获取当前工作目录
+	cwd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	// 从当前工作目录向上遍历，寻找main.go文件
+	for {
+		info, err := os.Stat(filepath.Join(cwd, "main.go"))
+		if err == nil && !info.IsDir() {
+			// 找到main.go，返回当前目录作为项目路径
+			return cwd
+		} else if !os.IsNotExist(err) {
+			// 其他错误
+			return ""
+		}
+
+		// 如果没找到，尝试进入上一级目录
+		cwd = filepath.Dir(cwd)
+		if cwd == "/" || cwd == "" {
+			// 如果到达根目录仍然没找到，返回错误
+			return ""
+		}
+	}
+
+	// 不应达到这里，但为了编译器的满意度，返回一个空字符串
+	return ""
 }

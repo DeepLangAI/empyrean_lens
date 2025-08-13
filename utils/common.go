@@ -15,8 +15,6 @@ import (
 	"time"
 )
 
-var projPath = ""
-
 func KeysOfMap[T comparable, V any](dict map[T]V) []T {
 	keys := make([]T, 0, len(dict))
 	for k := range dict {
@@ -63,6 +61,8 @@ func GetApiAlias(hostName, apiName string) string {
 func TimeSub(t time.Time) string {
 	return fmt.Sprintf("%.4f s", time.Now().Sub(t).Seconds())
 }
+
+var projPath = ""
 
 func GetProjectPath() string {
 	if projPath != "" {

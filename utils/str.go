@@ -1,11 +1,13 @@
 package utils
 
 import (
+	"crypto/md5"
 	"empyrean_lens/consts"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"io"
 	"log"
 	"regexp"
 	"strconv"
@@ -170,4 +172,14 @@ func CharLength(s string) int {
 
 func ByteLength(s string) int {
 	return len(s)
+}
+
+func StrToMd5(str string) string {
+	hasher := md5.New()
+	io.WriteString(hasher, str) // 写入字符串到MD5哈希器
+
+	// 获取哈希值
+	hashBytes := hasher.Sum(nil)
+	hashStr := fmt.Sprintf("%x", hashBytes) // 转换为16进制字符串
+	return hashStr
 }

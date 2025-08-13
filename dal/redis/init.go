@@ -42,6 +42,10 @@ func Init() {
 	hlog.CtxInfof(context.Background(), "init redis success")
 }
 
+func GetRdb() *redis.ClusterClient {
+	return rdb
+}
+
 func KeySet(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	return rdb.Set(ctx, key, value, expiration).Err()
 }

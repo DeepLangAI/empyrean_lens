@@ -5,7 +5,9 @@ import (
 	"empyrean_lens/consts"
 	"empyrean_lens/dal/aliyun"
 	"empyrean_lens/dal/mongo/empyrean_lens"
+	"empyrean_lens/dal/redis"
 	"empyrean_lens/utils"
+	"github.com/bytedance/sonic"
 	"strings"
 	"time"
 )
@@ -328,7 +330,15 @@ func CreateOrUpdateDatabase(ctx context.Context, timespan int, rm bool) error {
 			}
 		}
 	}
+	zset := utils.NewZSet(redis.GetRdb(), "tracebackLogs", time.Hour*24)
 	for _, log := range tracebackLogs {
+		marshalString, _ := sonic.MarshalString(log)
+		md5 := utils.StrToMd5(marshalString)
+		if zset.Contains(ctx, md5) {
+			continue
+		}
+		zset.Add(ctx, md5)
+
 		model := empyrean_lens.TracebackLogModel{
 			ExcInfo:   log.ExcInfo,
 			Msg:       log.Msg,

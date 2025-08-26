@@ -94,6 +94,11 @@ const (
 	HOST_REPEATER          = "api-repeater.lingowhale.com"
 	HOST_PRE_REPEATER      = "pre-api-repeater.lingowhale.com"
 
+	HOST_ZHILIAO_BACKEND           = "api-public.zhiliao.news"
+	HOST_ZHILIAO_PRE_BACKEND       = "pre-api-public.zhiliao.news"
+	HOST_ZHILIAO_INNER_BACKEND     = "api-inner.zhiliao.news"
+	HOST_ZHILIAO_INNER_PRE_BACKEND = "pre-api-inner.zhiliao.news"
+
 	// 后端数据服务
 	HOST_CRAWLER     = "crawler.shenyandayi.com"
 	HOST_PRE_CRAWLER = "pre-crawler.shenyandayi.com"
@@ -228,6 +233,10 @@ var NGINX_INGRESS_APIS = map[string][]API{
 		{
 			Api:   "/api/feed/v1/subscription/get",
 			Alias: "【订阅】【后端】获取订阅信息",
+		},
+		{
+			Api:   "/api/feed/v1/user_subscribe/check",
+			Alias: "【订阅】【后端】频道check",
 		},
 	},
 	//HOST_LINGO_PRE_PUBLIC_BACKEND: {
@@ -428,6 +437,113 @@ var NGINX_INGRESS_APIS = map[string][]API{
 	//		Alias: "【单文档】1[中继服务]关键信息",
 	//	},
 	//},
+
+	HOST_ZHILIAO_BACKEND: {
+		{
+			Api:   "/api/topic/v1/chat/upsert",
+			Alias: "【知了追踪】【后端】创建会话",
+		},
+		{
+			Api:   "/api/topic/v1/chat/stream",
+			Alias: "【知了追踪】【后端】聊天对话",
+		},
+		{
+			Api:   "/api/topic/v1/topic/upsert",
+			Alias: "【知了追踪】【后端】创建话题",
+		},
+		{
+			Api:   "/api/topic/v1/topic/get",
+			Alias: "【知了追踪】【后端】获取话题详情",
+		},
+		{
+			Api:   "/api/topic/v1/topic/feed",
+			Alias: "【知了追踪】【后端】话题feed",
+		},
+		{
+			Api:   "/api/topic/v1/topic/all_feed",
+			Alias: "【知了追踪】【后端】追踪入口all feed",
+		},
+		{
+			Api:   "/api/topic/v1/topic/edit",
+			Alias: "【知了追踪】【后端】编辑话题详情",
+		},
+		{
+			Api:   "/api/topic/v1/topic/poll",
+			Alias: "【知了追踪】【后端】话题状态变更",
+		},
+		{
+			Api:   "/api/topic/v1/topic/search",
+			Alias: "【知了追踪】【后端】搜索话题",
+		},
+		{
+			Api:   "/api/topic/v1/topic/category",
+			Alias: "【知了追踪】【后端】话题分类",
+		},
+		{
+			Api:   "/api/topic/v1/user_sub_topic/upsert",
+			Alias: "【知了追踪】【后端】话题点击追踪",
+		},
+		{
+			Api:   "/api/topic/v1/user_sub_topic/get",
+			Alias: "【知了追踪】【后端】用户订阅话题列表",
+		},
+		{
+			Api:   "/api/topic/v1/user_sub_topic/del",
+			Alias: "【知了追踪】【后端】用户取消追踪",
+		},
+		{
+			Api:   "/api/topic/v1/behavior/report",
+			Alias: "【知了追踪】【后端】用户行为",
+		},
+
+		{
+			Api:   "/api/topic/v1/entry/get",
+			Alias: "【知了追踪】【后端】文章详情",
+		},
+		{
+			Api:   "/api/topic/v1/info_source/search",
+			Alias: "【知了追踪】【后端】信源搜索",
+		},
+		{
+			Api:   "/api/topic/v1/guide/get_topic",
+			Alias: "【知了追踪】【后端】创建页话题推荐",
+		},
+		{
+			Api:   "/api/topic/v1/product/list",
+			Alias: "【知了追踪】【后端】查询商品列表",
+		},
+	},
+
+	HOST_ZHILIAO_INNER_BACKEND: {
+		{
+			Api:   "/iapi/topic/v1/topic/official_upsert",
+			Alias: "【知了追踪】【后端】创建官方话题",
+		},
+		{
+			Api:   "/iapi/topic/v1/topic/feed",
+			Alias: "【知了追踪】【后端】算法侧获取话题内容",
+		},
+		{
+			Api:   "/iapi/topic/v1/info_source/search_resource",
+			Alias: "【知了追踪】【后端】信源搜索内容池资源",
+		},
+		{
+			Api:   "/iapi/topic/v1/permission/grant",
+			Alias: "【知了追踪】【后端】开通权益",
+		},
+		{
+			Api:   "/iapi/topic/v1/permission/retrieve",
+			Alias: "【知了追踪】【后端】回收权益",
+		},
+		{
+			Api:   "/iapi/topic/v1/product/upsert",
+			Alias: "【知了追踪】【后端】创建商品",
+		},
+		{
+			Api:   "/api/topic/v1/user/permission",
+			Alias: "【知了追踪】【后端】查询用户权益",
+		},
+	},
 }
 
 var MODEL_NGINX_INGRESS_APIS = map[string][]API{

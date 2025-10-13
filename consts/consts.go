@@ -85,6 +85,7 @@ var NODE_MAP = map[string]string{
 const (
 	// 后端服务
 	HOST_LINGO_PUBLIC_BACKEND     = "api-public.lingowhale.com"
+	HOST_LINGO_INNER_BACKED       = "api-inner.lingowhale.com"
 	HOST_LINGO_PRE_PUBLIC_BACKEND = "pre-api-public.lingowhale.com"
 
 	HOST_LINGO_BACKEND     = "api.lingowhale.com"
@@ -665,6 +666,8 @@ const (
 
 	SLOWQUERY_THRESHOLD_QA           = 60.0
 	SLOWQUERY_THRESHOLD_QA_RECOMMEND = 15.0
+
+	SLOWQUERY_THRESHOLD_COLLECT_SLOW_API = 1000.0
 )
 
 const (
@@ -933,3 +936,13 @@ const (
 	ModelAutomation_SingleOutline           = "single_outline"
 	ModelAutomation_SingleOutlineContinuity = "single_outline_continuity"
 )
+
+// Nginx日志里获取超时的接口（慢日志列表）
+var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
+	HOST_LINGO_PUBLIC_BACKEND: {
+		{
+			Api:   "/api/feed/v1/lingowhale_daily/list",
+			Alias: "【今日TAB】【后端】自动拉取日报列表",
+		},
+	},
+}

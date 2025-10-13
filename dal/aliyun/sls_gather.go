@@ -380,6 +380,12 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiMergeOverview)
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiUploadOverview)
 
+	backedOv, err := CollectGeneralOfDay(ctx, daysLookback)
+
+	for _, bov := range backedOv {
+		overviews.Overviews = append(overviews.Overviews, bov)
+	}
+
 	abstractOverview := SceneOverview{Name: "单文档：全文速览", Costs: []float64{}, TotalReq: int64(cnts["0"]), FailReq: 0}
 	outlineOverview := SceneOverview{Name: "单文档：智能大纲", Costs: []float64{}, TotalReq: int64(cnts["1"]), FailReq: 0}
 	viewpointOverview := SceneOverview{Name: "单文档：关键信息", Costs: []float64{}, TotalReq: int64(cnts["3"]), FailReq: 0}
@@ -579,6 +585,80 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, 
 	ov.MultiAnalysisOverview = analysis_anlz
 	ov.MultiUploadOverview = upload_anlz
 	return ov, nil
+}
+
+type CollectOverviews []SceneOverview
+
+type CollectSlowDetail struct {
+	CoreName string    `json:"CoreName,omitempty"`
+	Node     string    `json:"Node,omitempty"`
+	Cost     float64   `json:"Cost,omitempty"`
+	TraceId  string    `json:"TraceId,omitempty"`
+	Time     time.Time `json:"Time"`
+	UserId   string    `json:"UserId,omitempty"`
+	Status   int       `json:"Status,omitempty"`
+	Env      string    `json:"Env,omitempty"`
+	EntryId  string    `json:"EntryId,omitempty"`
+	EntryLen int       `json:"EntryLen,omitempty"`
+}
+
+func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverviews, error) {
+	bovs := CollectOverviews{}
+	// 需要聚合查询的日志和SLOW_APIS的数组，根据url进行聚合，OverviewsMapByApi[url]表示这个url所在SceneOverview数组的位置
+	OverviewsMapByApi := map[string]int{}
+
+	for host, _ := range consts.NGINX_INGRESS_COLLECT_SLOW_APIS {
+		totalLog, err := CollectTotalRequestQuery(ctx, daysLookback, host)
+		if err != nil {
+			return nil, err
+		}
+
+		if apis, ok := consts.NGINX_INGRESS_COLLECT_SLOW_APIS[host]; ok {
+			for _, api := range apis {
+				so := SceneOverview{Name: api.Alias}
+				bovs = append(bovs, so)
+				OverviewsMapByApi[api.Alias] = len(bovs)
+			}
+		}
+
+		for _, log := range totalLog {
+			index := OverviewsMapByApi[log.CleanUrl]
+			bovs[index].TotalReq += 1
+
+			if log.Status != 0 && log.Status >= 500 && log.Status < 600 {
+				bovs[index].FailReq += 1
+			}
+
+			bovs[index].Costs = append(bovs[index].Costs, log.Cost)
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_COLLECT_SLOW_API {
+				bovs[index].SlowReq += 1
+
+				// Nginx日志里没有SlowDetail字段，需要手动拼接成json
+				alias := utils.SplitAlias(bovs[index].Name)
+				bsDetail := CollectSlowDetail{
+					CoreName: alias[2],
+					Node:     alias[0],
+					Cost:     log.Cost,
+					TraceId:  log.TraceId,
+					Time:     log.Time,
+					UserId:   log.UserId,
+				}
+
+				slowDtail := utils.JSONMarshal(bsDetail)
+
+				bovs[index].SlowDetails = append(bovs[index].SlowDetails, slowDtail)
+			}
+		}
+	}
+
+	for _, bov := range bovs {
+		if bov.TotalReq != 0 {
+			bov.FailRate = float64(bov.FailReq / bov.TotalReq)
+			bov.SlowRate = float64(bov.SlowReq / bov.TotalReq)
+		}
+	}
+
+	return bovs, nil
 }
 
 func SceneGeneralOverview(ctx context.Context, days []int) []SceneOverviews {

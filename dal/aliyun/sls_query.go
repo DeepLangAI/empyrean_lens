@@ -3614,3 +3614,92 @@ order by time desc
 	}
 	return result, nil
 }
+
+type CollectGeneralLog struct {
+	Cost     float64
+	TraceId  string
+	Time     time.Time
+	UserId   string
+	Status   int //HTTP请求的状态码
+	CleanUrl string
+}
+
+func CollectTotalRequestQuery(ctx context.Context, daysLookback int, host string) ([]CollectGeneralLog, error) {
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	//fromdayStr := lookbackDay.Format("2006-01-02")
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.NGINX_LOG_STORE_NAME)
+
+	query := `
+host: %v %s|
+SELECT  * FROM  (
+  SELECT 
+    REGEXP_REPLACE(url, '\?.*$', '') AS clean_url, time, status, host, request_time cost
+	, trace_id, user_id 
+  FROM log WHERE method IN ('GET', 'POST')
+) t
+WHERE clean_url IN (
+%s
+)
+LIMIT %d
+`
+	apiDetails := consts.NGINX_INGRESS_COLLECT_SLOW_APIS[host]
+	formatedApis := []string{}
+	for _, api := range apiDetails {
+		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api.Api))
+	}
+	query = fmt.Sprintf(query, host, consts.FilterProbeUser, strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
+	// 查询日志
+	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
+
+	if err != nil {
+		hlog.CtxErrorf(ctx, "BackedTotalRequestQuery query log error: %v", err)
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "日期%v，查nginxIngress，host: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), host, resp.Count)
+
+	var bglogs []CollectGeneralLog
+	for _, log := range resp.Logs {
+		t, e := time.Parse("02/Jan/2006:15:04:05", log["time"])
+		if t.Format("2006-01-02") != lookbackDay.Format("2006-01-02") {
+			continue
+		}
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", e)
+			continue
+		}
+
+		cost, e := strconv.ParseFloat(log["cost"], 64)
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
+			continue
+		}
+
+		status, e := strconv.Atoi(log["status"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse status error: %v", e)
+			continue
+		}
+
+		bglog := CollectGeneralLog{
+			CleanUrl: log["clean_url"],
+			Time:     t,
+			Status:   status,
+			Cost:     cost,
+			TraceId:  log["trace_id"],
+			UserId:   log["user_id"],
+		}
+		bglogs = append(bglogs, bglog)
+	}
+	return bglogs, nil
+}

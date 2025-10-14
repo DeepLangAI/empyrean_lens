@@ -938,6 +938,7 @@ const (
 )
 
 // Nginx日志里获取超时的接口（慢日志列表）
+// 这里的接口Alias（别名）需要严格按照这个格式，逻辑会对Alias进行split，方法为utils/common.go中的SplitAlias()
 var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 	HOST_LINGO_PUBLIC_BACKEND: {
 		{

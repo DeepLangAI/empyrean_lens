@@ -617,7 +617,7 @@ func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverview
 			for _, api := range apis {
 				so := SceneOverview{Name: api.Alias}
 				bovs = append(bovs, so)
-				OverviewsMapByApi[api.Alias] = len(bovs)
+				OverviewsMapByApi[api.Api] = len(bovs) - 1
 			}
 		}
 

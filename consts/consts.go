@@ -944,5 +944,31 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 			Api:   "/api/feed/v1/lingowhale_daily/list",
 			Alias: "【今日TAB】【后端】自动拉取日报列表",
 		},
+		{
+			Api:   "/api/feed/v1/lingowhale_daily/get",
+			Alias: "【今日TAB】【后端】打开日报详情",
+		},
+		{
+			Api:   "/api/feed/v1/topic/list",
+			Alias: "【今日TAB】【后端】我的专题聚览列表",
+		},
+		{
+			Api:   "/api/feed/v1/topic/get",
+			Alias: "【今日TAB】【后端】打开专题详情",
+		},
+	},
+	HOST_LINGO_BACKEND: {
+		{
+			Api:   "/api/plugin/file/add",
+			Alias: "【数据处理】【后端】上传PDF",
+		},
+		{
+			Api:   "/api/readers/url/upload",
+			Alias: "【数据处理】【后端】上传URL[web,小程序,插件]",
+		},
+		{
+			Api:   "/api/readers/url/content/upload",
+			Alias: "【数据处理】【后端】上传URL[小助手等]",
+		},
 	},
 }

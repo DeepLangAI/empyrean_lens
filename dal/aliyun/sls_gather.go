@@ -606,6 +606,8 @@ func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverview
 	bovs := CollectOverviews{}
 	// 需要聚合查询的日志和SLOW_APIS的数组，根据url进行聚合，OverviewsMapByApi[url]表示这个url所在SceneOverview数组的位置
 	OverviewsMapByApi := map[string]int{}
+	// 优化将每个接口每次调用的耗时写入数据库，每次只记录一个平均值入库。SumCostTime做暂存map，索引为bovs的数组下标。
+	SumCostTime := map[int]float64{}
 
 	for host, _ := range consts.NGINX_INGRESS_COLLECT_SLOW_APIS {
 		totalLog, err := CollectTotalRequestQuery(ctx, daysLookback, host)
@@ -617,7 +619,10 @@ func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverview
 			for _, api := range apis {
 				so := SceneOverview{Name: api.Alias}
 				bovs = append(bovs, so)
-				OverviewsMapByApi[api.Api] = len(bovs) - 1
+
+				index := len(bovs) - 1
+				OverviewsMapByApi[api.Api] = index
+				SumCostTime[index] = 0.0
 			}
 		}
 
@@ -629,8 +634,9 @@ func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverview
 				bovs[index].FailReq += 1
 			}
 
-			bovs[index].Costs = append(bovs[index].Costs, log.Cost)
-			if log.Cost > consts.SLOWQUERY_THRESHOLD_COLLECT_SLOW_API {
+			// bovs[index].Costs = append(bovs[index].Costs, log.Cost)
+			SumCostTime[index] += log.Cost
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_COLLECT_SLOW_API && log.TraceId != "" && len(bovs[index].SlowDetails) < consts.SLOWQUERY_DETAIL_THRESHOLD {
 				bovs[index].SlowReq += 1
 
 				// Nginx日志里没有SlowDetail字段，需要手动拼接成json
@@ -644,14 +650,15 @@ func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverview
 					UserId:   log.UserId,
 				}
 
-				slowDtail := utils.JSONMarshal(bsDetail)
+				slowDetail := utils.JSONMarshal(bsDetail)
 
-				bovs[index].SlowDetails = append(bovs[index].SlowDetails, slowDtail)
+				bovs[index].SlowDetails = append(bovs[index].SlowDetails, slowDetail)
 			}
 		}
 	}
 
-	for _, bov := range bovs {
+	for index, bov := range bovs {
+		bov.Costs = append(bov.Costs, SumCostTime[index]/float64(bov.TotalReq))
 		if bov.TotalReq != 0 {
 			bov.FailRate = float64(bov.FailReq / bov.TotalReq)
 			bov.SlowRate = float64(bov.SlowReq / bov.TotalReq)

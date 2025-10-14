@@ -957,6 +957,86 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 			Api:   "/api/feed/v1/topic/get",
 			Alias: "【今日TAB】【后端】打开专题详情",
 		},
+		{
+			Api:   "/api/feed/v1/feed/topic",
+			Alias: "【今日TAB】【后端】专题feed流",
+		},
+		{
+			Api:   "/api/feed/v1/user_subscribe/list",
+			Alias: "【订阅TAB】【后端】我的订阅列表",
+		},
+		{
+			Api:   "/api/feed/v2/feed/subscription",
+			Alias: "【订阅TAB】【后端】订阅频道feed",
+		},
+		{
+			Api:   "/api/feed/v1/search/list",
+			Alias: "【订阅TAB】【后端】频道下内容搜索",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/search",
+			Alias: "【订阅TAB】【后端】我创建的频道",
+		},
+		{
+			Api:   "/api/feed/v1/user_subscribe/upsert",
+			Alias: "【订阅TAB】【后端】订阅频道",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/upsert",
+			Alias: "【订阅TAB】【后端】创建频道",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/category",
+			Alias: "【发现页】【后端】频道广场分类",
+		},
+		{
+			Api:   "/api/feed/v1/feed/recommend",
+			Alias: "【发现页】【后端】文章推荐",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/get",
+			Alias: "【发现页】【后端】频道详情",
+		},
+		{
+			Api:   "/api/feed/v1/subscription/upsert",
+			Alias: "【订阅】【后端】添加订阅源",
+		},
+		{
+			Api:   "/api/feed/v1/feed/subscription",
+			Alias: "【订阅】【后端】用户订阅feed流",
+		},
+		{
+			Api:   "/api/feed/v1/resource/get",
+			Alias: "【订阅】【后端】获取资源详情",
+		},
+		{
+			Api:   "/api/feed/v1/behavior/report",
+			Alias: "【订阅】【后端】用户行为上报",
+		},
+		{
+			Api:   "/api/feed/v1/subscription/user_list",
+			Alias: "【订阅】【后端】获取用户已订阅数据源信息",
+		},
+		{
+			Api:   "/api/feed/v1/info_source/search",
+			Alias: "【订阅】【后端】获取信源分类列表",
+		},
+		{
+			Api:   "/api/feed/v1/subscription/delete",
+			Alias: "【订阅】【后端】删除用户订阅",
+		},
+		{
+			Api:   "/api/feed/v1/search_history/delete",
+			Alias: "【订阅】【后端】删除搜索记录",
+		},
+		{
+			Api:   "/api/feed/v1/subscription/get",
+			Alias: "【订阅】【后端】获取订阅信息",
+		},
+		{
+			Api:   "/api/feed/v1/user_subscribe/check",
+			Alias: "【订阅】【后端】频道check",
+		},
 	},
 	HOST_LINGO_BACKEND: {
 		{
@@ -970,6 +1050,34 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 		{
 			Api:   "/api/readers/url/content/upload",
 			Alias: "【数据处理】【后端】上传URL[小助手等]",
+		},
+		{
+			Api:   "/api/plugin/articles/summary",
+			Alias: "【单文档】【后端】全文速览/智能大纲/关键信息",
+		},
+		{
+			Api:   "/api/plugin/articles/summary/list_v2",
+			Alias: "【单文档】【后端】刷新模型生成内容(list_v2)",
+		},
+		{
+			Api:   "/api/novel_form/get",
+			Alias: "【阅读器】【后端】新内容形态",
+		},
+		{
+			Api:   "/api/novel_form/resource/get",
+			Alias: "【阅读器】【后端】资源详情",
+		},
+		{
+			Api:   "/api/novel_form/feed/recommend",
+			Alias: "【阅读器】【后端】更多内容推荐",
+		},
+		{
+			Api:   "/api/readers/resource/copy",
+			Alias: "【阅读器】【后端】拷贝",
+		},
+		{
+			Api:   "/api/plugin/articles/summary_inc/outline",
+			Alias: "【单文档】【后端】大纲增量生成",
 		},
 	},
 }

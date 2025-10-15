@@ -7,6 +7,7 @@ import (
 	"empyrean_lens/utils"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -636,32 +637,38 @@ func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverview
 
 			// bovs[index].Costs = append(bovs[index].Costs, log.Cost)
 			SumCostTime[index] += log.Cost
-			if log.Cost > consts.SLOWQUERY_THRESHOLD_COLLECT_SLOW_API && log.TraceId != "" && len(bovs[index].SlowDetails) < consts.SLOWQUERY_DETAIL_THRESHOLD {
+			if log.Cost > consts.SLOWQUERY_THRESHOLD_COLLECT_SLOW_API {
 				bovs[index].SlowReq += 1
 
-				// Nginx日志里没有SlowDetail字段，需要手动拼接成json
-				alias := utils.SplitAlias(bovs[index].Name)
-				bsDetail := CollectSlowDetail{
-					CoreName: alias[2],
-					Node:     alias[0],
-					Cost:     log.Cost,
-					TraceId:  log.TraceId,
-					Time:     log.Time,
-					UserId:   log.UserId,
+				if log.TraceId != "" && len(bovs[index].SlowDetails) < consts.SLOWQUERY_DETAIL_THRESHOLD {
+					// Nginx日志里没有SlowDetail字段，需要手动拼接成json
+					alias := utils.SplitAlias(bovs[index].Name)
+					bsDetail := CollectSlowDetail{
+						CoreName: alias[2],
+						Node:     alias[0],
+						Cost:     log.Cost,
+						TraceId:  log.TraceId,
+						Time:     log.Time,
+						UserId:   log.UserId,
+					}
+
+					slowDetail := utils.JSONMarshal(bsDetail)
+
+					bovs[index].SlowDetails = append(bovs[index].SlowDetails, slowDetail)
 				}
-
-				slowDetail := utils.JSONMarshal(bsDetail)
-
-				bovs[index].SlowDetails = append(bovs[index].SlowDetails, slowDetail)
 			}
 		}
 	}
 
-	for index, bov := range bovs {
-		bov.Costs = append(bov.Costs, SumCostTime[index]/float64(bov.TotalReq))
-		if bov.TotalReq != 0 {
-			bov.FailRate = float64(bov.FailReq / bov.TotalReq)
-			bov.SlowRate = float64(bov.SlowReq / bov.TotalReq)
+	get2Point := func(number float64) float64 {
+		return math.Round(number*100) / 100
+	}
+
+	for i := range bovs {
+		if bovs[i].TotalReq != 0 {
+			bovs[i].Costs = append(bovs[i].Costs, get2Point(SumCostTime[i]/float64(bovs[i].TotalReq)))
+			bovs[i].FailRate = get2Point(float64(bovs[i].FailReq) / float64(bovs[i].TotalReq))
+			bovs[i].SlowRate = get2Point(float64(bovs[i].SlowReq) / float64(bovs[i].TotalReq))
 		}
 	}
 

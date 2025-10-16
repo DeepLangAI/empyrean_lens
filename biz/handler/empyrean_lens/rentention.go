@@ -469,12 +469,12 @@ func SystemDailyApiSlowInfo(ctx context.Context, c *app.RequestContext) {
 		costs[0] = strings.Split(r["Costs"], ",")
 		avg := make([]float64, 3)
 		// 增加空值处理
-		if len(result1Day) != 0 {
+		if i < len(result1Day) {
 			costs[1] = strings.Split(result1Day[i]["Costs"], ",")
 		} else {
 			costs[1] = []string{"0.0"}
 		}
-		if len(result7Day) != 0 {
+		if i < len(result7Day) {
 			costs[2] = strings.Split(result7Day[i]["Costs"], ",")
 		} else {
 			costs[2] = []string{"0.0"}

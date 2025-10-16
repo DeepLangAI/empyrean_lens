@@ -278,12 +278,27 @@ func TestSingleTraceIDErrorQuery(t *testing.T) {
 	}
 }
 
-func TestCollectTotalRequestQuery(t *testing.T) {
+func TestCollectStatisticRequestQuery(t *testing.T) {
 	ctx := context.Background()
 	conf.InitConfig()
 	Init(ctx)
 
-	query, err := CollectTotalRequestQuery(ctx, 0, consts.HOST_LINGO_PUBLIC_BACKEND)
+	query, err := CollectStatisticRequestQuery(ctx, 0, consts.HOST_LINGO_PUBLIC_BACKEND)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		for _, val := range query {
+			fmt.Println(val)
+		}
+	}
+}
+
+func TestCollectSlowRequestQuery(t *testing.T) {
+	ctx := context.Background()
+	conf.InitConfig()
+	Init(ctx)
+
+	query, err := CollectSlowRequestQuery(ctx, 0, consts.HOST_LINGO_PUBLIC_BACKEND)
 	if err != nil {
 		fmt.Println(err)
 	} else {

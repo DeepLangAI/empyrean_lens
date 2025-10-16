@@ -601,6 +601,7 @@ type CollectSlowDetail struct {
 	Env      string    `json:"Env,omitempty"`
 	EntryId  string    `json:"EntryId,omitempty"`
 	EntryLen int       `json:"EntryLen,omitempty"`
+	URL      string    `json:"URL,omitempty"`
 }
 
 func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverviews, error) {
@@ -610,8 +611,17 @@ func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverview
 	// 优化将每个接口每次调用的耗时写入数据库，每次只记录一个平均值入库。SumCostTime做暂存map，索引为bovs的数组下标。
 	SumCostTime := map[int]float64{}
 
+	get2Point := func(number float64) float64 {
+		return math.Round(number*100) / 100
+	}
+
 	for host, _ := range consts.NGINX_INGRESS_COLLECT_SLOW_APIS {
-		totalLog, err := CollectTotalRequestQuery(ctx, daysLookback, host)
+		statisticlLog, err := CollectStatisticRequestQuery(ctx, daysLookback, host)
+		if err != nil {
+			return nil, err
+		}
+
+		slowlLogs, err := CollectSlowRequestQuery(ctx, daysLookback, host)
 		if err != nil {
 			return nil, err
 		}
@@ -627,41 +637,38 @@ func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverview
 			}
 		}
 
-		for _, log := range totalLog {
+		for _, log := range statisticlLog {
 			index := OverviewsMapByApi[log.CleanUrl]
-			bovs[index].TotalReq += 1
 
-			if log.Status != 0 && log.Status >= 500 && log.Status < 600 {
-				bovs[index].FailReq += 1
-			}
+			bovs[index].TotalReq = int64(log.TotalLogsNum)
+			bovs[index].FailReq = int64(log.SlowLogsNum)
+			bovs[index].SlowReq = int64(log.SlowLogsNum)
 
-			// bovs[index].Costs = append(bovs[index].Costs, log.Cost)
-			SumCostTime[index] += log.Cost
-			if log.Cost > consts.SLOWQUERY_THRESHOLD_COLLECT_SLOW_API {
-				bovs[index].SlowReq += 1
+			// 直接存平均值，接口调用次数过多，这个地方有性能瓶颈
+			bovs[index].Costs = append(bovs[index].Costs, get2Point(log.AvgCost))
+		}
 
-				if log.TraceId != "" && len(bovs[index].SlowDetails) < consts.SLOWQUERY_DETAIL_THRESHOLD {
-					// Nginx日志里没有SlowDetail字段，需要手动拼接成json
-					alias := utils.SplitAlias(bovs[index].Name)
-					bsDetail := CollectSlowDetail{
-						CoreName: alias[2],
-						Node:     alias[0],
-						Cost:     log.Cost,
-						TraceId:  log.TraceId,
-						Time:     log.Time,
-						UserId:   log.UserId,
-					}
+		for _, log := range slowlLogs {
+			index := OverviewsMapByApi[log.CleanUrl]
 
-					slowDetail := utils.JSONMarshal(bsDetail)
-
-					bovs[index].SlowDetails = append(bovs[index].SlowDetails, slowDetail)
+			if log.TraceId != "" && len(bovs[index].SlowDetails) < consts.SLOWQUERY_DETAIL_THRESHOLD {
+				// Nginx日志里没有SlowDetail字段，需要手动拼接成json
+				alias := utils.SplitAlias(bovs[index].Name)
+				bsDetail := CollectSlowDetail{
+					CoreName: alias[2],
+					Node:     alias[0],
+					Cost:     log.Cost,
+					TraceId:  log.TraceId,
+					Time:     log.Time,
+					UserId:   log.UserId,
+					URL:      log.CleanUrl,
 				}
+
+				slowDetail := utils.JSONMarshal(bsDetail)
+
+				bovs[index].SlowDetails = append(bovs[index].SlowDetails, slowDetail)
 			}
 		}
-	}
-
-	get2Point := func(number float64) float64 {
-		return math.Round(number*100) / 100
 	}
 
 	for i := range bovs {

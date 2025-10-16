@@ -963,6 +963,14 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 			Alias: "【今日TAB】【后端】专题feed流",
 		},
 		{
+			Api:   "/api/feed/v1/topic/subscribe",
+			Alias: "【今日TAB】【后端】订阅专题",
+		},
+		{
+			Api:   "/api/feed/v1/topic/unsubscribe",
+			Alias: "【今日TAB】【后端】取消订阅专题",
+		},
+		{
 			Api:   "/api/feed/v1/user_subscribe/list",
 			Alias: "【订阅TAB】【后端】我的订阅列表",
 		},
@@ -983,12 +991,44 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 			Alias: "【订阅TAB】【后端】订阅频道",
 		},
 		{
+			Api:   "/api/feed/v1/user_subscribe/delete",
+			Alias: "【订阅TAB】【后端】删除订阅关系",
+		},
+		{
+			Api:   "/api/feed/v1/user_subscribe/batch_upsert",
+			Alias: "【订阅TAB】【后端】批量创建订阅关系",
+		},
+		{
+			Api:   "/api/feed/v1/user_subscribe/sort",
+			Alias: "【订阅TAB】【后端】订阅列表排序",
+		},
+		{
+			Api:   "/api/feed/v1/user_subscribe/check",
+			Alias: "【订阅TAB】【后端】批量检查用户订阅",
+		},
+		{
 			Api:   "/api/feed/v1/subscription_channel/upsert",
 			Alias: "【订阅TAB】【后端】创建频道",
 		},
 		{
 			Api:   "/api/feed/v1/subscription_channel/category",
 			Alias: "【发现页】【后端】频道广场分类",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/aigc_info",
+			Alias: "【发现页】【后端】生成频道信息",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/info_options",
+			Alias: "【发现页】【后端】获取频道信息选项",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/add_opml",
+			Alias: "【发现页】【后端】导入opml订阅源数据并创建频道",
+		},
+		{
+			Api:   "/api/feed/v1/subscription_channel/parse_status",
+			Alias: "【发现页】【后端】rss链接解析以及频道创建状态",
 		},
 		{
 			Api:   "/api/feed/v1/feed/recommend",
@@ -1023,6 +1063,10 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 			Alias: "【订阅】【后端】获取信源分类列表",
 		},
 		{
+			Api:   "/api/feed/v1/info_source/category",
+			Alias: "【订阅】【后端】获取信源分类列表 (频道版本前老 app 使用)",
+		},
+		{
 			Api:   "/api/feed/v1/subscription/delete",
 			Alias: "【订阅】【后端】删除用户订阅",
 		},
@@ -1037,6 +1081,90 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 		{
 			Api:   "/api/feed/v1/user_subscribe/check",
 			Alias: "【订阅】【后端】频道check",
+		},
+		{
+			Api:   "/api/feed/v1/resource/wechat_author/list",
+			Alias: "【订阅】【后端】供应商获取需要抓取的公众号作者",
+		},
+		{
+			Api:   "/api/feed/v1/resource/wechat_author/provider/updateStatus",
+			Alias: "【订阅】【后端】供应商状态更新",
+		},
+		{
+			Api:   "/api/feed/v1/resource/wechat_article/add",
+			Alias: "【订阅】【后端】添加公众号文章（队列）",
+		},
+		{
+			Api:   "/api/feed/v1/lingowhale_daily/cal",
+			Alias: "【语鲸日报】【后端】计算语鲸日报",
+		},
+		{
+			Api:   "/api/feed/v1/lingowhale_daily/get_voice_info",
+			Alias: "【语鲸日报】【后端】获取语鲸日报语音详情",
+		},
+		{
+			Api:   "/api/feed/v1/lingowhale_daily/polling",
+			Alias: "【语鲸日报】【后端】日报轮训接口",
+		},
+		{
+			Api:   "/api/feed/v1/anonymous_login/bind",
+			Alias: "【匿名登录】【后端】匿名登录绑定用户",
+		},
+		{
+			Api:   "/api/feed/v1/op_status/report",
+			Alias: "【其他接口】【后端】上报状态",
+		},
+		{
+			Api:   "/api/feed/v1/op_status/get",
+			Alias: "【其他接口】【后端】获取状态",
+		},
+		{
+			Api:   "/api/feed/v1/app_version/latest",
+			Alias: "【其他接口】【后端】获取app最新版本",
+		},
+		{
+			Api:   "/api/feed/v1/jiguang/bind_device",
+			Alias: "【其他接口】【后端】极光设备绑定",
+		},
+		{
+			Api:   "/api/feed/v1/hot/list",
+			Alias: "【热点榜单】【后端】热点榜单列表",
+		},
+		{
+			Api:   "/api/feed/v1/search/list",
+			Alias: "【搜索】【后端】列表搜索",
+		},
+		{
+			Api:   "/api/feed/v1/search_history/list",
+			Alias: "【搜索记录】【后端】搜索历史记录",
+		},
+		{
+			Api:   "/api/feed/v1/search_history/delete",
+			Alias: "【搜索记录】【后端】删除历史记录",
+		},
+		{
+			Api:   "/api/feed/v1/utils/file/upload",
+			Alias: "【工具类】【后端】上传文件",
+		},
+		{
+			Api:   "/api/feed/v1/share/parse",
+			Alias: "【分享】【后端】分享口令解析",
+		},
+		{
+			Api:   "/api/feed/v1/user_config/get",
+			Alias: "【用户配置】【后端】获取用户配置",
+		},
+		{
+			Api:   "/api/feed/v1/songsu/sync",
+			Alias: "【其他接口】【后端】同步松鼠快看数据",
+		},
+		{
+			Api:   "/api/feed/v1/songsu/status",
+			Alias: "【其他接口】【后端】查询松鼠快看是否同步",
+		},
+		{
+			Api:   "/api/feed/v1/model/smart_outline",
+			Alias: "【模型生成接口】【后端】模型生成接口",
 		},
 	},
 	HOST_LINGO_BACKEND: {
@@ -1079,6 +1207,112 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 		{
 			Api:   "/api/plugin/articles/summary_inc/outline",
 			Alias: "【单文档】【后端】大纲增量生成",
+		},
+	},
+	HOST_LINGO_INNER_BACKED: {
+		{
+			Api:   "/iapi/feed/v1/novel_form/get",
+			Alias: "【订阅-inner】【后端】获取新内容形态的详情",
+		},
+		{
+			Api:   "/iapi/feed/v1/subscription_channel/search",
+			Alias: "【发现页-inner】【后端】内部搜索频道",
+		},
+		{
+			Api:   "/iapi/feed/v1/monitor/article_exist",
+			Alias: "【其他接口-inner】【后端】判断微信文章是否存在",
+		},
+		{
+			Api:   "/iapi/feed/v1/share/get",
+			Alias: "【分享-inner】【后端】获取分享透传信息",
+		},
+		{
+			Api:   "/iapi/feature/v1/user/upsert",
+			Alias: "【用户特征-inner】【后端】更新",
+		},
+		{
+			Api:   "/iapi/feature/v1/user/list",
+			Alias: "【用户特征-inner】【后端】列表",
+		},
+		{
+			Api:   "/iapi/feature/v1/item/list",
+			Alias: "【物品特征-inner】【后端】列表",
+		},
+		{
+			Api:   "/iapi/feature/v1/item/recent_pos_behavior",
+			Alias: "【物品特征-inner】【后端】获取用户最近有积极操作的物品列表",
+		},
+		{
+			Api:   "/iapi/feature/v1/item/cal_feature",
+			Alias: "【物品特征-inner】【后端】计算物品特征",
+		},
+		{
+			Api:   "/iapi/feature/v1/item/del_feature",
+			Alias: "【物品特征-inner】【后端】删除物品特征",
+		},
+		{
+			Api:   "/iapi/feature/v1/item/search",
+			Alias: "【物品特征-inner】【后端】搜索item",
+		},
+		{
+			Api:   "/iapi/feature/v1/item/scan_feature",
+			Alias: "【物品特征-inner】【后端】Scan物品特征",
+		},
+		{
+			Api:   "/iapi/feature/v1/item/upsert_dimension",
+			Alias: "【物品特征-inner】【后端】更新细分维度",
+		},
+		{
+			Api:   "/iapi/feature/v1/behavior/report",
+			Alias: "【用户行为-inner】【后端】行为报告",
+		},
+		{
+			Api:   "/iapi/feature/v1/behavior/cal_feature",
+			Alias: "【用户行为-inner】【后端】特征计算",
+		},
+		{
+			Api:   "/iapi/feature/v1/behavior/count",
+			Alias: "【用户行为-inner】【后端】统计用户行为",
+		},
+		{
+			Api:   "/iapi/feature/v1/behavior/list",
+			Alias: "【用户行为-inner】【后端】行为list",
+		},
+		{
+			Api:   "/iapi/feature/v1/anonymous_login/bind",
+			Alias: "【匿名登录-inner】【后端】匿名登录绑定用户",
+		},
+		{
+			Api:   "/iapi/feature/v1/cluster/sim_resource",
+			Alias: "【聚类-inner】【后端】相似文章聚类",
+		},
+		{
+			Api:   "/iapi/feature/v1/cluster/search_result",
+			Alias: "【聚类-inner】【后端】查找聚类结果",
+		},
+		{
+			Api:   "/iapi/feature/v1/cluster/get_result",
+			Alias: "【聚类-inner】【后端】获取聚类结果",
+		},
+		{
+			Api:   "/iapi/feature/v1/cluster/search_cluster_ids_by_center",
+			Alias: "【聚类-inner】【后端】根据中心id 查找聚类id",
+		},
+		{
+			Api:   "/iapi/feature/v1/cluster/search_cluster_ids_by_center_entry",
+			Alias: "【聚类-inner】【后端】兜底策略：根据中心文章id 查找最新的一条聚类 id",
+		},
+		{
+			Api:   "/iapi/feature/v1/cluster/search_cluster_ids_by_center_entry",
+			Alias: "【聚类-inner】【后端】兜底策略：根据中心文章id 查找最新的一条聚类 id",
+		},
+		{
+			Api:   "/iapi/feature/v1/cluster/merge_result",
+			Alias: "【聚类-inner】【后端】合并聚类结果",
+		},
+		{
+			Api:   "/iapi/feature/v1/cluster/multi_summary",
+			Alias: "【聚类-inner】【后端】通过聚类结果生成多文档",
 		},
 	},
 }

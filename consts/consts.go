@@ -944,23 +944,23 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 	HOST_LINGO_PUBLIC_BACKEND: {
 		{
 			Api:   "/api/feed/v1/lingowhale_daily/list",
-			Alias: "【今日TAB】【后端】自动拉取日报列表",
+			Alias: "【今日TAB】【后端】日报列表",
 		},
 		{
 			Api:   "/api/feed/v1/lingowhale_daily/get",
-			Alias: "【今日TAB】【后端】打开日报详情",
+			Alias: "【今日TAB】【后端】日报详情",
 		},
 		{
 			Api:   "/api/feed/v1/topic/list",
-			Alias: "【今日TAB】【后端】我的专题聚览列表",
+			Alias: "【今日TAB】【后端】我的专题",
 		},
 		{
 			Api:   "/api/feed/v1/topic/get",
-			Alias: "【今日TAB】【后端】打开专题详情",
+			Alias: "【今日TAB】【后端】专题详情",
 		},
 		{
 			Api:   "/api/feed/v1/feed/topic",
-			Alias: "【今日TAB】【后端】专题feed流",
+			Alias: "【今日TAB】【后端】专题详情页文章列表",
 		},
 		{
 			Api:   "/api/feed/v1/topic/subscribe",
@@ -996,7 +996,7 @@ var NGINX_INGRESS_COLLECT_SLOW_APIS = map[string][]API{
 		},
 		{
 			Api:   "/api/feed/v1/user_subscribe/batch_upsert",
-			Alias: "【订阅TAB】【后端】批量创建订阅关系",
+			Alias: "【订阅TAB】【后端】批量订阅频道",
 		},
 		{
 			Api:   "/api/feed/v1/user_subscribe/sort",

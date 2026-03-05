@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -56,6 +57,17 @@ func GetApiAlias(hostName, apiName string) string {
 		}
 	}
 	return apiName
+}
+
+func SplitAlias(s string) []string {
+	var res []string
+	re := regexp.MustCompile(`【(.*?)】【(.*?)】(.*)`)
+	matches := re.FindStringSubmatch(s)
+	if len(matches) == 4 {
+		res = append(res, matches[1], matches[2], matches[3])
+		return res
+	}
+	return res
 }
 
 func TimeSub(t time.Time) string {

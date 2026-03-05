@@ -364,6 +364,20 @@ func TestMultiTotalRequestQuery(t *testing.T) {
 	}
 }
 
+func TestCollectGeneralOfDay(t *testing.T) {
+	ctx := context.Background()
+	Init(ctx)
+
+	ovs, err := CollectGeneralOfDay(ctx, 0)
+	if err != nil {
+		t.Error(err)
+	} else {
+		for _, ov := range ovs {
+			fmt.Println(ov)
+		}
+	}
+}
+
 func TestQaMiddlewareLogQuery(t *testing.T) {
 	ctx := context.Background()
 	Init(ctx)

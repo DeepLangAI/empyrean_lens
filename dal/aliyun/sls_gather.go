@@ -7,6 +7,7 @@ import (
 	"empyrean_lens/utils"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -380,6 +381,12 @@ func SceneGeneralOfDay(ctx context.Context, daysLookback int) (*SceneOverviews, 
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiMergeOverview)
 	overviews.Overviews = append(overviews.Overviews, multiOv.MultiUploadOverview)
 
+	backedOv, err := CollectGeneralOfDay(ctx, daysLookback)
+
+	for _, bov := range backedOv {
+		overviews.Overviews = append(overviews.Overviews, bov)
+	}
+
 	abstractOverview := SceneOverview{Name: "单文档：全文速览", Costs: []float64{}, TotalReq: int64(cnts["0"]), FailReq: 0}
 	outlineOverview := SceneOverview{Name: "单文档：智能大纲", Costs: []float64{}, TotalReq: int64(cnts["1"]), FailReq: 0}
 	viewpointOverview := SceneOverview{Name: "单文档：关键信息", Costs: []float64{}, TotalReq: int64(cnts["3"]), FailReq: 0}
@@ -579,6 +586,100 @@ func MultiGeneralOfDay(ctx context.Context, daysLookback int) (*MultiOverviews, 
 	ov.MultiAnalysisOverview = analysis_anlz
 	ov.MultiUploadOverview = upload_anlz
 	return ov, nil
+}
+
+type CollectOverviews []SceneOverview
+
+type CollectSlowDetail struct {
+	CoreName string    `json:"CoreName,omitempty"`
+	Node     string    `json:"Node,omitempty"`
+	Cost     float64   `json:"Cost,omitempty"`
+	TraceId  string    `json:"TraceId,omitempty"`
+	Time     time.Time `json:"Time"`
+	UserId   string    `json:"UserId,omitempty"`
+	Status   int       `json:"Status,omitempty"`
+	Env      string    `json:"Env,omitempty"`
+	EntryId  string    `json:"EntryId,omitempty"`
+	EntryLen int       `json:"EntryLen,omitempty"`
+	URL      string    `json:"URL,omitempty"`
+}
+
+func CollectGeneralOfDay(ctx context.Context, daysLookback int) (CollectOverviews, error) {
+	bovs := CollectOverviews{}
+	// 需要聚合查询的日志和SLOW_APIS的数组，根据url进行聚合，OverviewsMapByApi[url]表示这个url所在SceneOverview数组的位置
+	OverviewsMapByApi := map[string]int{}
+	// 优化将每个接口每次调用的耗时写入数据库，每次只记录一个平均值入库。SumCostTime做暂存map，索引为bovs的数组下标。
+	SumCostTime := map[int]float64{}
+
+	get2Point := func(number float64) float64 {
+		return math.Round(number*100) / 100
+	}
+
+	for host, _ := range consts.NGINX_INGRESS_COLLECT_SLOW_APIS {
+		statisticlLog, err := CollectStatisticRequestQuery(ctx, daysLookback, host)
+		if err != nil {
+			return nil, err
+		}
+
+		slowlLogs, err := CollectSlowRequestQuery(ctx, daysLookback, host)
+		if err != nil {
+			return nil, err
+		}
+
+		if apis, ok := consts.NGINX_INGRESS_COLLECT_SLOW_APIS[host]; ok {
+			for _, api := range apis {
+				so := SceneOverview{Name: api.Alias}
+				bovs = append(bovs, so)
+
+				index := len(bovs) - 1
+				OverviewsMapByApi[api.Api] = index
+				SumCostTime[index] = 0.0
+			}
+		}
+
+		for _, log := range statisticlLog {
+			index := OverviewsMapByApi[log.CleanUrl]
+
+			bovs[index].TotalReq = int64(log.TotalLogsNum)
+			bovs[index].FailReq = int64(log.SlowLogsNum)
+			bovs[index].SlowReq = int64(log.SlowLogsNum)
+
+			// 直接存平均值，接口调用次数过多，这个地方有性能瓶颈
+			bovs[index].Costs = append(bovs[index].Costs, get2Point(log.AvgCost))
+		}
+
+		for _, log := range slowlLogs {
+			index := OverviewsMapByApi[log.CleanUrl]
+
+			if log.TraceId != "" && len(bovs[index].SlowDetails) < consts.SLOWQUERY_DETAIL_THRESHOLD {
+				// Nginx日志里没有SlowDetail字段，需要手动拼接成json
+				alias := utils.SplitAlias(bovs[index].Name)
+				bsDetail := CollectSlowDetail{
+					CoreName: alias[2],
+					Node:     alias[0],
+					Cost:     log.Cost,
+					TraceId:  log.TraceId,
+					Time:     log.Time,
+					UserId:   log.UserId,
+					URL:      log.CleanUrl,
+				}
+
+				slowDetail := utils.JSONMarshal(bsDetail)
+
+				bovs[index].SlowDetails = append(bovs[index].SlowDetails, slowDetail)
+			}
+		}
+	}
+
+	for i := range bovs {
+		if bovs[i].TotalReq != 0 {
+			bovs[i].Costs = append(bovs[i].Costs, get2Point(SumCostTime[i]/float64(bovs[i].TotalReq)))
+			bovs[i].FailRate = get2Point(float64(bovs[i].FailReq) / float64(bovs[i].TotalReq))
+			bovs[i].SlowRate = get2Point(float64(bovs[i].SlowReq) / float64(bovs[i].TotalReq))
+		}
+	}
+
+	return bovs, nil
 }
 
 func SceneGeneralOverview(ctx context.Context, days []int) []SceneOverviews {

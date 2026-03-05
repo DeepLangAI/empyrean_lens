@@ -3614,3 +3614,188 @@ order by time desc
 	}
 	return result, nil
 }
+
+type CollectStatisticLog struct {
+	CleanUrl      string
+	TotalLogsNum  int
+	FailedLogsNum int
+	AvgCost       float64
+	SlowLogsNum   int
+}
+
+func CollectStatisticRequestQuery(ctx context.Context, daysLookback int, host string) ([]CollectStatisticLog, error) {
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	//fromdayStr := lookbackDay.Format("2006-01-02")
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.NGINX_LOG_STORE_NAME)
+
+	query := `
+host: %v %s| SELECT 
+    regexp_replace(url, '\?.*$', '') AS clean_url,
+    count(*) AS TotalLogsNum,
+    count_if(status <> 200) AS FailedLogsNum,
+    avg(request_time) AS AvgCost,
+    count_if(request_time > %d) AS SlowLogsNum
+  FROM log 
+  WHERE 
+    method IN ('GET', 'POST') 
+    AND regexp_replace(url, '\?.*$', '') IN (%s)
+  GROUP BY clean_url
+  ORDER BY TotalLogsNum DESC
+LIMIT %d
+`
+	apiDetails := consts.NGINX_INGRESS_COLLECT_SLOW_APIS[host]
+	formatedApis := []string{}
+	for _, api := range apiDetails {
+		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api.Api))
+	}
+	query = fmt.Sprintf(query, host, consts.FilterProbeUser, int(consts.SLOWQUERY_THRESHOLD_COLLECT_SLOW_API), strings.Join(formatedApis, ",\n"), consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
+	// 查询日志
+	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
+
+	if err != nil {
+		hlog.CtxErrorf(ctx, "CollectStatisticRequestQuery query log error: %v", err)
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "日期%v，查nginxIngress，host: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), host, resp.Count)
+
+	var bglogs []CollectStatisticLog
+	for _, log := range resp.Logs {
+		totalLogsNum, e := strconv.Atoi(log["TotalLogsNum"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse TotalLogsNum error: %v", e)
+			continue
+		}
+
+		failedLogsNum, e := strconv.Atoi(log["FailedLogsNum"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse FailedLogsNum error: %v", e)
+			continue
+		}
+
+		avgCost, e := strconv.ParseFloat(log["AvgCost"], 64)
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse cost error: %v", e)
+			continue
+		}
+
+		slowLogsNum, e := strconv.Atoi(log["SlowLogsNum"])
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse SlowLogsNum error: %v", e)
+			continue
+		}
+
+		bglog := CollectStatisticLog{
+			CleanUrl:      log["clean_url"],
+			TotalLogsNum:  totalLogsNum,
+			FailedLogsNum: failedLogsNum,
+			AvgCost:       avgCost,
+			SlowLogsNum:   slowLogsNum,
+		}
+		bglogs = append(bglogs, bglog)
+	}
+	return bglogs, nil
+}
+
+type CollectSlowLog struct {
+	CleanUrl string
+	Cost     float64
+	Time     time.Time
+	TraceId  string
+	UserId   string
+}
+
+func CollectSlowRequestQuery(ctx context.Context, daysLookback int, host string) ([]CollectSlowLog, error) {
+	lookbackDay := time.Now().AddDate(0, 0, -daysLookback)
+	//fromdayStr := lookbackDay.Format("2006-01-02")
+	from := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 0, 0, 0, 0, lookbackDay.Location()).Unix()
+	to := time.Date(lookbackDay.Year(), lookbackDay.Month(), lookbackDay.Day(), 23, 59, 59, 999999999, lookbackDay.Location()).Unix()
+
+	logstore, err := client.GetLogStore(consts.PROJECT_NAME, consts.NGINX_LOG_STORE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "get logstore: %v success", consts.NGINX_LOG_STORE_NAME)
+
+	query := `
+host: %v %s| 
+SELECT 
+  clean_url,
+  trace_id,
+  request_time,
+  time,
+  user_id
+FROM (
+  SELECT 
+    regexp_replace(url, '\?.*$', '') AS clean_url,
+    trace_id,
+    request_time,
+    time,
+    user_id,
+    __time__,
+    row_number() OVER (PARTITION BY regexp_replace(url, '\?.*$', '') ORDER BY __time__ DESC) AS rn
+  FROM log
+  WHERE 
+    method IN ('GET', 'POST') 
+    AND regexp_replace(url, '\?.*$', '') IN (%s)
+    AND request_time > %d
+) 
+WHERE rn <= %d
+ORDER BY clean_url, __time__ DESC
+LIMIT %d
+`
+	apiDetails := consts.NGINX_INGRESS_COLLECT_SLOW_APIS[host]
+	formatedApis := []string{}
+	for _, api := range apiDetails {
+		formatedApis = append(formatedApis, fmt.Sprintf("'%s'", api.Api))
+	}
+	query = fmt.Sprintf(query, host, consts.FilterProbeUser, strings.Join(formatedApis, ",\n"), int(consts.SLOWQUERY_THRESHOLD_COLLECT_SLOW_API), consts.SLOWQUERY_DETAIL_THRESHOLD, consts.LOG_QUERY_LIMIT)
+	hlog.CtxDebugf(ctx, "nginx sql query: %v", query)
+	// 查询日志
+	//resp, err := logstore.GetLogs("", from, to, query, consts.LOG_QUERY_LIMIT, 0, false)
+	resp, err := QueryLogsWithRetry(ctx, logstore, from, to, query)
+
+	if err != nil {
+		hlog.CtxErrorf(ctx, "CollectSlowRequestQuery query log error: %v", err)
+		return nil, err
+	}
+
+	hlog.CtxInfof(ctx, "日期%v，查nginxIngress，host: %v, 共%v条日志", time.Unix(from, 0).Format("2006-01-02"), host, resp.Count)
+
+	var slogs []CollectSlowLog
+	for _, log := range resp.Logs {
+
+		requestTime, e := strconv.ParseFloat(log["request_time"], 64)
+		if e != nil {
+			hlog.CtxErrorf(ctx, "parse request_time error: %v", e)
+			continue
+		}
+
+		t, err := time.Parse("02/Jan/2006:15:04:05", log["time"])
+		if err != nil {
+			hlog.CtxErrorf(ctx, "parse time error: %v", err)
+			continue
+		}
+
+		slog := CollectSlowLog{
+			CleanUrl: log["clean_url"],
+			Cost:     requestTime,
+			Time:     t,
+			TraceId:  log["trace_id"],
+			UserId:   log["user_id"],
+		}
+		slogs = append(slogs, slog)
+	}
+	return slogs, nil
+}

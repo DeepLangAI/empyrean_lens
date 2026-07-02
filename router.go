@@ -4,18 +4,63 @@ package main
 
 import (
 	"context"
+	"embed"
+	"io/fs"
+	"mime"
+	"path/filepath"
+	"strings"
+
 	handler "empyrean_lens/biz/handler"
+
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
-	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	hertzconsts "github.com/cloudwego/hertz/pkg/protocol/consts"
 )
+
+//go:embed web/dist
+var webDist embed.FS
 
 // customizeRegister registers customize routers.
 func customizedRegister(r *server.Hertz) {
 	r.GET("/ping", handler.Ping)
-	r.NoRoute(func(c context.Context, ctx *app.RequestContext) {
-		ctx.Redirect(consts.StatusOK, []byte("/api/log/overview"))
+
+	subFS, err := fs.Sub(webDist, "web/dist")
+	if err != nil {
+		return
+	}
+	indexHTML, err := fs.ReadFile(subFS, "index.html")
+	if err != nil {
+		// 前端未构建（web/dist/index.html 不存在），跳过静态文件服务
+		return
+	}
+
+	spaFallback := func(_ context.Context, c *app.RequestContext) {
+		c.Data(hertzconsts.StatusOK, "text/html; charset=utf-8", indexHTML)
+	}
+
+	// NoRoute：先尝试从 embed.FS 读取静态文件，否则返回 index.html
+	r.NoRoute(func(_ context.Context, c *app.RequestContext) {
+		path := strings.TrimPrefix(string(c.URI().Path()), "/")
+		if path == "" {
+			spaFallback(nil, c)
+			return
+		}
+		data, err := fs.ReadFile(subFS, path)
+		if err != nil {
+			spaFallback(nil, c)
+			return
+		}
+		ext := filepath.Ext(path)
+		mimeType := mime.TypeByExtension(ext)
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+		if strings.HasPrefix(path, "assets/") {
+			c.Header("Cache-Control", "public, max-age=31536000, immutable")
+		}
+		c.Data(hertzconsts.StatusOK, mimeType, data)
 	})
 
-	// your code ...
+	// / 根路由直接返回 index.html（NoRoute 不拦截已注册路由）
+	r.GET("/", spaFallback)
 }

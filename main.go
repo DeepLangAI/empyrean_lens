@@ -3,121 +3,21 @@
 package main
 
 import (
-	"context"
-	"empyrean_lens/tools"
-	"path/filepath"
-	"strings"
-	"time"
-
 	"empyrean_lens/conf"
-	"empyrean_lens/consts"
-	"empyrean_lens/dal"
-	"empyrean_lens/service/link_trace"
-	"empyrean_lens/service/mongo/empyrean_lens"
-	"empyrean_lens/service/passport"
-	"empyrean_lens/utils"
-	"empyrean_lens/utils/gse"
 
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/logger"
-	"github.com/cloudwego/hertz/pkg/app"
-	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
+	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/metrics"
 	"github.com/cloudwego/hertz/pkg/app/server"
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
-func SaveUserLogsOnce() {
-	ctx := context.Background()
-	empyrean_lens.SaveOnceUploadLogByDate()
-	empyrean_lens.SaveOnceGenerateErrlogByDate()
-	hlog.CtxInfof(ctx, "save user logs once success")
-}
-
-// 记录过去30天到数据到excel
-func InitExcelOnce() {
-	go func() {
-		ctx := context.Background()
-		timeStart := time.Now().Add(-30 * 24 * time.Hour)
-		for i := 0; i < 30; i++ {
-			link_trace.RecordExcel(ctx, timeStart.Add(time.Duration(i)*24*time.Hour))
-		}
-		hlog.CtxInfof(ctx, "init excel once success")
-	}()
-}
-
 func main() {
-
 	conf.InitConfig()
 	logger.Init(conf.GetConfig().Logger)
-	dal.Init()
-	// 初始化分词器词表
-	gse.InitGse()
-
-	//SaveUserLogsOnce()
-	InitExcelOnce()
-
-	runner := tools.ProbeRunner{}
-	runner.Run(context.Background())
+	// metrics init
+	metrics.Init(conf.GetConfig().Metrics)
 
 	h := server.Default(server.WithHostPorts(conf.GetConfig().Server.Port))
 
-	// Recovery 兜底策略
-	h.Use(recovery.Recovery(recovery.WithRecoveryHandler(RecoveryHandler)))
-
 	register(h)
-	staticFs(h)
 	h.Spin()
-}
-
-func staticFs(h *server.Hertz) {
-	root := utils.GetProjectPath()
-	loginPage, found := strings.CutPrefix(consts.INDEX_PATH, "/public")
-	c := context.Background()
-	if !found {
-		hlog.CtxErrorf(c, "index path error: %v", consts.INDEX_PATH)
-		return
-	}
-
-	h.StaticFS("/public", &app.FS{
-		Root: filepath.Join(root, "./static/"),
-		PathRewrite: func(ctx *app.RequestContext) []byte {
-			path := string(ctx.Path())
-			after, found := strings.CutPrefix(path, "/public")
-			if !found || after == loginPage {
-				return []byte(loginPage)
-			}
-
-			// 根据ip判断是否是内网访问
-			ip := ctx.ClientIP()
-			hlog.CtxInfof(c, "client ip`%v`", ip)
-			if utils.IsInnerIp(ip) {
-				return []byte(after)
-			}
-
-			cookie := string(ctx.Request.Header.Cookie(consts.LARK_COOKIE))
-			claim, err := utils.ParseJWT(cookie, conf.GetLark().JwtSecret)
-			if err != nil {
-				hlog.CtxErrorf(c, "jwt parse error: %+v", err)
-				return []byte(loginPage)
-			}
-
-			if passport.CheckCookie(c, claim) {
-				return []byte(after)
-			}
-
-			return []byte(loginPage)
-		},
-	})
-}
-
-func RecoveryHandler(c context.Context, ctx *app.RequestContext, err interface{}, stack []byte) {
-	defer func() {
-		if r := recover(); r != nil {
-			hlog.CtxErrorf(c, "[Recovery] panic recovered: %v", r)
-		}
-	}()
-	hlog.CtxErrorf(c, "[Recovery] err=%v\nstack=%s", err, stack)
-	hlog.CtxErrorf(c, "Client: %s", ctx.Request.Header.UserAgent())
-	//base := handler.BaseHandler{}
-	//base.ErrorResponse(c, ctx, &consts2.SystemErr, nil)
-	ctx.Abort()
 }

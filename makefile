@@ -1,5 +1,5 @@
 server:
-	hz update -idl ./server.thrift
+	hz update -idl ./idl/notice_webhook.thrift
 
 init_server:
 	hz new -module empyrean_lens

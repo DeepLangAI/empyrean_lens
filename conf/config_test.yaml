@@ -3,69 +3,11 @@ server:
   port: ":19001"
   name: "empyreanLens"
 
-mongo_lingo:
-  addr: "mongodb://svr_yanxubin:9fck23!g$i7k1%40eA@10.0.6.1:27017/empyrean_lens?authSource=admin&directConnection=true"
-  databaseName: lingo
-  maxPoolSize: 1000
-
-shence:
-  api_key: "#K-EkE7btXHodiCAwtJqyD3PPzDhrk0jYV5"
-  project: "production"
-  url: "https://shenyankeji.cloud.sensorsdata.cn/api/v3/analytics/v1/model/sql/query"
-
-mongo_plugin:
-  addr: "mongodb://svr_yanxubin:9fck23!g$i7k1%40eA@10.0.6.1:27017/plugin_collection?authSource=admin&directConnection=true"
-  databaseName: plugin_collection
-  maxPoolSize: 1000
-
-mongo_bi:
-  addr: "mongodb://svr_yanxubin:9fck23!g$i7k1%40eA@10.0.6.1:27017/lingowhale_bi?authSource=admin&directConnection=true"
-  databaseName: lingowhale_bi
-  maxPoolSize: 1000
-
-mongo_empyreanlens:
-  addr: "mongodb://svr_yanxubin:9fck23!g$i7k1%40eA@10.0.6.1:27017/empyrean_lens?authSource=admin&directConnection=true"
-  databaseName: empyrean_lens
-  maxPoolSize: 1000
-
 # 日志配置
 logger:
   log_path: './logs/system'
-  log_level: "error"
+  log_level: "debug"
 
-# redis:
-#   addrs: ["localhost:7000"]
-#   password: 'root'
-#   maxretries: 1
-
-redis:
-  addrs: ["47.92.241.26:6379"]
-  password: 'MK6MuYGay'
-  maxretries: 1
-
-oss:
-  endpoint: "oss-cn-zhangjiakou.aliyuncs.com"
-  accessKey: "REDACTED"
-  accessSecret: "REDACTED"
-
-mns_config:
-  access_key_id: "REDACTED"
-  access_key_secret: "REDACTED"
-  endpoint: "http://1092547886793620.mns.cn-zhangjiakou.aliyuncs.com"
-  queue_name: "save-link-trace-qa"
-
-# 飞书配置
-lark:
-  appId: "cli_a668c41a0f64d013"
-  appSecret: "REDACTED"
-  jwtSecret: "REDACTED"
-  auth:
-    names:
-    emails:
-    mobiles:
-    employee_nos:
-      - D077
-      - P104
-      - D013
-      - D067
-      - D041
+metrics:
+  log_store: "qa-metrics"
+  metric_prefix: "empyrean-lens"

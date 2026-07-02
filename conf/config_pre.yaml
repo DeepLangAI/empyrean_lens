@@ -3,89 +3,11 @@ server:
   port: ":19001"
   name: "empyreanLens"
 
-mongo_lingo:
-  # 安全起见，用只读账号
-  addr: "mongodb://svr_wenhao:unCNS0SLpHY%23S9Or2@dds-8vb43194a1bfeef41943-pub.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef42299-pub.mongodb.zhangbei.rds.aliyuncs.com:3717/lingo?replicaSet=mgset-518525368"
-  databaseName: lingo
-  maxPoolSize: 1000
-
-mongo_plugin:
-  addr: "mongodb://svr_lingowhale_plugin:M8Kf%25aMaNckhcn2C6@dds-8vb43194a1bfeef42.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef41.mongodb.zhangbei.rds.aliyuncs.com:3717/lingowhale_plugin?replicaSet=mgset-518525368"
-  databaseName: lingowhale_plugin
-  maxPoolSize: 1000
-
-mongo_bi:
-  addr: "mongodb://svr_lingowhale_bi:C1xvc_Umk81c8a@dds-8vb43194a1bfeef42.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef41.mongodb.zhangbei.rds.aliyuncs.com:3717/lingowhale_bi?replicaSet=mgset-518525368"
-  databaseName: lingowhale_bi
-  maxPoolSize: 1000
-
-mongo_empyreanlens:
-  addr: "mongodb://svr_empyrean_lens:D2xcKpc_Umk838U@dds-8vb43194a1bfeef42.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef41.mongodb.zhangbei.rds.aliyuncs.com:3717/empyrean_lens?replicaSet=mgset-518525368"
-  databaseName: empyrean_lens
-  maxPoolSize: 1000
-  shadow: ""
-
 # 日志配置
 logger:
-  log_path: '/opt/output/logs/system'
+  log_path: './logs/system'
   log_level: "info"
 
-redis:
-  addrs: ["deeplang-redis-private.redis.zhangbei.rds.aliyuncs.com:6379"]
-  username: "svr_query"
-  password: "REDACTED"
-
-shence:
-  api_key: "#K-EkE7btXHodiCAwtJqyD3PPzDhrk0jYV5"
-  project: "production"
-  url: "https://shenyankeji.cloud.sensorsdata.cn/api/v3/analytics/v1/model/sql/query"
-
-oss:
-  endpoint: "oss-cn-zhangjiakou.aliyuncs.com"
-  accessKey: "REDACTED"
-  accessSecret: "REDACTED"
-
-mns_config:
-  access_key_id: "REDACTED"
-  access_key_secret: "REDACTED"
-  endpoint: "http://1092547886793620.mns.cn-zhangjiakou.aliyuncs.com"
-  queue_name: "save-link-trace-prod"
-
-# 飞书配置
-lark:
-  appId: "cli_a668c41a0f64d013"
-  appSecret: "REDACTED"
-  jwtSecret: "REDACTED"
-  auth:
-    names:
-    emails:
-      - xinliang.li@deeplang.ai
-      - guoxin.li@deeplang.ai
-      - enbo.cui@deeplang.ai
-      - yinglin.zhang@deeplang.ai
-      - tingming.zhang@deeplang.ai
-      - jialin.hou@deeplang.ai
-      - fish.wang@deeplang.ai # Fish
-      - fanchao.qi@deeplang.ai # 凡超
-      - qichao.huo@deeplang.ai # 大勇
-    mobiles:
-    employee_nos:
-      - D077 # 闻豪
-      - P104 # 晨旭
-      - D013 # 勇哥
-      - D067 # 晋哥
-      - D041 # 振方
-      - D004 # 旭斌
-  # authNames:
-  #   - "郭晨旭"
-  #   - "闻豪"
-  #   - "刘勇"
-  #   - "程振方"
-  #   - "冯晋"
-  #   - "李鑫亮"
-  #   - "李国鑫"
-  #   - "崔恩博"
-  #   - "闫旭斌"
-  #   - "张盈麟"
-  #   - "张廷明"
-  #   - "侯佳林"
+metrics:
+  log_store: "pre-metrics"
+  metric_prefix: "empyrean-lens"

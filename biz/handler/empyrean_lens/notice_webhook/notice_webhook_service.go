@@ -4,7 +4,7 @@ package notice_webhook
 
 import (
 	"context"
-	"empyrean_lens/biz/model/empyrean_lens/notice_webhook"
+	notice_webhook "empyrean_lens/biz/model/empyrean_lens/notice_webhook"
 	"empyrean_lens/service"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -15,15 +15,11 @@ import (
 // SlsNoticeWebhook .
 // @router /api/v1/notice_webhook/sls_notice [POST]
 func SlsNoticeWebhook(ctx context.Context, c *app.RequestContext) {
-	var err error
-	var req notice_webhook.SlsNoticeWebhookReq
-	err = c.BindAndValidate(&req)
-	if err != nil {
-		c.String(consts.StatusBadRequest, err.Error())
-		return
+	req := notice_webhook.SlsNoticeWebhookReq{
+		RawBody: string(c.Request.Body()),
 	}
 	hlog.CtxInfof(ctx, "headers: %v", c.Request.Header.String())
-	hlog.CtxInfof(ctx, "body: %v", string(c.Request.Body()))
+	hlog.CtxInfof(ctx, "body len: %d", len(req.RawBody))
 
 	s := service.NewSlsNoticeWebhookService()
 	resp, bizErr := s.SlsNoticeWebhook(ctx, &req)

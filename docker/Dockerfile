@@ -15,10 +15,8 @@ RUN npm run build
 # 第二阶段：编译 Go 二进制
 FROM golang:1.23-alpine AS builder
 
-ENV GOPROXY="https://goproxy.cn,direct"
+ENV GOPROXY="https://mirrors.aliyun.com/goproxy"
 ENV GOPRIVATE="codeup.aliyun.com"
-ENV GONOSUMDB="*"
-ENV GOFLAGS="-mod=mod"
 
 RUN sed -i 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories \
     && apk update \

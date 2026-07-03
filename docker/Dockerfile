@@ -63,6 +63,7 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
 WORKDIR /opt/output
 
 COPY --from=builder /app/app ./
+COPY --from=builder /app/conf ./conf
 
 RUN mkdir -p logs
 

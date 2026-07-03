@@ -17,6 +17,8 @@ FROM golang:1.23-alpine AS builder
 
 ENV GOPROXY="https://goproxy.cn,direct"
 ENV GOPRIVATE="codeup.aliyun.com"
+ENV GONOSUMDB="*"
+ENV GOFLAGS="-mod=mod"
 
 RUN sed -i 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories \
     && apk update \

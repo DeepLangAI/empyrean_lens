@@ -18,7 +18,9 @@ FROM golang:1.23-alpine AS builder
 ENV GOPROXY="https://goproxy.cn,direct"
 ENV GOPRIVATE="codeup.aliyun.com"
 
-RUN apk add --no-cache git ca-certificates
+RUN sed -i 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories \
+    && apk update \
+    && apk add --no-cache git ca-certificates
 
 WORKDIR /app
 
@@ -48,7 +50,8 @@ FROM debian:bookworm-slim
 
 ENV TZ=Asia/Shanghai
 
-RUN apt-get update \
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         tzdata \

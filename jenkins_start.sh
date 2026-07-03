@@ -72,6 +72,7 @@ docker run \
 --cpus=1 \
 -e MODE_ENV=test \
 -v /export/${jobname}-backend-log/${env}/logs:/opt/output/logs \
+-p ${port}:${server_port} \
 --name=${deploy_env}-${env} \
 ${mirror_store}/lingo/${deploy_env}-${env}:${BUILD_TIMESTAMP}
 EOF

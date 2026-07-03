@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	notice_webhook "empyrean_lens/biz/model/empyrean_lens/notice_webhook"
@@ -103,9 +104,16 @@ func buildSlsAlertCard(alert *notice_webhook.SlsAlert, colNames []string) feishu
 		elements = append(elements, buildFireResultsTable(alert.FireResults, colNames))
 	}
 
+	var links []string
+	if alert.Project != "" && alert.AlertID != "" {
+		alertURL := fmt.Sprintf("https://sls.console.aliyun.com/lognext/project/%s/alert/%s", alert.Project, alert.AlertID)
+		links = append(links, fmt.Sprintf("[查看/修改告警](%s)", alertURL))
+	}
 	if len(alert.Results) > 0 && alert.Results[0].QueryURL != "" {
-		link := fmt.Sprintf("[查看查询详情](%s)", alert.Results[0].QueryURL)
-		elements = append(elements, feishuMarkdownElement{Tag: "markdown", Content: link})
+		links = append(links, fmt.Sprintf("[查看查询详情](%s)", alert.Results[0].QueryURL))
+	}
+	if len(links) > 0 {
+		elements = append(elements, feishuMarkdownElement{Tag: "markdown", Content: strings.Join(links, "　　")})
 	}
 
 	return feishuCardMsg{

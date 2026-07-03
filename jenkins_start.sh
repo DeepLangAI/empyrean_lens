@@ -49,7 +49,7 @@ else
 fi
 
 echo ${deeplangenv}
-
+BUILD_TIMESTAMP=$(date +%Y%m%d%H%M%S)
 # 使用项目自带的多阶段 Dockerfile 构建镜像
 # CODEUP_USER / CODEUP_PASSWORD 由 Jenkins 参数传入，用于拉取私有 Go 依赖
 docker build \

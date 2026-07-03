@@ -13,7 +13,7 @@ COPY web/ ./
 RUN npm run build
 
 # 第二阶段：编译 Go 二进制
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 ENV GOPROXY="https://goproxy.cn,direct"
 ENV GOPRIVATE="codeup.aliyun.com"
@@ -63,7 +63,7 @@ COPY --from=builder /app/app ./
 
 RUN mkdir -p logs
 
-EXPOSE 19001
+EXPOSE 8080
 
 # MODE_ENV 通过运行时环境变量设置（dev / pre / prod）
 CMD ["./app"]

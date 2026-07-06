@@ -92,6 +92,7 @@ func AuthMiddleware() *jwt.HertzJWTMiddleware {
 
 			LoginResponse: func(ctx context.Context, c *app.RequestContext, code int, token string, expire time.Time) {
 				redirectURL := string(c.Cookie(cookieOAuthRedirect))
+				hlog.CtxInfof(ctx, "[auth] login success, redirect_cookie=%q allowed=%v", redirectURL, isAllowedRedirect(redirectURL))
 				clearTempCookies(c)
 				if redirectURL != "" && isAllowedRedirect(redirectURL) {
 					// 跨域登录：带 token 跳回接入方服务
@@ -135,6 +136,7 @@ func (s *AuthService) Login(ctx context.Context, c *app.RequestContext) {
 	redirect := string(c.Query("redirect"))
 	if redirect != "" {
 		if isAllowedRedirect(redirect) {
+			hlog.CtxInfof(ctx, "[auth] cross-domain login, redirect=%s", redirect)
 			setTempCookie(c, cookieOAuthRedirect, redirect, 5*60)
 		} else {
 			hlog.CtxWarnf(ctx, "[auth] redirect not allowed: %s", redirect)

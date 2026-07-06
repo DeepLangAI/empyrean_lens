@@ -9,6 +9,13 @@ logger:
   log_level: "debug"
 
 
+redis:
+  addrs: [ "deeplang-redis-public-test.redis.zhangbei.rds.aliyuncs.com:6379" ]
+  username: "svr_chengzhenfang"
+  password: '1fck43!g$i7k1@eK'
+  use_tls: false
+
+
 metrics:
   log_store: "qa-metrics"
   metric_prefix: "empyrean-lens"
@@ -20,3 +27,17 @@ external_secret:
 
 notice:
   lingowhale_stability_webhook: "https://open.feishu.cn/open-apis/bot/v2/hook/00000000-0000-0000-0000-000000000000"
+
+feishu:
+  app_id: "cli_a668c41a0f64d013"       # 飞书开发者后台 App ID（凭证与基础信息）
+  app_secret: "REDACTED"   # 飞书开发者后台 App Secret
+  redirect_url: "https://b6d9-39-98-121-22.ngrok-free.app/auth/callback" # 需在安全设置中添加
+  jwt_secret: "dev-secret-please-replace-with-32chars"
+  cookie_domain: ""  # 本地留空，生产填 .lingowhale.com
+  oauth_clients:
+    - client_id: "oauth-demo"
+      client_secret: "demo-secret-change-me"
+      name: "OAuth Demo 测试服务"
+      redirect_uris:
+        - "http://localhost:8888/auth/callback"
+        - "https://006f-39-98-121-22.ngrok-free.app/auth/callback"

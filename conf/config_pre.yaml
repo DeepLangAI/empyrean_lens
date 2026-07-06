@@ -8,6 +8,12 @@ logger:
   log_path: './logs/system'
   log_level: "info"
 
+redis:
+  addrs: ["deeplang-redis-private.redis.zhangbei.rds.aliyuncs.com:6379"]
+  username: "svr_shenyandayi"
+  password: 'H8pme_LUNckhcncC2'
+  use_tls: false
+
 metrics:
   log_store: "pre-metrics"
   metric_prefix: "empyrean-lens"
@@ -19,3 +25,11 @@ external_secret:
 
 notice:
   lingowhale_stability_webhook: "https://open.feishu.cn/open-apis/bot/v2/hook/00000000-0000-0000-0000-000000000000"
+
+feishu:
+  app_id: "cli_a668c41a0f64d013"       # 飞书开发者后台 App ID（凭证与基础信息）
+  app_secret: "REDACTED"   # 飞书开发者后台 App Secret
+  redirect_url: "https://pre-empyrean-lens.lingowhale.com/auth/callback"  # 需在安全设置中添加
+  jwt_secret: "REDACTED"
+  cookie_domain: ".lingowhale.com"
+  issuer: "https://pre-empyrean-lens.lingowhale.com"

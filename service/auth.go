@@ -156,22 +156,28 @@ type AuthService struct{}
 
 func NewAuthService() *AuthService { return &AuthService{} }
 
-// Login 发起飞书 OAuth 授权。
-// req 由 handler 通过 BindAndValidate 绑定，须提供已注册的 client_id + redirect_uri。
+// Login 发起飞书 OAuth 授权，支持两种模式：
+//   - client_id 为空：第一方 web 登录，飞书授权后直接写 JWT cookie 并跳转 /（适合自己的前端）
+//   - client_id 非空：标准 OAuth2 code exchange，飞书授权后带 code 跳回 redirect_uri（适合外部服务接入）
 func (s *AuthService) Login(ctx context.Context, c *app.RequestContext, req *auth_model.LoginReq) {
-	client := getClient(req.ClientID)
-	if client == nil || !validateRedirectURI(client, req.RedirectURI) {
-		hlog.CtxWarnf(ctx, "[auth] invalid client or redirect_uri: client=%s uri=%s", req.ClientID, req.RedirectURI)
-		c.JSON(hconsts.StatusBadRequest, map[string]string{"error": errInvalidClient})
-		return
+	if req.ClientID != "" {
+		// 标准 OAuth2 流程：校验已注册的 client
+		client := getClient(req.ClientID)
+		if client == nil || !validateRedirectURI(client, req.RedirectURI) {
+			hlog.CtxWarnf(ctx, "[auth] invalid client or redirect_uri: client=%s uri=%s", req.ClientID, req.RedirectURI)
+			c.JSON(hconsts.StatusBadRequest, map[string]string{"error": errInvalidClient})
+			return
+		}
+		setTempCookie(c, cookieOAuthClientID, req.ClientID, 5*60)
+		setTempCookie(c, cookieOAuthRedirURI, req.RedirectURI, 5*60)
+		if req.State != "" {
+			setTempCookie(c, cookieOAuthClientSt, req.State, 5*60)
+		}
+		hlog.CtxInfof(ctx, "[auth] oauth2 login: client=%s redirect=%s", req.ClientID, req.RedirectURI)
+	} else {
+		// 第一方 web 登录：无需 client_id，LoginResponse 直接写 JWT cookie 并跳转 /
+		hlog.CtxInfof(ctx, "[auth] first-party web login")
 	}
-
-	setTempCookie(c, cookieOAuthClientID, req.ClientID, 5*60)
-	setTempCookie(c, cookieOAuthRedirURI, req.RedirectURI, 5*60)
-	if req.State != "" {
-		setTempCookie(c, cookieOAuthClientSt, req.State, 5*60)
-	}
-	hlog.CtxInfof(ctx, "[auth] oauth2 login: client=%s redirect=%s", req.ClientID, req.RedirectURI)
 	s.startOAuth(ctx, c)
 }
 

@@ -36,7 +36,7 @@ type Feishu struct {
 	RedirectURL  string        `yaml:"redirect_url"`
 	JWTSecret    string        `yaml:"jwt_secret"`
 	CookieDomain string        `yaml:"cookie_domain"`
-	Issuer       string        `yaml:"issuer"`       // OIDC issuer，留空则从请求 Host 推断
+	Issuer       string        `yaml:"issuer"`        // OIDC issuer，留空则从请求 Host 推断
 	OAuthClients []OAuthClient `yaml:"oauth_clients"` // 注册的 OAuth2 客户端
 }
 
@@ -60,9 +60,15 @@ type Server struct {
 
 type ExternalSecret struct {
 	DeeplangSlsFcSecret DeeplangSlsFcSecret `yaml:"deeplang_sls_fc_secret"`
+	DeeplangDbFcSecret  DeeplangDbFcSecret  `yaml:"deeplang_db_fc_secret"`
 }
 
 type DeeplangSlsFcSecret struct {
+	BaseUrl string `yaml:"base_url"`
+	Token   string `yaml:"token"`
+}
+
+type DeeplangDbFcSecret struct {
 	BaseUrl string `yaml:"base_url"`
 	Token   string `yaml:"token"`
 }

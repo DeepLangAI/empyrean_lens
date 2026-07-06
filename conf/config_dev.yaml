@@ -24,6 +24,9 @@ external_secret:
   deeplang_sls_fc_secret:
     base_url: "http://mcp-sls-lingowhle-fc-qa-kisjjtktbb.cn-zhangjiakou.fcapp.run"
     token: "REDACTED"
+  deeplang_db_fc_secret:
+    base_url: "https://mcp-db-lingowhale-fc-pknhdiagav.cn-zhangjiakou.fcapp.run"
+    token: "REDACTED"
 
 notice:
   lingowhale_stability_webhook: "https://open.feishu.cn/open-apis/bot/v2/hook/00000000-0000-0000-0000-000000000000"
@@ -41,3 +44,4 @@ feishu:
       redirect_uris:
         - "http://localhost:8888/auth/callback"
         - "https://006f-39-98-121-22.ngrok-free.app/auth/callback"
+

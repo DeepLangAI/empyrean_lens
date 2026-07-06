@@ -180,6 +180,21 @@ feishu:
 - **Bearer token**：`/userinfo`（MiddlewareFunc 保护）
 - **Cookie**：`/api/auth/me`、`/api/auth/logout`、`/`、其他 SPA 路由
 
+#### 待优化项（已知问题，暂未实现）
+
+| 优先级 | 问题 | 说明 |
+|--------|------|------|
+| 高 | **SecureCookie 未开启** | `SecureCookie: false`，生产 HTTPS 环境应改为 `true`，否则 cookie 可能通过 HTTP 泄露 |
+| 高 | **Token 无法吊销** | JWT 签发后 7 天内始终有效，员工离职/账号异常无法立即踢出。需 Redis 黑名单：logout 时写入，middleware 验证时检查 |
+| 中 | **只有认证（AuthN），没有授权（AuthZ）** | 解决了"你是谁"，未解决"你能做什么"。所有登录用户权限相同，缺少角色/权限体系（RBAC） |
+| 中 | **没有 Refresh Token** | 7 天过期后必须重新登录。标准做法：短期 access_token（1-2h）+ 长期 refresh_token（30d）无感续期 |
+| 中 | **关键接口无限流** | `/auth/login`、`/token`、`/introspect` 无速率限制，可被暴力请求 |
+| 中 | **client_secret 明文存 YAML** | 生产应接入 Secret 管理（KMS/Vault）或 bcrypt hash 存储 |
+| 低 | **没有 JWKS 端点（非对称签名）** | 当前 HMAC 共享密钥，持有 `jwt_secret` 的服务可自行签发 token。RSA + JWKS 可让接入方只有公钥，只能验证不能伪造 |
+| 低 | **没有单点登出（SLO）** | 认证中心登出后其他服务的 session 仍有效，缺少跨服务登出通知机制 |
+| 低 | **客户端注册需重启** | 新增接入方需改 YAML + 重启，接入方多了后运维低效，可考虑管理 API 或数据库存储 |
+| 低 | **没有审计日志** | 缺少"谁在什么时间从哪个服务登录/登出"的记录，合规场景需要 |
+
 ### 环境配置
 
 通过 `MODE_ENV` 环境变量选择配置文件，对应 `conf/config_<MODE_ENV>.yaml`。未设置时默认读取 `config_test.yaml`。

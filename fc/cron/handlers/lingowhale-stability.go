@@ -57,6 +57,18 @@ order by success desc`
 	// 失败率最高的站点（跳过空域名）
 	sqTopFailedDomains = `crawl_error | select regexp_extract(extra, '"domain":"([^"]*)"', 1) as domain, count(*) as cnt from log group by domain having domain is not null and domain != '' and domain != 'null' order by cnt desc limit 6`
 
+	// 资源入库渠道分布：ResourceProcessor 日志，按 source + status 分组统计
+	// message 格式："ResourceProcessor [source: Renminwang; ...; root_path: xxx] end process resource. status:success, cost:Xs"
+	sqResourceIngestion = `ResourceProcessor | select
+  regexp_extract(message, 'source: (\w+)', 1) as source,
+  regexp_extract(message, 'status:(\w+)', 1) as status,
+  count(*) as total
+from log
+where message like '%end process resource%'
+group by source, status
+order by source, total desc
+limit 50`
+
 	// 微信公众号抓取统计
 	sqCrawlWeixin = `crawl_normal OR crawl_error | select message, count(*) as cnt from log where extra like '%mp.weixin.qq.com%' and extra like '%"domain"%' group by message`
 
@@ -277,9 +289,10 @@ func (h *LingowhaleStability) Handle(ctx context.Context, _ string) error {
 	chTopFailed   := run("top_failed_domains", slshttp.LogStore_BusinessPod,  sqTopFailedDomains, 6)
 	chWeixin      := run("crawl_weixin",       slshttp.LogStore_BusinessPod,  sqCrawlWeixin,      10)
 	chWxVendors   := run("weixin_vendors",     slshttp.LogStore_BusinessPod,  sqWeixinVendors,    10)
-	chImgCrawl    := run("img_crawl",          slshttp.LogStore_BusinessPod,  sqImgCrawl,         1)
-	chImgFailure  := run("img_failure",        slshttp.LogStore_BusinessPod,  sqImgFailure,       1)
-	chGen         := run("gen_service",        slshttp.LogStore_BusinessPod,  sqGenService,       200)
+	chImgCrawl    := run("img_crawl",          slshttp.LogStore_BusinessPod,  sqImgCrawl,          1)
+	chImgFailure  := run("img_failure",        slshttp.LogStore_BusinessPod,  sqImgFailure,         1)
+	chGen         := run("gen_service",        slshttp.LogStore_BusinessPod,  sqGenService,        200)
+	chIngestion   := run("resource_ingestion", slshttp.LogStore_BusinessPod,  sqResourceIngestion,  20)
 
 	rOverview    := <-chOverview
 	rLatency     := <-chLatency
@@ -290,6 +303,7 @@ func (h *LingowhaleStability) Handle(ctx context.Context, _ string) error {
 	rImgCrawl    := <-chImgCrawl
 	rImgFailure  := <-chImgFailure
 	rGen         := <-chGen
+	rIngestion   := <-chIngestion
 
 	hlog.CtxInfof(ctx, "[stability] all queries done")
 
@@ -574,8 +588,99 @@ func (h *LingowhaleStability) Handle(ctx context.Context, _ string) error {
 	}
 	elements = append(elements, hr())
 
-	// 二、数据生成服务
-	elements = append(elements, md(fmt.Sprintf("**二、数据生成服务**\n调用总量：%d", totalGenCalls)))
+	// 三、资源入库渠道分布
+	// source 名称来自 DataSource.String()，与数字 source 的对应关系：
+	// Subscription=11(自有抓取)，Renminwang=12(人民网)，Qingbo=14(清博)，FromMonitoring=监控抓取，SimResourceCluster=相似聚类
+	sourceDisplayNames := map[string]string{
+		"Subscription":       "自有抓取",
+		"Renminwang":         "人民网",
+		"Qingbo":             "清博",
+		"FromMonitoring":     "监控抓取",
+		"SimResourceCluster": "相似聚类",
+		"XiaoYuZhou":         "小宇宙",
+		"Hongmai":            "红麦",
+	}
+
+	// 按 source 聚合 success/fail/total
+	type ingestionStat struct {
+		success int
+		fail    int
+	}
+	ingestionMap := map[string]*ingestionStat{}
+	for _, l := range rIngestion.logs {
+		src := l["source"]
+		if src == "" {
+			continue
+		}
+		if ingestionMap[src] == nil {
+			ingestionMap[src] = &ingestionStat{}
+		}
+		cnt, _ := strconv.Atoi(l["total"])
+		if l["status"] == "success" {
+			ingestionMap[src].success += cnt
+		} else {
+			ingestionMap[src].fail += cnt
+		}
+	}
+
+	// 按总量降序排列
+	type ingestionRow struct {
+		src  string
+		stat *ingestionStat
+	}
+	var ingestionList []ingestionRow
+	for src, stat := range ingestionMap {
+		ingestionList = append(ingestionList, ingestionRow{src: src, stat: stat})
+	}
+	// 简单排序：总量大的在前
+	for i := 0; i < len(ingestionList); i++ {
+		for j := i + 1; j < len(ingestionList); j++ {
+			ti := ingestionList[i].stat.success + ingestionList[i].stat.fail
+			tj := ingestionList[j].stat.success + ingestionList[j].stat.fail
+			if tj > ti {
+				ingestionList[i], ingestionList[j] = ingestionList[j], ingestionList[i]
+			}
+		}
+	}
+
+	ingestionTotal := 0
+	var ingestionTableRows []map[string]string
+	for _, row := range ingestionList {
+		total := row.stat.success + row.stat.fail
+		ingestionTotal += total
+		displayName := sourceDisplayNames[row.src]
+		if displayName == "" {
+			displayName = row.src
+		}
+		successRate := fmtPct(row.stat.success, total)
+		ingestionTableRows = append(ingestionTableRows, map[string]string{
+			"channel":      displayName,
+			"total":        fmtCount(total),
+			"success":      fmtCount(row.stat.success),
+			"fail":         fmtCount(row.stat.fail),
+			"success_rate": successRate,
+		})
+	}
+
+	elements = append(elements, md(fmt.Sprintf("**三、资源入库**（总量：%s）", fmtCount(ingestionTotal))))
+	if len(ingestionTableRows) > 0 {
+		elements = append(elements, makeTable(
+			[]fcTableCol{
+				col("channel", "渠道", "auto"),
+				col("total", "总量", "auto"),
+				col("success", "成功", "auto"),
+				col("fail", "失败", "auto"),
+				col("success_rate", "成功率", "auto"),
+			},
+			ingestionTableRows,
+		))
+	} else if rIngestion.err != nil {
+		elements = append(elements, md(fmt.Sprintf("> 资源入库数据查询失败：%v", rIngestion.err)))
+	}
+	elements = append(elements, hr())
+
+	// 四、数据生成服务
+	elements = append(elements, md(fmt.Sprintf("**四、数据生成服务**\n调用总量：%d", totalGenCalls)))
 	if len(genStats) > 0 {
 		var genRows []map[string]string
 		for _, g := range genStats {
@@ -610,7 +715,7 @@ func (h *LingowhaleStability) Handle(ctx context.Context, _ string) error {
 	elements = append(elements, hr())
 
 	// 四、异常与告警
-	elements = append(elements, md("**三、异常与告警**"))
+	elements = append(elements, md("**五、异常与告警**"))
 	if len(anomalies) == 0 {
 		elements = append(elements, md("今日无 P1/P2 级异常"))
 	} else {

@@ -8,7 +8,7 @@ import (
 )
 
 func rootMw() []app.HandlerFunc { return nil }
-func _apiMw() []app.HandlerFunc { return nil }
+func _apiMw() []app.HandlerFunc  { return nil }
 
 // /api/auth/* 路由需要 JWT 验证
 func _authMw() []app.HandlerFunc {
@@ -23,7 +23,16 @@ func _auth0Mw() []app.HandlerFunc    { return nil }
 func _callbackMw() []app.HandlerFunc { return nil }
 func _loginMw() []app.HandlerFunc    { return nil }
 
-func _verifyMw() []app.HandlerFunc {
-	// your code...
-	return nil
+// /.well-known/openid-configuration 公开
+func __well_knownMw() []app.HandlerFunc       { return nil }
+func _oidcconfigurationMw() []app.HandlerFunc { return nil }
+func _configurationMw() []app.HandlerFunc     { return nil }
+
+// /userinfo 需要 JWT 验证（标准 OIDC UserInfo 端点）
+func _userinfoMw() []app.HandlerFunc {
+	return []app.HandlerFunc{service.AuthMiddleware().MiddlewareFunc()}
 }
+
+// /introspect 和 /token 公开（token/credentials 在请求体里，服务端自行验证）
+func _introspectMw() []app.HandlerFunc { return nil }
+func _tokenMw() []app.HandlerFunc      { return nil }

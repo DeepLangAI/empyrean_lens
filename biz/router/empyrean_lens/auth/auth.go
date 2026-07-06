@@ -17,18 +17,24 @@ import (
 func Register(r *server.Hertz) {
 
 	root := r.Group("/", rootMw()...)
+	root.POST("/introspect", append(_introspectMw(), auth.Introspect)...)
+	root.POST("/token", append(_tokenMw(), auth.Token)...)
+	root.GET("/userinfo", append(_userinfoMw(), auth.UserInfo)...)
 	{
 		_api := root.Group("/api", _apiMw()...)
 		{
 			_auth := _api.Group("/auth", _authMw()...)
 			_auth.POST("/logout", append(_logoutMw(), auth.Logout)...)
 			_auth.GET("/me", append(_meMw(), auth.Me)...)
-			_auth.GET("/verify", append(_verifyMw(), auth.Verify)...)
 		}
 	}
 	{
 		_auth0 := root.Group("/auth", _auth0Mw()...)
 		_auth0.GET("/callback", append(_callbackMw(), auth.Callback)...)
 		_auth0.GET("/login", append(_loginMw(), auth.Login)...)
+	}
+	{
+		__well_known := root.Group("/.well-known", __well_knownMw()...)
+		__well_known.GET("/openid-configuration", append(_configurationMw(), auth.Configuration)...)
 	}
 }

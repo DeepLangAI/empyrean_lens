@@ -4,6 +4,7 @@ package main
 
 import (
 	"empyrean_lens/conf"
+	"empyrean_lens/dal"
 
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/logger"
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/metrics"
@@ -15,6 +16,7 @@ func main() {
 	logger.Init(conf.GetConfig().Logger)
 	// metrics init
 	metrics.Init(conf.GetConfig().Metrics)
+	dal.Init()
 
 	h := server.Default(server.WithHostPorts(conf.GetConfig().Server.Port))
 

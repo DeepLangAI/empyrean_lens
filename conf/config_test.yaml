@@ -8,6 +8,13 @@ logger:
   log_path: './logs/system'
   log_level: "debug"
 
+redis:
+  addrs: [ "deeplang-redis-public-test.redis.zhangbei.rds.aliyuncs.com:6379" ]
+  username: "svr_chengzhenfang"
+  password: '1fck43!g$i7k1@eK'
+  use_tls: false
+
+
 metrics:
   log_store: "qa-metrics"
   metric_prefix: "empyrean-lens"
@@ -25,8 +32,4 @@ feishu:
   redirect_url: "https://qa-empyrean-lens.lingowhale.com/auth/callback"  # 需在安全设置中添加
   jwt_secret: "dev-secret-please-replace-with-32chars"
   cookie_domain: ""  # 本地留空，生产填 .lingowhale.com
-  allowed_redirects:
-    - "006f-39-98-121-22.ngrok-free.app"
-    - "shenyandayi.com"
-    - "deeplang.ai"
-    - "lingowhale.com"
+  oauth_clients: []  # 按需添加

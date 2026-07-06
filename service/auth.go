@@ -12,7 +12,9 @@ import (
 	"sync"
 	"time"
 
+	auth_model "empyrean_lens/biz/model/empyrean_lens/auth"
 	"empyrean_lens/conf"
+	dal_redis "empyrean_lens/dal/redis"
 
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/httplib"
 	"github.com/bytedance/sonic"
@@ -26,8 +28,19 @@ import (
 const (
 	cookieOAuthState    = "_oauth_state"
 	cookieOAuthVerifier = "_oauth_verifier"
-	cookieOAuthRedirect = "_oauth_redirect"
+	cookieOAuthClientID = "_oauth_client_id"
+	cookieOAuthRedirURI = "_oauth_redir_uri"
+	cookieOAuthClientSt = "_oauth_client_st"
 	CookieAuth          = "auth_token"
+	IdentityKey         = "user" // JWT middleware IdentityKey，c.Get(IdentityKey) 读取当前用户
+
+	codeKeyPrefix = "sso:code:"
+	codeTTL       = 60 * time.Second
+	tokenTTL      = 7 * 24 * time.Hour // JWT 有效期，auth cookie 和 Token 端点共用
+
+	// OAuth2 错误码（RFC 6749），错误拼写会导致客户端无法正确处理
+	errInvalidClient = "invalid_client"
+	errServerError   = "server_error"
 )
 
 // AuthUser 用户信息，存入 JWT payload
@@ -54,8 +67,8 @@ func AuthMiddleware() *jwt.HertzJWTMiddleware {
 		authMw, err = jwt.New(&jwt.HertzJWTMiddleware{
 			Realm:       "empyrean-lens",
 			Key:         []byte(cfg.JWTSecret),
-			Timeout:     7 * 24 * time.Hour,
-			IdentityKey: "user",
+			Timeout:     tokenTTL,
+			IdentityKey: IdentityKey,
 
 			// 同时支持 Cookie（浏览器同域）和 Authorization header（跨域服务）
 			TokenLookup: "cookie: " + CookieAuth + ", header: Authorization",
@@ -63,7 +76,7 @@ func AuthMiddleware() *jwt.HertzJWTMiddleware {
 			SendCookie:     true,
 			CookieName:     CookieAuth,
 			CookieHTTPOnly: true,
-			CookieMaxAge:   7 * 24 * time.Hour,
+			CookieMaxAge:   tokenTTL,
 			CookieDomain:   cfg.CookieDomain, // 生产填 ".lingowhale.com" 实现跨子域共享
 			SecureCookie:   false,            // 生产环境改为 true（HTTPS）
 
@@ -91,19 +104,33 @@ func AuthMiddleware() *jwt.HertzJWTMiddleware {
 			},
 
 			LoginResponse: func(ctx context.Context, c *app.RequestContext, code int, token string, expire time.Time) {
-				redirectURL, _ := url.QueryUnescape(string(c.Cookie(cookieOAuthRedirect)))
-				hlog.CtxInfof(ctx, "[auth] login success, redirect=%q allowed=%v", redirectURL, isAllowedRedirect(redirectURL))
+				clientID, _ := url.QueryUnescape(string(c.Cookie(cookieOAuthClientID)))
+				redirURI, _ := url.QueryUnescape(string(c.Cookie(cookieOAuthRedirURI)))
+				clientSt, _ := url.QueryUnescape(string(c.Cookie(cookieOAuthClientSt)))
 				clearTempCookies(c)
-				if redirectURL != "" && isAllowedRedirect(redirectURL) {
-					hlog.CtxInfof(ctx, "[auth] cross-domain redirect to %s", redirectURL)
-					target, _ := url.Parse(redirectURL)
-					q := target.Query()
-					q.Set("token", token)
-					target.RawQuery = q.Encode()
-					c.Redirect(hconsts.StatusFound, []byte(target.String()))
+
+				if clientID == "" || redirURI == "" {
+					// 直接访问 SSO（不带 client_id），登录后回首页
+					c.Redirect(hconsts.StatusFound, []byte("/"))
 					return
 				}
-				c.Redirect(hconsts.StatusFound, []byte("/"))
+
+				authCode, _ := randomHex(16)
+				if err := storeCode(ctx, authCode, token, clientID); err != nil {
+					hlog.CtxErrorf(ctx, "[auth] store code failed: %v", err)
+					c.JSON(hconsts.StatusInternalServerError, map[string]string{"error": errServerError})
+					return
+				}
+
+				hlog.CtxInfof(ctx, "[auth] code issued: client=%s redirect=%s", clientID, redirURI)
+				target, _ := url.Parse(redirURI)
+				q := target.Query()
+				q.Set("code", authCode)
+				if clientSt != "" {
+					q.Set("state", clientSt)
+				}
+				target.RawQuery = q.Encode()
+				c.Redirect(hconsts.StatusFound, []byte(target.String()))
 			},
 
 			Unauthorized: func(ctx context.Context, c *app.RequestContext, code int, message string) {
@@ -113,7 +140,7 @@ func AuthMiddleware() *jwt.HertzJWTMiddleware {
 					c.Redirect(hconsts.StatusFound, []byte("/auth/login"))
 					return
 				}
-				c.JSON(code, map[string]interface{}{"code": code, "msg": message})
+				c.JSON(code, &auth_model.BaseResp{Code: int32(code), Msg: message})
 			},
 		})
 		if err != nil {
@@ -129,48 +156,50 @@ type AuthService struct{}
 
 func NewAuthService() *AuthService { return &AuthService{} }
 
-// Login 发起飞书 OAuth，生成 state/verifier 写 cookie，跳转飞书授权页。
-// 支持 redirect 参数：跨域接入方传入登录成功后的回调地址（需在白名单中）。
-func (s *AuthService) Login(ctx context.Context, c *app.RequestContext) {
-	redirect := string(c.Query("redirect"))
-	if redirect != "" {
-		// c.Query 有时会返回已编码的值，统一 decode 后再存 cookie
-		if decoded, err := url.QueryUnescape(redirect); err == nil {
-			redirect = decoded
-		}
-		if isAllowedRedirect(redirect) {
-			hlog.CtxInfof(ctx, "[auth] cross-domain login, redirect=%s", redirect)
-			setTempCookie(c, cookieOAuthRedirect, redirect, 5*60)
-		} else {
-			hlog.CtxWarnf(ctx, "[auth] redirect not allowed: %s", redirect)
-		}
+// Login 发起飞书 OAuth 授权。
+// req 由 handler 通过 BindAndValidate 绑定，须提供已注册的 client_id + redirect_uri。
+func (s *AuthService) Login(ctx context.Context, c *app.RequestContext, req *auth_model.LoginReq) {
+	client := getClient(req.ClientID)
+	if client == nil || !validateRedirectURI(client, req.RedirectURI) {
+		hlog.CtxWarnf(ctx, "[auth] invalid client or redirect_uri: client=%s uri=%s", req.ClientID, req.RedirectURI)
+		c.JSON(hconsts.StatusBadRequest, map[string]string{"error": errInvalidClient})
+		return
 	}
+
+	setTempCookie(c, cookieOAuthClientID, req.ClientID, 5*60)
+	setTempCookie(c, cookieOAuthRedirURI, req.RedirectURI, 5*60)
+	if req.State != "" {
+		setTempCookie(c, cookieOAuthClientSt, req.State, 5*60)
+	}
+	hlog.CtxInfof(ctx, "[auth] oauth2 login: client=%s redirect=%s", req.ClientID, req.RedirectURI)
 	s.startOAuth(ctx, c)
 }
 
 // Me 返回当前登录用户信息（需先经过 AuthMiddleware().MiddlewareFunc() 保护）。
 func (s *AuthService) Me(_ context.Context, c *app.RequestContext) {
-	user, _ := c.Get("user")
-	c.JSON(hconsts.StatusOK, map[string]interface{}{"code": 0, "data": user})
-}
-
-// Verify 供其他服务调用，通过 Authorization: Bearer <token> 验证身份并返回用户信息。
-// 路由已被 _authMw() 保护，到达此处时 token 已验证通过，直接读 context 即可。
-func (s *AuthService) Verify(_ context.Context, c *app.RequestContext) {
-	user, _ := c.Get("user")
-	c.JSON(hconsts.StatusOK, map[string]interface{}{"code": 0, "data": user})
+	user, _ := c.Get(IdentityKey)
+	u, _ := user.(*AuthUser)
+	resp := &auth_model.MeResp{Code: 0}
+	if u != nil {
+		resp.Data = &auth_model.UserInfo{
+			OpenID:    u.OpenID,
+			Name:      u.Name,
+			AvatarURL: u.AvatarURL,
+		}
+	}
+	c.JSON(hconsts.StatusOK, resp)
 }
 
 // startOAuth 生成 PKCE state/verifier，写入临时 cookie，重定向至飞书授权页。
 func (s *AuthService) startOAuth(ctx context.Context, c *app.RequestContext) {
 	state, err := randomHex(16)
 	if err != nil {
-		c.JSON(hconsts.StatusInternalServerError, map[string]string{"msg": "internal error"})
+		c.JSON(hconsts.StatusInternalServerError, &auth_model.BaseResp{Code: 500, Msg: "internal error"})
 		return
 	}
 	verifier, challenge, err := newPKCE()
 	if err != nil {
-		c.JSON(hconsts.StatusInternalServerError, map[string]string{"msg": "internal error"})
+		c.JSON(hconsts.StatusInternalServerError, &auth_model.BaseResp{Code: 500, Msg: "internal error"})
 		return
 	}
 
@@ -284,8 +313,6 @@ func (s *AuthService) fetchUserInfo(ctx context.Context, accessToken string) (*A
 	}, nil
 }
 
-// ── helpers ────────────────────────────────────────────────────────────────
-
 func newPKCE() (verifier, challenge string, err error) {
 	b := make([]byte, 32)
 	if _, err = rand.Read(b); err != nil {
@@ -312,24 +339,56 @@ func setTempCookie(c *app.RequestContext, name, value string, maxAge int) {
 func clearTempCookies(c *app.RequestContext) {
 	setTempCookie(c, cookieOAuthState, "", -1)
 	setTempCookie(c, cookieOAuthVerifier, "", -1)
-	setTempCookie(c, cookieOAuthRedirect, "", -1)
+	setTempCookie(c, cookieOAuthClientID, "", -1)
+	setTempCookie(c, cookieOAuthRedirURI, "", -1)
+	setTempCookie(c, cookieOAuthClientSt, "", -1)
 }
 
-// isAllowedRedirect 校验 redirect URL 是否在配置白名单中，防止 token 被骗走。
-// 白名单项可以是精确 host（如 "localhost:8888"）或父域名（如 "lingowhale.com"）。
-// 父域名匹配会同时允许该域名本身及其所有子域名。
-func isAllowedRedirect(rawURL string) bool {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return false
+// ── OAuth2 client helpers ─────────────────────────────────────────────────
+
+func getClient(clientID string) *conf.OAuthClient {
+	clients := conf.GetConfig().Feishu.OAuthClients
+	for i := range clients {
+		if clients[i].ClientID == clientID {
+			return &clients[i]
+		}
 	}
-	host := u.Host
-	for _, allowed := range conf.GetConfig().Feishu.AllowedRedirects {
-		if host == allowed || strings.HasSuffix(host, "."+allowed) {
+	return nil
+}
+
+func validateRedirectURI(client *conf.OAuthClient, uri string) bool {
+	for _, allowed := range client.RedirectURIs {
+		if allowed == uri {
 			return true
 		}
 	}
 	return false
+}
+
+// ── Authorization code（Redis）────────────────────────────────────────────
+
+type codePayload struct {
+	Token    string `json:"token"`
+	ClientID string `json:"client_id"`
+}
+
+func storeCode(ctx context.Context, code, token, clientID string) error {
+	payload, _ := sonic.MarshalString(codePayload{Token: token, ClientID: clientID})
+	return dal_redis.KeySet(ctx, codeKeyPrefix+code, payload, codeTTL)
+}
+
+func consumeCode(ctx context.Context, code string) (token, clientID string, ok bool) {
+	cmd := dal_redis.GetVal(ctx, codeKeyPrefix+code)
+	val := cmd.Val()
+	if val == "" {
+		return
+	}
+	_ = dal_redis.DelKey(ctx, codeKeyPrefix+code)
+	var p codePayload
+	if err := sonic.UnmarshalString(val, &p); err != nil || p.Token == "" {
+		return
+	}
+	return p.Token, p.ClientID, true
 }
 
 func stringClaim(claims jwt.MapClaims, key string) string {

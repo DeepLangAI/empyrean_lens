@@ -20,15 +20,33 @@ type Config struct {
 	ExternalSecret ExternalSecret  `yaml:"external_secret"`
 	Notice         Notice          `yaml:"notice"`
 	Feishu         Feishu          `yaml:"feishu"`
+	Redis          Redis           `yaml:"redis"`
+}
+
+type Redis struct {
+	Addrs    []string `yaml:"addrs"`
+	Username string   `yaml:"username" env:"REDIS_USERNAME"`
+	Password string   `yaml:"password" env:"REDIS_PASSWORD" env-required:"true"`
+	UseTls   bool     `yaml:"use_tls"`
 }
 
 type Feishu struct {
-	AppID            string   `yaml:"app_id"`
-	AppSecret        string   `yaml:"app_secret"`
-	RedirectURL      string   `yaml:"redirect_url"`       // 飞书回调地址，需在开发者后台安全设置中添加
-	JWTSecret        string   `yaml:"jwt_secret"`         // JWT 签名密钥，32+ 字符；未来做 SSO 时各服务共享此值
-	CookieDomain     string   `yaml:"cookie_domain"`      // Cookie 作用域，跨子域时填 ".lingowhale.com"，本地留空
-	AllowedRedirects []string `yaml:"allowed_redirects"`  // 跨域登录白名单，填允许接收 token 的域名列表
+	AppID        string        `yaml:"app_id"`
+	AppSecret    string        `yaml:"app_secret"`
+	RedirectURL  string        `yaml:"redirect_url"`
+	JWTSecret    string        `yaml:"jwt_secret"`
+	CookieDomain string        `yaml:"cookie_domain"`
+	Issuer       string        `yaml:"issuer"`       // OIDC issuer，留空则从请求 Host 推断
+	OAuthClients []OAuthClient `yaml:"oauth_clients"` // 注册的 OAuth2 客户端
+}
+
+// OAuthClient 是一个注册的 OAuth2 接入方。
+// 客户端信息静态配置在 YAML 中，变更后重启生效。
+type OAuthClient struct {
+	ClientID     string   `yaml:"client_id"`
+	ClientSecret string   `yaml:"client_secret"`
+	Name         string   `yaml:"name"`
+	RedirectURIs []string `yaml:"redirect_uris"` // 精确匹配，不支持通配符
 }
 
 type Notice struct {

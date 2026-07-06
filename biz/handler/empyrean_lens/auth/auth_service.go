@@ -5,36 +5,37 @@ package auth
 import (
 	"context"
 
+	auth_model "empyrean_lens/biz/model/empyrean_lens/auth"
 	"empyrean_lens/service"
 	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/protocol/consts"
 )
 
-// Login .
+// Login 发起飞书 OAuth 登录。
 // @router /auth/login [GET]
 func Login(ctx context.Context, c *app.RequestContext) {
-	service.NewAuthService().Login(ctx, c)
+	var req auth_model.LoginReq
+	if err := c.BindAndValidate(&req); err != nil {
+		c.String(consts.StatusBadRequest, err.Error())
+		return
+	}
+	service.NewAuthService().Login(ctx, c, &req)
 }
 
-// Callback .
+// Callback 飞书 OAuth 回调，用 code 换 token，写 cookie，跳转首页。
 // @router /auth/callback [GET]
 func Callback(ctx context.Context, c *app.RequestContext) {
 	service.AuthMiddleware().LoginHandler(ctx, c)
 }
 
-// Me .
+// Me 返回当前登录用户信息（需携带 auth_token cookie）。
 // @router /api/auth/me [GET]
 func Me(ctx context.Context, c *app.RequestContext) {
 	service.NewAuthService().Me(ctx, c)
 }
 
-// Logout .
+// Logout 登出，清除 cookie。
 // @router /api/auth/logout [POST]
 func Logout(ctx context.Context, c *app.RequestContext) {
 	service.AuthMiddleware().LogoutHandler(ctx, c)
-}
-
-// Verify .
-// @router /api/auth/verify [GET]
-func Verify(ctx context.Context, c *app.RequestContext) {
-	service.NewAuthService().Verify(ctx, c)
 }

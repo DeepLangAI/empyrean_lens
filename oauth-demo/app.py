@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-OAuth Demo 服务
-演示如何接入 empyrean-lens 统一认证中心
+OAuth Demo 服务 — 标准 Authorization Code Flow 演示
 
 用法：
+    AUTH_CENTER=https://sso.example.com \
+    CLIENT_ID=oauth-demo \
+    CLIENT_SECRET=demo-secret-change-me \
+    CALLBACK_URL=https://your-ngrok.ngrok-free.app/auth/callback \
     python3 app.py
 
 访问：http://localhost:8888
@@ -21,16 +24,10 @@ from urllib.error import URLError
 
 PORT = int(os.environ.get("PORT", 8888))
 
-# 认证中心公网地址（必须与 config_dev.yaml redirect_url 的域名一致）
-# 用法：AUTH_CENTER=https://xxxx.ngrok-free.app python3 app.py
-AUTH_CENTER = os.environ.get("AUTH_CENTER", "http://localhost:19001").rstrip("/")
-
-# 本服务的回调地址（需加入认证中心 allowed_redirects 白名单）
-# 如果 demo 也通过 ngrok 暴露，填 ngrok 公网地址
-CALLBACK_URL = os.environ.get(
-    "CALLBACK_URL",
-    f"http://localhost:{PORT}/auth/callback"
-)
+AUTH_CENTER   = os.environ.get("AUTH_CENTER", "http://localhost:19001").rstrip("/")
+CLIENT_ID     = os.environ.get("CLIENT_ID", "oauth-demo")
+CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "demo-secret-change-me")
+CALLBACK_URL  = os.environ.get("CALLBACK_URL", f"http://localhost:{PORT}/auth/callback")
 
 # ── HTML 模板 ───────────────────────────────────────────────────────────────
 
@@ -48,7 +45,7 @@ PAGE = """<!DOCTYPE html>
   }}
   .card {{
     background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px; padding: 48px 64px; text-align: center; max-width: 480px; width: 90%;
+    border-radius: 16px; padding: 48px 64px; text-align: center; max-width: 520px; width: 90%;
   }}
   .badge {{
     display: inline-block; padding: 4px 12px; border-radius: 100px;
@@ -72,6 +69,7 @@ PAGE = """<!DOCTYPE html>
     text-align: left; font-size: 13px;
   }}
   .info pre {{ margin-top: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; color: #94a3b8; }}
+  .step {{ color: #64748b; font-size: 12px; margin-top: 16px; line-height: 1.8; }}
 </style>
 </head>
 <body><div class="card">{content}</div></body>
@@ -80,27 +78,32 @@ PAGE = """<!DOCTYPE html>
 LOGIN_CONTENT = """
 <div class="badge">OAuth Demo · Port {port}</div>
 <h1>未登录</h1>
-<p>这是一个 OAuth 接入演示服务<br>点击下方按钮通过认证中心登录</p>
+<p>演示标准 OAuth2 Authorization Code Flow</p>
 <a class="primary" href="{login_url}">通过认证中心登录</a>
+<div class="step">
+  流程：/auth/login → 飞书授权 → /callback?code=xxx → POST /token → 获取用户信息
+</div>
 """
 
 HOME_CONTENT = """
 <div class="badge">OAuth Demo · 已认证</div>
 {avatar}
 <div class="name">{name}</div>
-<div class="sub">open_id: {open_id}</div>
+<div class="sub">sub: {sub}</div>
 <form method="post" action="/logout" style="margin-bottom:0">
   <button class="danger" type="submit">退出登录</button>
 </form>
 <div class="info">
-  <strong>验证方式：</strong>调用 <code>{auth_center}/api/auth/verify</code><br>
-  <pre>Authorization: Bearer {token_preview}</pre>
+  <strong>认证方式：</strong>标准 OAuth2 Authorization Code Flow<br>
+  <strong>token 获取：</strong><code>POST {auth_center}/token</code><br>
+  <strong>验证方式：</strong><code>GET {auth_center}/userinfo</code>
+  <pre>{token_preview}</pre>
 </div>
 """
 
 ERROR_CONTENT = """
 <div class="badge">错误</div>
-<h1>验证失败</h1>
+<h1>{title}</h1>
 <p>{message}</p>
 <a class="primary" href="/">返回首页</a>
 """
@@ -112,8 +115,6 @@ class DemoHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         print(f"  {self.address_string()} - {fmt % args}")
 
-    # ── 工具方法 ──────────────────────────────────────────────────────────────
-
     def get_cookie(self, name):
         raw = self.headers.get("Cookie", "")
         cookies = http.cookies.SimpleCookie(raw)
@@ -121,7 +122,6 @@ class DemoHandler(http.server.BaseHTTPRequestHandler):
         return morsel.value if morsel else None
 
     def _make_set_cookie(self, name, value, max_age=None, delete=False):
-        """生成 Set-Cookie 头字符串（不直接发送，供 html/redirect 统一发送）"""
         c = http.cookies.SimpleCookie()
         c[name] = "" if delete else value
         c[name]["path"] = "/"
@@ -133,7 +133,6 @@ class DemoHandler(http.server.BaseHTTPRequestHandler):
         return c.output(header="").strip()
 
     def html(self, content, status=200, set_cookies=None):
-        """发送完整 HTML 响应，set_cookies 为 Set-Cookie 字符串列表"""
         body = PAGE.format(content=content).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -144,101 +143,138 @@ class DemoHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def redirect(self, location, set_cookies=None):
-        """发送 302 跳转，可附带 Set-Cookie"""
         self.send_response(302)
         self.send_header("Location", location)
         for cookie_str in (set_cookies or []):
             self.send_header("Set-Cookie", cookie_str)
         self.end_headers()
 
-    def verify_token(self, token):
-        """调认证中心 /api/auth/verify 验证 token，返回用户信息或 None"""
+    def exchange_code(self, code):
+        """标准 POST /token：用 code + client_secret 换 access_token"""
+        data = urllib.parse.urlencode({
+            "grant_type":    "authorization_code",
+            "client_id":     CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "code":          code,
+            "redirect_uri":  CALLBACK_URL,
+        }).encode()
         req = urllib.request.Request(
-            f"{AUTH_CENTER}/api/auth/verify",
-            headers={"Authorization": f"Bearer {token}"},
+            f"{AUTH_CENTER}/token",
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST",
         )
         try:
             with urllib.request.urlopen(req, timeout=5) as resp:
-                data = json.loads(resp.read())
-                if data.get("code") == 0:
-                    return data.get("data")
+                result = json.loads(resp.read())
+                return result.get("access_token")
         except URLError as e:
-            print(f"  [verify] error: {e}")
+            print(f"  [token] error: {e}")
+        return None
+
+    def fetch_userinfo(self, access_token):
+        """标准 GET /userinfo"""
+        req = urllib.request.Request(
+            f"{AUTH_CENTER}/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                return json.loads(resp.read())
+        except URLError as e:
+            print(f"  [userinfo] error: {e}")
         return None
 
     # ── 路由 ──────────────────────────────────────────────────────────────────
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
-        path = parsed.path
         params = urllib.parse.parse_qs(parsed.query)
 
-        if path == "/":
+        if parsed.path == "/":
             self.handle_home()
-        elif path == "/auth/callback":
-            self.handle_callback(params.get("token", [None])[0])
+        elif parsed.path == "/auth/callback":
+            self.handle_callback(params.get("code", [None])[0],
+                                 params.get("error", [None])[0])
         else:
             self.send_response(404)
             self.end_headers()
 
     def do_POST(self):
         if self.path == "/logout":
-            self.handle_logout()
+            clear = self._make_set_cookie("demo_token", "", delete=True)
+            self.redirect("/", set_cookies=[clear])
         else:
             self.send_response(404)
             self.end_headers()
 
     # ── 页面逻辑 ──────────────────────────────────────────────────────────────
 
-    def login_url(self):
-        return (
-            f"{AUTH_CENTER}/auth/login"
-            f"?redirect={urllib.parse.quote(CALLBACK_URL)}"
-        )
-
     def handle_home(self):
         token = self.get_cookie("demo_token")
-
         if not token:
-            content = LOGIN_CONTENT.format(port=PORT, login_url=self.login_url())
-            self.html(content)
+            # 标准授权 URL：带 client_id + redirect_uri
+            login_url = (
+                f"{AUTH_CENTER}/auth/login"
+                f"?client_id={urllib.parse.quote(CLIENT_ID)}"
+                f"&redirect_uri={urllib.parse.quote(CALLBACK_URL)}"
+                f"&state=demo-state"  # 生产环境应随机生成并验证
+            )
+            self.html(LOGIN_CONTENT.format(port=PORT, login_url=login_url))
             return
 
-        user = self.verify_token(token)
+        user = self.fetch_userinfo(token)
         if not user:
-            # token 失效，清 cookie 并展示登录页
-            clear_cookie = self._make_set_cookie("demo_token", "", delete=True)
-            content = LOGIN_CONTENT.format(port=PORT, login_url=self.login_url())
-            self.html(content, set_cookies=[clear_cookie])
+            clear = self._make_set_cookie("demo_token", "", delete=True)
+            login_url = (
+                f"{AUTH_CENTER}/auth/login"
+                f"?client_id={urllib.parse.quote(CLIENT_ID)}"
+                f"&redirect_uri={urllib.parse.quote(CALLBACK_URL)}"
+            )
+            self.html(LOGIN_CONTENT.format(port=PORT, login_url=login_url),
+                      set_cookies=[clear])
             return
 
         avatar_html = ""
-        if user.get("avatar_url"):
-            avatar_html = f'<img class="avatar" src="{user["avatar_url"]}" alt="avatar">'
+        if user.get("picture"):
+            avatar_html = f'<img class="avatar" src="{user["picture"]}" alt="avatar">'
 
         token_preview = token[:48] + "..." if len(token) > 48 else token
-        content = HOME_CONTENT.format(
+        self.html(HOME_CONTENT.format(
             avatar=avatar_html,
             name=user.get("name", "未知"),
-            open_id=user.get("open_id", ""),
+            sub=user.get("sub", ""),
             auth_center=AUTH_CENTER,
             token_preview=token_preview,
-        )
-        self.html(content)
+        ))
 
-    def handle_callback(self, token):
-        """接收认证中心带来的 token，存 cookie 后跳首页"""
-        if not token:
-            self.html(ERROR_CONTENT.format(message="未收到 token，请重新登录。"))
+    def handle_callback(self, code, error):
+        """标准回调：先用 code 换 token，再存 cookie"""
+        if error:
+            self.html(ERROR_CONTENT.format(
+                title="授权失败",
+                message=f"飞书授权被拒绝：{error}",
+            ))
+            return
+        if not code:
+            self.html(ERROR_CONTENT.format(
+                title="参数错误",
+                message="未收到授权码（code），请重新登录。",
+            ))
             return
 
-        print(f"  [callback] token received (len={len(token)}), redirecting to /")
+        print(f"  [callback] received code, exchanging for token...")
+        token = self.exchange_code(code)
+        if not token:
+            self.html(ERROR_CONTENT.format(
+                title="Token 交换失败",
+                message="POST /token 请求失败，请检查认证中心日志。",
+            ))
+            return
+
+        print(f"  [callback] token obtained (len={len(token)}), redirecting to /")
         set_cookie = self._make_set_cookie("demo_token", token, max_age=7 * 24 * 3600)
         self.redirect("/", set_cookies=[set_cookie])
-
-    def handle_logout(self):
-        clear_cookie = self._make_set_cookie("demo_token", "", delete=True)
-        self.redirect("/", set_cookies=[clear_cookie])
 
 
 # ── 启动 ─────────────────────────────────────────────────────────────────────
@@ -247,11 +283,10 @@ if __name__ == "__main__":
     server = http.server.HTTPServer(("", PORT), DemoHandler)
     print(f"OAuth Demo running on http://localhost:{PORT}")
     print(f"Auth Center : {AUTH_CENTER}")
+    print(f"Client ID   : {CLIENT_ID}")
     print(f"Callback URL: {CALLBACK_URL}")
     print()
-    print("确认事项：")
-    print(f"  1. empyrean-lens 运行在 {AUTH_CENTER}（MODE_ENV=dev go run .）")
-    print(f"  2. config_dev.yaml allowed_redirects 已包含 localhost:{PORT}")
+    print("流程：GET /auth/login → 飞书授权 → GET /callback?code=xxx → POST /token → GET /userinfo")
     print()
     try:
         server.serve_forever()

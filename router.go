@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	handler "empyrean_lens/biz/handler"
+	"empyrean_lens/service"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
@@ -34,22 +35,35 @@ func customizedRegister(r *server.Hertz) {
 		return
 	}
 
+	jwtMw := service.AuthMiddleware().MiddlewareFunc()
+
 	spaFallback := func(_ context.Context, c *app.RequestContext) {
 		c.Data(hertzconsts.StatusOK, "text/html; charset=utf-8", indexHTML)
 	}
 
-	// NoRoute：先尝试从 embed.FS 读取静态文件，否则返回 index.html
+	// / 根路由加 JWT 保护
+	r.GET("/", jwtMw, spaFallback)
+
+	// NoRoute：先尝试 embed.FS 静态文件（assets/* 不需要认证），其余 SPA 路由加 JWT 保护
 	r.NoRoute(func(_ context.Context, c *app.RequestContext) {
 		path := strings.TrimPrefix(string(c.URI().Path()), "/")
 		if path == "" {
-			spaFallback(nil, c)
+			jwtMw(context.Background(), c)
+			if !c.IsAborted() {
+				spaFallback(nil, c)
+			}
 			return
 		}
 		data, err := fs.ReadFile(subFS, path)
 		if err != nil {
-			spaFallback(nil, c)
+			// SPA 路由，需要认证
+			jwtMw(context.Background(), c)
+			if !c.IsAborted() {
+				spaFallback(nil, c)
+			}
 			return
 		}
+		// 静态资源（JS/CSS/图片），无需认证
 		ext := filepath.Ext(path)
 		mimeType := mime.TypeByExtension(ext)
 		if mimeType == "" {
@@ -60,7 +74,4 @@ func customizedRegister(r *server.Hertz) {
 		}
 		c.Data(hertzconsts.StatusOK, mimeType, data)
 	})
-
-	// / 根路由直接返回 index.html（NoRoute 不拦截已注册路由）
-	r.GET("/", spaFallback)
 }

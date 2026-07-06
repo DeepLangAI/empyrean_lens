@@ -19,6 +19,14 @@ type Config struct {
 	Metrics        conflib.Metrics `yaml:"metrics"`
 	ExternalSecret ExternalSecret  `yaml:"external_secret"`
 	Notice         Notice          `yaml:"notice"`
+	Feishu         Feishu          `yaml:"feishu"`
+}
+
+type Feishu struct {
+	AppID       string `yaml:"app_id"`
+	AppSecret   string `yaml:"app_secret"`
+	RedirectURL string `yaml:"redirect_url"` // 飞书回调地址，需在开发者后台安全设置中添加
+	JWTSecret   string `yaml:"jwt_secret"`   // JWT 签名密钥，32+ 字符；未来做 SSO 时各服务共享此值
 }
 
 type Notice struct {

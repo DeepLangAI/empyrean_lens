@@ -32,4 +32,10 @@ feishu:
   redirect_url: "https://qa-empyrean-lens.lingowhale.com/auth/callback"  # 需在安全设置中添加
   jwt_secret: "dev-secret-please-replace-with-32chars"
   cookie_domain: ""  # 本地留空，生产填 .lingowhale.com
-  oauth_clients: []  # 按需添加
+  oauth_clients: # 按需添加
+    - client_id: "oauth-demo"
+      client_secret: "demo-secret-change-me"
+      name: "OAuth Demo 测试服务"
+      redirect_uris:
+        - "http://localhost:8888/auth/callback"
+        - "https://006f-39-98-121-22.ngrok-free.app/auth/callback"

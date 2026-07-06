@@ -25,3 +25,4 @@ feishu:
   app_secret: "REDACTED"   # 飞书开发者后台 App Secret
   redirect_url: "https://pre-empyrean-lens.lingowhale.com/auth/callback"  # 需在安全设置中添加
   jwt_secret: "REDACTED"
+  cookie_domain: ".lingowhale.com"

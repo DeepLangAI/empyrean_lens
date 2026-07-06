@@ -26,6 +26,7 @@ import (
 const (
 	cookieOAuthState    = "_oauth_state"
 	cookieOAuthVerifier = "_oauth_verifier"
+	cookieOAuthRedirect = "_oauth_redirect"
 	CookieAuth          = "auth_token"
 )
 
@@ -56,12 +57,15 @@ func AuthMiddleware() *jwt.HertzJWTMiddleware {
 			Timeout:     7 * 24 * time.Hour,
 			IdentityKey: "user",
 
-			TokenLookup:    "cookie: " + CookieAuth,
+			// 同时支持 Cookie（浏览器同域）和 Authorization header（跨域服务）
+			TokenLookup: "cookie: " + CookieAuth + ", header: Authorization",
+
 			SendCookie:     true,
 			CookieName:     CookieAuth,
 			CookieHTTPOnly: true,
 			CookieMaxAge:   7 * 24 * time.Hour,
-			SecureCookie:   false, // 生产环境改为 true（HTTPS）
+			CookieDomain:   cfg.CookieDomain, // 生产填 ".lingowhale.com" 实现跨子域共享
+			SecureCookie:   false,            // 生产环境改为 true（HTTPS）
 
 			Authenticator: svc.FeishuAuthenticator,
 
@@ -87,7 +91,18 @@ func AuthMiddleware() *jwt.HertzJWTMiddleware {
 			},
 
 			LoginResponse: func(ctx context.Context, c *app.RequestContext, code int, token string, expire time.Time) {
+				redirectURL := string(c.Cookie(cookieOAuthRedirect))
 				clearTempCookies(c)
+				if redirectURL != "" && isAllowedRedirect(redirectURL) {
+					// 跨域登录：带 token 跳回接入方服务
+					hlog.CtxInfof(ctx, "[auth] cross-domain redirect to %s", redirectURL)
+					target, _ := url.Parse(redirectURL)
+					q := target.Query()
+					q.Set("token", token)
+					target.RawQuery = q.Encode()
+					c.Redirect(hconsts.StatusFound, []byte(target.String()))
+					return
+				}
 				c.Redirect(hconsts.StatusFound, []byte("/"))
 			},
 
@@ -115,12 +130,28 @@ type AuthService struct{}
 func NewAuthService() *AuthService { return &AuthService{} }
 
 // Login 发起飞书 OAuth，生成 state/verifier 写 cookie，跳转飞书授权页。
+// 支持 redirect 参数：跨域接入方传入登录成功后的回调地址（需在白名单中）。
 func (s *AuthService) Login(ctx context.Context, c *app.RequestContext) {
+	redirect := string(c.Query("redirect"))
+	if redirect != "" {
+		if isAllowedRedirect(redirect) {
+			setTempCookie(c, cookieOAuthRedirect, redirect, 5*60)
+		} else {
+			hlog.CtxWarnf(ctx, "[auth] redirect not allowed: %s", redirect)
+		}
+	}
 	s.startOAuth(ctx, c)
 }
 
 // Me 返回当前登录用户信息（需先经过 AuthMiddleware().MiddlewareFunc() 保护）。
 func (s *AuthService) Me(_ context.Context, c *app.RequestContext) {
+	user, _ := c.Get("user")
+	c.JSON(hconsts.StatusOK, map[string]interface{}{"code": 0, "data": user})
+}
+
+// Verify 供其他服务调用，通过 Authorization: Bearer <token> 验证身份并返回用户信息。
+// 路由已被 _authMw() 保护，到达此处时 token 已验证通过，直接读 context 即可。
+func (s *AuthService) Verify(_ context.Context, c *app.RequestContext) {
 	user, _ := c.Get("user")
 	c.JSON(hconsts.StatusOK, map[string]interface{}{"code": 0, "data": user})
 }
@@ -276,6 +307,21 @@ func setTempCookie(c *app.RequestContext, name, value string, maxAge int) {
 func clearTempCookies(c *app.RequestContext) {
 	setTempCookie(c, cookieOAuthState, "", -1)
 	setTempCookie(c, cookieOAuthVerifier, "", -1)
+	setTempCookie(c, cookieOAuthRedirect, "", -1)
+}
+
+// isAllowedRedirect 校验 redirect URL 是否在配置白名单中，防止 token 被骗走。
+func isAllowedRedirect(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	for _, allowed := range conf.GetConfig().Feishu.AllowedRedirects {
+		if u.Host == allowed {
+			return true
+		}
+	}
+	return false
 }
 
 func stringClaim(claims jwt.MapClaims, key string) string {

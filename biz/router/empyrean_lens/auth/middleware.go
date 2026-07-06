@@ -8,17 +8,22 @@ import (
 )
 
 func rootMw() []app.HandlerFunc { return nil }
-func _apiMw() []app.HandlerFunc  { return nil }
+func _apiMw() []app.HandlerFunc { return nil }
 
 // /api/auth/* 路由需要 JWT 验证
 func _authMw() []app.HandlerFunc {
 	return []app.HandlerFunc{service.AuthMiddleware().MiddlewareFunc()}
 }
 
-func _logoutMw() []app.HandlerFunc  { return nil }
-func _meMw() []app.HandlerFunc      { return nil }
+func _logoutMw() []app.HandlerFunc { return nil }
+func _meMw() []app.HandlerFunc     { return nil }
 
 // /auth/login 和 /auth/callback 是公开路由，无需 JWT
 func _auth0Mw() []app.HandlerFunc    { return nil }
 func _callbackMw() []app.HandlerFunc { return nil }
 func _loginMw() []app.HandlerFunc    { return nil }
+
+func _verifyMw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

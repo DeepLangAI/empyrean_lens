@@ -23,10 +23,12 @@ type Config struct {
 }
 
 type Feishu struct {
-	AppID       string `yaml:"app_id"`
-	AppSecret   string `yaml:"app_secret"`
-	RedirectURL string `yaml:"redirect_url"` // 飞书回调地址，需在开发者后台安全设置中添加
-	JWTSecret   string `yaml:"jwt_secret"`   // JWT 签名密钥，32+ 字符；未来做 SSO 时各服务共享此值
+	AppID            string   `yaml:"app_id"`
+	AppSecret        string   `yaml:"app_secret"`
+	RedirectURL      string   `yaml:"redirect_url"`       // 飞书回调地址，需在开发者后台安全设置中添加
+	JWTSecret        string   `yaml:"jwt_secret"`         // JWT 签名密钥，32+ 字符；未来做 SSO 时各服务共享此值
+	CookieDomain     string   `yaml:"cookie_domain"`      // Cookie 作用域，跨子域时填 ".lingowhale.com"，本地留空
+	AllowedRedirects []string `yaml:"allowed_redirects"`  // 跨域登录白名单，填允许接收 token 的域名列表
 }
 
 type Notice struct {

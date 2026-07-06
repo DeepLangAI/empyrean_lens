@@ -1,5 +1,10 @@
 namespace go empyrean_lens.auth
 
+// LoginReq 登录发起请求，redirect 可选，跨域接入时填写目标回调地址
+struct LoginReq {
+    1: string redirect (api.query="redirect")
+}
+
 struct LoginCallbackReq {
     1: string code  (api.query="code")
     2: string state (api.query="state")
@@ -17,6 +22,13 @@ struct MeResp {
     3: UserInfo data
 }
 
+// VerifyResp 供其他服务调用 /api/auth/verify 时使用
+struct VerifyResp {
+    1: i32 code
+    2: string msg
+    3: UserInfo data
+}
+
 struct BaseResp {
     1: i32 code
     2: string msg
@@ -24,7 +36,8 @@ struct BaseResp {
 
 service AuthService {
     // 发起飞书 OAuth 登录（重定向到飞书授权页）
-    BaseResp Login()(
+    // redirect 可选：跨域服务填登录成功后的回调地址，认证中心会带 token 跳回
+    BaseResp Login(1: LoginReq req)(
         api.get="/auth/login"
     )
 
@@ -33,7 +46,7 @@ service AuthService {
         api.get="/auth/callback"
     )
 
-    // 返回当前登录用户信息
+    // 返回当前登录用户信息（需携带 auth_token cookie）
     MeResp Me()(
         api.get="/api/auth/me"
     )
@@ -41,5 +54,11 @@ service AuthService {
     // 登出（清除 cookie）
     BaseResp Logout()(
         api.post="/api/auth/logout"
+    )
+
+    // Token 验证接口：供其他服务通过 Authorization: Bearer <token> 验证身份
+    // 200 → 返回用户信息；401 → token 无效或已过期
+    VerifyResp Verify()(
+        api.get="/api/auth/verify"
     )
 }

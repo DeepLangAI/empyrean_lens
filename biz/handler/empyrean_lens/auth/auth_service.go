@@ -32,3 +32,9 @@ func Me(ctx context.Context, c *app.RequestContext) {
 func Logout(ctx context.Context, c *app.RequestContext) {
 	service.AuthMiddleware().LogoutHandler(ctx, c)
 }
+
+// Verify .
+// @router /api/auth/verify [GET]
+func Verify(ctx context.Context, c *app.RequestContext) {
+	service.NewAuthService().Verify(ctx, c)
+}

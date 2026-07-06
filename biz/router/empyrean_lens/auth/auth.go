@@ -23,6 +23,7 @@ func Register(r *server.Hertz) {
 			_auth := _api.Group("/auth", _authMw()...)
 			_auth.POST("/logout", append(_logoutMw(), auth.Logout)...)
 			_auth.GET("/me", append(_meMw(), auth.Me)...)
+			_auth.GET("/verify", append(_verifyMw(), auth.Verify)...)
 		}
 	}
 	{

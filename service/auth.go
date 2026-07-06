@@ -91,11 +91,10 @@ func AuthMiddleware() *jwt.HertzJWTMiddleware {
 			},
 
 			LoginResponse: func(ctx context.Context, c *app.RequestContext, code int, token string, expire time.Time) {
-				redirectURL := string(c.Cookie(cookieOAuthRedirect))
-				hlog.CtxInfof(ctx, "[auth] login success, redirect_cookie=%q allowed=%v", redirectURL, isAllowedRedirect(redirectURL))
+				redirectURL, _ := url.QueryUnescape(string(c.Cookie(cookieOAuthRedirect)))
+				hlog.CtxInfof(ctx, "[auth] login success, redirect=%q allowed=%v", redirectURL, isAllowedRedirect(redirectURL))
 				clearTempCookies(c)
 				if redirectURL != "" && isAllowedRedirect(redirectURL) {
-					// 跨域登录：带 token 跳回接入方服务
 					hlog.CtxInfof(ctx, "[auth] cross-domain redirect to %s", redirectURL)
 					target, _ := url.Parse(redirectURL)
 					q := target.Query()
@@ -135,6 +134,10 @@ func NewAuthService() *AuthService { return &AuthService{} }
 func (s *AuthService) Login(ctx context.Context, c *app.RequestContext) {
 	redirect := string(c.Query("redirect"))
 	if redirect != "" {
+		// c.Query 有时会返回已编码的值，统一 decode 后再存 cookie
+		if decoded, err := url.QueryUnescape(redirect); err == nil {
+			redirect = decoded
+		}
 		if isAllowedRedirect(redirect) {
 			hlog.CtxInfof(ctx, "[auth] cross-domain login, redirect=%s", redirect)
 			setTempCookie(c, cookieOAuthRedirect, redirect, 5*60)

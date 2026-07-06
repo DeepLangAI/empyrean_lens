@@ -11,3 +11,12 @@ logger:
 metrics:
   log_store: "prod-metrics"
   metric_prefix: "empyrean-lens"
+
+
+external_secret:
+  deeplang_sls_fc_secret:
+    base_url: "http://mcp-sls-prod-lingowhale-fc-vpvuncwaaf.cn-zhangjiakou-vpc.fcapp.run"
+    token: "REDACTED"
+
+notice:
+  lingowhale_stability_webhook: "https://open.feishu.cn/open-apis/bot/v2/hook/00000000-0000-0000-0000-000000000000"

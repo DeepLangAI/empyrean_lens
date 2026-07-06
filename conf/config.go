@@ -14,14 +14,29 @@ import (
 var conf Config
 
 type Config struct {
-	Server  Server          `yaml:"server"`
-	Logger  conflib.Logger  `yaml:"logger"`
-	Metrics conflib.Metrics `yaml:"metrics"`
+	Server         Server          `yaml:"server"`
+	Logger         conflib.Logger  `yaml:"logger"`
+	Metrics        conflib.Metrics `yaml:"metrics"`
+	ExternalSecret ExternalSecret  `yaml:"external_secret"`
+	Notice         Notice          `yaml:"notice"`
+}
+
+type Notice struct {
+	LingowhaleStabilityWebhook string `yaml:"lingowhale_stability_webhook"`
 }
 
 type Server struct {
 	Port string `yaml:"port"` // 服务端口
 	Name string `yaml:"name"`
+}
+
+type ExternalSecret struct {
+	DeeplangSlsFcSecret DeeplangSlsFcSecret `yaml:"deeplang_sls_fc_secret"`
+}
+
+type DeeplangSlsFcSecret struct {
+	BaseUrl string `yaml:"base_url"`
+	Token   string `yaml:"token"`
 }
 
 // 配置文件路径
@@ -34,7 +49,7 @@ func GetConfig() Config {
 func InitConfig() {
 	env := os.Getenv(constslib.ModeEnvName)
 	if env == "" {
-		env = "test"
+		env = "dev"
 	}
 
 	configPath := fmt.Sprintf(ConfigPath, env)
@@ -68,7 +83,7 @@ func GetProjectPath() string {
 
 	// 从当前工作目录向上遍历，寻找main.go文件
 	for {
-		info, err := os.Stat(filepath.Join(cwd, "main.go"))
+		info, err := os.Stat(filepath.Join(cwd, "go.mod"))
 		if err == nil && !info.IsDir() {
 			// 找到main.go，返回当前目录作为项目路径
 			return cwd

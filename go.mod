@@ -40,6 +40,7 @@ require (
 
 require (
 	github.com/aliyun/aliyun-log-go-sdk v0.1.72 // indirect
+	github.com/aliyun/fc-runtime-go-sdk v0.3.1 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect

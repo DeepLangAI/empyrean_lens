@@ -31,3 +31,21 @@ docker_build:
 		$(if $(CODEUP_USER),--build-arg CODEUP_USER=$(CODEUP_USER)) \
 		$(if $(CODEUP_PASSWORD),--build-arg CODEUP_PASSWORD=$(CODEUP_PASSWORD)) \
 		-t empyrean-lens:latest .
+
+
+# ------------------------------
+# common begin
+# ------------------------------
+zip:
+	rm -rf output && \
+	mkdir output && \
+	GOOS=linux GOARCH=amd64 go build -o output/main $(MAIN_PATH) && \
+	cp -r conf output && \
+	(cd output && zip -r ../$(ZIP_NAME) .) && \
+	rm -rf output
+# ------------------------------
+# common end
+# ------------------------------
+
+fc_cron:
+	$(MAKE) zip ZIP_NAME=fc_cron.zip MAIN_PATH=fc/cron/main.go

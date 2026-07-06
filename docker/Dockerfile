@@ -4,7 +4,9 @@
 # =============================================================================
 
 # 第一阶段：构建前端（web/dist 由 embed.FS 打进 Go 二进制）
-FROM node:22-alpine AS web-builder
+#FROM node:22-alpine AS web-builder
+# 阿里云内网
+FROM registry-vpc.cn-zhangjiakou.aliyuncs.com/lingowhale/node:22-alpine AS web-builder
 
 WORKDIR /app/web
 COPY web/package*.json ./
@@ -13,7 +15,9 @@ COPY web/ ./
 RUN npm run build
 
 # 第二阶段：编译 Go 二进制
-FROM golang:1.23-alpine AS builder
+#FROM golang:1.23-alpine AS builder
+# 阿里云内网
+FROM registry-vpc.cn-zhangjiakou.aliyuncs.com/lingowhale/golang:1.23-alpine AS builder
 
 ENV GOPROXY="https://mirrors.aliyun.com/goproxy"
 ENV GOPRIVATE="codeup.aliyun.com"
@@ -46,8 +50,9 @@ COPY --from=web-builder /app/web/dist ./web/dist
 RUN go build -ldflags "-s -w -extldflags '-static'" -o app .
 
 # 第三阶段：最终运行镜像
-FROM debian:bookworm-slim
-
+#FROM debian:bookworm-slim
+# 阿里云内网
+FROM registry-vpc.cn-zhangjiakou.aliyuncs.com/lingowhale/debian:bookworm-slim
 ENV TZ=Asia/Shanghai
 
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \

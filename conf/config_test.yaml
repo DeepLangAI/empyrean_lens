@@ -25,4 +25,8 @@ feishu:
   redirect_url: "https://qa-empyrean-lens.lingowhale.com/auth/callback"  # 需在安全设置中添加
   jwt_secret: "dev-secret-please-replace-with-32chars"
   cookie_domain: ""  # 本地留空，生产填 .lingowhale.com
-  allowed_redirects: []
+  allowed_redirects:
+    - "2b2f-39-98-121-22.ngrok-free.app"
+    - "shenyandayi.com"
+    - "deeplang.ai"
+    - "lingowhale.com"

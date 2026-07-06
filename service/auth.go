@@ -311,13 +311,16 @@ func clearTempCookies(c *app.RequestContext) {
 }
 
 // isAllowedRedirect 校验 redirect URL 是否在配置白名单中，防止 token 被骗走。
+// 白名单项可以是精确 host（如 "localhost:8888"）或父域名（如 "lingowhale.com"）。
+// 父域名匹配会同时允许该域名本身及其所有子域名。
 func isAllowedRedirect(rawURL string) bool {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return false
 	}
+	host := u.Host
 	for _, allowed := range conf.GetConfig().Feishu.AllowedRedirects {
-		if u.Host == allowed {
+		if host == allowed || strings.HasSuffix(host, "."+allowed) {
 			return true
 		}
 	}

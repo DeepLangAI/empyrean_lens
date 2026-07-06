@@ -28,4 +28,8 @@ feishu:
   jwt_secret: "dev-secret-please-replace-with-32chars"
   cookie_domain: ""  # 本地留空，生产填 .lingowhale.com
   allowed_redirects:
-    - "localhost:8888"  # oauth-demo 本地测试
+    - "localhost:8888"
+    - "2b2f-39-98-121-22.ngrok-free.app"
+    - "shenyandayi.com"
+    - "deeplang.ai"
+    - "lingowhale.com"

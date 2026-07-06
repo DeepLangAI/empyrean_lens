@@ -12,19 +12,25 @@ OAuth Demo 服务
 import http.server
 import http.cookies
 import json
+import os
 import urllib.request
 import urllib.parse
 from urllib.error import URLError
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
 
-PORT = 8888
+PORT = int(os.environ.get("PORT", 8888))
 
-# 认证中心地址
-AUTH_CENTER = "http://localhost:19001"
+# 认证中心公网地址（必须与 config_dev.yaml redirect_url 的域名一致）
+# 用法：AUTH_CENTER=https://xxxx.ngrok-free.app python3 app.py
+AUTH_CENTER = os.environ.get("AUTH_CENTER", "http://localhost:19001").rstrip("/")
 
 # 本服务的回调地址（需加入认证中心 allowed_redirects 白名单）
-CALLBACK_URL = f"http://localhost:{PORT}/auth/callback"
+# 如果 demo 也通过 ngrok 暴露，填 ngrok 公网地址
+CALLBACK_URL = os.environ.get(
+    "CALLBACK_URL",
+    f"http://localhost:{PORT}/auth/callback"
+)
 
 # ── HTML 模板 ───────────────────────────────────────────────────────────────
 

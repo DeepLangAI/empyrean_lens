@@ -4,18 +4,74 @@ package main
 
 import (
 	"context"
+	"embed"
+	"io/fs"
+	"mime"
+	"path/filepath"
+	"strings"
+
 	handler "empyrean_lens/biz/handler"
+	"empyrean_lens/service"
+
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
-	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	hertzconsts "github.com/cloudwego/hertz/pkg/protocol/consts"
 )
+
+//go:embed web/dist
+var webDist embed.FS
 
 // customizeRegister registers customize routers.
 func customizedRegister(r *server.Hertz) {
 	r.GET("/ping", handler.Ping)
-	r.NoRoute(func(c context.Context, ctx *app.RequestContext) {
-		ctx.Redirect(consts.StatusOK, []byte("/api/log/overview"))
-	})
 
-	// your code ...
+	subFS, err := fs.Sub(webDist, "web/dist")
+	if err != nil {
+		return
+	}
+	indexHTML, err := fs.ReadFile(subFS, "index.html")
+	if err != nil {
+		// 前端未构建（web/dist/index.html 不存在），跳过静态文件服务
+		return
+	}
+
+	jwtMw := service.AuthMiddleware().MiddlewareFunc()
+
+	spaFallback := func(_ context.Context, c *app.RequestContext) {
+		c.Data(hertzconsts.StatusOK, "text/html; charset=utf-8", indexHTML)
+	}
+
+	// / 根路由加 JWT 保护
+	r.GET("/", jwtMw, spaFallback)
+
+	// NoRoute：先尝试 embed.FS 静态文件（assets/* 不需要认证），其余 SPA 路由加 JWT 保护
+	r.NoRoute(func(_ context.Context, c *app.RequestContext) {
+		path := strings.TrimPrefix(string(c.URI().Path()), "/")
+		if path == "" {
+			jwtMw(context.Background(), c)
+			if !c.IsAborted() {
+				spaFallback(nil, c)
+			}
+			return
+		}
+		data, err := fs.ReadFile(subFS, path)
+		if err != nil {
+			// SPA 路由，需要认证
+			jwtMw(context.Background(), c)
+			if !c.IsAborted() {
+				spaFallback(nil, c)
+			}
+			return
+		}
+		// 静态资源（JS/CSS/图片），无需认证
+		ext := filepath.Ext(path)
+		mimeType := mime.TypeByExtension(ext)
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+		if strings.HasPrefix(path, "assets/") {
+			c.Header("Cache-Control", "public, max-age=31536000, immutable")
+		}
+		c.Data(hertzconsts.StatusOK, mimeType, data)
+	})
 }

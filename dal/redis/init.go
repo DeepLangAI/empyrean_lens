@@ -2,75 +2,61 @@ package redis
 
 import (
 	"context"
-	"fmt"
-	"sync"
+	"crypto/tls"
+	"empyrean_lens/conf"
 	"time"
 
-	"empyrean_lens/conf"
-
-	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/redis/go-redis/v9"
 )
 
-const (
-	Stop = 1
-)
-
-var (
-	rdb       *redis.ClusterClient
-	onceRedis sync.Once
-)
+var redisClient *redis.ClusterClient
 
 func Init() {
-	onceRedis.Do(func() {
-		if rdb == nil {
-			rdb = redis.NewClusterClient(conf.GetConfig().Redis)
+	ctx := context.Background()
+	config := conf.GetConfig().Redis
+	var tlsConfig *tls.Config
+	if config.UseTls {
+		tlsConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
 		}
-		if rdb != nil {
-			err := rdb.Ping(context.Background()).Err()
-			if err != nil {
-				logger.Errorf("redis 连接失败. err:%s", err)
-				panic("redis 连接失败")
-			}
-			logger.Info("redis 初始化成功")
-		} else {
-			panic("redis 连接失败")
-		}
+	}
+
+	redisClient = redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:      config.Addrs,
+		Password:   config.Password,
+		Username:   config.Username,
+		MaxRetries: 3,
+
+		TLSConfig: tlsConfig,
 	})
 
-	hlog.CtxInfof(context.Background(), "init redis success")
+	err := redisClient.Ping(context.Background()).Err()
+	if err != nil {
+		panic(err)
+	}
+
+	hlog.CtxInfof(ctx, "init redis success")
 }
 
 func GetRdb() *redis.ClusterClient {
-	return rdb
+	return redisClient
 }
 
 func KeySet(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	return rdb.Set(ctx, key, value, expiration).Err()
+	return redisClient.Set(ctx, key, value, expiration).Err()
 }
 
-func KeySetNx(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	cmd := rdb.SetNX(ctx, key, value, expiration)
-	if res, err := cmd.Result(); err != nil || !res {
-		return fmt.Errorf("set key fail, key:%s, err:%v", key, err)
-	}
-	return nil
-}
-
+// .Val()实际存的值
+// .String()执行的命令+值，不要用这个
 func GetVal(ctx context.Context, key string) *redis.StringCmd {
-	return rdb.Get(ctx, key)
+	return redisClient.Get(ctx, key)
 }
-
 func DelKey(ctx context.Context, key string) error {
-	err := rdb.Del(ctx, key).Err()
+	err := redisClient.Del(ctx, key).Err()
 	if err != nil {
 		hlog.CtxErrorf(ctx, "del key fail, key:%s, err:%s", key, err.Error())
 		return err
 	}
 	return nil
-}
-
-func GetStopKey(requestId, sessionId string) string {
-	return fmt.Sprintf("stop_answer:%s:%s", requestId, sessionId)
 }

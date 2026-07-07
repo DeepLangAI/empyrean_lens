@@ -2,9 +2,9 @@ package consts
 
 type BizCode struct {
 	// 错误码
-	Code int32
+	Code int32 `json:"code"`
 	// 错误描述
-	Msg string
+	Msg string `json:"msg"`
 }
 
 var (
@@ -21,3 +21,10 @@ var (
 	// 语鲸原定的错误码
 	ID_TOKEN_EXPIRED = BizCode{10010, "login id token failure"}
 )
+
+func NewBizErrFromErr(bizErr BizCode, err error) *BizCode {
+	return &BizCode{
+		Code: bizErr.Code,
+		Msg:  bizErr.Msg + ": " + err.Error(),
+	}
+}

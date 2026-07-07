@@ -199,10 +199,23 @@ feishu:
 
 通过 `MODE_ENV` 环境变量选择配置文件，对应 `conf/config_<MODE_ENV>.yaml`。未设置时默认读取 `config_test.yaml`。
 
-- dev：本地开发，SLS 用 QA 代理，飞书 redirect_url 填 ngrok 地址
-- test：`qa-empyrean-lens.lingowhale.com`，SLS 用 QA 代理
-- pre：`pre-empyrean-lens.lingowhale.com`，SLS 用生产代理
-- prod：`empyrean-lens.lingowhale.com`，SLS 用生产代理
+| 环境 | MODE_ENV | 域名 | Jenkins | SLS |
+|------|----------|------|---------|-----|
+| 本地开发 | dev | localhost:19001 | — | QA 代理，飞书 redirect_url 用 ngrok |
+| Test/QA | test | [qa-empyrean-lens.lingowhale.com](https://qa-empyrean-lens.lingowhale.com) | [Test Job](https://jenkins.lingowhale.com/job/Test/job/lingowhale/job/Empyrean-lens_SwimLan_Go_Test/) | QA 代理 |
+| Pre | pre | [pre-empyrean-lens.lingowhale.com](https://pre-empyrean-lens.lingowhale.com) | [Pre Job](https://jenkins.lingowhale.com/job/Pre/job/empyrean-lens/job/Empyrean_lens_Go_Pre/) | 生产代理 |
+| Prod | prod | [empyrean-lens.lingowhale.com](https://empyrean-lens.lingowhale.com) | [Prod Job](https://jenkins.lingowhale.com/job/Production/job/empyrean-lens/job/Empyrean_lens_Go_Prod/) | 生产代理 |
+
+**部署说明**：这是一个前后端单体全栈项目，前端（React/Vite）构建产物通过 `//go:embed web/dist` 打包进 Go 二进制，Jenkins 构建时同时执行 `make web_build` 和 Go 编译，一次部署覆盖前后端。
+
+```bash
+# 前端构建（生成 web/dist/，会被 embed 进二进制）
+make web_build
+
+# 本地同时启动前后端调试
+make web_dev   # 前端 dev server（代理到 :19001）
+MODE_ENV=dev go run .  # 后端
+```
 
 ### Handler 规范
 

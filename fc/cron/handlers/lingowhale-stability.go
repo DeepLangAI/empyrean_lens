@@ -73,13 +73,15 @@ limit 50`
 	sqCrawlWeixin = `crawl_normal OR crawl_error | select message, count(*) as cnt from log where extra like '%mp.weixin.qq.com%' and extra like '%"domain"%' group by message`
 
 	// 数据生成服务（repeater 容器），由调用方提供
-	sqGenService = `__tag__:_container_name_: lingowhale-repeater-go-prod and __tag__:_namespace_: repeater and (OutRequest or level: error)
+	sqGenService = `
+__tag__:_container_name_: lingowhale-repeater-go-prod and __tag__:_namespace_: repeater and (OutRequest or level: error)
 | select
     service_type,
     sum(total)  as total_calls,
     sum(errors) as error_ops,
     round(100.0 * (1.0 - cast(sum(errors) as double) / nullif(cast(sum(total) as double), 0)), 2) as success_pct
 from (
+    -- 分母：模型调用总量
     select
         regexp_extract(message, 'OutRequest (\S+)', 1) as service_type,
         1 as total,
@@ -88,20 +90,25 @@ from (
     where message like 'OutRequest %'
       and regexp_extract(message, 'OutRequest (\S+)', 1)
           not in ('upload_oss', 'add_voice', 'model_daily_voice')
+
     union all
+
+    -- 分子：真实失败数
     select service_type, 0 as total, 1 as errors
     from (
+        -- ① 非 code:5001 错误：按 operation_id 去重
         select
-            operation_id,
+            operation_id as dedup_key,
             case
                 when message like 'StreamErrResp%'
-                 and message not like '%code:21001%'          then 'single_abstract'
+                 and message not like '%code:21001%'
+                 and message not like '%code:5001%'   then 'single_abstract'
                 when message like '解析模型返回数据失败%'
-                  or message like '调用下游服务失败%'          then regexp_extract(message, 'model:(\w+)', 1)
-                when message like 'StreamErr %'               then regexp_extract(message, 'StreamErr (\w+)', 1)
-                when message like '多文档大纲模型生成失败%'    then 'multi_summary'
+                  or message like '调用下游服务失败%'  then regexp_extract(message, 'model:(\w+)', 1)
+                when message like 'StreamErr %'        then regexp_extract(message, 'StreamErr (\w+)', 1)
+                when message like '多文档大纲模型生成失败%' then 'multi_summary'
                 when message like 'EditAudio error%'
-                  or message like 'HSText2Voice%'             then 'hs_tts'
+                  or message like 'HSText2Voice%'      then 'hs_tts'
             end as service_type
         from log
         where level = 'error'
@@ -112,13 +119,28 @@ from (
           and message not like 'SingAnalyze Error%'
           and message not like 'ErrorResponse%'
           and message not like 'server panic%'
-        group by operation_id, service_type
+          and not (message like 'StreamErrResp%' and message like '%code:5001%')
+        group by dedup_key, service_type
         having service_type is not null
+
+        union all
+
+        -- ② code:5001（文档解析失败广播）：按 entryId 去重，统计为 single_abstract 失败
+        select
+            regexp_extract(message, 'entryId:(\S+) ', 1) as dedup_key,
+            'single_abstract' as service_type
+        from log
+        where level = 'error'
+          and message like 'StreamErrResp%'
+          and message like '%code:5001%'
+        group by dedup_key, service_type
+        having dedup_key is not null and dedup_key != ''
     )
 ) t
 group by service_type
 having service_type is not null and service_type != ''
-order by total_calls desc`
+order by total_calls desc
+`
 )
 
 // 生成服务类型中文名映射
@@ -283,27 +305,27 @@ func (h *LingowhaleStability) Handle(ctx context.Context, _ string) error {
 		return ch
 	}
 
-	chOverview    := run("crawl_overview",     slshttp.LogStore_BusinessPod,  sqCrawlOverview,   10)
-	chLatency     := run("crawl_latency",      slshttp.LogStore_BusinessPod,  sqCrawlLatency,     1)
-	chWxLatency   := run("weixin_latency",     slshttp.LogStore_BusinessPod,  sqWeixinLatency,    1)
-	chTopFailed   := run("top_failed_domains", slshttp.LogStore_BusinessPod,  sqTopFailedDomains, 6)
-	chWeixin      := run("crawl_weixin",       slshttp.LogStore_BusinessPod,  sqCrawlWeixin,      10)
-	chWxVendors   := run("weixin_vendors",     slshttp.LogStore_BusinessPod,  sqWeixinVendors,    10)
-	chImgCrawl    := run("img_crawl",          slshttp.LogStore_BusinessPod,  sqImgCrawl,          1)
-	chImgFailure  := run("img_failure",        slshttp.LogStore_BusinessPod,  sqImgFailure,         1)
-	chGen         := run("gen_service",        slshttp.LogStore_BusinessPod,  sqGenService,        200)
-	chIngestion   := run("resource_ingestion", slshttp.LogStore_BusinessPod,  sqResourceIngestion,  20)
+	chOverview := run("crawl_overview", slshttp.LogStore_BusinessPod, sqCrawlOverview, 10)
+	chLatency := run("crawl_latency", slshttp.LogStore_BusinessPod, sqCrawlLatency, 1)
+	chWxLatency := run("weixin_latency", slshttp.LogStore_BusinessPod, sqWeixinLatency, 1)
+	chTopFailed := run("top_failed_domains", slshttp.LogStore_BusinessPod, sqTopFailedDomains, 6)
+	chWeixin := run("crawl_weixin", slshttp.LogStore_BusinessPod, sqCrawlWeixin, 10)
+	chWxVendors := run("weixin_vendors", slshttp.LogStore_BusinessPod, sqWeixinVendors, 10)
+	chImgCrawl := run("img_crawl", slshttp.LogStore_BusinessPod, sqImgCrawl, 1)
+	chImgFailure := run("img_failure", slshttp.LogStore_BusinessPod, sqImgFailure, 1)
+	chGen := run("gen_service", slshttp.LogStore_BusinessPod, sqGenService, 200)
+	chIngestion := run("resource_ingestion", slshttp.LogStore_BusinessPod, sqResourceIngestion, 20)
 
-	rOverview    := <-chOverview
-	rLatency     := <-chLatency
-	rWxLatency   := <-chWxLatency
-	rTopFailed   := <-chTopFailed
-	rWeixin      := <-chWeixin
-	rWxVendors   := <-chWxVendors
-	rImgCrawl    := <-chImgCrawl
-	rImgFailure  := <-chImgFailure
-	rGen         := <-chGen
-	rIngestion   := <-chIngestion
+	rOverview := <-chOverview
+	rLatency := <-chLatency
+	rWxLatency := <-chWxLatency
+	rTopFailed := <-chTopFailed
+	rWeixin := <-chWeixin
+	rWxVendors := <-chWxVendors
+	rImgCrawl := <-chImgCrawl
+	rImgFailure := <-chImgFailure
+	rGen := <-chGen
+	rIngestion := <-chIngestion
 
 	hlog.CtxInfof(ctx, "[stability] all queries done")
 

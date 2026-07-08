@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "mcp-db": {
+      "type": "http",
+      "url": "https://mcp-db-lingowhale-fc-pknhdiagav.cn-zhangjiakou.fcapp.run/mcp",
+      "headers": { "Authorization": "Bearer ${MCP_DB_TOKEN}" }
+    },
+    "mcp-sls": {
+      "type": "http",
+      "url": "http://mcp-sls-lingowhle-fc-qa-kisjjtktbb.cn-zhangjiakou.fcapp.run/mcp",
+      "headers": { "Authorization": "Bearer ${MCP_SLS_TOKEN}" }
+    }
+  }
+}

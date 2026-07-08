@@ -96,6 +96,7 @@ type Table struct {
 type TableCol struct {
 	Name    string
 	Display string
+	Width   string // 可选："auto"（默认）、"120px"（80~600）、"25%"
 }
 
 // Level 是节/整卡的健康级别。
@@ -122,12 +123,25 @@ func (l Level) Icon() string {
 	}
 }
 
+// Chart 是卡片里的一张图（飞书卡片 chart 组件，SpecJSON 为 VChart 规格 JSON）。
+type Chart struct {
+	SpecJSON string
+}
+
 // Output 是一节的产出。
 type Output struct {
 	Metrics []Metric
 	Tables  []Table
+	Charts  []Chart
 	Notes   []string // 口径注记/异常说明，渲染为引用行
 }
+
+// 报表三层结构（渲染层按此分组，与模板结构一致）。
+const (
+	LayerL1 = "第一层 · 数据来源层（接受了哪些数据）"
+	LayerL2 = "第二层 · 处理与监控层（中间发生了什么）"
+	LayerL3 = "第三层 · 有效入库层（用户视角剩下多少）"
+)
 
 // ─── 阈值与勾稽 ──────────────────────────────────────────────────────────────
 
@@ -158,6 +172,7 @@ type Snapshot map[string]float64
 type Section struct {
 	Key   string
 	Title string
+	Layer string // LayerL1/L2/L3，渲染层按此分组
 
 	Queries []Query
 

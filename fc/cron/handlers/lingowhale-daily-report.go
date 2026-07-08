@@ -50,13 +50,15 @@ func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) erro
 	results, snapshot := report.Run(ctx, day, report.Sections(), queryFunc, prevDays)
 	saveSnapshot(ctx, day, snapshot)
 
-	msg := renderDailyReport(day, results)
+	msgs := renderDailyReport(day, results, prevDays)
 	webhook := conf.GetConfig().Notice.LingowhaleStabilityWebhook // 暂复用 stability 群，可拆独立 webhook
-	err := retry.Do(func() error { return sendFeishuWebhook(ctx, webhook, msg) },
-		retry.Attempts(3), retry.Delay(2*time.Second), retry.Context(ctx))
-	if err != nil {
-		hlog.CtxErrorf(ctx, "[daily-report] send feishu failed: %v", err)
-		return err
+	for i, msg := range msgs {
+		err := retry.Do(func() error { return sendFeishuWebhook(ctx, webhook, msg) },
+			retry.Attempts(3), retry.Delay(2*time.Second), retry.Context(ctx))
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[daily-report] send feishu card %d failed: %v", i+1, err)
+			return err
+		}
 	}
 	hlog.CtxInfof(ctx, "[daily-report] sent, sections=%d", len(results))
 	return nil
@@ -185,75 +187,309 @@ func saveSnapshot(ctx context.Context, day time.Time, s report.Snapshot) {
 
 // ─── 渲染 ───────────────────────────────────────────────────────────────────
 
-func renderDailyReport(day time.Time, results []*report.Result) fcMsg {
+func renderDailyReport(day time.Time, results []*report.Result, prevDays []report.Snapshot) []fcMsg {
 	overall := report.OverallLevel(results)
-	var elements []interface{}
-
-	// 今日 Top 需关注（阈值/勾稽命中，按级别降序取 3 条）
-	hits := report.TopHits(results, 3)
-	if len(hits) == 0 {
-		elements = append(elements, md("**今日无需关注事项**，各层指标健康 🟢"))
-	} else {
-		var b strings.Builder
-		b.WriteString("**今日需关注**\n")
-		for i, h := range hits {
-			fmt.Fprintf(&b, "%d. %s %s\n", i+1, h.Level.Icon(), h.Msg)
-		}
-		elements = append(elements, md(b.String()))
-	}
-	elements = append(elements, hr())
-
+	allMetrics := map[string]report.Metric{}
+	byKey := map[string]*report.Result{}
+	layerLevel := map[string]report.Level{}
 	for _, r := range results {
 		if r == nil {
 			continue
 		}
-		title := fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)
-		if r.Err != nil {
-			elements = append(elements, md(title+fmt.Sprintf("\n> ⚠️ 本节生成失败（已隔离，不影响其他节）：%v", r.Err)), hr())
-			continue
-		}
-		elements = append(elements, md(title))
-
-		// 指标行：一节的关键指标拼一行（表格已含的细节不重复）
-		if line := metricLine(r); line != "" {
-			elements = append(elements, md(line))
-		}
-		for _, t := range r.Output.Tables {
-			if t.Title != "" {
-				elements = append(elements, md("> "+t.Title))
+		byKey[r.Section.Key] = r
+		if r.Output != nil {
+			for _, m := range r.Output.Metrics {
+				allMetrics[m.Key] = m
 			}
-			if t.Compact {
-				// 飞书卡片 table 组件数量有上限，低密度表降级为 markdown 行
-				elements = append(elements, md(compactTableMd(t)))
-				continue
-			}
-			var cols []fcTableCol
-			for _, c := range t.Cols {
-				cols = append(cols, col(c.Name, c.Display, "auto"))
-			}
-			elements = append(elements, makeTable(cols, t.Rows))
 		}
-		for _, n := range r.Output.Notes {
-			elements = append(elements, md("> "+n))
+		l := r.Level
+		if l == report.LevelBroken {
+			l = report.LevelWarn
 		}
-		elements = append(elements, hr())
+		if l > layerLevel[r.Section.Layer] {
+			layerLevel[r.Section.Layer] = l
+		}
 	}
-
-	header := fmt.Sprintf("数据平台每日巡检报表 · %s", day.Format("2006-01-02"))
+	mt := func(key string) string {
+		if m, ok := allMetrics[key]; ok {
+			return m.Text
+		}
+		return "—"
+	}
+	mv := func(key string) float64 { return allMetrics[key].Value }
+	prevOf := func(key string) (float64, bool) {
+		if len(prevDays) == 0 || prevDays[0] == nil {
+			return 0, false
+		}
+		v, ok := prevDays[0][key]
+		return v, ok
+	}
+	delta := func(key string) string {
+		if m, ok := allMetrics[key]; ok {
+			return report.DeltaPct(m.Value, prevDays, key)
+		}
+		return "—"
+	}
+	deltaPP := func(key string) string {
+		if p, ok := prevOf(key); ok {
+			return fmt.Sprintf("%+.1fpp", mv(key)-p)
+		}
+		return "—"
+	}
+	deltaCount := func(key string) string {
+		if p, ok := prevOf(key); ok {
+			return fmt.Sprintf("%+.0f", mv(key)-p)
+		}
+		return "—"
+	}
+	dropStatus := func(key string) string {
+		cur := mv(key)
+		if cur == 0 {
+			return "🔴"
+		}
+		if p, ok := prevOf(key); ok && p > 0 && cur < p*0.7 {
+			return "🔴"
+		}
+		return "🟢"
+	}
+	rateStatus := func(key string, warn, crit float64) string {
+		switch {
+		case mv(key) < crit:
+			return "🔴"
+		case mv(key) < warn:
+			return "🟡"
+		default:
+			return "🟢"
+		}
+	}
+	metricCols := []fcTableCol{
+		col("metric", "指标", "40%"), col("today", "今日", "30%"),
+		col("delta", "环比", "16%"), col("status", "状态", "14%"),
+	}
 	template := map[report.Level]string{
 		report.LevelOK: "green", report.LevelWarn: "yellow",
 		report.LevelCrit: "red", report.LevelBroken: "yellow",
 	}[overall]
-
-	return fcMsg{
-		MsgType: "interactive",
-		Card: fcCard{
-			Schema: "2.0",
-			Config: fcConfig{WideScreenMode: true},
-			Header: fcHeader{Title: fcText{Tag: "plain_text", Content: header}, Template: template},
+	newCard := func(title string, elements []interface{}) fcMsg {
+		return fcMsg{MsgType: "interactive", Card: fcCard{
+			Schema: "2.0", Config: fcConfig{WideScreenMode: true},
+			Header: fcHeader{Title: fcText{Tag: "plain_text", Content: title}, Template: template},
 			Body:   fcBody{Direction: "vertical", Elements: elements},
-		},
+		}}
 	}
+
+	// ════════ 卡 1：健康总览 + 第一层 · 数据来源 ════════
+	var e1 []interface{}
+	supplierP99 := allMetrics["supplier.lat.12.p99"].Value
+	if v := allMetrics["supplier.lat.14.p99"].Value; v > supplierP99 {
+		supplierP99 = v
+	}
+	overview := "**今日健康总览**\n" +
+		fmt.Sprintf("%s **① 数据来源**　接收 %s 条 · 环比 %s · 推送时效 P99 %s\n",
+			layerLevel[report.LayerL1].Icon(), mt("funnel.top"), delta("funnel.top"), fmtMinShort(supplierP99)) +
+		fmt.Sprintf("%s **② 处理与监控**　入库处理成功率 %s · 解析成功率 %s · 生成最差成功率 %s\n",
+			layerLevel[report.LayerL2].Icon(), mt("pipe.proc.rate"), mt("pipe.parse.rate"), mt("gen.worst_rate")) +
+		fmt.Sprintf("%s **③ 有效入库**　有效入库 %s 篇 · 有效率 %s · 公众号端到端≤30min %s",
+			layerLevel[report.LayerL3].Icon(), mt("eff.total"), mt("funnel.eff_rate_top"), mt("eff.e2e.weixin.le30m"))
+	e1 = append(e1, md(overview))
+	if hits := report.TopHits(results, 3); len(hits) > 0 {
+		var b strings.Builder
+		b.WriteString("**今日 Top 3 需关注**\n")
+		for i, h := range hits {
+			fmt.Fprintf(&b, "%d. %s %s\n", i+1, h.Level.Icon(), h.Msg)
+		}
+		e1 = append(e1, md(b.String()))
+	}
+	e1 = append(e1, hr())
+	e1 = append(e1, md(fmt.Sprintf("%s **%s**", layerLevel[report.LayerL1].Icon(), report.LayerL1)))
+
+	// 1.1 供应商（模板表 + 重复拦截列：推送量 − 丢失 − 重复拦截 = 进入处理，与 2.2 首行衔接）
+	if r := byKey["supplier"]; r != nil {
+		e1 = append(e1, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+		procOf := map[string]string{"12": "m22.total.Renminwang", "14": "m22.total.Qingbo"}
+		nameOf := map[string]string{"12": "人民网", "14": "清博"}
+		var supRows []map[string]string
+		for _, src := range []string{"14", "12"} {
+			arrived := mv("supplier.arrive." + src)
+			dedup := arrived - mv(procOf[src])
+			if dedup < 0 {
+				dedup = 0
+			}
+			status := "🟢"
+			if rate := mv("supplier.recv.rate." + src); arrived == 0 || rate < 95 {
+				status = "🔴"
+			} else if rate < 99.5 {
+				status = "🟡"
+			}
+			supRows = append(supRows, map[string]string{
+				"supplier": nameOf[src],
+				"push":     mt("supplier.arrive." + src),
+				"delta":    delta("supplier.arrive." + src),
+				"rate":     mt("supplier.recv.rate." + src),
+				"dedup":    fmtCount(int(dedup)),
+				"p50":      mt("supplier.lat." + src + ".p50"),
+				"p90":      mt("supplier.lat." + src + ".p90"),
+				"p99":      mt("supplier.lat." + src + ".p99"),
+				"status":   status,
+			})
+		}
+		e1 = append(e1, makeTable([]fcTableCol{
+			col("supplier", "供应商", "auto"), col("push", "推送量", "auto"),
+			col("delta", "环比昨日", "auto"), col("rate", "接收成功率", "auto"),
+			col("dedup", "重复拦截", "auto"),
+			col("p50", "时效P50", "auto"), col("p90", "P90", "auto"), col("p99", "P99", "auto"),
+			col("status", "状态", "auto"),
+		}, supRows))
+		e1 = append(e1, md("> 推送量 −（1−接收成功率）丢失 − 重复拦截 = 进入处理（见 2.2 首行）。重复拦截 = 供应商连推的重复副本在入口被拦，非丢失。"))
+		appendSectionExtras(&e1, byKey, "supplier", true)
+	}
+	// 1.2 自采集指标表
+	if r := byKey["self"]; r != nil {
+		e1 = append(e1, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+		acctStatus := "🟢"
+		if p, ok := prevOf("self.accounts.active"); ok && mv("self.accounts.active") < p*0.95 {
+			acctStatus = "🟡"
+		}
+		e1 = append(e1, makeTable(metricCols, []map[string]string{
+			{"metric": "采集量", "today": mt("self.push"), "delta": delta("self.push"), "status": dropStatus("self.push")},
+			{"metric": "采集时效 P50 / P90 / P99", "today": mt("self.lat.p50") + " / " + mt("self.lat.p90") + " / " + mt("self.lat.p99"), "delta": "-", "status": "🟢"},
+			{"metric": "覆盖账号数(有产出 / 监控总数)", "today": mt("self.accounts.active") + " / " + mt("self.accounts.total"), "delta": deltaCount("self.accounts.active"), "status": acctStatus},
+		}))
+		e1 = append(e1, md("> ~~推送成功率~~ 暂缺：需 spider 侧提供发出量（我方仅能见到达的），待接入后补充"))
+		appendSectionExtras(&e1, byKey, "self", true)
+	}
+	// 1.3 订阅指标表 + Top 失败站点
+	if r := byKey["sub"]; r != nil {
+		e1 = append(e1, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+		e1 = append(e1, makeTable(metricCols, []map[string]string{
+			{"metric": "抓取任务总量", "today": mt("sub.tasks"), "delta": delta("sub.tasks"), "status": dropStatus("sub.tasks")},
+			{"metric": "抓取成功率", "today": mt("sub.task_rate"), "delta": deltaPP("sub.task_rate"), "status": rateStatus("sub.task_rate", 88, 75)},
+			{"metric": "新文时效 P50 / P90 / ≤4h占比", "today": mt("sub.fresh.p50") + " / " + mt("sub.fresh.p90") + " / " + mt("sub.fresh.le4h"), "delta": "-", "status": "🟢"},
+		}))
+		appendSectionExtras(&e1, byKey, "sub", false)
+	}
+	// 1.4 图片（附属）
+	if r := byKey["img"]; r != nil {
+		e1 = append(e1, md(fmt.Sprintf("%s **%s**（附属资源，不进内容漏斗）", r.Level.Icon(), r.Section.Title)))
+		e1 = append(e1, md(fmt.Sprintf(
+			"- 下载任务：**%s** ｜ 成功率 **%s**\n"+
+				"- 失败图片：**%s** 张（去重）\n"+
+				"- 耗时：P50 **%s** ｜ P99 **%s**",
+			mt("img.total"), fmtPct1f(100-mv("img.fail_rate")), mt("img.fail_uniq"), mt("img.p50"), mt("img.p99"))))
+		appendSectionExtras(&e1, byKey, "img", true)
+	}
+	card1 := newCard(fmt.Sprintf("数据平台每日巡检报表 · %s ｜ ① 数据来源层", day.Format("2006-01-02")), e1)
+
+	// ════════ 卡 2：第二层 + 第三层 + 告警 ════════
+	var e2 []interface{}
+	e2 = append(e2, md(fmt.Sprintf("%s **%s**", layerLevel[report.LayerL2].Icon(), report.LayerL2)))
+	for _, key := range []string{"pipe", "m22", "gen"} {
+		if r := byKey[key]; r != nil {
+			e2 = append(e2, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+			if key == "m22" {
+				// 处理总量与第一层推送量的关系说明（动态算前置拒绝量，防止每个读者都要问一遍）
+				rmArrive, rmProc := mv("supplier.arrive.12"), mv("m22.total.Renminwang")
+				qbArrive, qbProc := mv("supplier.arrive.14"), mv("m22.total.Qingbo")
+				if rmArrive > 0 && rmProc > 0 {
+					e2 = append(e2, md(fmt.Sprintf(
+						"> **为什么处理总量 < 第一层推送量**：供应商每篇文章平均会连推多次，重复副本在入口被拦下（原件均已处理，无文章丢失，与 1.1 接收成功率不矛盾）。人民网今日到达 %s，其中重复副本 %s（%.1f%%），实际处理 %s；清博重复副本 %s（%.1f%%）。\n> **为什么「重复更新」行供应商是 —**：内部渠道的重复隔了几小时才再次提交，会进入处理流程、查库判出、计入「重复更新」；供应商的重复是秒级连推，在入口就被拦，不进本表。",
+						fmtCount(int(rmArrive)), fmtCount(int(rmArrive-rmProc)), (rmArrive-rmProc)/rmArrive*100, fmtCount(int(rmProc)),
+						fmtCount(int(qbArrive-qbProc)), (qbArrive-qbProc)/maxFloat(qbArrive, 1)*100)))
+				}
+			}
+			appendSectionExtras(&e2, byKey, key, false)
+		}
+	}
+	e2 = append(e2, hr())
+	e2 = append(e2, md(fmt.Sprintf("%s **%s**", layerLevel[report.LayerL3].Icon(), report.LayerL3)))
+	for _, key := range []string{"eff", "funnel"} {
+		if r := byKey[key]; r != nil {
+			e2 = append(e2, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+			appendSectionExtras(&e2, byKey, key, false)
+		}
+	}
+	e2 = append(e2, hr())
+	allHits := report.TopHits(results, 100)
+	var b strings.Builder
+	b.WriteString("**四、异常与告警**\n")
+	if len(allHits) == 0 {
+		b.WriteString("今日无告警事项 🟢")
+	} else {
+		for _, h := range allHits {
+			fmt.Fprintf(&b, "- %s %s\n", h.Level.Icon(), h.Msg)
+		}
+	}
+	for _, r := range results {
+		if r != nil && r.Err != nil {
+			fmt.Fprintf(&b, "- ⚠️ 「%s」生成失败（已隔离）：%v\n", r.Section.Title, r.Err)
+		}
+	}
+	e2 = append(e2, md(b.String()))
+	card2 := newCard(fmt.Sprintf("数据平台每日巡检报表 · %s ｜ ②处理与监控 ③有效入库", day.Format("2006-01-02")), e2)
+
+	return []fcMsg{card1, card2}
+}
+
+// appendSectionExtras 渲染某节的表格/图/注记。notesOnly 时只输出注记
+//（该节核心指标已并入一层合并大表）。
+func appendSectionExtras(elements *[]interface{}, byKey map[string]*report.Result, key string, notesOnly bool) {
+	r := byKey[key]
+	if r == nil || r.Output == nil {
+		return
+	}
+	if r.Err != nil {
+		*elements = append(*elements, md(fmt.Sprintf("> ⚠️ 「%s」生成失败（已隔离）：%v", r.Section.Title, r.Err)))
+		return
+	}
+	if !notesOnly {
+		for _, t := range r.Output.Tables {
+			if t.Title != "" {
+				*elements = append(*elements, md("> "+t.Title))
+			}
+			if t.Compact {
+				*elements = append(*elements, md(compactTableMd(t)))
+				continue
+			}
+			var cols []fcTableCol
+			for _, c := range t.Cols {
+				w := c.Width
+				if w == "" {
+					w = "auto"
+				}
+				cols = append(cols, col(c.Name, c.Display, w))
+			}
+			*elements = append(*elements, makeTable(cols, t.Rows))
+		}
+		for _, ch := range r.Output.Charts {
+			var spec map[string]any
+			if err := sonic.UnmarshalString(ch.SpecJSON, &spec); err == nil {
+				*elements = append(*elements, map[string]any{"tag": "chart", "chart_spec": spec, "aspect_ratio": "16:9"})
+			}
+		}
+	}
+	for _, n := range r.Output.Notes {
+		*elements = append(*elements, md("> "+n))
+	}
+}
+
+// fmtMinShort 分钟数的短格式（总览行用）。
+func fmtMinShort(min float64) string {
+	if min <= 0 {
+		return "—"
+	}
+	if min < 90 {
+		return fmt.Sprintf("%.0f min", min)
+	}
+	return fmt.Sprintf("%.1f h", min/60)
+}
+
+func fmtPct1f(v float64) string { return fmt.Sprintf("%.1f%%", v) }
+
+func maxFloat(a, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // metricLine 挑选每节的"摘要指标"拼成一行 markdown（Display: Text · ...）。

@@ -344,3 +344,19 @@ from log where message like '%end process resource%' and message like '%status:s
 | 悬置拍板 | 二层 8 个悬置点（见二层清单）+ 有效率分母口径（决策 A：现按"第一层接收总量"）|
 | 框架 | 环比/连续失败天数走 Redis 快照 `daily-report:{date}`（TTL 90d）；引擎 QueryFunc 支持 SLS+Mongo 双源；0 行/全 null 显示口径失效；**大关键词域 section 自动按时间分片查询再聚合**（防 SLS 静默截断）；3.1 环比由快照自动积累 |
 | 文档 | CLAUDE.md 两条过时注释待修（Kakalong 绕过 crawl_normal、图片失败每图一条） |
+
+
+## 附：入库判重机制（2026-07-08 代码钉死，resource_processor.go）
+
+重复副本的拦截/判出共四道，位置和依据不同：
+
+| # | 位置 | 依据 | 结果 | 可观测 |
+|---|---|---|---|---|
+| 0 | process() 入口 URL 锁 | 同 orig_url 正在处理中（5 分钟锁） | 拒绝，Respcode≠0，**无处理日志** | /resource/add 非零响应码（07-07 全渠道 62,963 条/22%） |
+| 1 | preCheck 查库 | source + source_uniq_id 相同 | 成功结束（更新互动数据，不新增） | end process success，acts−uniqs = 「重复更新」 |
+| 2 | preCheck 查库 | orig_url + root_path 相同且已入库 | 同上 | 同上 |
+| 3 | preCheck / 阶段⑤ | 正文 md5/内容相似（跨 URL 转载） | 阶段⑤失败 310001（已花抓取+解析成本） | 矩阵「⑤内容去重」行 |
+
+- 供应商（人民网）重复是**秒级连推** → 全部死在第 0 道（锁），故 2.2「重复更新」行供应商恒为 —；内部渠道重复隔小时到达 → 死在 1/2 道，计入「重复更新」。
+- 人民网到达中约 37% 为重复副本（两日稳定），非丢失；1.1 表已单列「重复拦截」列，推送量−丢失−重复拦截=2.2 处理总量。
+- 遗留核对（低优）：非零 Respcode 的错误码构成抽样（理论上混有少量参数非法/黑名单）。

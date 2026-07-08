@@ -47,7 +47,8 @@ var srcNames = map[string]string{
 func secSupplierPush() *Section {
 	return &Section{
 		Key:   "supplier",
-		Title: "一、供应商推送（清博/人民网）",
+		Layer: LayerL1,
+		Title: "1.1 供应商推送（清博/人民网）",
 		Queries: []Query{
 			{
 				// 全渠道到达 /resource/add 的量（内部统一汇聚点），按 source 归因。
@@ -70,22 +71,10 @@ func secSupplierPush() *Section {
 		},
 		Extract: extractSupplier,
 		Thresholds: []Threshold{
-			dropOrZero("supplier.push.12", "人民网推送量异常：%s（环比跌超 30% 或归零）"),
-			dropOrZero("supplier.push.14", "清博推送量异常：%s（环比跌超 30% 或归零）"),
-			{
-				MetricKey: "supplier.recv.rate",
-				Eval: func(cur float64, prev *float64) Level {
-					if cur < 95 {
-						return LevelCrit
-					}
-					if cur < 99.5 {
-						return LevelWarn
-					}
-					return LevelOK
-				},
-				// 供应商无重试机制：非 200 即真实丢失（且丢的是谁无从对账，见埋点需求）
-				Msg: "供应商接收成功率 %s（非 200 = 文章真实丢失）",
-			},
+			dropOrZero("supplier.arrive.12", "人民网推送量异常：%s（环比跌超 30% 或归零）"),
+			dropOrZero("supplier.arrive.14", "清博推送量异常：%s（环比跌超 30% 或归零）"),
+			recvRateThreshold("12", "人民网"),
+			recvRateThreshold("14", "清博"),
 		},
 		Checks: []Check{
 			// nginx 接收(200) ≈ /resource/add 的 src12+14 之和，断链说明转发层丢数据
@@ -96,66 +85,118 @@ func secSupplierPush() *Section {
 
 func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, error) {
 	out := &Output{}
+	// 内部归因量（/resource/add 按 source）：作为"内部转发成功"的分子
+	//（严格的转发成功是 add_wechat_article 的 Respcode:0，但该日志无供应商标识；
+	//   归因量与其差 <0.01%，且可按供应商拆分，采用归因量。）
 	push := map[string]float64{}
+	var addTotal float64
 	for _, row := range r["push"] {
 		push[row["src"]] = num(row["cnt"])
-	}
-	var addTotal float64
-	for src, v := range push {
-		addTotal += v
+		addTotal += num(row["cnt"])
 		out.Metrics = append(out.Metrics, Metric{
-			Key: "supplier.push." + src, Display: srcNames[src] + "到达", Value: v,
-			Text: fmtI(v), Dimension: DimDoc,
+			Key: "supplier.push." + row["src"], Display: srcNames[row["src"]] + "入系统", Value: num(row["cnt"]),
+			Text: fmtI(num(row["cnt"])), Dimension: DimDoc,
 		})
 	}
 	out.Metrics = append(out.Metrics,
-		Metric{Key: "supplier.push.suppliers", Display: "供应商到达合计", Value: push["12"] + push["14"], Text: fmtI(push["12"] + push["14"]), Dimension: DimDoc},
+		Metric{Key: "supplier.push.suppliers", Display: "供应商入系统合计", Value: push["12"] + push["14"], Text: fmtI(push["12"] + push["14"]), Dimension: DimDoc},
 		Metric{Key: "resource_add.total", Display: "汇聚点到达总量", Value: addTotal, Text: fmtI(addTotal), Dimension: DimDoc},
 	)
 
-	var recvTotal, recvOK float64
-	for _, row := range r["recv"] {
-		recvTotal += num(row["total"])
-		recvOK += num(row["ok"])
+	// 网关到达量（推送量口径 = 供应商当日实际到达接收端的请求数）
+	supplierIP := map[string]string{
+		"61.184.1.10":    "12", // 人民网（IP 变更时更新；未登记 IP 超阈会出注记）
+		"14.103.184.222": "14", // 清博
 	}
-	rate := pct(recvOK, recvTotal)
+	arrive := map[string]float64{}
+	var recvTotal, recvOK, unattributed float64
+	for _, row := range r["recv"] {
+		total, ok := num(row["total"]), num(row["ok"])
+		recvTotal += total
+		recvOK += ok
+		if src, known := supplierIP[row["client_ip"]]; known {
+			arrive[src] += total
+		} else {
+			unattributed += total
+		}
+	}
 	out.Metrics = append(out.Metrics,
 		Metric{Key: "supplier.recv.total", Display: "网关接收", Value: recvTotal, Text: fmtI(recvTotal), Dimension: DimTask},
 		Metric{Key: "supplier.recv.ok", Display: "网关接收成功", Value: recvOK, Text: fmtI(recvOK), Dimension: DimTask},
-		Metric{Key: "supplier.recv.rate", Display: "接收成功率", Value: rate, Text: fmtPct1(rate), Dimension: DimPercent},
 	)
+	if unattributed > recvTotal*0.005 {
+		out.Notes = append(out.Notes, fmt.Sprintf("⚠️ 有 %s 次推送来自未登记 IP（供应商 IP 变更？需更新归属表）", fmtI(unattributed)))
+	}
 
 	lat := map[string]map[string]string{}
 	for _, row := range r["lat"] {
 		lat[row["src"]] = row
 	}
+
+	// 模板同款表：供应商/推送量/环比昨日/接收成功率/时效P50/P90/P99/状态
 	var rows []map[string]string
-	for _, src := range []string{"12", "14"} {
+	for _, src := range []string{"14", "12"} { // 模板顺序：清博在前
+		arrived, entered := arrive[src], push[src]
+		rate := pct(entered, maxf(arrived, 1))
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "supplier.arrive." + src, Display: srcNames[src] + "推送量", Value: arrived, Text: fmtI(arrived), Dimension: DimDoc},
+			Metric{Key: "supplier.recv.rate." + src, Display: srcNames[src] + "接收成功率", Value: rate, Text: fmtPct2(rate), Dimension: DimPercent},
+		)
+		status := "🟢"
+		switch {
+		case arrived == 0 || rate < 95:
+			status = "🔴"
+		case rate < 99.5:
+			status = "🟡"
+		}
 		row := map[string]string{
 			"supplier": srcNames[src],
-			"push":     fmtI(push[src]),
-			"delta":    DeltaPct(push[src], prev, "supplier.push."+src),
+			"push":     fmtI(arrived),
+			"delta":    DeltaPct(arrived, prev, "supplier.arrive."+src),
+			"rate":     fmtPct2(rate),
 			"p50":      "—", "p90": "—", "p99": "—",
+			"status": status,
 		}
 		if l, ok := lat[src]; ok {
-			row["p50"] = fmtMin(num(l["p50"]))
-			row["p90"] = fmtMin(num(l["p90"]))
-			row["p99"] = fmtMin(num(l["p99"]))
-			out.Metrics = append(out.Metrics, Metric{Key: "supplier.lat." + src + ".p50", Display: srcNames[src] + "时效P50", Value: num(l["p50"]), Text: fmtMin(num(l["p50"])), Dimension: DimMinutes})
+			row["p50"], row["p90"], row["p99"] = fmtMin(num(l["p50"])), fmtMin(num(l["p90"])), fmtMin(num(l["p99"]))
+			out.Metrics = append(out.Metrics,
+				Metric{Key: "supplier.lat." + src + ".p50", Display: srcNames[src] + "时效P50", Value: num(l["p50"]), Text: fmtMin(num(l["p50"])), Dimension: DimMinutes},
+				Metric{Key: "supplier.lat." + src + ".p90", Display: srcNames[src] + "时效P90", Value: num(l["p90"]), Text: fmtMin(num(l["p90"])), Dimension: DimMinutes},
+				Metric{Key: "supplier.lat." + src + ".p99", Display: srcNames[src] + "时效P99", Value: num(l["p99"]), Text: fmtMin(num(l["p99"])), Dimension: DimMinutes},
+			)
 		}
 		rows = append(rows, row)
 	}
 	out.Tables = append(out.Tables, Table{
-		Compact: true,
-		Title: fmt.Sprintf("接收成功率 %s（%s/%s）", fmtPct1(rate), fmtI(recvOK), fmtI(recvTotal)),
 		Cols: []TableCol{
 			{Name: "supplier", Display: "供应商"}, {Name: "push", Display: "推送量"},
-			{Name: "delta", Display: "环比"}, {Name: "p50", Display: "时效P50"},
-			{Name: "p90", Display: "P90"}, {Name: "p99", Display: "P99"},
+			{Name: "delta", Display: "环比昨日"}, {Name: "rate", Display: "接收成功率"},
+			{Name: "p50", Display: "时效P50"}, {Name: "p90", Display: "时效P90"},
+			{Name: "p99", Display: "时效P99"}, {Name: "status", Display: "状态"},
 		},
 		Rows: rows,
 	})
+	out.Notes = append(out.Notes, "接收成功率 = 内部转发成功（文章确认进入内部系统）÷ 网关到达；供应商无重试，差值即真实丢失")
 	return out, nil
+}
+
+func fmtPct2(v float64) string { return fmt.Sprintf("%.2f%%", v) }
+
+// recvRateThreshold：接收成功率（内部转发成功÷到达）。供应商无重试，非 100% 即真实丢失。
+func recvRateThreshold(src, name string) Threshold {
+	return Threshold{
+		MetricKey: "supplier.recv.rate." + src,
+		Eval: func(cur float64, prev *float64) Level {
+			if cur < 95 {
+				return LevelCrit
+			}
+			if cur < 99.5 {
+				return LevelWarn
+			}
+			return LevelOK
+		},
+		Msg: name + "接收成功率 %s（供应商无重试，差值即真实丢失）",
+	}
 }
 
 // ─── 1.2 公众号自采集（wechat_spider） ──────────────────────────────────────
@@ -163,7 +204,8 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 func secSelfCollect() *Section {
 	return &Section{
 		Key:   "self",
-		Title: "二、公众号自采集（wechat_spider）",
+		Layer: LayerL1,
+		Title: "1.2 公众号自采集（wechat_spider）",
 		Queries: []Query{
 			{
 				// spider → send_add_resource_msg → P0 常驻队列。该接口事实上 spider 专属，
@@ -254,9 +296,11 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 		cums := []float64{num(sp["b15"]), num(sp["b60"]), num(sp["b180"]), num(sp["b720"]), num(sp["b1440"])}
 		p50 := bucketPercentile(regular, 0.5, bounds, cums)
 		p90 := bucketPercentile(regular, 0.9, bounds, cums)
+		p99 := bucketPercentile(regular, 0.99, bounds, cums)
 		out.Metrics = append(out.Metrics,
 			Metric{Key: "self.lat.p50", Display: "采集时效P50", Value: p50, Text: fmtMin(p50), Dimension: DimMinutes},
 			Metric{Key: "self.lat.p90", Display: "采集时效P90", Value: p90, Text: fmtMin(p90), Dimension: DimMinutes},
+			Metric{Key: "self.lat.p99", Display: "采集时效P99", Value: p99, Text: fmtMin(p99), Dimension: DimMinutes},
 		)
 	}
 
@@ -284,7 +328,8 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 func secSubscription() *Section {
 	return &Section{
 		Key:   "sub",
-		Title: "三、网站/RSS 抓取（订阅渠道）",
+		Layer: LayerL1,
+		Title: "1.3 网站/RSS 抓取（订阅渠道）",
 		Queries: []Query{
 			{
 				// 渠道边界按 uid 划分（uid=1 即订阅服务），含 RSS 源产出的微信 URL。
@@ -351,6 +396,7 @@ func extractSubscription(day time.Time, r map[string]Rows, prev []Snapshot) (*Ou
 	if f := first(r["fresh"]); f != nil {
 		out.Metrics = append(out.Metrics,
 			Metric{Key: "sub.fresh.p50", Display: "新文时效P50", Value: num(f["p50"]), Text: fmtMin(num(f["p50"])), Dimension: DimMinutes},
+			Metric{Key: "sub.fresh.p90", Display: "新文时效P90", Value: num(f["p90"]), Text: fmtMin(num(f["p90"])), Dimension: DimMinutes},
 			Metric{Key: "sub.fresh.le4h", Display: "≤4h 占比", Value: num(f["le4h_pct"]), Text: fmtPct1(num(f["le4h_pct"])), Dimension: DimPercent},
 			Metric{Key: "sub.backfill", Display: "历史回补", Value: num(f["backfill_cnt"]), Text: fmtI(num(f["backfill_cnt"])), Dimension: DimDoc},
 		)
@@ -402,7 +448,8 @@ func extractSubscription(day time.Time, r map[string]Rows, prev []Snapshot) (*Ou
 func secImages() *Section {
 	return &Section{
 		Key:   "img",
-		Title: "四、图片抓取",
+		Layer: LayerL1,
+		Title: "1.4 图片抓取",
 		Queries: []Query{
 			{
 				// 任务量纲：end 日志无 img_url，做不了图片级去重（埋点需求：end 带 img_url）。

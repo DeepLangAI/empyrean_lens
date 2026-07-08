@@ -146,6 +146,7 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 		rows = append(rows, row)
 	}
 	out.Tables = append(out.Tables, Table{
+		Compact: true,
 		Title: fmt.Sprintf("接收成功率 %s（%s/%s）", fmtPct1(rate), fmtI(recvOK), fmtI(recvTotal)),
 		Cols: []TableCol{
 			{Name: "supplier", Display: "供应商"}, {Name: "push", Display: "推送量"},
@@ -456,6 +457,7 @@ func extractImages(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 	}
 	if len(rows) > 0 {
 		out.Tables = append(out.Tables, Table{
+			Compact: true,
 			Title: "Top 失败图床（失败尾部含追踪像素，属上游清洗问题非抓取故障）",
 			Cols:  []TableCol{{Name: "domain", Display: "图床"}, {Name: "cnt", Display: "失败量"}},
 			Rows:  rows,

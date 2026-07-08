@@ -95,6 +95,7 @@ func extractPipeline(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 		{"stage": "入库管线", "vol": fmtI(procOK+procFail) + " 动作", "rate": fmtPct1(pct(procOK, maxf(procOK+procFail, 1))), "p50": fmt.Sprintf("%.1fs", procP50), "p99": fmt.Sprintf("%.1fs", procP99)},
 	}
 	out.Tables = append(out.Tables, Table{
+		Compact: true,
 		Title: "各环节（耗时口径不同，环节间勿直接对比）",
 		Cols: []TableCol{
 			{Name: "stage", Display: "环节"}, {Name: "vol", Display: "处理量"},

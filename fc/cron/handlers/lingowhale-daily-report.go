@@ -222,6 +222,11 @@ func renderDailyReport(day time.Time, results []*report.Result) fcMsg {
 			if t.Title != "" {
 				elements = append(elements, md("> "+t.Title))
 			}
+			if t.Compact {
+				// 飞书卡片 table 组件数量有上限，低密度表降级为 markdown 行
+				elements = append(elements, md(compactTableMd(t)))
+				continue
+			}
 			var cols []fcTableCol
 			for _, c := range t.Cols {
 				cols = append(cols, col(c.Name, c.Display, "auto"))
@@ -260,6 +265,26 @@ var sectionSummaryKeys = map[string][]string{
 	"img":      {"img.total", "img.fail_rate", "img.fail_uniq", "img.p50", "img.p99"},
 	"m22":      {"m22.uniq_success"},
 	"eff":      {"eff.total"},
+}
+
+// compactTableMd 把表格渲染成 markdown 行："**首列**：col value · col value"。
+func compactTableMd(t report.Table) string {
+	var b strings.Builder
+	for _, row := range t.Rows {
+		if len(t.Cols) == 0 {
+			continue
+		}
+		fmt.Fprintf(&b, "**%s**", row[t.Cols[0].Name])
+		for _, c := range t.Cols[1:] {
+			v := row[c.Name]
+			if v == "" || v == "—" {
+				continue
+			}
+			fmt.Fprintf(&b, " · %s %s", c.Display, v)
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
 }
 
 func metricLine(r *report.Result) string {

@@ -84,10 +84,13 @@ type Metric struct {
 }
 
 // Table 是报表里的一张表格。列名必须是 ASCII 标识符（飞书卡片约束），Display 才是中文。
+// Compact 为 true 时渲染层降级为 markdown 文本行——飞书卡片有 table 组件数量上限，
+// 低信息密度的表让位给矩阵/漏斗等核心大表。
 type Table struct {
-	Title string
-	Cols  []TableCol
-	Rows  []map[string]string
+	Title   string
+	Cols    []TableCol
+	Rows    []map[string]string
+	Compact bool
 }
 
 type TableCol struct {

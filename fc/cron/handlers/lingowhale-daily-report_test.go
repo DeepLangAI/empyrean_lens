@@ -53,10 +53,20 @@ func TestDailyReport_DryRun(t *testing.T) {
 	}
 	t.Logf("snapshot metrics: %d", len(snapshot))
 
-	// 渲染卡片并落盘（人工检查结构，不发送）
+	// 渲染卡片并落盘（人工检查结构）
 	msg := renderDailyReport(day, results)
 	data, _ := sonic.MarshalIndent(msg, "", "  ")
 	out := fmt.Sprintf("/tmp/daily-report-%s.json", dayStr)
 	_ = os.WriteFile(out, data, 0644)
-	t.Logf("card json written to %s (%d bytes), NOT sent", out, len(data))
+	t.Logf("card json written to %s (%d bytes)", out, len(data))
+
+	// 设置 DAILY_REPORT_WEBHOOK 时实际发送（验收用）
+	if wh := os.Getenv("DAILY_REPORT_WEBHOOK"); wh != "" {
+		if err := sendFeishuWebhook(ctx, wh, msg); err != nil {
+			t.Fatalf("send failed: %v", err)
+		}
+		t.Logf("card SENT to %s", wh)
+	} else {
+		t.Log("NOT sent (set DAILY_REPORT_WEBHOOK to send)")
+	}
 }

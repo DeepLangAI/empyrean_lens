@@ -45,3 +45,5 @@ logs/
 web/dist
 web/node_modulesgo.work
 go.work.sum
+go.work
+go.work.sum

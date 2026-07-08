@@ -1,5 +1,0 @@
-go 1.23
-
-use .
-
-replace codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib => ../.go_lib_v1.3.10

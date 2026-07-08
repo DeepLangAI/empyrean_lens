@@ -14,13 +14,20 @@ import (
 var conf Config
 
 type Config struct {
-	Server         Server          `yaml:"server"`
-	Logger         conflib.Logger  `yaml:"logger"`
-	Metrics        conflib.Metrics `yaml:"metrics"`
-	ExternalSecret ExternalSecret  `yaml:"external_secret"`
-	Notice         Notice          `yaml:"notice"`
-	Feishu         Feishu          `yaml:"feishu"`
-	Redis          Redis           `yaml:"redis"`
+	Server            Server            `yaml:"server"`
+	Logger            conflib.Logger    `yaml:"logger"`
+	Metrics           conflib.Metrics   `yaml:"metrics"`
+	ExternalSecret    ExternalSecret    `yaml:"external_secret"`
+	Notice            Notice            `yaml:"notice"`
+	Feishu            Feishu            `yaml:"feishu"`
+	Redis             Redis             `yaml:"redis"`
+	WechatSpiderMongo WechatSpiderMongo `yaml:"wechat_spider_mongo"`
+}
+
+// WechatSpiderMongo 是 wechat-spider（公众号自采集服务）独立 Mongo 库的直连配置，
+// 巡检报表用它查采集时效（article 表）与覆盖账号数（target_account 表），只读。
+type WechatSpiderMongo struct {
+	URL string `yaml:"url"`
 }
 
 type Redis struct {

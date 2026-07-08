@@ -24,7 +24,8 @@ type StructEvent struct {
 }
 
 const (
-	TimerTriggerName_LingowhaleStability = "lingowhale-stability"
+	TimerTriggerName_LingowhaleStability   = "lingowhale-stability"
+	TimerTriggerName_LingowhaleDailyReport = "lingowhale-daily-report"
 )
 
 func FcHandler(ctx context.Context, event StructEvent) (string, error) {
@@ -34,6 +35,9 @@ func FcHandler(ctx context.Context, event StructEvent) (string, error) {
 	switch event.TriggerName {
 	case TimerTriggerName_LingowhaleStability:
 		return "", handlers.NewLingowhaleStability().Handle(ctx, event.Payload)
+	case TimerTriggerName_LingowhaleDailyReport:
+		// Payload 可传 "2026-07-07" 指定报表日（重跑/补发），空则默认昨天
+		return "", handlers.NewLingowhaleDailyReport().Handle(ctx, event.Payload)
 	}
 	return "hello world", nil
 }

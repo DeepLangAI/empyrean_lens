@@ -30,6 +30,10 @@ func TestDailyReport_DryRun(t *testing.T) {
 	t.Logf("loaded %d prev snapshots", len(prevDays))
 
 	results, snapshot := report.Run(ctx, day, report.Sections(), queryFunc, prevDays)
+	if os.Getenv("DAILY_REPORT_SAVE") == "1" {
+		saveSnapshot(ctx, day, snapshot)
+		t.Logf("snapshot SAVED to redis for %s (%d metrics)", dayStr, len(snapshot))
+	}
 
 	for _, r := range results {
 		if r == nil {

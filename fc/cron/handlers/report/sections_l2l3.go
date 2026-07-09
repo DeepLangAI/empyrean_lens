@@ -49,11 +49,7 @@ func secPipelineHealth() *Section {
 				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 99, 97) },
 				Msg:       "解析成功率 %s",
 			},
-			{
-				MetricKey: "pipe.proc.rate",
-				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 78, 70) },
-				Msg:       "入库处理成功率 %s（按处理次数计）",
-			},
+
 		},
 	}
 }
@@ -115,20 +111,20 @@ var stageOrder = []struct {
 	stage   string
 	display string
 }{
-	{"UrlChecked", "①源不可达"},
-	{"ResourceCrawled", "②抓正文"},
-	{"ResourceParsed", "③解析失败"},
-	{"AuthorParsed", "④作者(系统)"},
-	{"DuplicateChecked", "⑤内容去重"},
-	{"AbstractGenerated", "⑥生成失败"},
-	{"Validated", "⑦最终校验"},
+	{"UrlChecked", "− URL 校验失败"},
+	{"ResourceCrawled", "− 正文抓取失败"},
+	{"ResourceParsed", "− 内容解析失败"},
+	{"AuthorParsed", "− 作者信息写入异常"},
+	{"DuplicateChecked", "− 转载重发(内容判重淘汰)"},
+	{"AbstractGenerated", "− 摘要生成失败"},
+	{"Validated", "− 字段校验失败"},
 }
 
 func secFailureMatrix() *Section {
 	return &Section{
 		Key:   "m22",
 		Layer: LayerL2,
-		Title: "2.2 入库失败分类（阶段 × 渠道）",
+		Title: "2.2 资源处理（渠道 × 处理阶段）",
 		Queries: []Query{
 			{
 				// 失败原因日志：与 end process 同 operation_id 的 error 行，lastest status=死亡阶段
@@ -151,6 +147,11 @@ func secFailureMatrix() *Section {
 				SQL: `ResourceProcessor and Subscription | select regexp_extract(message, 'root_path: ([^;/\]]+)', 1) as rp, count(*) as acts, count(distinct regexp_extract(message, 'uniq_id: ([^;]+)', 1)) as uniqs from log where message like '%end process resource%' and message like '%status:success%' and message like '%source: Subscription%' group by rp order by acts desc limit 2000`,
 			},
 			{
+				// 订阅渠道到达量拆分（/resource/add 请求体带 root_path，与失败拆分同一套域名分类）
+				Name: "subsplit_arrive", Source: SourceSLS, Limit: 2000,
+				SQL: `RequestRout and resource and add | select regexp_extract(message, '"root_path":"([^"/]+)', 1) as rp, count(*) as cnt from log where message like '%RequestRout:/iapi/resource/v1/resource/add,%' and message like '%"source":1,%' group by rp order by cnt desc limit 2000`,
+			},
+			{
 				// 网站类信源清单（source_type≠1 即非 RSS），用于 root_path 分类
 				Name: "web_sources", Source: SourceMongo, DB: "subscription", Collection: "sub",
 				PipelineJSON: `[{"$match": {"source_type": {"$ne": 1}, "status": 1}}, {"$project": {"url": 1, "_id": 0}}, {"$limit": 800}]`,
@@ -159,10 +160,11 @@ func secFailureMatrix() *Section {
 		},
 		Extract: extractMatrix,
 		Thresholds: []Threshold{
-			sysFailThreshold("Subscription", "订阅"),
-			sysFailThreshold("Renminwang", "人民网"),
-			sysFailThreshold("Qingbo", "清博"),
-			sysFailThreshold("FromMonitoring", "自采集"),
+			{
+				MetricKey: "m22.clean_rate",
+				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 88, 80) },
+				Msg:       "处理成功率(剔除去重) %s（真实故障水平，与供应商重复行为无关）",
+			},
 		},
 	}
 }
@@ -179,7 +181,7 @@ func sysFailThreshold(src, name string) Threshold {
 			}
 			return LevelOK
 		},
-		Msg: name + "渠道系统异常率 %s（阈值 2%%）",
+		Msg: name + "有 %s 篇文章因我方程序报错未能入库",
 	}
 }
 
@@ -217,13 +219,15 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 		}
 		fail[stage][colKey] += v
 	}
-	chFail := map[string]float64{} // 原始 source 口径（阈值/勾稽用）
+	chFail := map[string]float64{}    // 原始 source 口径（阈值/勾稽用）
+	chFailPre := map[string]float64{} // 供 clean_rate 提前汇总
 	for _, row := range r["matrix"] {
 		src, stage := row["source"], row["stage"]
 		if src == "" || src == "SimResourceCluster" {
 			continue
 		}
 		chFail[src] += num(row["cnt"])
+		chFailPre[src] += num(row["cnt"])
 		if src != "Subscription" { // 订阅走 subsplit
 			addFail(stage, src, num(row["cnt"]))
 		}
@@ -251,6 +255,16 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 	out.Metrics = append(out.Metrics,
 		Metric{Key: "m22.uniq_success", Display: "去重后成功资源", Value: uniqSuccessTotal, Text: fmtI(uniqSuccessTotal), Dimension: DimURL},
 	)
+	// 订阅到达量拆分 + 拆分列处理量（供渲染层组装「到达/⓪拦截」两行）
+	subArrive := map[string]float64{}
+	for _, row := range r["subsplit_arrive"] {
+		subArrive[classify(row["rp"])] += num(row["cnt"])
+	}
+	for _, colKey := range []string{"SubRSS", "SubWeb"} {
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "m22.arrive." + colKey, Display: colKey + "到达", Value: subArrive[colKey], Text: fmtI(subArrive[colKey]), Dimension: DimDoc},
+		)
+	}
 
 	// 各列失败合计（处理总量 = 成功动作 + 失败动作）
 	colFail := map[string]float64{}
@@ -258,6 +272,19 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 		for colKey, v := range byCol {
 			colFail[colKey] += v
 		}
+	}
+	for _, colKey := range []string{"SubRSS", "SubWeb"} {
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "m22.total." + colKey, Display: colKey + "处理量", Value: acts[colKey] + colFail[colKey], Text: fmtI(acts[colKey] + colFail[colKey]), Dimension: DimTask},
+		)
+	}
+	for _, c := range matrixCols {
+		net := acts[c.key] - dup[c.key]
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "m22.net." + c.key, Display: c.display + "净新增", Value: net, Text: fmtI(net), Dimension: DimDoc},
+			Metric{Key: "m22.dupc." + c.key, Display: c.display + "内容去重", Value: fail["DuplicateChecked"][c.key], Text: fmtI(fail["DuplicateChecked"][c.key]), Dimension: DimTask},
+			Metric{Key: "m22.dupu." + c.key, Display: c.display + "存量更新", Value: dup[c.key], Text: fmtI(dup[c.key]), Dimension: DimTask},
+		)
 	}
 
 	var rows []map[string]string
@@ -273,9 +300,8 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 		}
 		rows = append(rows, row)
 	}
-	// 首行：来自上一环节、进入入库处理的量（模板列设计）
-	addRow("处理总量", func(c string) float64 { return acts[c] + colFail[c] })
-	addRow("重复更新", func(c string) float64 { return dup[c] })
+	// 账本结构：开工 − 各类失败 = 加工成功 − 更新旧文 = 净新增（每列竖着可加减）
+	addRow("＝ 进入处理", func(c string) float64 { return acts[c] + colFail[c] })
 	for _, s := range stageOrder {
 		st := s.stage
 		if fail[st] == nil {
@@ -283,13 +309,15 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 		}
 		addRow(s.display, func(c string) float64 { return fail[st][c] })
 	}
-	addRow("✅成功动作", func(c string) float64 { return acts[c] })
+	addRow("＝ 处理成功", func(c string) float64 { return acts[c] })
+	addRow("− 重推旧文(仅更新数据，不新增)", func(c string) float64 { return dup[c] })
+	addRow("＝ 净新增入库", func(c string) float64 { return acts[c] - dup[c] })
 
 	cols := []TableCol{{Name: "stage", Display: "阶段(执行顺序)", Width: "24%"}}
 	for _, c := range matrixCols {
 		cols = append(cols, TableCol{Name: c.key, Display: c.display})
 	}
-	out.Tables = append(out.Tables, Table{Title: "首行=进入本环节的量；死得越靠下成本越高；⑤ 的量是 md5 判重前移优化的直接收益", Cols: cols, Rows: rows})
+	out.Tables = append(out.Tables, Table{Title: "自上而下逐行可加减：接收 − 去重拦截 = 进入处理 − 各阶段失败 = 处理成功 − 存量更新 = 净新增。失败阶段越靠后，已消耗的处理成本越高", Cols: cols, Rows: rows})
 
 	// 系统异常率（阈值口径按原始 source，订阅不拆）
 	chDisplay := map[string]string{"Subscription": "订阅", "Renminwang": "人民网", "Qingbo": "清博", "FromMonitoring": "自采集"}
@@ -304,6 +332,24 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 		}
 		sysStage[row["stage"]][row["source"]] += num(row["cnt"])
 	}
+	var dupContentTotal float64
+	for _, v := range fail["DuplicateChecked"] {
+		dupContentTotal += v
+	}
+	out.Metrics = append(out.Metrics, Metric{Key: "m22.dup_content", Display: "内容去重合计", Value: dupContentTotal, Text: fmtI(dupContentTotal), Dimension: DimTask})
+	// 处理成功率（剔除内容去重）：去重是正确行为不算失败，此口径只反映真实故障
+	{
+		var actsTotal, succTotal float64
+		for _, row := range r["dup"] {
+			succTotal += num(row["acts"])
+		}
+		actsTotal = succTotal
+		for _, v := range chFailPre {
+			actsTotal += v
+		}
+		cleanRate := pct(succTotal, maxf(actsTotal-dupContentTotal, 1))
+		out.Metrics = append(out.Metrics, Metric{Key: "m22.clean_rate", Display: "处理成功率(剔除去重)", Value: cleanRate, Text: fmtPct1(cleanRate), Dimension: DimPercent})
+	}
 	var failedTotal float64
 	for src, v := range chFail {
 		failedTotal += v
@@ -314,7 +360,7 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 			continue
 		}
 		out.Metrics = append(out.Metrics,
-			Metric{Key: "m22.sysrate." + src, Display: chDisplay[src] + "系统异常率", Value: rate, Text: fmtPct1(rate), Dimension: DimPercent},
+			Metric{Key: "m22.sysrate." + src, Display: chDisplay[src] + "系统错误失败率", Value: rate, Text: fmtI(sys), Dimension: DimPercent},
 			Metric{Key: "m22.total." + src, Display: chDisplay[src] + "处理动作", Value: total, Text: fmtI(total), Dimension: DimTask},
 		)
 	}
@@ -326,9 +372,6 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 	if len(r["subsplit_fail"]) >= 2000 || len(r["subsplit_succ"]) >= 2000 {
 		out.Notes = append(out.Notes, "⚠️ 订阅拆分明细触达行数上限，尾部小域名可能少计")
 	}
-	out.Notes = append(out.Notes,
-		"「—」为真实的 0：人民网/清博由供应商直推正文，天生不走①源检查/②抓正文；「重复更新」= 处理时发现库里已有同文，更新旧文不新增；供应商的重复推送大多在进入处理前就被拒绝，故其此行常为 0",
-	)
 	return out, nil
 }
 
@@ -523,7 +566,6 @@ func extractEffective(day time.Time, r map[string]Rows, prev []Snapshot) (*Outpu
 		}
 	}
 	out.Tables = append(out.Tables, Table{
-		Title: "端到端=发布→产品可见；P99 因 pub_time 精度失真，用占比三档",
 		Cols: []TableCol{
 			{Name: "kind", Display: "内容类型"}, {Name: "cnt", Display: "有效入库"},
 			{Name: "delta", Display: "环比"}, {Name: "e2e", Display: "端到端时延分布"},
@@ -537,7 +579,7 @@ func secFunnel() *Section {
 	return &Section{
 		Key:   "funnel",
 		Layer: LayerL3,
-		Title: "3.2 当日数据漏斗（三层勾稽）",
+		Title: "3.2 当日数据漏斗（内容视角，单位：篇）",
 		DerivedExtract: func(day time.Time, all map[string]Metric, prev []Snapshot) (*Output, error) {
 			out := &Output{}
 			g := func(key string) float64 { return all[key].Value }
@@ -548,39 +590,68 @@ func secFunnel() *Section {
 			uniq := g("m22.uniq_success")
 			eff := g("eff.total")
 
+			// 三类重复（扔掉是功劳，不是损失）
+			dedupEntry := converge - acts // 去重拦截（幂等）
+			if dedupEntry < 0 {
+				dedupEntry = 0
+			}
+			dupContent := g("m22.dup_content")       // 内容去重（跨源重复）
+			dupUpdate := sumSuccActs(all) - uniq     // 存量更新（不新增）
+			if dupUpdate < 0 {
+				dupUpdate = 0
+			}
+			dupTotal := dedupEntry + dupContent + dupUpdate
+
+			inflight := top - converge // 自采正文抓取在途/损耗（跨天回来，非丢失）
+			if inflight < 0 {
+				inflight = 0
+			}
+			unique := top - dupTotal - inflight            // 独有新内容
+			failNonDup := g("m22.failed") - dupContent     // 真实处理失败（剔除重复）
+			residual := unique - failNonDup - eff          // 残差（安全拦截/跨日/勾稽零头）
+
+			digestRate := pct(eff, maxf(unique, 1))
+			dupRate := pct(dupTotal, maxf(top, 1))
 			out.Metrics = append(out.Metrics,
-				Metric{Key: "funnel.top", Display: "一层接收合计", Value: top, Text: fmtI(top), Dimension: DimTask},
+				Metric{Key: "funnel.top", Display: "一层接收合计", Value: top, Text: fmtI(top), Dimension: DimDoc},
+				Metric{Key: "funnel.unique", Display: "独有新内容", Value: unique, Text: fmtI(unique), Dimension: DimDoc},
+				Metric{Key: "funnel.digest_rate", Display: "消化率", Value: digestRate, Text: fmtPct1(digestRate), Dimension: DimPercent},
+				Metric{Key: "funnel.dup_rate", Display: "重复率", Value: dupRate, Text: fmtPct1(dupRate), Dimension: DimPercent},
 				Metric{Key: "funnel.eff_rate_top", Display: "有效率(vs接收)", Value: pct(eff, maxf(top, 1)), Text: fmtPct1(pct(eff, maxf(top, 1))), Dimension: DimPercent},
-				Metric{Key: "funnel.eff_rate_pipe", Display: "有效率(vs汇聚)", Value: pct(eff, maxf(converge, 1)), Text: fmtPct1(pct(eff, maxf(converge, 1))), Dimension: DimPercent},
 			)
 
 			rows := []map[string]string{
-				{"layer": "① 收到推送(供应商+自采+订阅+播客)", "cnt": fmtI(top), "loss": "—"},
-				{"layer": "② 汇聚 /resource/add", "cnt": fmtI(converge), "loss": fmtI(top - converge)},
-				{"layer": "③ 入库处理(含重试)", "cnt": fmtI(acts), "loss": fmtI(converge - acts) + "(前置拒绝)"},
-				{"layer": "④ 去重后成功资源", "cnt": fmtI(uniq), "loss": fmtI(g("m22.failed")) + "(处理失败)"},
-				{"layer": "⑤ 有效入库(产品可见)", "cnt": fmtI(eff), "loss": fmtI(uniq - eff) + "(残差)"},
+				{"layer": "全部接收", "cnt": fmtI(top), "loss": "供应商 + 自采 + 订阅 + 播客"},
+				{"layer": "− 重复", "cnt": fmtI(dupTotal), "loss": fmt.Sprintf("重复推送 %s · 转载重发 %s · 重推旧文 %s", fmtI(dedupEntry), fmtI(dupContent), fmtI(dupUpdate))},
+				{"layer": "− 自采在途", "cnt": fmtI(inflight), "loss": "链接已收、正文未抓完，跨天回来"},
+				{"layer": "＝ 独有新内容", "cnt": fmtI(unique), "loss": "当日真正的新内容"},
+				{"layer": "− 处理失败", "cnt": fmtI(failNonDup), "loss": "明细见 2.2"},
 			}
+			if residual >= 0 {
+				rows = append(rows, map[string]string{"layer": "− 其他损耗", "cnt": fmtI(residual), "loss": "安全拦截、跨日零头"})
+			} else {
+				rows = append(rows, map[string]string{"layer": "＋ 昨日积压今日到账", "cnt": fmtI(-residual), "loss": "昨天收的文章今天入库，补记"})
+			}
+			rows = append(rows, map[string]string{"layer": "＝ 净新增可见", "cnt": fmtI(eff), "loss": "语鲸用户当日可见的新增"})
 			out.Tables = append(out.Tables, Table{
-				Compact: true,
-				Title: fmt.Sprintf("有效率：vs 接收 %s · vs 汇聚 %s", fmtPct1(pct(eff, maxf(top, 1))), fmtPct1(pct(eff, maxf(converge, 1)))),
-				Cols:  []TableCol{{Name: "layer", Display: "层"}, {Name: "cnt", Display: "数量"}, {Name: "loss", Display: "较上层损耗"}},
-				Rows:  rows,
+				Cols: []TableCol{
+					{Name: "layer", Display: "层", Width: "32%"},
+					{Name: "cnt", Display: "数量", Width: "18%"},
+					{Name: "loss", Display: "说明", Width: "50%"},
+				},
+				Rows: rows,
 			})
 			out.Charts = append(out.Charts, Chart{SpecJSON: funnelChartSpec([][2]interface{}{
-				{"① 收到推送", int64(top)},
-				{"② 汇聚 /resource/add", int64(converge)},
-				{"③ 入库处理", int64(acts)},
-				{"④ 去重成功资源", int64(uniq)},
-				{"⑤ 有效入库", int64(eff)},
+				{"收到的全部内容", int64(top)},
+				{"其中真正的新内容", int64(unique)},
+				{"成功上架可见", int64(eff)},
 			})})
 			return out, nil
 		},
 		Checks: []Check{
-			// 三层必须能对上：去重后成功资源 ≈ 当日新增有效入库（实测两日残差 <1%，容差 2%）
+			// 三层必须能对上：去重后成功资源 ≈ 当日新增有效入库（双日实测残差 <1%，容差 2%）
 			{LeftKey: "m22.uniq_success", RightKey: "eff.total", TolerancePct: 2, Msg: "入库成功资源数与产品可见新增数对不上（埋点遗漏或下游写入异常）"},
-			// 网关+自采+订阅接收 ≈ 汇聚点（自采中段有队列错位，容差放 8%）
-			{LeftKey: "funnel.top", RightKey: "resource_add.total", TolerancePct: 8, Msg: "一层接收与汇聚点脱钩"},
+			{LeftKey: "funnel.top", RightKey: "resource_add.total", TolerancePct: 8, Msg: "一层接收与处理入口脱钩"},
 		},
 	}
 }
@@ -597,6 +668,14 @@ func sumSuccActs(all map[string]Metric) float64 {
 // genServiceSQL 是老 stability 验证过的复杂口径：分母=OutRequest 模型调用；
 // 分子=真实失败（非 5001 按 operation_id 去重，5001 广播按 entryId 去重）。
 const genServiceSQL = `__tag__:_container_name_: lingowhale-repeater-go-prod and __tag__:_namespace_: repeater and (OutRequest or level: error) | select service_type, sum(total) as total_calls, sum(errors) as error_ops, round(100.0 * (1.0 - cast(sum(errors) as double) / nullif(cast(sum(total) as double), 0)), 2) as success_pct from ( select regexp_extract(message, 'OutRequest (\S+)', 1) as service_type, 1 as total, 0 as errors from log where message like 'OutRequest %' and regexp_extract(message, 'OutRequest (\S+)', 1) not in ('upload_oss', 'add_voice', 'model_daily_voice') union all select service_type, 0 as total, 1 as errors from ( select operation_id as dedup_key, case when message like 'StreamErrResp%' and message not like '%code:21001%' and message not like '%code:5001%' then 'single_abstract' when message like '解析模型返回数据失败%' or message like '调用下游服务失败%' then regexp_extract(message, 'model:(\w+)', 1) when message like 'StreamErr %' then regexp_extract(message, 'StreamErr (\w+)', 1) when message like '多文档大纲模型生成失败%' then 'multi_summary' when message like 'EditAudio error%' or message like 'HSText2Voice%' then 'hs_tts' end as service_type from log where level = 'error' and message not like '%origContent is empty%' and message not like '%内容过少，不支持生成%' and message not like '%AsyncExec error success%' and message not like 'FindOneByParseIDAndDataType%' and message not like 'SingAnalyze Error%' and message not like 'ErrorResponse%' and message not like 'server panic%' and not (message like 'StreamErrResp%' and message like '%code:5001%') group by dedup_key, service_type having service_type is not null union all select regexp_extract(message, 'entryId:(\S+) ', 1) as dedup_key, 'single_abstract' as service_type from log where level = 'error' and message like 'StreamErrResp%' and message like '%code:5001%' group by dedup_key, service_type having dedup_key is not null and dedup_key != '' ) ) t group by service_type having service_type is not null and service_type != '' order by total_calls desc`
+
+// residualNote 残差说明：为负说明当日入库含昨日队列积压（跨日泄洪），非异常。
+func residualNote(v float64) string {
+	if v < 0 {
+		return "为负=昨日队列积压今日入库（跨日泄洪）"
+	}
+	return "安全拦截/跨日边界"
+}
 
 // funnelChartSpec 生成飞书卡片 chart 组件的 VChart 漏斗图规格。
 func funnelChartSpec(layers [][2]interface{}) string {

@@ -178,8 +178,16 @@ type fcConfig struct {
 }
 
 type fcHeader struct {
-	Title    fcText `json:"title"`
-	Template string `json:"template"`
+	Title       fcText      `json:"title"`
+	Subtitle    *fcText     `json:"subtitle,omitempty"`
+	TextTagList []fcTextTag `json:"text_tag_list,omitempty"`
+	Template    string      `json:"template"`
+}
+
+type fcTextTag struct {
+	Tag   string `json:"tag"` // "text_tag"
+	Text  fcText `json:"text"`
+	Color string `json:"color"`
 }
 
 type fcText struct {

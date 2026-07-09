@@ -51,7 +51,10 @@ func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) erro
 	saveSnapshot(ctx, day, snapshot)
 
 	msgs := renderDailyReport(day, results, prevDays)
-	webhook := conf.GetConfig().Notice.LingowhaleStabilityWebhook // 暂复用 stability 群，可拆独立 webhook
+	webhook := conf.GetConfig().Notice.LingowhaleDailyReportWebhook
+	if webhook == "" {
+		webhook = conf.GetConfig().Notice.LingowhaleStabilityWebhook
+	}
 	for i, msg := range msgs {
 		err := retry.Do(func() error { return sendFeishuWebhook(ctx, webhook, msg) },
 			retry.Attempts(3), retry.Delay(2*time.Second), retry.Context(ctx))
@@ -270,11 +273,43 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 		report.LevelOK: "green", report.LevelWarn: "yellow",
 		report.LevelCrit: "red", report.LevelBroken: "yellow",
 	}[overall]
+	// 状态标签：告警计数（红/黄），无告警显示绿色"今日正常"
+	var headerTags []fcTextTag
+	{
+		var crit, warn int
+		for _, r := range results {
+			if r == nil {
+				continue
+			}
+			for _, h := range r.Hits {
+				if h.Level == report.LevelCrit {
+					crit++
+				} else if h.Level == report.LevelWarn {
+					warn++
+				}
+			}
+		}
+		if crit > 0 {
+			headerTags = append(headerTags, fcTextTag{Tag: "text_tag", Text: fcText{Tag: "plain_text", Content: fmt.Sprintf("%d 项严重", crit)}, Color: "red"})
+		}
+		if warn > 0 {
+			headerTags = append(headerTags, fcTextTag{Tag: "text_tag", Text: fcText{Tag: "plain_text", Content: fmt.Sprintf("%d 项关注", warn)}, Color: "yellow"})
+		}
+		if crit == 0 && warn == 0 {
+			headerTags = append(headerTags, fcTextTag{Tag: "text_tag", Text: fcText{Tag: "plain_text", Content: "今日正常"}, Color: "green"})
+		}
+	}
+	subtitle := fmt.Sprintf("统计周期 %s 00:00–24:00", day.Format("01-02"))
 	newCard := func(title string, elements []interface{}) fcMsg {
 		return fcMsg{MsgType: "interactive", Card: fcCard{
 			Schema: "2.0", Config: fcConfig{WideScreenMode: true},
-			Header: fcHeader{Title: fcText{Tag: "plain_text", Content: title}, Template: template},
-			Body:   fcBody{Direction: "vertical", Elements: elements},
+			Header: fcHeader{
+				Title:       fcText{Tag: "plain_text", Content: title},
+				Subtitle:    &fcText{Tag: "plain_text", Content: subtitle},
+				TextTagList: headerTags,
+				Template:    template,
+			},
+			Body: fcBody{Direction: "vertical", Elements: elements},
 		}}
 	}
 
@@ -284,14 +319,24 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 	if v := allMetrics["supplier.lat.14.p99"].Value; v > supplierP99 {
 		supplierP99 = v
 	}
-	overview := "**今日健康总览**\n" +
-		fmt.Sprintf("%s **① 数据来源**　接收 %s 条 · 环比 %s · 推送时效 P99 %s\n",
-			layerLevel[report.LayerL1].Icon(), mt("funnel.top"), delta("funnel.top"), fmtMinShort(supplierP99)) +
-		fmt.Sprintf("%s **② 处理与监控**　入库处理成功率 %s · 解析成功率 %s · 生成最差成功率 %s\n",
-			layerLevel[report.LayerL2].Icon(), mt("pipe.proc.rate"), mt("pipe.parse.rate"), mt("gen.worst_rate")) +
-		fmt.Sprintf("%s **③ 有效入库**　有效入库 %s 篇 · 有效率 %s · 公众号端到端≤30min %s",
-			layerLevel[report.LayerL3].Icon(), mt("eff.total"), mt("funnel.eff_rate_top"), mt("eff.e2e.weixin.le30m"))
-	e1 = append(e1, md(overview))
+	overviewCol := func(icon, name, bigNum, unit, sub string) map[string]any {
+		return map[string]any{
+			"tag": "column", "width": "weighted", "weight": 1, "vertical_align": "top",
+			"elements": []any{map[string]any{"tag": "markdown",
+				"content": fmt.Sprintf("%s **%s**\n**%s** %s\n%s", icon, name, bigNum, unit, sub)}},
+		}
+	}
+	e1 = append(e1, md("**今日健康总览**"), map[string]any{
+		"tag": "column_set", "flex_mode": "none", "horizontal_spacing": "8px",
+		"columns": []any{
+			overviewCol(layerLevel[report.LayerL1].Icon(), "数据来源", mt("funnel.top"), "条接收",
+				fmt.Sprintf("环比 %s · 推送P99 %s", delta("funnel.top"), fmtMinShort(supplierP99))),
+			overviewCol(layerLevel[report.LayerL2].Icon(), "处理与监控", mt("m22.clean_rate"), "内容处理成功率",
+				fmt.Sprintf("解析 %s · 生成最低 %s", mt("pipe.parse.rate"), mt("gen.worst_rate"))),
+			overviewCol(layerLevel[report.LayerL3].Icon(), "有效入库", mt("eff.total"), "篇净新增",
+				fmt.Sprintf("环比 %s · 公众号发布后30分钟内可见 %s", delta("eff.total"), mt("eff.e2e.weixin.le30m"))),
+		},
+	})
 	if hits := report.TopHits(results, 3); len(hits) > 0 {
 		var b strings.Builder
 		b.WriteString("**今日 Top 3 需关注**\n")
@@ -311,7 +356,8 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 		var supRows []map[string]string
 		for _, src := range []string{"14", "12"} {
 			arrived := mv("supplier.arrive." + src)
-			dedup := arrived - mv(procOf[src])
+			// 重复拦截 = 汇聚点到达(归因) − 进入处理：两个数同点位，不受队列积压污染
+			dedup := mv("supplier.push."+src) - mv(procOf[src])
 			if dedup < 0 {
 				dedup = 0
 			}
@@ -326,21 +372,19 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 				"push":     mt("supplier.arrive." + src),
 				"delta":    delta("supplier.arrive." + src),
 				"rate":     mt("supplier.recv.rate." + src),
-				"dedup":    fmtCount(int(dedup)),
 				"p50":      mt("supplier.lat." + src + ".p50"),
 				"p90":      mt("supplier.lat." + src + ".p90"),
 				"p99":      mt("supplier.lat." + src + ".p99"),
 				"status":   status,
 			})
+			_ = dedup
 		}
 		e1 = append(e1, makeTable([]fcTableCol{
 			col("supplier", "供应商", "auto"), col("push", "推送量", "auto"),
 			col("delta", "环比昨日", "auto"), col("rate", "接收成功率", "auto"),
-			col("dedup", "重复拦截", "auto"),
 			col("p50", "时效P50", "auto"), col("p90", "P90", "auto"), col("p99", "P99", "auto"),
 			col("status", "状态", "auto"),
 		}, supRows))
-		e1 = append(e1, md("> 推送量 −（1−接收成功率）丢失 − 重复拦截 = 进入处理（见 2.2 首行）。重复拦截 = 供应商连推的重复副本在入口被拦，非丢失。"))
 		appendSectionExtras(&e1, byKey, "supplier", true)
 	}
 	// 1.2 自采集指标表
@@ -351,7 +395,7 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 			acctStatus = "🟡"
 		}
 		e1 = append(e1, makeTable(metricCols, []map[string]string{
-			{"metric": "采集量", "today": mt("self.push"), "delta": delta("self.push"), "status": dropStatus("self.push")},
+			{"metric": "采集量", "today": mt("self.regular"), "delta": delta("self.regular"), "status": dropStatus("self.regular")},
 			{"metric": "采集时效 P50 / P90 / P99", "today": mt("self.lat.p50") + " / " + mt("self.lat.p90") + " / " + mt("self.lat.p99"), "delta": "-", "status": "🟢"},
 			{"metric": "覆盖账号数(有产出 / 监控总数)", "today": mt("self.accounts.active") + " / " + mt("self.accounts.total"), "delta": deltaCount("self.accounts.active"), "status": acctStatus},
 		}))
@@ -386,15 +430,54 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 	for _, key := range []string{"pipe", "m22", "gen"} {
 		if r := byKey[key]; r != nil {
 			e2 = append(e2, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+			if key == "pipe" && r.Output != nil {
+				// 第三行与总览统一口径：名字说清楚、成功率用剔除重复后的干净数
+				for ti := range r.Output.Tables {
+					for ri := range r.Output.Tables[ti].Rows {
+						row := r.Output.Tables[ti].Rows[ri]
+						if row["stage"] == "入库处理" {
+							row["stage"] = "资源处理全流程"
+							row["rate"] = mt("m22.clean_rate")
+						}
+					}
+				}
+			}
 			if key == "m22" {
+				// 矩阵顶部插入「到达量(拦截前) + ⓪入口拦截」两行，每列可竖着做减法
+				arriveOf := map[string]string{
+					"SubRSS": "m22.arrive.SubRSS", "SubWeb": "m22.arrive.SubWeb",
+					"Renminwang": "supplier.push.12", "Qingbo": "supplier.push.14",
+					"FromMonitoring": "supplier.push.11",
+				}
+				totalOf := map[string]string{
+					"SubRSS": "m22.total.SubRSS", "SubWeb": "m22.total.SubWeb",
+					"Renminwang": "m22.total.Renminwang", "Qingbo": "m22.total.Qingbo",
+					"FromMonitoring": "m22.total.FromMonitoring",
+				}
+				for ti := range r.Output.Tables {
+					t := &r.Output.Tables[ti]
+					if t.Compact || len(t.Cols) == 0 || t.Cols[0].Name != "stage" {
+						continue
+					}
+					arriveRow := map[string]string{"stage": "到达处理"}
+					dedupRow := map[string]string{"stage": "− 重复推送(入口拦截)"}
+					for _, c := range t.Cols[1:] {
+						a, p := mv(arriveOf[c.Name]), mv(totalOf[c.Name])
+						arriveRow[c.Name] = fmtTh(a)
+						d := a - p
+						if d < 0 {
+							d = 0 // 泄洪日处理量含前日积压，钳为 0
+						}
+						dedupRow[c.Name] = fmtTh(d)
+					}
+					t.Rows = append([]map[string]string{arriveRow, dedupRow}, t.Rows...)
+				}
 				// 处理总量与第一层推送量的关系说明（动态算前置拒绝量，防止每个读者都要问一遍）
 				rmArrive, rmProc := mv("supplier.arrive.12"), mv("m22.total.Renminwang")
-				qbArrive, qbProc := mv("supplier.arrive.14"), mv("m22.total.Qingbo")
 				if rmArrive > 0 && rmProc > 0 {
 					e2 = append(e2, md(fmt.Sprintf(
-						"> **为什么处理总量 < 第一层推送量**：供应商每篇文章平均会连推多次，重复副本在入口被拦下（原件均已处理，无文章丢失，与 1.1 接收成功率不矛盾）。人民网今日到达 %s，其中重复副本 %s（%.1f%%），实际处理 %s；清博重复副本 %s（%.1f%%）。\n> **为什么「重复更新」行供应商是 —**：内部渠道的重复隔了几小时才再次提交，会进入处理流程、查库判出、计入「重复更新」；供应商的重复是秒级连推，在入口就被拦，不进本表。",
-						fmtCount(int(rmArrive)), fmtCount(int(rmArrive-rmProc)), (rmArrive-rmProc)/rmArrive*100, fmtCount(int(rmProc)),
-						fmtCount(int(qbArrive-qbProc)), (qbArrive-qbProc)/maxFloat(qbArrive, 1)*100)))
+						"> 三种「重复」：**重复推送**＝同一篇文章被再次推来，在处理入口直接拦下（今日人民网占到达 %.1f%%，均非丢失）；**转载重发**＝换了链接/渠道但正文是同一篇，解析后才能识别；**重推旧文**＝库里已有，仅更新阅读数等数据，不新增。",
+						(rmArrive-rmProc)/rmArrive*100)))
 				}
 			}
 			appendSectionExtras(&e2, byKey, key, false)
@@ -406,6 +489,45 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 		if r := byKey[key]; r != nil {
 			e2 = append(e2, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
 			appendSectionExtras(&e2, byKey, key, false)
+			if key == "funnel" {
+				// 分信源漏斗：折叠面板，点开看该源的三层漏斗图
+				chs := []struct{ name, arriveKey, colKey string }{
+					{"自有RSS", "m22.arrive.SubRSS", "SubRSS"},
+					{"自有网站", "m22.arrive.SubWeb", "SubWeb"},
+					{"人民网", "supplier.push.12", "Renminwang"},
+					{"清博", "supplier.push.14", "Qingbo"},
+					{"自采集", "supplier.push.11", "FromMonitoring"},
+				}
+				for _, c := range chs {
+					arrive := mv(c.arriveKey)
+					intercept := arrive - mv("m22.total."+c.colKey)
+					if intercept < 0 {
+						intercept = 0
+					}
+					uniqueCh := arrive - intercept - mv("m22.dupc."+c.colKey) - mv("m22.dupu."+c.colKey)
+					if uniqueCh < 0 {
+						uniqueCh = 0
+					}
+					net := mv("m22.net." + c.colKey)
+					var spec map[string]any
+					specJSON := fmt.Sprintf(`{"type":"funnel","categoryField":"name","valueField":"value","isTransform":true,"label":{"visible":true},"transformLabel":{"visible":true},"legends":{"visible":false},"data":{"id":"f","values":[{"name":"收到","value":%d},{"name":"真正的新内容","value":%d},{"name":"净新增可见","value":%d}]}}`,
+						int64(arrive), int64(uniqueCh), int64(net))
+					if sonic.UnmarshalString(specJSON, &spec) != nil {
+						continue
+					}
+					e2 = append(e2, map[string]any{
+						"tag": "collapsible_panel", "expanded": false,
+						"header": map[string]any{
+							"title": map[string]any{"tag": "markdown",
+								"content": fmt.Sprintf("**%s**　收到 %s → 净新增 %s（点开看漏斗）", c.name, fmtTh(arrive), fmtTh(net))},
+							"icon":          map[string]any{"tag": "standard_icon", "token": "down-small-ccm_outlined", "size": "16px 16px"},
+							"icon_position": "right", "icon_expanded_angle": -180,
+						},
+						"border":   map[string]any{"color": "grey", "corner_radius": "5px"},
+						"elements": []any{map[string]any{"tag": "chart", "chart_spec": spec, "aspect_ratio": "16:9"}},
+					})
+				}
+			}
 		}
 	}
 	e2 = append(e2, hr())
@@ -484,6 +606,23 @@ func fmtMinShort(min float64) string {
 }
 
 func fmtPct1f(v float64) string { return fmt.Sprintf("%.1f%%", v) }
+
+// fmtTh 千分位整数格式化（卡片展示用）
+func fmtTh(v float64) string {
+	n := int64(v + 0.5)
+	neg := n < 0
+	if neg {
+		n = -n
+	}
+	str := fmt.Sprintf("%d", n)
+	for i := len(str) - 3; i > 0; i -= 3 {
+		str = str[:i] + "," + str[i:]
+	}
+	if neg {
+		return "-" + str
+	}
+	return str
+}
 
 func maxFloat(a, b float64) float64 {
 	if a > b {

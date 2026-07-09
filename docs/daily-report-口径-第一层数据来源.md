@@ -16,23 +16,31 @@
 
 ## 1.1 供应商推送（清博 / 人民网）
 
-**链路**（两家推的全是公众号文章，同一个外部入口）：
+**链路**（两家推的全是公众号文章，同一个外部入口；术语约定：收货=暂存原文，加工=入库处理）：
 
 ```
-供应商服务器（人民网 61.184.1.10 / 清博 14.103.184.222）
-  → nginx-ingress（host: api-public.lingowhale.com）        ← 接收量/成功率在这数
-  → feed-go  POST /api/feed/v1/resource/wechat_article/add   ← ResponseRath 勾稽点
-  → resource-go  POST /iapi/resource/v1/add_wechat_article
-  → resource-go  POST /iapi/resource/v1/resource/add（打上 source=12/14）← 推送量归因在这数
-  → MNS topic resource-inner-prod → 入库管线
+① 到达    nginx 网关（client_ip 归属供应商）           📊 推送量
+② 受理    feed 当场回 Respcode:0                        📊 接收成功率 = ②/①（同步口径，
+          ↑ 分子勿用下游任何计数——队列积压会伪装成丢失（07-08 实测教训）
+③ 收货    resource add_wechat_article：原文（含全文HTML）写 lingowhale_plugin.resource
+          （状态 Init）+ 发 MNS 消息。此处不判重，重复副本照单全收
+④ 排队    MNS 队列。积压不丢只延迟 → 报表「⏳在途」注记；07-08 人民网爆推积压 3.1 万至次日
+⑤ 加工    消费者调 /resource/add（语义=开始加工，非再次入库）
+          入口两道闸：URL 处理锁（秒级连推拦截）+ preCheck 查库（ID/URL/md5）
+          📊 2.2 矩阵「⓪入口拦截」行 = 全链路最大流失点（拦重复副本，非丢失）
+⑥ 流水线  同一条 resource 记录逐阶段推进 → Ready       📊 2.2 矩阵各阶段行
+⑦ 上架    通知下游写 lingowhale.content_info            📊 3.1 有效入库
 ```
+
+- 两库分工：lingowhale_plugin.resource = 仓库+车间（Init→Ready 状态机）；content_info = 成品货架。
+- 被⑤拦截的重复副本，其③的暂存记录永久滞留 Init（死数据，人民网 ~4万条×全文HTML/日）→ 优化项：③处加 URL 判重或定期清理。
 
 **source 枚举**（`/resource/add` body）：1=Subscription（订阅）、11=FromMonitoring（自采集）、12=Renminwang（人民网）、14=Qingbo（清博）、15=XiaoYuZhou（小宇宙）。
 
 | 指标 | 口径 | 07-07 实测（环比） |
 |---|---|---|
 | 推送量 | resource-go RequestRout `/resource/add` 按 source 分组（语义归因，不依赖 IP） | 人民网 116,140（+2.5%）· 清博 38,899（+2.9%） |
-| 接收成功率 | nginx `url='/api/feed/v1/resource/wechat_article/add'` 的 status=200 占比，按 client_ip 拆供应商 | 人民网 99.995%（6 条 502，发版瞬间）· 清博 100% |
+| 接收成功率 | **同步受理口径**：nginx status=200 ÷ 到达（按 client_ip 拆供应商）。分子严禁用下游计数（积压→伪丢失） | 人民网 99.995%（6 条 502）· 清博 100% |
 | 推送时效 | body `pub_time`（unix 秒）→ 日志时间差，服务端 approx_percentile | 人民网 P50 15.9m / P90 47.7m / P99 3.8h · 清博 P50 23.5m / P90 55.5m / P99 4.1h |
 
 ```sql

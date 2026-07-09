@@ -71,15 +71,22 @@ func secSupplierPush() *Section {
 		},
 		Extract: extractSupplier,
 		Thresholds: []Threshold{
+			{
+				MetricKey: "supplier.backlog",
+				Eval: func(cur float64, prev *float64) Level {
+					if cur > 2 {
+						return LevelWarn
+					}
+					return LevelOK
+				},
+				Msg: "供应商推送已受理但当日未进入处理 %s——队列积压，爆推日常见，通常次日自动消化；若连续多日出现需排查",
+			},
 			dropOrZero("supplier.arrive.12", "人民网推送量异常：%s（环比跌超 30% 或归零）"),
 			dropOrZero("supplier.arrive.14", "清博推送量异常：%s（环比跌超 30% 或归零）"),
 			recvRateThreshold("12", "人民网"),
 			recvRateThreshold("14", "清博"),
 		},
-		Checks: []Check{
-			// nginx 接收(200) ≈ /resource/add 的 src12+14 之和，断链说明转发层丢数据
-			{LeftKey: "supplier.recv.ok", RightKey: "supplier.push.suppliers", TolerancePct: 1, Msg: "网关接收量与内部归因量脱钩"},
-		},
+
 	}
 }
 
@@ -108,7 +115,7 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 		"61.184.1.10":    "12", // 人民网（IP 变更时更新；未登记 IP 超阈会出注记）
 		"14.103.184.222": "14", // 清博
 	}
-	arrive := map[string]float64{}
+	arrive, okBySrc := map[string]float64{}, map[string]float64{}
 	var recvTotal, recvOK, unattributed float64
 	for _, row := range r["recv"] {
 		total, ok := num(row["total"]), num(row["ok"])
@@ -116,13 +123,20 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 		recvOK += ok
 		if src, known := supplierIP[row["client_ip"]]; known {
 			arrive[src] += total
+			okBySrc[src] += ok
 		} else {
 			unattributed += total
 		}
 	}
+	backlog := recvOK - (push["12"] + push["14"])
+	if backlog < 0 {
+		backlog = 0 // 泄洪日：当日进入处理量含昨日积压，视为无新增积压
+	}
+	backlogPct := pct(backlog, maxf(recvOK, 1))
 	out.Metrics = append(out.Metrics,
 		Metric{Key: "supplier.recv.total", Display: "网关接收", Value: recvTotal, Text: fmtI(recvTotal), Dimension: DimTask},
 		Metric{Key: "supplier.recv.ok", Display: "网关接收成功", Value: recvOK, Text: fmtI(recvOK), Dimension: DimTask},
+		Metric{Key: "supplier.backlog", Display: "供应商队列积压", Value: backlogPct, Text: fmt.Sprintf("%s 条（占受理 %.1f%%）", fmtI(backlog), backlogPct), Dimension: DimPercent},
 	)
 	if unattributed > recvTotal*0.005 {
 		out.Notes = append(out.Notes, fmt.Sprintf("⚠️ 有 %s 次推送来自未登记 IP（供应商 IP 变更？需更新归属表）", fmtI(unattributed)))
@@ -137,11 +151,19 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 	var rows []map[string]string
 	for _, src := range []string{"14", "12"} { // 模板顺序：清博在前
 		arrived, entered := arrive[src], push[src]
-		rate := pct(entered, maxf(arrived, 1))
+		// 接收成功率 = 同步受理（nginx 200）÷ 到达：同步动作不受下游队列积压影响，
+		// 差值即真实丢失（502 等）。归因量(entered)受积压影响，只用于在途量计算。
+		rate := pct(okBySrc[src], maxf(arrived, 1))
+		inflight := okBySrc[src] - entered
+		if inflight < 0 {
+			inflight = 0 // 泄洪日：今日处理量含昨日积压，视为无在途
+		}
 		out.Metrics = append(out.Metrics,
 			Metric{Key: "supplier.arrive." + src, Display: srcNames[src] + "推送量", Value: arrived, Text: fmtI(arrived), Dimension: DimDoc},
 			Metric{Key: "supplier.recv.rate." + src, Display: srcNames[src] + "接收成功率", Value: rate, Text: fmtPct2(rate), Dimension: DimPercent},
+			Metric{Key: "supplier.inflight." + src, Display: srcNames[src] + "在途积压", Value: inflight, Text: fmtI(inflight), Dimension: DimDoc},
 		)
+		_ = inflight
 		status := "🟢"
 		switch {
 		case arrived == 0 || rate < 95:
@@ -176,7 +198,6 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 		},
 		Rows: rows,
 	})
-	out.Notes = append(out.Notes, "接收成功率 = 内部转发成功（文章确认进入内部系统）÷ 网关到达；供应商无重试，差值即真实丢失")
 	return out, nil
 }
 

@@ -612,7 +612,12 @@ func secFunnel() *Section {
 
 			digestRate := pct(eff, maxf(unique, 1))
 			dupRate := pct(dupTotal, maxf(top, 1))
+			lost := uniq - eff
+			if lost < 0 {
+				lost = 0 // 可见库多出=昨日积压到账，非丢失
+			}
 			out.Metrics = append(out.Metrics,
+				Metric{Key: "funnel.lost_pct", Display: "成功未上架", Value: pct(lost, maxf(uniq, 1)), Text: fmtI(lost) + " 篇", Dimension: DimPercent},
 				Metric{Key: "funnel.top", Display: "一层接收合计", Value: top, Text: fmtI(top), Dimension: DimDoc},
 				Metric{Key: "funnel.unique", Display: "独有新内容", Value: unique, Text: fmtI(unique), Dimension: DimDoc},
 				Metric{Key: "funnel.digest_rate", Display: "消化率", Value: digestRate, Text: fmtPct1(digestRate), Dimension: DimPercent},
@@ -648,9 +653,23 @@ func secFunnel() *Section {
 			})})
 			return out, nil
 		},
+		Thresholds: []Threshold{
+			{
+				// 方向感知：处理成功但未出现在可见库 = 真问题；可见库多出（昨日积压到账）不报
+				MetricKey: "funnel.lost_pct",
+				Eval: func(cur float64, prev *float64) Level {
+					if cur > 5 {
+						return LevelCrit
+					}
+					if cur > 2 {
+						return LevelWarn
+					}
+					return LevelOK
+				},
+				Msg: "有 %s 处理成功的文章未出现在产品可见库，需排查下游写入",
+			},
+		},
 		Checks: []Check{
-			// 三层必须能对上：去重后成功资源 ≈ 当日新增有效入库（双日实测残差 <1%，容差 2%）
-			{LeftKey: "m22.uniq_success", RightKey: "eff.total", TolerancePct: 2, Msg: "入库成功资源数与产品可见新增数对不上（埋点遗漏或下游写入异常）"},
 			{LeftKey: "funnel.top", RightKey: "resource_add.total", TolerancePct: 8, Msg: "一层接收与处理入口脱钩"},
 		},
 	}

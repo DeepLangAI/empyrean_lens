@@ -43,7 +43,6 @@ __debug_bin*
 logs/
 **/logs/
 web/dist
-web/node_modulesgo.work
-go.work.sum
+web/node_modules
 go.work
 go.work.sum

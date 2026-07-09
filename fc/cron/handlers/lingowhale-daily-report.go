@@ -2,7 +2,7 @@ package handlers
 
 // 数据平台每日巡检报表（三层：数据来源 / 处理与监控 / 有效入库 + 漏斗勾稽）。
 // 口径定义全部在 report 子包 sections*.go；本文件只做三件事：
-//   1. 注入数据源能力（SLS / mcp-db 代理 / wechat-spider 直连）
+//   1. 注入数据源能力（SLS / mcp-db 代理，wechat-spider 库也走代理）
 //   2. Redis 快照读写（环比 + 连续失败天数，key=daily-report:{date}，TTL 90 天）
 //   3. 飞书卡片渲染与发送
 // 与老 lingowhale-stability 并存过渡，稳定后可下老报表。
@@ -100,10 +100,6 @@ func queryFunc(ctx context.Context, q report.Query, from, to time.Time) (report.
 			return nil, err
 		}
 		return flattenAnyRows(resp.Data), nil
-
-	case report.SourceSpiderDB:
-		pj := injectDayWindow(q.PipelineJSON, from, to)
-		return slshttp.SpiderAggregate(ctx, q.Collection, pj)
 	}
 	return nil, fmt.Errorf("unknown query source: %s", q.Source)
 }
@@ -302,7 +298,7 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 	subtitle := fmt.Sprintf("统计周期 %s 00:00–24:00", day.Format("01-02"))
 	newCard := func(title string, elements []interface{}) fcMsg {
 		return fcMsg{MsgType: "interactive", Card: fcCard{
-			Schema: "2.0", Config: fcConfig{WideScreenMode: true},
+			Schema: "2.0", Config: fcConfig{WideScreenMode: true, WidthMode: "fill"},
 			Header: fcHeader{
 				Title:       fcText{Tag: "plain_text", Content: title},
 				Subtitle:    &fcText{Tag: "plain_text", Content: subtitle},
@@ -311,6 +307,11 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 			},
 			Body: fcBody{Direction: "vertical", Elements: elements},
 		}}
+	}
+	// secHead 输出节标题行（图标 + 标题）。飞书折叠面板不支持内嵌 table 组件，
+	// 折叠方案已废弃，用 width_mode=fill 加宽解决面积问题。
+	secHead := func(dst *[]interface{}, r *report.Result) {
+		*dst = append(*dst, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
 	}
 
 	// ════════ 卡 1：健康总览 + 第一层 · 数据来源 ════════
@@ -350,7 +351,8 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 
 	// 1.1 供应商（模板表 + 重复拦截列：推送量 − 丢失 − 重复拦截 = 进入处理，与 2.2 首行衔接）
 	if r := byKey["supplier"]; r != nil {
-		e1 = append(e1, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+		var sec []interface{}
+		secHead(&e1, r)
 		procOf := map[string]string{"12": "m22.total.Renminwang", "14": "m22.total.Qingbo"}
 		nameOf := map[string]string{"12": "人民网", "14": "清博"}
 		var supRows []map[string]string
@@ -379,38 +381,43 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 			})
 			_ = dedup
 		}
-		e1 = append(e1, makeTable([]fcTableCol{
+		sec = append(sec, makeTable([]fcTableCol{
 			col("supplier", "供应商", "auto"), col("push", "推送量", "auto"),
 			col("delta", "环比昨日", "auto"), col("rate", "接收成功率", "auto"),
 			col("p50", "时效P50", "auto"), col("p90", "P90", "auto"), col("p99", "P99", "auto"),
 			col("status", "状态", "auto"),
 		}, supRows))
-		appendSectionExtras(&e1, byKey, "supplier", true)
+		appendSectionExtras(&sec, byKey, "supplier", true)
+		e1 = append(e1, sec...)
 	}
 	// 1.2 自采集指标表
 	if r := byKey["self"]; r != nil {
-		e1 = append(e1, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+		var sec []interface{}
+		secHead(&e1, r)
 		acctStatus := "🟢"
 		if p, ok := prevOf("self.accounts.active"); ok && mv("self.accounts.active") < p*0.95 {
 			acctStatus = "🟡"
 		}
-		e1 = append(e1, makeTable(metricCols, []map[string]string{
+		sec = append(sec, makeTable(metricCols, []map[string]string{
 			{"metric": "采集量", "today": mt("self.regular"), "delta": delta("self.regular"), "status": dropStatus("self.regular")},
 			{"metric": "采集时效 P50 / P90 / P99", "today": mt("self.lat.p50") + " / " + mt("self.lat.p90") + " / " + mt("self.lat.p99"), "delta": "-", "status": "🟢"},
 			{"metric": "覆盖账号数(有产出 / 监控总数)", "today": mt("self.accounts.active") + " / " + mt("self.accounts.total"), "delta": deltaCount("self.accounts.active"), "status": acctStatus},
 		}))
-		e1 = append(e1, md("> ~~推送成功率~~ 暂缺：需 spider 侧提供发出量（我方仅能见到达的），待接入后补充"))
-		appendSectionExtras(&e1, byKey, "self", true)
+		sec = append(sec, md("> ~~推送成功率~~ 暂缺：需 spider 侧提供发出量（我方仅能见到达的），待接入后补充"))
+		appendSectionExtras(&sec, byKey, "self", true)
+		e1 = append(e1, sec...)
 	}
 	// 1.3 订阅指标表 + Top 失败站点
 	if r := byKey["sub"]; r != nil {
-		e1 = append(e1, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
-		e1 = append(e1, makeTable(metricCols, []map[string]string{
+		var sec []interface{}
+		secHead(&e1, r)
+		sec = append(sec, makeTable(metricCols, []map[string]string{
 			{"metric": "抓取任务总量", "today": mt("sub.tasks"), "delta": delta("sub.tasks"), "status": dropStatus("sub.tasks")},
 			{"metric": "抓取成功率", "today": mt("sub.task_rate"), "delta": deltaPP("sub.task_rate"), "status": rateStatus("sub.task_rate", 88, 75)},
 			{"metric": "新文时效 P50 / P90 / ≤4h占比", "today": mt("sub.fresh.p50") + " / " + mt("sub.fresh.p90") + " / " + mt("sub.fresh.le4h"), "delta": "-", "status": "🟢"},
 		}))
-		appendSectionExtras(&e1, byKey, "sub", false)
+		appendSectionExtras(&sec, byKey, "sub", false)
+		e1 = append(e1, sec...)
 	}
 	// 1.4 图片（附属）
 	if r := byKey["img"]; r != nil {
@@ -429,7 +436,8 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 	e2 = append(e2, md(fmt.Sprintf("%s **%s**", layerLevel[report.LayerL2].Icon(), report.LayerL2)))
 	for _, key := range []string{"pipe", "m22", "gen"} {
 		if r := byKey[key]; r != nil {
-			e2 = append(e2, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+			var sec []interface{}
+			secHead(&e2, r)
 			if key == "pipe" && r.Output != nil {
 				// 第三行与总览统一口径：名字说清楚、成功率用剔除重复后的干净数
 				for ti := range r.Output.Tables {
@@ -475,59 +483,21 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 				// 处理总量与第一层推送量的关系说明（动态算前置拒绝量，防止每个读者都要问一遍）
 				rmArrive, rmProc := mv("supplier.arrive.12"), mv("m22.total.Renminwang")
 				if rmArrive > 0 && rmProc > 0 {
-					e2 = append(e2, md(fmt.Sprintf(
+					sec = append(sec, md(fmt.Sprintf(
 						"> 三种「重复」：**重复推送**＝同一篇文章被再次推来，在处理入口直接拦下（今日人民网占到达 %.1f%%，均非丢失）；**内容判重淘汰**＝换了链接/渠道但正文是同一篇，解析后判出、淘汰后到的；**重推旧文**＝库里已有，仅更新阅读数等数据，不新增。",
 						(rmArrive-rmProc)/rmArrive*100)))
 				}
 			}
-			appendSectionExtras(&e2, byKey, key, false)
+			appendSectionExtras(&sec, byKey, key, false)
+			e2 = append(e2, sec...)
 		}
 	}
 	e2 = append(e2, hr())
 	e2 = append(e2, md(fmt.Sprintf("%s **%s**", layerLevel[report.LayerL3].Icon(), report.LayerL3)))
 	for _, key := range []string{"eff", "funnel"} {
 		if r := byKey[key]; r != nil {
-			e2 = append(e2, md(fmt.Sprintf("%s **%s**", r.Level.Icon(), r.Section.Title)))
+			secHead(&e2, r)
 			appendSectionExtras(&e2, byKey, key, false)
-			if key == "funnel" {
-				// 分信源漏斗：折叠面板，点开看该源的三层漏斗图
-				chs := []struct{ name, arriveKey, colKey string }{
-					{"自有RSS", "m22.arrive.SubRSS", "SubRSS"},
-					{"自有网站", "m22.arrive.SubWeb", "SubWeb"},
-					{"人民网", "supplier.push.12", "Renminwang"},
-					{"清博", "supplier.push.14", "Qingbo"},
-					{"自采集", "supplier.push.11", "FromMonitoring"},
-				}
-				for _, c := range chs {
-					arrive := mv(c.arriveKey)
-					intercept := arrive - mv("m22.total."+c.colKey)
-					if intercept < 0 {
-						intercept = 0
-					}
-					uniqueCh := arrive - intercept - mv("m22.dupc."+c.colKey) - mv("m22.dupu."+c.colKey)
-					if uniqueCh < 0 {
-						uniqueCh = 0
-					}
-					net := mv("m22.net." + c.colKey)
-					var spec map[string]any
-					specJSON := fmt.Sprintf(`{"type":"funnel","categoryField":"name","valueField":"value","isTransform":true,"label":{"visible":true},"transformLabel":{"visible":true},"legends":{"visible":false},"data":{"id":"f","values":[{"name":"收到","value":%d},{"name":"真正的新内容","value":%d},{"name":"净新增可见","value":%d}]}}`,
-						int64(arrive), int64(uniqueCh), int64(net))
-					if sonic.UnmarshalString(specJSON, &spec) != nil {
-						continue
-					}
-					e2 = append(e2, map[string]any{
-						"tag": "collapsible_panel", "expanded": false,
-						"header": map[string]any{
-							"title": map[string]any{"tag": "markdown",
-								"content": fmt.Sprintf("**%s**　收到 %s → 净新增 %s（点开看漏斗）", c.name, fmtTh(arrive), fmtTh(net))},
-							"icon":          map[string]any{"tag": "standard_icon", "token": "down-small-ccm_outlined", "size": "16px 16px"},
-							"icon_position": "right", "icon_expanded_angle": -180,
-						},
-						"border":   map[string]any{"color": "grey", "corner_radius": "5px"},
-						"elements": []any{map[string]any{"tag": "chart", "chart_spec": spec, "aspect_ratio": "16:9"}},
-					})
-				}
-			}
 		}
 	}
 	e2 = append(e2, hr())

@@ -313,9 +313,9 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 	addRow("− 重推旧文(仅更新数据，不新增)", func(c string) float64 { return dup[c] })
 	addRow("＝ 净新增入库", func(c string) float64 { return acts[c] - dup[c] })
 
-	cols := []TableCol{{Name: "stage", Display: "阶段(执行顺序)", Width: "24%"}}
+	cols := []TableCol{{Name: "stage", Display: "阶段(执行顺序)", Width: "25%"}}
 	for _, c := range matrixCols {
-		cols = append(cols, TableCol{Name: c.key, Display: c.display})
+		cols = append(cols, TableCol{Name: c.key, Display: c.display, Width: "15%"})
 	}
 	out.Tables = append(out.Tables, Table{Title: "自上而下逐行可加减：接收 − 去重拦截 = 进入处理 − 各阶段失败 = 处理成功 − 存量更新 = 净新增。失败阶段越靠后，已消耗的处理成本越高", Cols: cols, Rows: rows})
 
@@ -646,11 +646,6 @@ func secFunnel() *Section {
 				},
 				Rows: rows,
 			})
-			out.Charts = append(out.Charts, Chart{SpecJSON: funnelChartSpec([][2]interface{}{
-				{"收到的全部内容", int64(top)},
-				{"其中真正的新内容", int64(unique)},
-				{"成功上架可见", int64(eff)},
-			})})
 			return out, nil
 		},
 		Thresholds: []Threshold{
@@ -696,16 +691,3 @@ func residualNote(v float64) string {
 	return "安全拦截/跨日边界"
 }
 
-// funnelChartSpec 生成飞书卡片 chart 组件的 VChart 漏斗图规格。
-func funnelChartSpec(layers [][2]interface{}) string {
-	values := ""
-	for i, l := range layers {
-		if i > 0 {
-			values += ","
-		}
-		values += fmt.Sprintf(`{"name":%q,"value":%d}`, l[0], l[1])
-	}
-	return `{"type":"funnel","categoryField":"name","valueField":"value","isTransform":true,` +
-		`"label":{"visible":true},"transformLabel":{"visible":true},"outerLabel":{"visible":true,"position":"right"},` +
-		`"legends":{"visible":false},"data":{"id":"funnel","values":[` + values + `]}}`
-}

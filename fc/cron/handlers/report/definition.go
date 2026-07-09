@@ -20,10 +20,9 @@ import (
 type SourceKind string
 
 const (
-	SourceSLS       SourceKind = "sls"        // business-pod 日志库
-	SourceSLSNginx  SourceKind = "sls-nginx"  // nginx-ingress 日志库
-	SourceMongo     SourceKind = "mongo"      // lingowhale 等库（走 mcp-db 代理）
-	SourceSpiderDB  SourceKind = "spider-db"  // wechat-spider 库（直连）
+	SourceSLS      SourceKind = "sls"       // business-pod 日志库
+	SourceSLSNginx SourceKind = "sls-nginx" // nginx-ingress 日志库
+	SourceMongo    SourceKind = "mongo"     // lingowhale / wechat-spider 等库（走 mcp-db 代理）
 )
 
 // Query 是一次数据源查询的声明。时间窗口由引擎按报表日注入，SQL/pipeline 里不写死日期。

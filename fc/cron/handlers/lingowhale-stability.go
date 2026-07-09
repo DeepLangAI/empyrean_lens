@@ -175,6 +175,8 @@ type fcCard struct {
 
 type fcConfig struct {
 	WideScreenMode bool `json:"wide_screen_mode"`
+	// fill=撑满聊天窗宽度（默认窄版会把 6 列矩阵截断出横向滚动）
+	WidthMode string `json:"width_mode,omitempty"`
 }
 
 type fcHeader struct {

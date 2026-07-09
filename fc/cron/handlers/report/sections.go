@@ -238,7 +238,7 @@ func secSelfCollect() *Section {
 			{
 				// spider 库常规链路（回灌脚本不写 article 表，天然不含回灌）：
 				// 按 push_time 当日统计推送篇数 + 发布→推送时效分桶（旧版 Mongo 无 percentile，分桶插值）。
-				Name: "spider", Source: SourceSpiderDB, Collection: "article",
+				Name: "spider", Source: SourceMongo, DB: "wechat-spider", Collection: "article",
 				PipelineJSON: `[
 				  {"$match": {"push_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
 				  {"$project": {"lag": {"$divide": [{"$subtract": ["$push_time", "$publish_time"]}, 60000]}}},
@@ -251,11 +251,11 @@ func secSelfCollect() *Section {
 				]`,
 			},
 			{
-				Name: "acct_total", Source: SourceSpiderDB, Collection: "target_account",
+				Name: "acct_total", Source: SourceMongo, DB: "wechat-spider", Collection: "target_account",
 				PipelineJSON: `[{"$count": "total"}]`,
 			},
 			{
-				Name: "acct_active", Source: SourceSpiderDB, Collection: "article",
+				Name: "acct_active", Source: SourceMongo, DB: "wechat-spider", Collection: "article",
 				PipelineJSON: `[
 				  {"$match": {"push_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
 				  {"$group": {"_id": "$target_account"}}, {"$count": "active"}

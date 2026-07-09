@@ -49,5 +49,3 @@ feishu:
 
 # wechat-spider（公众号自采集）独立 Mongo 库，巡检报表只读直连
 # TODO: 生产 FC 在 VPC 内，后续应换私网地址（当前为 -pub 公网端点）
-wechat_spider_mongo:
-  url: "mongodb://svr_wechat_spider:Kfc1dJN_c1da@dds-8vb43194a1bfeef41943-pub.mongodb.zhangbei.rds.aliyuncs.com:3717,dds-8vb43194a1bfeef42299-pub.mongodb.zhangbei.rds.aliyuncs.com:3717/?replicaSet=mgset-518525368&authSource=wechat-spider&serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=30000"

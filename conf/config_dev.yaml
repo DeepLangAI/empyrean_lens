@@ -47,5 +47,3 @@ feishu:
         - "https://006f-39-98-121-22.ngrok-free.app/auth/callback"
 
 
-# wechat-spider（公众号自采集）独立 Mongo 库，巡检报表只读直连
-# TODO: 生产 FC 在 VPC 内，后续应换私网地址（当前为 -pub 公网端点）

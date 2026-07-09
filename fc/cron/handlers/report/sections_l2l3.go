@@ -115,7 +115,7 @@ var stageOrder = []struct {
 	{"ResourceCrawled", "− 正文抓取失败"},
 	{"ResourceParsed", "− 内容解析失败"},
 	{"AuthorParsed", "− 作者信息写入异常"},
-	{"DuplicateChecked", "− 转载重发(内容判重淘汰)"},
+	{"DuplicateChecked", "− 内容判重淘汰"},
 	{"AbstractGenerated", "− 摘要生成失败"},
 	{"Validated", "− 字段校验失败"},
 }
@@ -627,7 +627,7 @@ func secFunnel() *Section {
 
 			rows := []map[string]string{
 				{"layer": "全部接收", "cnt": fmtI(top), "loss": "供应商 + 自采 + 订阅 + 播客"},
-				{"layer": "− 重复", "cnt": fmtI(dupTotal), "loss": fmt.Sprintf("重复推送 %s · 转载重发 %s · 重推旧文 %s", fmtI(dedupEntry), fmtI(dupContent), fmtI(dupUpdate))},
+				{"layer": "− 重复", "cnt": fmtI(dupTotal), "loss": fmt.Sprintf("重复推送 %s · 内容判重淘汰 %s · 重推旧文 %s", fmtI(dedupEntry), fmtI(dupContent), fmtI(dupUpdate))},
 				{"layer": "− 自采在途", "cnt": fmtI(inflight), "loss": "链接已收、正文未抓完，跨天回来"},
 				{"layer": "＝ 独有新内容", "cnt": fmtI(unique), "loss": "当日真正的新内容"},
 				{"layer": "− 处理失败", "cnt": fmtI(failNonDup), "loss": "明细见 2.2"},

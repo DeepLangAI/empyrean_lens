@@ -476,7 +476,7 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 				rmArrive, rmProc := mv("supplier.arrive.12"), mv("m22.total.Renminwang")
 				if rmArrive > 0 && rmProc > 0 {
 					e2 = append(e2, md(fmt.Sprintf(
-						"> 三种「重复」：**重复推送**＝同一篇文章被再次推来，在处理入口直接拦下（今日人民网占到达 %.1f%%，均非丢失）；**转载重发**＝换了链接/渠道但正文是同一篇，解析后才能识别；**重推旧文**＝库里已有，仅更新阅读数等数据，不新增。",
+						"> 三种「重复」：**重复推送**＝同一篇文章被再次推来，在处理入口直接拦下（今日人民网占到达 %.1f%%，均非丢失）；**内容判重淘汰**＝换了链接/渠道但正文是同一篇，解析后判出、淘汰后到的；**重推旧文**＝库里已有，仅更新阅读数等数据，不新增。",
 						(rmArrive-rmProc)/rmArrive*100)))
 				}
 			}

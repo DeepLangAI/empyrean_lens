@@ -34,10 +34,10 @@ type LingowhaleDailyReport struct{}
 func NewLingowhaleDailyReport() *LingowhaleDailyReport { return &LingowhaleDailyReport{} }
 
 // Handle 生成并发送报表。payload 可传 "2026-07-07" 指定报表日（重跑/补发），
-// 空则默认昨天。
+// 空或 "{}"（FC 控制台触发消息的默认填充值）则默认昨天。
 func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) error {
 	day := time.Now().In(cstLoc).AddDate(0, 0, -1)
-	if p := strings.TrimSpace(payload); p != "" {
+	if p := strings.TrimSpace(payload); p != "" && p != "{}" {
 		parsed, err := time.ParseInLocation("2006-01-02", p, cstLoc)
 		if err != nil {
 			return fmt.Errorf("bad payload date %q: %w", p, err)

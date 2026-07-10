@@ -312,6 +312,22 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 	addRow("＝ 处理成功", func(c string) float64 { return acts[c] })
 	addRow("− 重推旧文(仅更新数据，不新增)", func(c string) float64 { return dup[c] })
 	addRow("＝ 净新增入库", func(c string) float64 { return acts[c] - dup[c] })
+	// 整体成功率：处理成功 / (进入处理 − 内容判重淘汰)。判重淘汰是正确行为不算失败，
+	// 重推旧文入库成功只是不新增，也不算失败——与全局 m22.clean_rate 同口径。
+	rateRow := map[string]string{"stage": "整体成功率(判重淘汰不算失败)"}
+	for _, c := range matrixCols {
+		denom := acts[c.key] + colFail[c.key] - fail["DuplicateChecked"][c.key]
+		if denom <= 0 {
+			rateRow[c.key] = "—"
+			continue
+		}
+		rate := pct(acts[c.key], denom)
+		rateRow[c.key] = fmtPct1(rate)
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "m22.rate." + c.key, Display: c.display + "整体成功率(剔除判重)", Value: rate, Text: fmtPct1(rate), Dimension: DimPercent},
+		)
+	}
+	rows = append(rows, rateRow)
 
 	cols := []TableCol{{Name: "stage", Display: "阶段(执行顺序)", Width: "25%"}}
 	for _, c := range matrixCols {
@@ -451,10 +467,13 @@ func extractGen(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, err
 		}
 	}
 	worst := 100.0
+	var sumTotal, sumErrs float64
 	var rows []map[string]string
 	for _, g := range r["gen"] {
 		st := g["service_type"]
 		total, errs, rate := num(g["total_calls"]), num(g["error_ops"]), num(g["success_pct"])
+		sumTotal += total
+		sumErrs += errs
 		name := genServiceDisplay[st]
 		if name == "" {
 			name = st
@@ -476,6 +495,12 @@ func extractGen(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, err
 	}
 	out.Metrics = append(out.Metrics, Metric{Key: "gen.worst_rate", Display: "生成最差成功率", Value: worst, Text: fmtPct1(worst), Dimension: DimPercent})
 	sortRowsByNumDesc(rows, "total")
+	// 整体成功率＝各类型调用量加权（1 − 失败合计/调用合计），排序后追加保持在表尾
+	if sumTotal > 0 {
+		overall := 100 * (1 - sumErrs/sumTotal)
+		out.Metrics = append(out.Metrics, Metric{Key: "gen.overall_rate", Display: "生成服务整体成功率", Value: overall, Text: fmtPct1(overall), Dimension: DimPercent})
+		rows = append(rows, map[string]string{"task": "整体(调用量加权)", "total": fmtI(sumTotal), "rate": fmtPct1(overall), "errs": fmtI(sumErrs), "p99": "—"})
+	}
 	out.Tables = append(out.Tables, Table{
 		Title: "量/成功率=模型调用维度；P99=API 请求维度（两个量纲）",
 		Cols: []TableCol{

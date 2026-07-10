@@ -498,7 +498,10 @@ func extractGen(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, err
 	// 整体成功率＝各类型调用量加权（1 − 失败合计/调用合计），排序后追加保持在表尾
 	if sumTotal > 0 {
 		overall := 100 * (1 - sumErrs/sumTotal)
-		out.Metrics = append(out.Metrics, Metric{Key: "gen.overall_rate", Display: "生成服务整体成功率", Value: overall, Text: fmtPct1(overall), Dimension: DimPercent})
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "gen.overall_rate", Display: "生成服务整体成功率", Value: overall, Text: fmtPct1(overall), Dimension: DimPercent},
+			Metric{Key: "gen.total_calls", Display: "生成服务调用合计", Value: sumTotal, Text: fmtI(sumTotal), Dimension: DimTask},
+		)
 		rows = append(rows, map[string]string{"task": "整体(调用量加权)", "total": fmtI(sumTotal), "rate": fmtPct1(overall), "errs": fmtI(sumErrs), "p99": "—"})
 	}
 	out.Tables = append(out.Tables, Table{

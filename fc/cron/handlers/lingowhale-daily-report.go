@@ -448,6 +448,14 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 							row["rate"] = mt("m22.clean_rate")
 						}
 					}
+					// 生成服务环节：复用 2.3 已算好的整体口径，不重复查询。
+					// 量纲是模型调用次数（非篇），P99 按任务类型差异大，明细见 2.3
+					if mv("gen.total_calls") > 0 {
+						r.Output.Tables[ti].Rows = append(r.Output.Tables[ti].Rows, map[string]string{
+							"stage": "生成服务(用户触发)", "vol": mt("gen.total_calls") + " 次调用",
+							"rate": mt("gen.overall_rate"), "p50": "—", "p99": "见2.3",
+						})
+					}
 				}
 			}
 			if key == "m22" {

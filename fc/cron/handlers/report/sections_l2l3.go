@@ -93,7 +93,7 @@ func extractPipeline(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 		{"stage": "入库处理", "vol": fmtI(procOK+procFail) + " 动作", "rate": fmtPct1(pct(procOK, maxf(procOK+procFail, 1))), "p50": fmt.Sprintf("%.1fs", procP50), "p99": fmt.Sprintf("%.1fs", procP99)},
 	}
 	out.Tables = append(out.Tables, Table{
-		Title: "各环节（耗时口径不同，环节间勿直接对比）",
+		Title: "各行量纲与覆盖不同，勿纵向加减：抓取按轮询任务计、仅订阅+自采集（人民网/清博是供应商推送，从解析进链路）；解析起全渠道都走；生成按模型调用计（一篇触发多种任务，含存量文章）。逐级损耗看 2.2",
 		Cols: []TableCol{
 			{Name: "stage", Display: "环节", Width: "22%"}, {Name: "vol", Display: "处理量"},
 			{Name: "rate", Display: "成功率"}, {Name: "p50", Display: "P50"}, {Name: "p99", Display: "P99"},

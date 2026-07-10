@@ -175,11 +175,21 @@ type fcCard struct {
 
 type fcConfig struct {
 	WideScreenMode bool `json:"wide_screen_mode"`
+	// fill=撑满聊天窗宽度（默认窄版会把 6 列矩阵截断出横向滚动）
+	WidthMode string `json:"width_mode,omitempty"`
 }
 
 type fcHeader struct {
-	Title    fcText `json:"title"`
-	Template string `json:"template"`
+	Title       fcText      `json:"title"`
+	Subtitle    *fcText     `json:"subtitle,omitempty"`
+	TextTagList []fcTextTag `json:"text_tag_list,omitempty"`
+	Template    string      `json:"template"`
+}
+
+type fcTextTag struct {
+	Tag   string `json:"tag"` // "text_tag"
+	Text  fcText `json:"text"`
+	Color string `json:"color"`
 }
 
 type fcText struct {

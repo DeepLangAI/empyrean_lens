@@ -71,7 +71,7 @@ FC 定时触发（每日 08:00）
 **重要注意事项：**
 - 每次失败产生两条日志，必须用 `where extra like '%"domain"%'` 过滤 wrapper 条目
 - `crawl_normal` 的 HTTP 200 不代表内容有效（微信反爬返回 200 + 拦截页）
-- Kakalong 成功的微信抓取不进入 `crawl_normal`（提前 return，绕过装饰器）
+- ~~Kakalong 成功的微信抓取不进入 `crawl_normal`~~ 已过时（2026-07 验证：Kakalong 成功已全量进入 crawl_normal，相加会双计）；抓取统计一律按 extra 里 url 去重、按 uid 区分调用方（resource_server=自采、1=订阅），按日志条数计会把重试当篇数
 - nginx-ingress `/crawl_img` 只是极少数同步路径，主路径是 `async_crawl_img` 消息队列
 
 ### 统一认证中心（SSO / OIDC）
@@ -247,7 +247,7 @@ Handler 函数由 hz 生成骨架，手动实现。约定：
 
 - schema `2.0`，`wide_screen_mode: true`
 - 表格列 `name` 必须是 ASCII 标识符（不能用中文或 `#`），`display_name` 才是显示文本
-- 列宽只用 `"auto"`，不支持 `"50px"` 等 CSS 写法
+- 列宽支持 `"auto"`、`80~600px`、`1%~100%`（50px 因低于 80 下限被拒，曾误结论为只支持 auto）；单卡 table 组件上限 5 个
 - 行数据 map 的 key 必须与列 `name` 完全一致
 
 ## 关键依赖

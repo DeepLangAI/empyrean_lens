@@ -51,6 +51,8 @@ type OAuthClient struct {
 
 type Notice struct {
 	LingowhaleStabilityWebhook string `yaml:"lingowhale_stability_webhook"`
+	// 每日巡检报表独立 webhook；留空时回退到 stability 群
+	LingowhaleDailyReportWebhook string `yaml:"lingowhale_daily_report_webhook"`
 }
 
 type Server struct {

@@ -468,12 +468,17 @@ func extractGen(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, err
 	}
 	worst := 100.0
 	var sumTotal, sumErrs float64
+	var textTotal, textErrs float64 // 内容生成（概述/大纲类）；语音合成、日报是衍生产品，不算 2.1 的生成环节
 	var rows []map[string]string
 	for _, g := range r["gen"] {
 		st := g["service_type"]
 		total, errs, rate := num(g["total_calls"]), num(g["error_ops"]), num(g["success_pct"])
 		sumTotal += total
 		sumErrs += errs
+		if st != "hs_tts" && st != "model_daily" {
+			textTotal += total
+			textErrs += errs
+		}
 		name := genServiceDisplay[st]
 		if name == "" {
 			name = st
@@ -496,6 +501,13 @@ func extractGen(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, err
 	out.Metrics = append(out.Metrics, Metric{Key: "gen.worst_rate", Display: "生成最差成功率", Value: worst, Text: fmtPct1(worst), Dimension: DimPercent})
 	sortRowsByNumDesc(rows, "total")
 	// 整体成功率＝各类型调用量加权（1 − 失败合计/调用合计），排序后追加保持在表尾
+	if textTotal > 0 {
+		textRate := 100 * (1 - textErrs/textTotal)
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "gen.text_rate", Display: "内容生成成功率(不含语音/日报)", Value: textRate, Text: fmtPct1(textRate), Dimension: DimPercent},
+			Metric{Key: "gen.text_calls", Display: "内容生成调用量(不含语音/日报)", Value: textTotal, Text: fmtI(textTotal), Dimension: DimTask},
+		)
+	}
 	if sumTotal > 0 {
 		overall := 100 * (1 - sumErrs/sumTotal)
 		out.Metrics = append(out.Metrics,

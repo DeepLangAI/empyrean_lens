@@ -241,12 +241,13 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 		}
 		return "—"
 	}
+	// 跌幅红灯基线取昨日与上周同日较低者（周末量天然低，只比昨日会假红）
 	dropStatus := func(key string) string {
 		cur := mv(key)
 		if cur == 0 {
 			return "🔴"
 		}
-		if p, ok := prevOf(key); ok && p > 0 && cur < p*0.7 {
+		if p := report.WeeklyMinBaseline(prevDays, key); p != nil && *p > 0 && cur < *p*0.7 {
 			return "🔴"
 		}
 		return "🟢"
@@ -296,6 +297,9 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 		}
 	}
 	subtitle := fmt.Sprintf("统计周期 %s 00:00–24:00", day.Format("01-02"))
+	if wd := day.Weekday(); wd == time.Saturday || wd == time.Sunday {
+		subtitle += fmt.Sprintf("（%s）· 周末量级天然低于工作日，环比列请对照上周同日", map[time.Weekday]string{time.Saturday: "周六", time.Sunday: "周日"}[wd])
+	}
 	newCard := func(title string, elements []interface{}) fcMsg {
 		return fcMsg{MsgType: "interactive", Card: fcCard{
 			Schema: "2.0", Config: fcConfig{WideScreenMode: true, WidthMode: "fill"},

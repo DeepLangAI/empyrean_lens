@@ -58,15 +58,11 @@ func Run(ctx context.Context, day time.Time, sections []*Section, qf QueryFunc, 
 	}
 
 	// 阈值 + 勾稽（统一在全量指标可见后评估）
-	var prev Snapshot
-	if len(prevDays) > 0 {
-		prev = prevDays[0]
-	}
 	for _, r := range results {
 		if r == nil || r.Output == nil {
 			continue
 		}
-		evalThresholds(r, all, prev)
+		evalThresholds(r, all, prevDays)
 		evalChecks(r, all)
 	}
 
@@ -179,15 +175,17 @@ func execQuery(ctx context.Context, qf QueryFunc, q Query, from, to time.Time) (
 	return full, "", nil
 }
 
-func evalThresholds(r *Result, all map[string]Metric, prev Snapshot) {
+func evalThresholds(r *Result, all map[string]Metric, prevDays []Snapshot) {
 	for _, t := range r.Section.Thresholds {
 		m, ok := all[t.MetricKey]
 		if !ok {
 			continue
 		}
 		var pv *float64
-		if prev != nil {
-			if v, ok := prev[t.MetricKey]; ok {
+		if t.BaselineWeeklyMin {
+			pv = WeeklyMinBaseline(prevDays, t.MetricKey)
+		} else if len(prevDays) > 0 && prevDays[0] != nil {
+			if v, ok := prevDays[0][t.MetricKey]; ok {
 				pv = &v
 			}
 		}
@@ -240,6 +238,24 @@ func num(s string) float64 {
 func Num(s string) float64 { return num(s) }
 
 // DeltaPct 计算环比文本，如 "+3.2%"；prev 缺失返回 "—"。
+// WeeklyMinBaseline 取昨日（prevDays[0]）与上周同日（prevDays[6]）中较低者，
+// 作为量类指标的跌幅告警基线：周末量天然低于工作日，只比昨日会出假警。
+// 两天都缺快照时返回 nil（调用方应视为无基线、不判跌幅）。
+func WeeklyMinBaseline(prevDays []Snapshot, key string) *float64 {
+	var base *float64
+	for _, idx := range []int{0, 6} {
+		if idx >= len(prevDays) || prevDays[idx] == nil {
+			continue
+		}
+		if v, ok := prevDays[idx][key]; ok {
+			if base == nil || v < *base {
+				base = &v
+			}
+		}
+	}
+	return base
+}
+
 func DeltaPct(cur float64, prevDays []Snapshot, key string) string {
 	if len(prevDays) == 0 || prevDays[0] == nil {
 		return "—"

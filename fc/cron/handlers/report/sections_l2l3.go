@@ -554,7 +554,7 @@ func secEffective() *Section {
 		},
 		Extract: extractEffective,
 		Thresholds: []Threshold{
-			dropOrZero("eff.total", "有效入库量异常：%s（环比跌超 30% 或归零）"),
+			dropOrZero("eff.total", "有效入库量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
 		},
 	}
 }

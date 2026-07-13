@@ -81,8 +81,8 @@ func secSupplierPush() *Section {
 				},
 				Msg: "供应商推送已受理但当日未进入处理 %s——队列积压，爆推日常见，通常次日自动消化；若连续多日出现需排查",
 			},
-			dropOrZero("supplier.arrive.12", "人民网推送量异常：%s（环比跌超 30% 或归零）"),
-			dropOrZero("supplier.arrive.14", "清博推送量异常：%s（环比跌超 30% 或归零）"),
+			dropOrZero("supplier.arrive.12", "人民网推送量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
+			dropOrZero("supplier.arrive.14", "清博推送量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
 			recvRateThreshold("12", "人民网"),
 			recvRateThreshold("14", "清博"),
 		},
@@ -610,7 +610,8 @@ func bucketPercentile(n, q float64, bounds, cums []float64) float64 {
 	return bounds[len(bounds)-1]
 }
 
-// dropOrZero：环比跌超 30% 或归零 → 🔴（供应商推送量的标准规则）。
+// dropOrZero：较基线跌超 30% 或归零 → 🔴（量类指标的标准规则）。
+// 基线取昨日与上周同日中较低者：周末量天然低于工作日，只比昨日会出假警。
 func dropOrZero(key, msg string) Threshold {
 	return Threshold{
 		MetricKey: key,
@@ -623,7 +624,8 @@ func dropOrZero(key, msg string) Threshold {
 			}
 			return LevelOK
 		},
-		Msg: msg,
+		Msg:               msg,
+		BaselineWeeklyMin: true,
 	}
 }
 

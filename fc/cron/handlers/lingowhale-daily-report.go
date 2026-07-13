@@ -412,8 +412,11 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 			{"metric": "采集量(按发布日)", "today": mt("self.regular"), "delta": delta("self.regular"), "status": dropStatus("self.regular")},
 			{"metric": "采集时效 P50 / P90 / P99", "today": mt("self.lat.p50") + " / " + mt("self.lat.p90") + " / " + mt("self.lat.p99"), "delta": "-", "status": "🟢"},
 			{"metric": "覆盖账号数(有产出 / 监控总数)", "today": mt("self.accounts.active") + " / " + mt("self.accounts.total"), "delta": deltaCount("self.accounts.active"), "status": acctStatus},
+			{"metric": "语鲸已覆盖 / spider兜底", "today": mt("self.covered") + " / " + mt("self.uncovered"), "delta": delta("self.covered"), "status": "🟢"},
+			{"metric": "覆盖时效(发布→语鲸入库)", "today": mt("self.covered.buckets"), "delta": deltaPP("self.covered.le1h"), "status": "🟢"},
+			{"metric": "spider推送成功率(兜底部分)", "today": mt("self.spider_push.rate"), "delta": deltaPP("self.spider_push.rate"), "status": rateStatus("self.spider_push.rate", 95, 85)},
 		}))
-		sec = append(sec, md("> ~~推送成功率~~ 暂缺：需 spider 侧提供发出量（我方仅能见到达的），待接入后补充"))
+		sec = append(sec, md("> 覆盖视角与 spider 侧日报同口径（store_time=语鲸入库时间）：已覆盖=其他渠道先采到，spider兜底=仅 spider 推送"))
 		appendSectionExtras(&sec, byKey, "self", true)
 		e1 = append(e1, sec...)
 	}

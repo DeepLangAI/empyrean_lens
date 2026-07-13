@@ -259,6 +259,23 @@ func secSelfCollect() *Section {
 				PipelineJSON: `[{"$count": "total"}]`,
 			},
 			{
+				// 覆盖视角（对齐 spider 侧日报 tasks/report_task.py，2026-07-13 起由本报表 cover）：
+				// 已覆盖 = store_time 非空（语鲸入库时间回写进 article 表），时效 = store_time − publish_time；
+				// 未覆盖 = store_time 空（spider 兜底推送），push_result=true 为推送成功；无 push_time 记 0 分钟。
+				Name: "cover", Source: SourceMongo, DB: "wechat-spider", Collection: "article", MongoNaiveCST: true,
+				PipelineJSON: `[
+				  {"$match": {"publish_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
+				  {"$project": {
+				    "covered": {"$cond": [{"$ifNull": ["$store_time", null]}, 1, 0]},
+				    "lag_min": {"$divide": [{"$subtract": [{"$ifNull": ["$store_time", {"$ifNull": ["$push_time", "$publish_time"]}]}, "$publish_time"]}, 60000]},
+				    "push_ok": {"$cond": [{"$eq": ["$push_result", true]}, 1, 0]}}},
+				  {"$group": {"_id": "$covered", "n": {"$sum": 1},
+				    "le1h": {"$sum": {"$cond": [{"$lte": ["$lag_min", 60]}, 1, 0]}},
+				    "le3h": {"$sum": {"$cond": [{"$lte": ["$lag_min", 180]}, 1, 0]}},
+				    "push_ok": {"$sum": "$push_ok"}}}
+				]`,
+			},
+			{
 				Name: "acct_active", Source: SourceMongo, DB: "wechat-spider", Collection: "article", MongoNaiveCST: true,
 				PipelineJSON: `[
 				  {"$match": {"publish_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
@@ -335,6 +352,25 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 			Metric{Key: "self.accounts.total", Display: "监控账号总数", Value: total, Text: fmtI(total), Dimension: DimAccount},
 			Metric{Key: "self.accounts.active", Display: "有产出账号", Value: active, Text: fmtI(active), Dimension: DimAccount},
 		)
+	}
+
+	// 覆盖视角（_id: 1=已覆盖，0=未覆盖）；分桶 le1h/le3h 是累计值
+	for _, row := range r["cover"] {
+		n, le1h, le3h := num(row["n"]), num(row["le1h"]), num(row["le3h"])
+		if row["_id"] == "1" {
+			out.Metrics = append(out.Metrics,
+				Metric{Key: "self.covered", Display: "语鲸已覆盖", Value: n, Text: fmtI(n), Dimension: DimDoc},
+				Metric{Key: "self.covered.le1h", Display: "覆盖时效≤1h占比", Value: pct(le1h, maxf(n, 1)), Text: fmtPct1(pct(le1h, maxf(n, 1))), Dimension: DimPercent},
+				Metric{Key: "self.covered.buckets", Display: "覆盖时效分桶", Value: n,
+					Text: fmt.Sprintf("≤1h %s ｜ 1-3h %s ｜ >3h %s", fmtI(le1h), fmtI(le3h-le1h), fmtI(n-le3h)), Dimension: DimDoc},
+			)
+		} else {
+			rate := pct(num(row["push_ok"]), maxf(n, 1))
+			out.Metrics = append(out.Metrics,
+				Metric{Key: "self.uncovered", Display: "未覆盖(spider兜底)", Value: n, Text: fmtI(n), Dimension: DimDoc},
+				Metric{Key: "self.spider_push.rate", Display: "spider推送成功率", Value: rate, Text: fmtPct1(rate), Dimension: DimPercent},
+			)
+		}
 	}
 
 	c := first(r["crawl"])

@@ -106,6 +106,13 @@ func queryFunc(ctx context.Context, q report.Query, from, to time.Time) (report.
 			return nil, err
 		}
 		return flattenAnyRows(resp.Data), nil
+
+	case report.SourceCustom:
+		switch q.Name {
+		case "feedcheck":
+			return wechatFeedCheck(ctx, from, to)
+		}
+		return nil, fmt.Errorf("unknown custom query: %s", q.Name)
 	}
 	return nil, fmt.Errorf("unknown query source: %s", q.Source)
 }
@@ -422,9 +429,10 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 			{"metric": "覆盖账号数(有产出 / 监控总数)", "today": mt("self.accounts.active") + " / " + mt("self.accounts.total"), "delta": deltaCount("self.accounts.active"), "status": acctStatus},
 			{"metric": "覆盖时效(发布→语鲸入库)", "today": mt("self.covered.buckets"), "delta": deltaPP("self.covered.le1h"), "status": "🟢"},
 			{"metric": "spider推送成功率(兜底部分)", "today": mt("self.spider_push.rate"), "delta": deltaPP("self.spider_push.rate"), "status": rateStatus("self.spider_push.rate", 95, 85)},
-			{"metric": "缺失数 / 缺失率", "today": mt("self.missing") + " / " + mt("self.missing.rate"), "delta": deltaCount("self.missing"), "status": missingStatus},
+			{"metric": "缺失数 / 缺失率(Feed核验)", "today": mt("self.missing") + " / " + mt("self.missing.rate"), "delta": deltaCount("self.missing"), "status": missingStatus},
 		}))
-		sec = append(sec, md("> 缺失=发布于昨日、语鲸未覆盖（其他渠道没采到）且 spider 推送失败的文章；覆盖时效与 spider 侧日报同口径（store_time=语鲸入库时间）"))
+		sec = append(sec, md(fmt.Sprintf("> 缺失口径与语鲸监控9一致：当日落库 %s 篇可核验文章逐一到订阅 Feed 查标题，%s 篇进入语鲸、其余为缺失；覆盖时效与 spider 侧日报同口径（store_time=语鲸入库时间）",
+			mt("self.feed.checked"), mt("self.feed.hit"))))
 		appendSectionExtras(&sec, byKey, "self", true)
 		e1 = append(e1, sec...)
 	}

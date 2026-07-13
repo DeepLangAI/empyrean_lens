@@ -259,6 +259,11 @@ func secSelfCollect() *Section {
 				PipelineJSON: `[{"$count": "total"}]`,
 			},
 			{
+				// 缺失核验：与语鲸 topic-monitor 监控9 同口径（Feed 接口逐账号核验标题），
+				// 实现在 handlers/feedcheck.go。接口故障时降级为无此行（Optional）。
+				Name: "feedcheck", Source: SourceCustom, Optional: true,
+			},
+			{
 				// 覆盖视角（对齐 spider 侧日报 tasks/report_task.py，2026-07-13 起由本报表 cover）：
 				// 已覆盖 = store_time 非空（语鲸入库时间回写进 article 表），时效 = store_time − publish_time；
 				// 未覆盖 = store_time 空（spider 兜底推送），push_result=true 为推送成功；无 push_time 记 0 分钟。
@@ -322,7 +327,7 @@ func secSelfCollect() *Section {
 					}
 					return LevelOK
 				},
-				Msg: "监控账号文章缺失率 %s（发布于昨日、语鲸未覆盖且 spider 推送失败）",
+				Msg: "监控账号文章缺失率 %s（当日落库文章在订阅 Feed 中查不到，与语鲸监控9同口径）",
 			},
 		},
 	}
@@ -377,10 +382,6 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 		}
 	}
 	if covN+uncovN > 0 {
-		// 缺失 = 语鲸未覆盖(store_time 空) 且 spider 推送失败(push_result≠true)：
-		// 监控账号发了、语鲸最终没有的文章。比例分母 = 全天文章总数（覆盖+未覆盖）。
-		missing := uncovN - uncovPushOK
-		missingPct := pct(missing, maxf(covN+uncovN, 1))
 		out.Metrics = append(out.Metrics,
 			Metric{Key: "self.covered", Display: "语鲸已覆盖", Value: covN, Text: fmtI(covN), Dimension: DimDoc},
 			Metric{Key: "self.covered.le1h", Display: "覆盖时效≤1h占比", Value: pct(covLe1h, maxf(covN, 1)), Text: fmtPct1(pct(covLe1h, maxf(covN, 1))), Dimension: DimPercent},
@@ -388,9 +389,22 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 				Text: fmt.Sprintf("≤1h %s ｜ 1-3h %s ｜ >3h %s", fmtI(covLe1h), fmtI(covLe3h-covLe1h), fmtI(covN-covLe3h)), Dimension: DimDoc},
 			Metric{Key: "self.uncovered", Display: "未覆盖(spider兜底)", Value: uncovN, Text: fmtI(uncovN), Dimension: DimDoc},
 			Metric{Key: "self.spider_push.rate", Display: "spider推送成功率", Value: pct(uncovPushOK, maxf(uncovN, 1)), Text: fmtPct1(pct(uncovPushOK, maxf(uncovN, 1))), Dimension: DimPercent},
-			Metric{Key: "self.missing", Display: "自采缺失数", Value: missing, Text: fmtI(missing), Dimension: DimDoc},
-			Metric{Key: "self.missing.rate", Display: "自采缺失率", Value: missingPct, Text: fmtPct1(missingPct), Dimension: DimPercent},
 		)
+	}
+
+	// 缺失口径 = 语鲸监控9同款：Feed 接口逐账号核验（可核验 = 进入 + 缺失）
+	if fc := first(r["feedcheck"]); fc["checked"] != "" {
+		checked, hits, missing := num(fc["checked"]), num(fc["hit"]), num(fc["missing"])
+		missingPct := pct(missing, maxf(checked, 1))
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "self.feed.checked", Display: "Feed核验文章数", Value: checked, Text: fmtI(checked), Dimension: DimDoc},
+			Metric{Key: "self.feed.hit", Display: "进入语鲸", Value: hits, Text: fmtI(hits), Dimension: DimDoc},
+			Metric{Key: "self.missing", Display: "缺失数", Value: missing, Text: fmtI(missing), Dimension: DimDoc},
+			Metric{Key: "self.missing.rate", Display: "缺失率", Value: missingPct, Text: fmtPct1(missingPct), Dimension: DimPercent},
+		)
+		if errs := num(fc["errs"]); errs > 0 {
+			out.Notes = append(out.Notes, fmt.Sprintf("⚠️ Feed 核验有 %s 个账号接口失败（已剔除，不计缺失）", fmtI(errs)))
+		}
 	}
 
 	c := first(r["crawl"])

@@ -59,8 +59,10 @@ func secSupplierPush() *Section {
 			{
 				// 接收成功率只能在网关层算（不丢日志、能看到非 200）。
 				// 供应商↔IP 的对应关系会漂移，这里只按 IP 排序展示，归因以 source 为准。
+				// 2026-07 起推送接口迁移 /api/feed/v1/resource → /api/resource/v1，
+				// 新旧路径并行期两边都算，旧地址下线后自然只剩新路径。
 				Name: "recv", Source: SourceSLSNginx, Limit: 10,
-				SQL: `wechat_article | select client_ip, count(*) as total, count_if(status = 200) as ok from log where url = '/api/feed/v1/resource/wechat_article/add' group by client_ip order by total desc limit 10`,
+				SQL: `wechat_article | select client_ip, count(*) as total, count_if(status = 200) as ok from log where url in ('/api/feed/v1/resource/wechat_article/add', '/api/resource/v1/wechat_article/add') group by client_ip order by total desc limit 10`,
 			},
 			{
 				// 推送时效：body 自带 pub_time（unix 秒）。样本有偏（长文的请求日志易被截丢，

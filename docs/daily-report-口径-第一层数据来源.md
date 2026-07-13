@@ -132,6 +132,8 @@ from log
 - 失败日志膨胀 7.9~33 倍，任何按条数算的成功率都不可信（07-07 条数口径 53.9% vs URL 真实 86.5%）。
 - 推送量语义是「请求次数」；spider 超时重试会一篇计多次，精确篇数按 body `source_uniq_id` 去重。
 - 待业务确认：uid=resource_server 是否只服务自采集（若也给其他渠道补抓，附表要再拆）。
+- **wechat-spider 库时间字段是北京时间墙钟按 UTC 类型存的（naive）**（2026-07-13 验证：最新 push_time 比真实 UTC 超前 8h）。日窗口必须注入墙钟边界（当日 00:00:00Z），不能用真 UTC 边界（前日 16:00:00Z）——引擎 Query 加 `MongoNaiveCST: true`。修正前采集量少计约 3%（07-12：3,194 → 3,296）。`lingowhale.content_info` 验证过是真 UTC，不受影响。
+- spider 侧自己的日报按**发布日**（publish_time）统计且随补采持续增长，与本表按**推送日**（push_time）天然对不上；对账时先对齐字段再对齐快照时点。
 
 ## 1.3 网站/RSS 抓取（订阅渠道，uid=1）
 

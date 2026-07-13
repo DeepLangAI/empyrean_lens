@@ -40,6 +40,11 @@ type Query struct {
 	DB           string
 	Collection   string
 	PipelineJSON string
+	// MongoNaiveCST：该库时间字段按北京时间墙钟存成 UTC 类型（naive，
+	// 如 wechat-spider 库，2026-07-13 验证：push_time 比真实时刻超前 8h）。
+	// 为 true 时 {{DAY_START}}/{{DAY_END}} 注入墙钟边界（当日 00:00:00Z），
+	// 否则按真 UTC（前日 16:00:00Z）。
+	MongoNaiveCST bool
 
 	// VerifyAdditive 非空时，引擎会把该查询按上下半天各跑一次，将列出的
 	// 数值列求和与全天结果比对；偏差 >1% 时采用分片之和并给 Section 挂

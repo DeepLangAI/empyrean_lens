@@ -87,6 +87,12 @@ func queryFunc(ctx context.Context, q report.Query, from, to time.Time) (report.
 		return resp.Logs, nil
 
 	case report.SourceMongo:
+		if q.MongoNaiveCST {
+			// naive 库：存储值即北京时间墙钟，取 CST 墙钟数值当 UTC 边界
+			f, t := from.In(cstLoc), to.In(cstLoc)
+			from = time.Date(f.Year(), f.Month(), f.Day(), f.Hour(), f.Minute(), f.Second(), 0, time.UTC)
+			to = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, time.UTC)
+		}
 		pipeline, err := parsePipeline(q.PipelineJSON, from, to)
 		if err != nil {
 			return nil, err

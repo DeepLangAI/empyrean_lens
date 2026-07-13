@@ -311,6 +311,19 @@ func secSelfCollect() *Section {
 				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 90, 80) },
 				Msg:       "自采正文抓取成功率 %s（URL 级）",
 			},
+			{
+				MetricKey: "self.missing.rate",
+				Eval: func(cur float64, prev *float64) Level {
+					if cur > 3 {
+						return LevelCrit
+					}
+					if cur > 1 {
+						return LevelWarn
+					}
+					return LevelOK
+				},
+				Msg: "监控账号文章缺失率 %s（发布于昨日、语鲸未覆盖且 spider 推送失败）",
+			},
 		},
 	}
 }
@@ -355,22 +368,29 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 	}
 
 	// 覆盖视角（_id: 1=已覆盖，0=未覆盖）；分桶 le1h/le3h 是累计值
+	var covN, covLe1h, covLe3h, uncovN, uncovPushOK float64
 	for _, row := range r["cover"] {
-		n, le1h, le3h := num(row["n"]), num(row["le1h"]), num(row["le3h"])
 		if row["_id"] == "1" {
-			out.Metrics = append(out.Metrics,
-				Metric{Key: "self.covered", Display: "语鲸已覆盖", Value: n, Text: fmtI(n), Dimension: DimDoc},
-				Metric{Key: "self.covered.le1h", Display: "覆盖时效≤1h占比", Value: pct(le1h, maxf(n, 1)), Text: fmtPct1(pct(le1h, maxf(n, 1))), Dimension: DimPercent},
-				Metric{Key: "self.covered.buckets", Display: "覆盖时效分桶", Value: n,
-					Text: fmt.Sprintf("≤1h %s ｜ 1-3h %s ｜ >3h %s", fmtI(le1h), fmtI(le3h-le1h), fmtI(n-le3h)), Dimension: DimDoc},
-			)
+			covN, covLe1h, covLe3h = num(row["n"]), num(row["le1h"]), num(row["le3h"])
 		} else {
-			rate := pct(num(row["push_ok"]), maxf(n, 1))
-			out.Metrics = append(out.Metrics,
-				Metric{Key: "self.uncovered", Display: "未覆盖(spider兜底)", Value: n, Text: fmtI(n), Dimension: DimDoc},
-				Metric{Key: "self.spider_push.rate", Display: "spider推送成功率", Value: rate, Text: fmtPct1(rate), Dimension: DimPercent},
-			)
+			uncovN, uncovPushOK = num(row["n"]), num(row["push_ok"])
 		}
+	}
+	if covN+uncovN > 0 {
+		// 缺失 = 语鲸未覆盖(store_time 空) 且 spider 推送失败(push_result≠true)：
+		// 监控账号发了、语鲸最终没有的文章。比例分母 = 全天文章总数（覆盖+未覆盖）。
+		missing := uncovN - uncovPushOK
+		missingPct := pct(missing, maxf(covN+uncovN, 1))
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "self.covered", Display: "语鲸已覆盖", Value: covN, Text: fmtI(covN), Dimension: DimDoc},
+			Metric{Key: "self.covered.le1h", Display: "覆盖时效≤1h占比", Value: pct(covLe1h, maxf(covN, 1)), Text: fmtPct1(pct(covLe1h, maxf(covN, 1))), Dimension: DimPercent},
+			Metric{Key: "self.covered.buckets", Display: "覆盖时效分桶", Value: covN,
+				Text: fmt.Sprintf("≤1h %s ｜ 1-3h %s ｜ >3h %s", fmtI(covLe1h), fmtI(covLe3h-covLe1h), fmtI(covN-covLe3h)), Dimension: DimDoc},
+			Metric{Key: "self.uncovered", Display: "未覆盖(spider兜底)", Value: uncovN, Text: fmtI(uncovN), Dimension: DimDoc},
+			Metric{Key: "self.spider_push.rate", Display: "spider推送成功率", Value: pct(uncovPushOK, maxf(uncovN, 1)), Text: fmtPct1(pct(uncovPushOK, maxf(uncovN, 1))), Dimension: DimPercent},
+			Metric{Key: "self.missing", Display: "自采缺失数", Value: missing, Text: fmtI(missing), Dimension: DimDoc},
+			Metric{Key: "self.missing.rate", Display: "自采缺失率", Value: missingPct, Text: fmtPct1(missingPct), Dimension: DimPercent},
+		)
 	}
 
 	c := first(r["crawl"])

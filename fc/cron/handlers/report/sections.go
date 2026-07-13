@@ -239,10 +239,12 @@ func secSelfCollect() *Section {
 			},
 			{
 				// spider 库常规链路（回灌脚本不写 article 表，天然不含回灌）：
-				// 按 push_time 当日统计推送篇数 + 发布→推送时效分桶（旧版 Mongo 无 percentile，分桶插值）。
+				// 按 publish_time（发布日）统计，与 spider 侧日报同口径（2026-07-13 拍板）。
+				// 注意：发布日口径有补采长尾，报表 08:00 生成时约九成已采到，数值是当时截面，
+				// 之后同口径重查会略大。时效分桶 = 发布→推送延迟（旧版 Mongo 无 percentile，分桶插值）。
 				Name: "spider", Source: SourceMongo, DB: "wechat-spider", Collection: "article", MongoNaiveCST: true,
 				PipelineJSON: `[
-				  {"$match": {"push_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
+				  {"$match": {"publish_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
 				  {"$project": {"lag": {"$divide": [{"$subtract": ["$push_time", "$publish_time"]}, 60000]}}},
 				  {"$group": {"_id": null, "n": {"$sum": 1},
 				    "b15":   {"$sum": {"$cond": [{"$lte": ["$lag", 15]}, 1, 0]}},
@@ -259,7 +261,7 @@ func secSelfCollect() *Section {
 			{
 				Name: "acct_active", Source: SourceMongo, DB: "wechat-spider", Collection: "article", MongoNaiveCST: true,
 				PipelineJSON: `[
-				  {"$match": {"push_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
+				  {"$match": {"publish_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
 				  {"$group": {"_id": "$target_account"}}, {"$count": "active"}
 				]`,
 			},
@@ -311,7 +313,7 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 	regular := num(sp["n"])
 	if regular > 0 {
 		out.Metrics = append(out.Metrics,
-			Metric{Key: "self.regular", Display: "常规链路日推送", Value: regular, Text: fmtI(regular), Dimension: DimDoc},
+			Metric{Key: "self.regular", Display: "按发布日采集量", Value: regular, Text: fmtI(regular), Dimension: DimDoc},
 			Metric{Key: "self.backfill_ratio", Display: "到达/常规比", Value: pushCnt / regular, Text: fmt.Sprintf("%.1f", pushCnt/regular), Dimension: DimNone},
 		)
 		// 分桶边界: 15/60/180/720/1440 分钟，插值出 P50/P90

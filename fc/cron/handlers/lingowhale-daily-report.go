@@ -409,7 +409,7 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 			acctStatus = "🟡"
 		}
 		sec = append(sec, makeTable(metricCols, []map[string]string{
-			{"metric": "采集量", "today": mt("self.regular"), "delta": delta("self.regular"), "status": dropStatus("self.regular")},
+			{"metric": "采集量(按发布日)", "today": mt("self.regular"), "delta": delta("self.regular"), "status": dropStatus("self.regular")},
 			{"metric": "采集时效 P50 / P90 / P99", "today": mt("self.lat.p50") + " / " + mt("self.lat.p90") + " / " + mt("self.lat.p99"), "delta": "-", "status": "🟢"},
 			{"metric": "覆盖账号数(有产出 / 监控总数)", "today": mt("self.accounts.active") + " / " + mt("self.accounts.total"), "delta": deltaCount("self.accounts.active"), "status": acctStatus},
 		}))

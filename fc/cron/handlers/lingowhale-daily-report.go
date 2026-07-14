@@ -33,25 +33,55 @@ type LingowhaleDailyReport struct{}
 
 func NewLingowhaleDailyReport() *LingowhaleDailyReport { return &LingowhaleDailyReport{} }
 
-// Handle 生成并发送报表。payload 可传 "2026-07-07" 指定报表日（重跑/补发），
-// 空或 "{}"（FC 控制台触发消息的默认填充值）则默认昨天。
+// Handle 生成并发送报表。payload 三种形态：
+//   - 空或 "{}"（控制台默认触发消息）：报表日=昨天，发配置里的正式群
+//   - "2026-07-07"：指定报表日（重跑/补发），发正式群
+//   - {"day":"2026-07-07","webhook":"https://..."}：验收用——指定报表日 + 覆盖 webhook
+//     （发测试群不打扰正式群；两字段均可省略，省略即默认值）
 func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) error {
 	day := time.Now().In(cstLoc).AddDate(0, 0, -1)
+	webhookOverride := ""
 	if p := strings.TrimSpace(payload); p != "" && p != "{}" {
-		parsed, err := time.ParseInLocation("2006-01-02", p, cstLoc)
-		if err != nil {
-			return fmt.Errorf("bad payload date %q: %w", p, err)
+		if strings.HasPrefix(p, "{") {
+			var req struct {
+				Day     string `json:"day"`
+				Webhook string `json:"webhook"`
+			}
+			if err := sonic.UnmarshalString(p, &req); err != nil {
+				return fmt.Errorf("bad payload json %q: %w", p, err)
+			}
+			if req.Day != "" {
+				parsed, err := time.ParseInLocation("2006-01-02", req.Day, cstLoc)
+				if err != nil {
+					return fmt.Errorf("bad payload day %q: %w", req.Day, err)
+				}
+				day = parsed
+			}
+			webhookOverride = req.Webhook
+		} else {
+			parsed, err := time.ParseInLocation("2006-01-02", p, cstLoc)
+			if err != nil {
+				return fmt.Errorf("bad payload date %q: %w", p, err)
+			}
+			day = parsed
 		}
-		day = parsed
 	}
 	hlog.CtxInfof(ctx, "[daily-report] run for %s", day.Format("2006-01-02"))
 
 	prevDays := loadSnapshots(ctx, day, snapshotDays)
 	results, snapshot := report.Run(ctx, day, report.Sections(), queryFunc, prevDays)
-	saveSnapshot(ctx, day, snapshot)
+	if webhookOverride == "" {
+		saveSnapshot(ctx, day, snapshot)
+	} else {
+		// 验收模式（覆盖 webhook）不写快照：发布日等截面口径重跑值会漂，避免污染环比基线
+		hlog.CtxInfof(ctx, "[daily-report] webhook override, snapshot NOT saved")
+	}
 
 	msgs := renderDailyReport(day, results, prevDays)
-	webhook := conf.GetConfig().Notice.LingowhaleDailyReportWebhook
+	webhook := webhookOverride
+	if webhook == "" {
+		webhook = conf.GetConfig().Notice.LingowhaleDailyReportWebhook
+	}
 	if webhook == "" {
 		webhook = conf.GetConfig().Notice.LingowhaleStabilityWebhook
 	}

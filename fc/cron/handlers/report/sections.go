@@ -15,6 +15,7 @@ package report
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -462,6 +463,21 @@ func secSubscription() *Section {
 				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 88, 75) },
 				Msg:       "订阅抓取任务成功率 %s",
 			},
+			{
+				// 单站点疑似整站故障（失败率>80% 且失败源>50 个）进告警区。
+				// 多站同挂大概率是我方出口/网络问题，升红。
+				MetricKey: "sub.outage.sites",
+				Eval: func(cur float64, prev *float64) Level {
+					if cur >= 3 {
+						return LevelCrit
+					}
+					if cur >= 1 {
+						return LevelWarn
+					}
+					return LevelOK
+				},
+				Msg: "订阅源疑似整站故障：%s——影响面大，建议确认站点状态或换源；多站同挂先查我方出口",
+			},
 		},
 	}
 }
@@ -499,6 +515,7 @@ func extractSubscription(day time.Time, r map[string]Rows, prev []Snapshot) (*Ou
 
 	// Top 失败站点 + 连续失败天数（读近 7 日快照里的 sub.domfail.<domain>）
 	var rows []map[string]string
+	var outages []string // 疑似整站故障清单（进告警）
 	for _, d := range r["domains"] {
 		domain := d["domain"]
 		fails := num(d["fail_tasks"])
@@ -511,6 +528,11 @@ func extractSubscription(day time.Time, r map[string]Rows, prev []Snapshot) (*Ou
 		switch {
 		case failPct > 80 && failURLs > 50:
 			advice = "疑似整站故障"
+			tag := fmt.Sprintf("%s(%s个源 %s)", domain, fmtI(failURLs), fmtPct1(failPct))
+			if streak >= 2 {
+				tag = fmt.Sprintf("%s(%s个源 %s·连续%d天)", domain, fmtI(failURLs), fmtPct1(failPct), streak)
+			}
+			outages = append(outages, tag)
 		case failPct > 80:
 			advice = "个别源失效，建议换源"
 		}
@@ -524,6 +546,11 @@ func extractSubscription(day time.Time, r map[string]Rows, prev []Snapshot) (*Ou
 		// 失败量入快照，供次日算连续天数
 		out.Metrics = append(out.Metrics, Metric{Key: "sub.domfail." + domain, Display: domain + " 失败", Value: fails, Text: fmtI(fails), Dimension: DimTask})
 	}
+	outageText := "无"
+	if len(outages) > 0 {
+		outageText = strings.Join(outages, "、")
+	}
+	out.Metrics = append(out.Metrics, Metric{Key: "sub.outage.sites", Display: "疑似整站故障站点数", Value: float64(len(outages)), Text: outageText, Dimension: DimNone})
 	if len(rows) > 0 {
 		out.Tables = append(out.Tables, Table{
 			Title: "Top 失败站点",

@@ -93,7 +93,7 @@ func extractPipeline(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 		{"stage": "入库处理", "vol": fmtI(procOK+procFail) + " 动作", "rate": fmtPct1(pct(procOK, maxf(procOK+procFail, 1))), "p50": fmt.Sprintf("%.1fs", procP50), "p99": fmt.Sprintf("%.1fs", procP99)},
 	}
 	out.Tables = append(out.Tables, Table{
-		Title: "各环节（耗时口径不同，环节间勿直接对比）",
+		Title: "各行量纲与覆盖不同，勿纵向加减：抓取按轮询任务计、仅订阅+自采集（人民网/清博是供应商推送，从解析进链路）；解析起全渠道都走；生成按模型调用计（一篇触发多种任务，含存量文章）。逐级损耗看 2.2",
 		Cols: []TableCol{
 			{Name: "stage", Display: "环节", Width: "22%"}, {Name: "vol", Display: "处理量"},
 			{Name: "rate", Display: "成功率"}, {Name: "p50", Display: "P50"}, {Name: "p99", Display: "P99"},
@@ -312,6 +312,22 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 	addRow("＝ 处理成功", func(c string) float64 { return acts[c] })
 	addRow("− 重推旧文(仅更新数据，不新增)", func(c string) float64 { return dup[c] })
 	addRow("＝ 净新增入库", func(c string) float64 { return acts[c] - dup[c] })
+	// 整体成功率：处理成功 / (进入处理 − 内容判重淘汰)。判重淘汰是正确行为不算失败，
+	// 重推旧文入库成功只是不新增，也不算失败——与全局 m22.clean_rate 同口径。
+	rateRow := map[string]string{"stage": "整体成功率(判重淘汰不算失败)"}
+	for _, c := range matrixCols {
+		denom := acts[c.key] + colFail[c.key] - fail["DuplicateChecked"][c.key]
+		if denom <= 0 {
+			rateRow[c.key] = "—"
+			continue
+		}
+		rate := pct(acts[c.key], denom)
+		rateRow[c.key] = fmtPct1(rate)
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "m22.rate." + c.key, Display: c.display + "整体成功率(剔除判重)", Value: rate, Text: fmtPct1(rate), Dimension: DimPercent},
+		)
+	}
+	rows = append(rows, rateRow)
 
 	cols := []TableCol{{Name: "stage", Display: "阶段(执行顺序)", Width: "25%"}}
 	for _, c := range matrixCols {
@@ -451,10 +467,18 @@ func extractGen(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, err
 		}
 	}
 	worst := 100.0
+	var sumTotal, sumErrs float64
+	var textTotal, textErrs float64 // 内容生成（概述/大纲类）；语音合成、日报是衍生产品，不算 2.1 的生成环节
 	var rows []map[string]string
 	for _, g := range r["gen"] {
 		st := g["service_type"]
 		total, errs, rate := num(g["total_calls"]), num(g["error_ops"]), num(g["success_pct"])
+		sumTotal += total
+		sumErrs += errs
+		if st != "hs_tts" && st != "model_daily" {
+			textTotal += total
+			textErrs += errs
+		}
 		name := genServiceDisplay[st]
 		if name == "" {
 			name = st
@@ -476,6 +500,22 @@ func extractGen(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, err
 	}
 	out.Metrics = append(out.Metrics, Metric{Key: "gen.worst_rate", Display: "生成最差成功率", Value: worst, Text: fmtPct1(worst), Dimension: DimPercent})
 	sortRowsByNumDesc(rows, "total")
+	// 整体成功率＝各类型调用量加权（1 − 失败合计/调用合计），排序后追加保持在表尾
+	if textTotal > 0 {
+		textRate := 100 * (1 - textErrs/textTotal)
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "gen.text_rate", Display: "内容生成成功率(不含语音/日报)", Value: textRate, Text: fmtPct1(textRate), Dimension: DimPercent},
+			Metric{Key: "gen.text_calls", Display: "内容生成调用量(不含语音/日报)", Value: textTotal, Text: fmtI(textTotal), Dimension: DimTask},
+		)
+	}
+	if sumTotal > 0 {
+		overall := 100 * (1 - sumErrs/sumTotal)
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "gen.overall_rate", Display: "生成服务整体成功率", Value: overall, Text: fmtPct1(overall), Dimension: DimPercent},
+			Metric{Key: "gen.total_calls", Display: "生成服务调用合计", Value: sumTotal, Text: fmtI(sumTotal), Dimension: DimTask},
+		)
+		rows = append(rows, map[string]string{"task": "整体(调用量加权)", "total": fmtI(sumTotal), "rate": fmtPct1(overall), "errs": fmtI(sumErrs), "p99": "—"})
+	}
 	out.Tables = append(out.Tables, Table{
 		Title: "量/成功率=模型调用维度；P99=API 请求维度（两个量纲）",
 		Cols: []TableCol{
@@ -514,7 +554,7 @@ func secEffective() *Section {
 		},
 		Extract: extractEffective,
 		Thresholds: []Threshold{
-			dropOrZero("eff.total", "有效入库量异常：%s（环比跌超 30% 或归零）"),
+			dropOrZero("eff.total", "有效入库量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
 		},
 	}
 }

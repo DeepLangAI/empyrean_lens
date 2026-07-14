@@ -23,6 +23,7 @@ const (
 	SourceSLS      SourceKind = "sls"       // business-pod 日志库
 	SourceSLSNginx SourceKind = "sls-nginx" // nginx-ingress 日志库
 	SourceMongo    SourceKind = "mongo"     // lingowhale / wechat-spider 等库（走 mcp-db 代理）
+	SourceCustom   SourceKind = "custom"    // handler 侧按 Query.Name 分发的自定义取数（如 Feed 核验）
 )
 
 // Query 是一次数据源查询的声明。时间窗口由引擎按报表日注入，SQL/pipeline 里不写死日期。
@@ -40,6 +41,11 @@ type Query struct {
 	DB           string
 	Collection   string
 	PipelineJSON string
+	// MongoNaiveCST：该库时间字段按北京时间墙钟存成 UTC 类型（naive，
+	// 如 wechat-spider 库，2026-07-13 验证：push_time 比真实时刻超前 8h）。
+	// 为 true 时 {{DAY_START}}/{{DAY_END}} 注入墙钟边界（当日 00:00:00Z），
+	// 否则按真 UTC（前日 16:00:00Z）。
+	MongoNaiveCST bool
 
 	// VerifyAdditive 非空时，引擎会把该查询按上下半天各跑一次，将列出的
 	// 数值列求和与全天结果比对；偏差 >1% 时采用分片之和并给 Section 挂
@@ -150,6 +156,10 @@ type Threshold struct {
 	MetricKey string
 	Eval      func(cur float64, prev *float64) Level
 	Msg       string // 支持 %v 占位当日值
+	// BaselineWeeklyMin 为 true 时，prev 取昨日与上周同日中较低者。
+	// 量类指标周末天然低于工作日，只跟昨日比会在周六/周日出假跌幅告警；
+	// 取两者较低意味着"比昨日和上周同日都跌超阈值"才算异常。上周快照缺失时退回昨日。
+	BaselineWeeklyMin bool
 }
 
 // Check 是勾稽断言：|left − right| / max(right,1) ≤ TolerancePct。

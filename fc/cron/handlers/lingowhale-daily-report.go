@@ -33,25 +33,55 @@ type LingowhaleDailyReport struct{}
 
 func NewLingowhaleDailyReport() *LingowhaleDailyReport { return &LingowhaleDailyReport{} }
 
-// Handle 生成并发送报表。payload 可传 "2026-07-07" 指定报表日（重跑/补发），
-// 空或 "{}"（FC 控制台触发消息的默认填充值）则默认昨天。
+// Handle 生成并发送报表。payload 三种形态：
+//   - 空或 "{}"（控制台默认触发消息）：报表日=昨天，发配置里的正式群
+//   - "2026-07-07"：指定报表日（重跑/补发），发正式群
+//   - {"day":"2026-07-07","webhook":"https://..."}：验收用——指定报表日 + 覆盖 webhook
+//     （发测试群不打扰正式群；两字段均可省略，省略即默认值）
 func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) error {
 	day := time.Now().In(cstLoc).AddDate(0, 0, -1)
+	webhookOverride := ""
 	if p := strings.TrimSpace(payload); p != "" && p != "{}" {
-		parsed, err := time.ParseInLocation("2006-01-02", p, cstLoc)
-		if err != nil {
-			return fmt.Errorf("bad payload date %q: %w", p, err)
+		if strings.HasPrefix(p, "{") {
+			var req struct {
+				Day     string `json:"day"`
+				Webhook string `json:"webhook"`
+			}
+			if err := sonic.UnmarshalString(p, &req); err != nil {
+				return fmt.Errorf("bad payload json %q: %w", p, err)
+			}
+			if req.Day != "" {
+				parsed, err := time.ParseInLocation("2006-01-02", req.Day, cstLoc)
+				if err != nil {
+					return fmt.Errorf("bad payload day %q: %w", req.Day, err)
+				}
+				day = parsed
+			}
+			webhookOverride = req.Webhook
+		} else {
+			parsed, err := time.ParseInLocation("2006-01-02", p, cstLoc)
+			if err != nil {
+				return fmt.Errorf("bad payload date %q: %w", p, err)
+			}
+			day = parsed
 		}
-		day = parsed
 	}
 	hlog.CtxInfof(ctx, "[daily-report] run for %s", day.Format("2006-01-02"))
 
 	prevDays := loadSnapshots(ctx, day, snapshotDays)
 	results, snapshot := report.Run(ctx, day, report.Sections(), queryFunc, prevDays)
-	saveSnapshot(ctx, day, snapshot)
+	if webhookOverride == "" {
+		saveSnapshot(ctx, day, snapshot)
+	} else {
+		// 验收模式（覆盖 webhook）不写快照：发布日等截面口径重跑值会漂，避免污染环比基线
+		hlog.CtxInfof(ctx, "[daily-report] webhook override, snapshot NOT saved")
+	}
 
 	msgs := renderDailyReport(day, results, prevDays)
-	webhook := conf.GetConfig().Notice.LingowhaleDailyReportWebhook
+	webhook := webhookOverride
+	if webhook == "" {
+		webhook = conf.GetConfig().Notice.LingowhaleDailyReportWebhook
+	}
 	if webhook == "" {
 		webhook = conf.GetConfig().Notice.LingowhaleStabilityWebhook
 	}
@@ -87,6 +117,12 @@ func queryFunc(ctx context.Context, q report.Query, from, to time.Time) (report.
 		return resp.Logs, nil
 
 	case report.SourceMongo:
+		if q.MongoNaiveCST {
+			// naive 库：存储值即北京时间墙钟，取 CST 墙钟数值当 UTC 边界
+			f, t := from.In(cstLoc), to.In(cstLoc)
+			from = time.Date(f.Year(), f.Month(), f.Day(), f.Hour(), f.Minute(), f.Second(), 0, time.UTC)
+			to = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, time.UTC)
+		}
 		pipeline, err := parsePipeline(q.PipelineJSON, from, to)
 		if err != nil {
 			return nil, err
@@ -100,6 +136,13 @@ func queryFunc(ctx context.Context, q report.Query, from, to time.Time) (report.
 			return nil, err
 		}
 		return flattenAnyRows(resp.Data), nil
+
+	case report.SourceCustom:
+		switch q.Name {
+		case "feedcheck":
+			return wechatFeedCheck(ctx, from, to)
+		}
+		return nil, fmt.Errorf("unknown custom query: %s", q.Name)
 	}
 	return nil, fmt.Errorf("unknown query source: %s", q.Source)
 }
@@ -241,12 +284,13 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 		}
 		return "—"
 	}
+	// 跌幅红灯基线取昨日与上周同日较低者（周末量天然低，只比昨日会假红）
 	dropStatus := func(key string) string {
 		cur := mv(key)
 		if cur == 0 {
 			return "🔴"
 		}
-		if p, ok := prevOf(key); ok && p > 0 && cur < p*0.7 {
+		if p := report.WeeklyMinBaseline(prevDays, key); p != nil && *p > 0 && cur < *p*0.7 {
 			return "🔴"
 		}
 		return "🟢"
@@ -296,6 +340,9 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 		}
 	}
 	subtitle := fmt.Sprintf("统计周期 %s 00:00–24:00", day.Format("01-02"))
+	if wd := day.Weekday(); wd == time.Saturday || wd == time.Sunday {
+		subtitle += fmt.Sprintf("（%s）· 周末量级天然低于工作日，环比列请对照上周同日", map[time.Weekday]string{time.Saturday: "周六", time.Sunday: "周日"}[wd])
+	}
 	newCard := func(title string, elements []interface{}) fcMsg {
 		return fcMsg{MsgType: "interactive", Card: fcCard{
 			Schema: "2.0", Config: fcConfig{WideScreenMode: true, WidthMode: "fill"},
@@ -398,12 +445,24 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 		if p, ok := prevOf("self.accounts.active"); ok && mv("self.accounts.active") < p*0.95 {
 			acctStatus = "🟡"
 		}
+		// 缺失率灯与 self.missing.rate 阈值同档：>3% 红、>1% 黄
+		missingStatus := "🟢"
+		switch {
+		case mv("self.missing.rate") > 3:
+			missingStatus = "🔴"
+		case mv("self.missing.rate") > 1:
+			missingStatus = "🟡"
+		}
 		sec = append(sec, makeTable(metricCols, []map[string]string{
-			{"metric": "采集量", "today": mt("self.regular"), "delta": delta("self.regular"), "status": dropStatus("self.regular")},
+			{"metric": "采集量(按发布日)", "today": mt("self.regular"), "delta": delta("self.regular"), "status": dropStatus("self.regular")},
 			{"metric": "采集时效 P50 / P90 / P99", "today": mt("self.lat.p50") + " / " + mt("self.lat.p90") + " / " + mt("self.lat.p99"), "delta": "-", "status": "🟢"},
 			{"metric": "覆盖账号数(有产出 / 监控总数)", "today": mt("self.accounts.active") + " / " + mt("self.accounts.total"), "delta": deltaCount("self.accounts.active"), "status": acctStatus},
+			{"metric": "覆盖时效(发布→语鲸入库)", "today": mt("self.covered.buckets"), "delta": deltaPP("self.covered.le1h"), "status": "🟢"},
+			{"metric": "spider推送成功率(兜底部分)", "today": mt("self.spider_push.rate"), "delta": deltaPP("self.spider_push.rate"), "status": rateStatus("self.spider_push.rate", 95, 85)},
+			{"metric": "缺失数 / 缺失率(Feed核验)", "today": mt("self.missing") + " / " + mt("self.missing.rate"), "delta": deltaCount("self.missing"), "status": missingStatus},
 		}))
-		sec = append(sec, md("> ~~推送成功率~~ 暂缺：需 spider 侧提供发出量（我方仅能见到达的），待接入后补充"))
+		sec = append(sec, md(fmt.Sprintf("> 缺失口径与语鲸监控9一致：当日落库 %s 篇可核验文章逐一到订阅 Feed 查标题，%s 篇进入语鲸、其余为缺失；覆盖时效与 spider 侧日报同口径（store_time=语鲸入库时间）",
+			mt("self.feed.checked"), mt("self.feed.hit"))))
 		appendSectionExtras(&sec, byKey, "self", true)
 		e1 = append(e1, sec...)
 	}
@@ -447,6 +506,15 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 							row["stage"] = "资源处理全流程"
 							row["rate"] = mt("m22.clean_rate")
 						}
+					}
+					// 生成环节：复用 2.3 已算好的口径，不重复查询。只算内容生成
+					// （概述/大纲类），语音合成与日报是衍生产品不算环节。
+					// 量纲是模型调用次数（非篇），P99 按任务类型差异大，明细见 2.3
+					if mv("gen.text_calls") > 0 {
+						r.Output.Tables[ti].Rows = append(r.Output.Tables[ti].Rows, map[string]string{
+							"stage": "内容生成(概述/大纲类)", "vol": mt("gen.text_calls") + " 次调用",
+							"rate": mt("gen.text_rate"), "p50": "—", "p99": "见2.3",
+						})
 					}
 				}
 			}

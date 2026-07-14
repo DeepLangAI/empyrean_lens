@@ -184,3 +184,30 @@ func TestStreakAndDelta(t *testing.T) {
 		t.Fatalf("delta without prev got %s", got)
 	}
 }
+
+func TestWeeklyMinBaseline(t *testing.T) {
+	f := func(v float64) Snapshot { return Snapshot{"k": v} }
+	cases := []struct {
+		name string
+		days []Snapshot
+		want *float64
+	}{
+		{"无快照", nil, nil},
+		{"仅昨日", []Snapshot{f(100)}, ptr(100.0)},
+		{"昨日高上周低取上周", []Snapshot{f(100), nil, nil, nil, nil, nil, f(60)}, ptr(60.0)},
+		{"昨日低上周高取昨日", []Snapshot{f(50), nil, nil, nil, nil, nil, f(80)}, ptr(50.0)},
+		{"昨日缺退上周", []Snapshot{nil, nil, nil, nil, nil, nil, f(70)}, ptr(70.0)},
+		{"指标缺失", []Snapshot{{"other": 1}}, nil},
+	}
+	for _, c := range cases {
+		got := WeeklyMinBaseline(c.days, "k")
+		switch {
+		case c.want == nil && got != nil:
+			t.Errorf("%s: want nil, got %v", c.name, *got)
+		case c.want != nil && (got == nil || *got != *c.want):
+			t.Errorf("%s: want %v, got %v", c.name, *c.want, got)
+		}
+	}
+}
+
+func ptr(v float64) *float64 { return &v }

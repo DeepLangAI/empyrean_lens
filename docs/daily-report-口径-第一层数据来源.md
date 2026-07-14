@@ -132,6 +132,9 @@ from log
 - 失败日志膨胀 7.9~33 倍，任何按条数算的成功率都不可信（07-07 条数口径 53.9% vs URL 真实 86.5%）。
 - 推送量语义是「请求次数」；spider 超时重试会一篇计多次，精确篇数按 body `source_uniq_id` 去重。
 - 待业务确认：uid=resource_server 是否只服务自采集（若也给其他渠道补抓，附表要再拆）。
+- **wechat-spider 库时间字段是北京时间墙钟按 UTC 类型存的（naive）**（2026-07-13 验证：最新 push_time 比真实 UTC 超前 8h）。日窗口必须注入墙钟边界（当日 00:00:00Z），不能用真 UTC 边界（前日 16:00:00Z）——引擎 Query 加 `MongoNaiveCST: true`。修正前采集量少计约 3%（07-12：3,194 → 3,296）。`lingowhale.content_info` 验证过是真 UTC，不受影响。
+- 采集量口径 2026-07-13 拍板改为**发布日**（publish_time），与 spider 侧日报对齐（目标：下掉 spider 报告，由本报表 cover）。注意该口径有补采长尾：数值是生成时刻截面（07-12 例：00:30 截面 ~2,540，10:05 ~3,339，收敛后 3,414）；环比时两天都是同时点截面，可比。已拍板接受截面语义（2026-07-13）。
+- **覆盖视角**（2026-07-13 起 cover spider 侧日报）：spider 报告代码在 `~/code/python/wechat_spider/tasks/report_task.py`，每日 10:05 生成。口径：已覆盖 = `store_time` 非空（语鲸入库时间由回查任务写回 spider article 表），覆盖时效 = store_time − publish_time 分 ≤1h/1-3h/>3h；未覆盖 = store_time 空（spider 兜底推送），推送成功率 = 未覆盖里 push_result=true 占比（07-12 验证：1-3h 桶 252 篇与 spider 报告完全一致；原"推送成功率暂缺"注记随之闭环）。**缺失（2026-07-13 终版，与语鲸 topic-monitor 监控9 完全同口径）** = 当日 create_time 落库、按账号+标题去重、有频道映射（author_map.json，与监控9同一份静态文件，两边需同步更新）的文章中，逐账号调订阅 Feed iapi（api-inner，命中即停翻页）查不到标题的；缺失率 = 缺失 ÷ 可核验。实现在 handlers/feedcheck.go（SourceCustom），>1% 黄、>3% 红；接口不可达时 Optional 降级为"— / —"+注记（本机 dry-run 必降级，api-inner 仅 VPC 内可达，验证需上 FC）。曾用口径 push_result（受理成功≠入库，会漏"死在管线"的，07-12 实测漏 27 篇）已废弃。表里不再单列"已覆盖/兜底"拆分，拆分值保留为指标进快照。
 
 ## 1.3 网站/RSS 抓取（订阅渠道，uid=1）
 

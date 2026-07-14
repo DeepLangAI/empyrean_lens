@@ -59,8 +59,10 @@ func secSupplierPush() *Section {
 			{
 				// 接收成功率只能在网关层算（不丢日志、能看到非 200）。
 				// 供应商↔IP 的对应关系会漂移，这里只按 IP 排序展示，归因以 source 为准。
+				// 2026-07 起推送接口迁移 /api/feed/v1/resource → /api/resource/v1，
+				// 新旧路径并行期两边都算，旧地址下线后自然只剩新路径。
 				Name: "recv", Source: SourceSLSNginx, Limit: 10,
-				SQL: `wechat_article | select client_ip, count(*) as total, count_if(status = 200) as ok from log where url = '/api/feed/v1/resource/wechat_article/add' group by client_ip order by total desc limit 10`,
+				SQL: `wechat_article | select client_ip, count(*) as total, count_if(status = 200) as ok from log where url in ('/api/feed/v1/resource/wechat_article/add', '/api/resource/v1/wechat_article/add') group by client_ip order by total desc limit 10`,
 			},
 			{
 				// 推送时效：body 自带 pub_time（unix 秒）。样本有偏（长文的请求日志易被截丢，
@@ -81,8 +83,8 @@ func secSupplierPush() *Section {
 				},
 				Msg: "供应商推送已受理但当日未进入处理 %s——队列积压，爆推日常见，通常次日自动消化；若连续多日出现需排查",
 			},
-			dropOrZero("supplier.arrive.12", "人民网推送量异常：%s（环比跌超 30% 或归零）"),
-			dropOrZero("supplier.arrive.14", "清博推送量异常：%s（环比跌超 30% 或归零）"),
+			dropOrZero("supplier.arrive.12", "人民网推送量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
+			dropOrZero("supplier.arrive.14", "清博推送量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
 			recvRateThreshold("12", "人民网"),
 			recvRateThreshold("14", "清博"),
 		},
@@ -237,10 +239,12 @@ func secSelfCollect() *Section {
 			},
 			{
 				// spider 库常规链路（回灌脚本不写 article 表，天然不含回灌）：
-				// 按 push_time 当日统计推送篇数 + 发布→推送时效分桶（旧版 Mongo 无 percentile，分桶插值）。
-				Name: "spider", Source: SourceMongo, DB: "wechat-spider", Collection: "article",
+				// 按 publish_time（发布日）统计，与 spider 侧日报同口径（2026-07-13 拍板）。
+				// 注意：发布日口径有补采长尾，报表 08:00 生成时约九成已采到，数值是当时截面，
+				// 之后同口径重查会略大。时效分桶 = 发布→推送延迟（旧版 Mongo 无 percentile，分桶插值）。
+				Name: "spider", Source: SourceMongo, DB: "wechat-spider", Collection: "article", MongoNaiveCST: true,
 				PipelineJSON: `[
-				  {"$match": {"push_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
+				  {"$match": {"publish_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
 				  {"$project": {"lag": {"$divide": [{"$subtract": ["$push_time", "$publish_time"]}, 60000]}}},
 				  {"$group": {"_id": null, "n": {"$sum": 1},
 				    "b15":   {"$sum": {"$cond": [{"$lte": ["$lag", 15]}, 1, 0]}},
@@ -251,13 +255,35 @@ func secSelfCollect() *Section {
 				]`,
 			},
 			{
-				Name: "acct_total", Source: SourceMongo, DB: "wechat-spider", Collection: "target_account",
+				Name: "acct_total", Source: SourceMongo, DB: "wechat-spider", Collection: "target_account", MongoNaiveCST: true,
 				PipelineJSON: `[{"$count": "total"}]`,
 			},
 			{
-				Name: "acct_active", Source: SourceMongo, DB: "wechat-spider", Collection: "article",
+				// 缺失核验：与语鲸 topic-monitor 监控9 同口径（Feed 接口逐账号核验标题），
+				// 实现在 handlers/feedcheck.go。接口故障时降级为无此行（Optional）。
+				Name: "feedcheck", Source: SourceCustom, Optional: true,
+			},
+			{
+				// 覆盖视角（对齐 spider 侧日报 tasks/report_task.py，2026-07-13 起由本报表 cover）：
+				// 已覆盖 = store_time 非空（语鲸入库时间回写进 article 表），时效 = store_time − publish_time；
+				// 未覆盖 = store_time 空（spider 兜底推送），push_result=true 为推送成功；无 push_time 记 0 分钟。
+				Name: "cover", Source: SourceMongo, DB: "wechat-spider", Collection: "article", MongoNaiveCST: true,
 				PipelineJSON: `[
-				  {"$match": {"push_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
+				  {"$match": {"publish_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
+				  {"$project": {
+				    "covered": {"$cond": [{"$ifNull": ["$store_time", null]}, 1, 0]},
+				    "lag_min": {"$divide": [{"$subtract": [{"$ifNull": ["$store_time", {"$ifNull": ["$push_time", "$publish_time"]}]}, "$publish_time"]}, 60000]},
+				    "push_ok": {"$cond": [{"$eq": ["$push_result", true]}, 1, 0]}}},
+				  {"$group": {"_id": "$covered", "n": {"$sum": 1},
+				    "le1h": {"$sum": {"$cond": [{"$lte": ["$lag_min", 60]}, 1, 0]}},
+				    "le3h": {"$sum": {"$cond": [{"$lte": ["$lag_min", 180]}, 1, 0]}},
+				    "push_ok": {"$sum": "$push_ok"}}}
+				]`,
+			},
+			{
+				Name: "acct_active", Source: SourceMongo, DB: "wechat-spider", Collection: "article", MongoNaiveCST: true,
+				PipelineJSON: `[
+				  {"$match": {"publish_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
 				  {"$group": {"_id": "$target_account"}}, {"$count": "active"}
 				]`,
 			},
@@ -290,6 +316,19 @@ func secSelfCollect() *Section {
 				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 90, 80) },
 				Msg:       "自采正文抓取成功率 %s（URL 级）",
 			},
+			{
+				MetricKey: "self.missing.rate",
+				Eval: func(cur float64, prev *float64) Level {
+					if cur > 3 {
+						return LevelCrit
+					}
+					if cur > 1 {
+						return LevelWarn
+					}
+					return LevelOK
+				},
+				Msg: "监控账号文章缺失率 %s（当日落库文章在订阅 Feed 中查不到，与语鲸监控9同口径）",
+			},
 		},
 	}
 }
@@ -309,7 +348,7 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 	regular := num(sp["n"])
 	if regular > 0 {
 		out.Metrics = append(out.Metrics,
-			Metric{Key: "self.regular", Display: "常规链路日推送", Value: regular, Text: fmtI(regular), Dimension: DimDoc},
+			Metric{Key: "self.regular", Display: "按发布日采集量", Value: regular, Text: fmtI(regular), Dimension: DimDoc},
 			Metric{Key: "self.backfill_ratio", Display: "到达/常规比", Value: pushCnt / regular, Text: fmt.Sprintf("%.1f", pushCnt/regular), Dimension: DimNone},
 		)
 		// 分桶边界: 15/60/180/720/1440 分钟，插值出 P50/P90
@@ -331,6 +370,41 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 			Metric{Key: "self.accounts.total", Display: "监控账号总数", Value: total, Text: fmtI(total), Dimension: DimAccount},
 			Metric{Key: "self.accounts.active", Display: "有产出账号", Value: active, Text: fmtI(active), Dimension: DimAccount},
 		)
+	}
+
+	// 覆盖视角（_id: 1=已覆盖，0=未覆盖）；分桶 le1h/le3h 是累计值
+	var covN, covLe1h, covLe3h, uncovN, uncovPushOK float64
+	for _, row := range r["cover"] {
+		if row["_id"] == "1" {
+			covN, covLe1h, covLe3h = num(row["n"]), num(row["le1h"]), num(row["le3h"])
+		} else {
+			uncovN, uncovPushOK = num(row["n"]), num(row["push_ok"])
+		}
+	}
+	if covN+uncovN > 0 {
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "self.covered", Display: "语鲸已覆盖", Value: covN, Text: fmtI(covN), Dimension: DimDoc},
+			Metric{Key: "self.covered.le1h", Display: "覆盖时效≤1h占比", Value: pct(covLe1h, maxf(covN, 1)), Text: fmtPct1(pct(covLe1h, maxf(covN, 1))), Dimension: DimPercent},
+			Metric{Key: "self.covered.buckets", Display: "覆盖时效分桶", Value: covN,
+				Text: fmt.Sprintf("≤1h %s ｜ 1-3h %s ｜ >3h %s", fmtI(covLe1h), fmtI(covLe3h-covLe1h), fmtI(covN-covLe3h)), Dimension: DimDoc},
+			Metric{Key: "self.uncovered", Display: "未覆盖(spider兜底)", Value: uncovN, Text: fmtI(uncovN), Dimension: DimDoc},
+			Metric{Key: "self.spider_push.rate", Display: "spider推送成功率", Value: pct(uncovPushOK, maxf(uncovN, 1)), Text: fmtPct1(pct(uncovPushOK, maxf(uncovN, 1))), Dimension: DimPercent},
+		)
+	}
+
+	// 缺失口径 = 语鲸监控9同款：Feed 接口逐账号核验（可核验 = 进入 + 缺失）
+	if fc := first(r["feedcheck"]); fc["checked"] != "" {
+		checked, hits, missing := num(fc["checked"]), num(fc["hit"]), num(fc["missing"])
+		missingPct := pct(missing, maxf(checked, 1))
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "self.feed.checked", Display: "Feed核验文章数", Value: checked, Text: fmtI(checked), Dimension: DimDoc},
+			Metric{Key: "self.feed.hit", Display: "进入语鲸", Value: hits, Text: fmtI(hits), Dimension: DimDoc},
+			Metric{Key: "self.missing", Display: "缺失数", Value: missing, Text: fmtI(missing), Dimension: DimDoc},
+			Metric{Key: "self.missing.rate", Display: "缺失率", Value: missingPct, Text: fmtPct1(missingPct), Dimension: DimPercent},
+		)
+		if errs := num(fc["errs"]); errs > 0 {
+			out.Notes = append(out.Notes, fmt.Sprintf("⚠️ Feed 核验有 %s 个账号接口失败（已剔除，不计缺失）", fmtI(errs)))
+		}
 	}
 
 	c := first(r["crawl"])
@@ -610,7 +684,8 @@ func bucketPercentile(n, q float64, bounds, cums []float64) float64 {
 	return bounds[len(bounds)-1]
 }
 
-// dropOrZero：环比跌超 30% 或归零 → 🔴（供应商推送量的标准规则）。
+// dropOrZero：较基线跌超 30% 或归零 → 🔴（量类指标的标准规则）。
+// 基线取昨日与上周同日中较低者：周末量天然低于工作日，只比昨日会出假警。
 func dropOrZero(key, msg string) Threshold {
 	return Threshold{
 		MetricKey: key,
@@ -623,7 +698,8 @@ func dropOrZero(key, msg string) Threshold {
 			}
 			return LevelOK
 		},
-		Msg: msg,
+		Msg:               msg,
+		BaselineWeeklyMin: true,
 	}
 }
 

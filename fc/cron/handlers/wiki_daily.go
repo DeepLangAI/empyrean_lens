@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -168,8 +169,30 @@ func (b *blockBatch) tableToBlocks(t fcTable) {
 			addCell(row[c.Name])
 		}
 	}
+	// 列宽：沿用卡片的百分比提示换算成像素（docx 正文可用宽度约 720px），
+	// auto/未标列均分剩余。不带列宽时 docx 全列等宽，长文字列会挤成多行。
+	const tblWidth = 720
+	widths := make([]int, cols)
+	remain, autos := tblWidth, 0
+	for i, c := range t.Columns {
+		if n, err := strconv.Atoi(strings.TrimSuffix(c.Width, "%")); err == nil && strings.HasSuffix(c.Width, "%") && n > 0 {
+			w := max(tblWidth*n/100, 70)
+			widths[i] = w
+			remain -= w
+			continue
+		}
+		autos++
+	}
+	if autos > 0 {
+		each := max(remain/autos, 90)
+		for i := range widths {
+			if widths[i] == 0 {
+				widths[i] = each
+			}
+		}
+	}
 	b.add(31, "table", map[string]any{
-		"property": map[string]any{"row_size": rows, "column_size": cols, "header_row": true},
+		"property": map[string]any{"row_size": rows, "column_size": cols, "header_row": true, "column_width": widths},
 	}, cellIDs, true)
 }
 

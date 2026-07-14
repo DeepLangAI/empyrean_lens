@@ -51,28 +51,34 @@ type feedResp struct {
 
 // wechatFeedCheck 返回单行：checked / hit / missing / unmapped_accounts / unresolved_titles。
 func wechatFeedCheck(ctx context.Context, from, to time.Time) (report.Rows, error) {
-	// 1. 当日落库文章（spider 库为 naive 北京墙钟，MongoNaiveCST 处理窗口）
-	articles, err := queryFunc(ctx, report.Query{
-		Source: report.SourceMongo, DB: "wechat-spider", Collection: "article", MongoNaiveCST: true,
-		PipelineJSON: `[
-		  {"$match": {"create_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
-		  {"$project": {"_id": 0, "title": 1, "acct": {"$toString": "$target_account"}}},
-		  {"$limit": 30000}]`,
-	}, from, to)
-	if err != nil {
-		return nil, fmt.Errorf("spider article: %w", err)
-	}
-	// 按账号 ObjectId 分组、标题去重（与监控9一致）
-	byOid := map[string]map[string]bool{}
-	for _, row := range articles {
-		t, acct := strings.TrimSpace(row["title"]), row["acct"]
-		if t == "" || acct == "" {
-			continue
+	// 1. 当日落库文章（spider 库为 naive 北京墙钟，MongoNaiveCST 处理窗口）。
+	// 代理单次响应上限 512KB（约 4500 篇标题即超），必须分页拉取。
+	const articlePage = 2000
+	byOid := map[string]map[string]bool{} // 账号 ObjectId → 去重标题集（与监控9一致）
+	for skip := 0; skip < 50000; skip += articlePage {
+		articles, err := queryFunc(ctx, report.Query{
+			Source: report.SourceMongo, DB: "wechat-spider", Collection: "article", MongoNaiveCST: true,
+			PipelineJSON: fmt.Sprintf(`[
+			  {"$match": {"create_time": {"$gte": {"$date": "{{DAY_START}}"}, "$lt": {"$date": "{{DAY_END}}"}}}},
+			  {"$sort": {"_id": 1}}, {"$skip": %d}, {"$limit": %d},
+			  {"$project": {"_id": 0, "title": 1, "acct": {"$toString": "$target_account"}}}]`, skip, articlePage),
+		}, from, to)
+		if err != nil {
+			return nil, fmt.Errorf("spider article (skip=%d): %w", skip, err)
 		}
-		if byOid[acct] == nil {
-			byOid[acct] = map[string]bool{}
+		for _, row := range articles {
+			t, acct := strings.TrimSpace(row["title"]), row["acct"]
+			if t == "" || acct == "" {
+				continue
+			}
+			if byOid[acct] == nil {
+				byOid[acct] = map[string]bool{}
+			}
+			byOid[acct][t] = true
 		}
-		byOid[acct][t] = true
+		if len(articles) < articlePage {
+			break
+		}
 	}
 
 	// 2. ObjectId → fakeid（$toString 匹配，避免依赖代理的 $oid 扩展语法）

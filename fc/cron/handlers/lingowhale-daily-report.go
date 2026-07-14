@@ -94,6 +94,9 @@ func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) erro
 			return err
 		}
 	}
+	if webhookOverride == "" {
+		sinkWikiDaily(ctx, day, msgs) // 归档知识库（旁路，放发送之后不拖时效）
+	}
 	hlog.CtxInfof(ctx, "[daily-report] sent, sections=%d", len(results))
 	return nil
 }
@@ -519,7 +522,7 @@ func renderDailyReport(day time.Time, results []*report.Result, prevDays []repor
 					}
 				}
 			}
-			if key == "m22" {
+			if key == "m22" && r.Output != nil {
 				// 矩阵顶部插入「到达量(拦截前) + ⓪入口拦截」两行，每列可竖着做减法
 				arriveOf := map[string]string{
 					"SubRSS": "m22.arrive.SubRSS", "SubWeb": "m22.arrive.SubWeb",

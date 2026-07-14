@@ -16,6 +16,7 @@ import (
 	"empyrean_lens/fc/cron/handlers/report"
 
 	"codeup.aliyun.com/deeplang/lingowhale/lingowhale_backend/go_lib/httplib"
+	"github.com/avast/retry-go"
 	"github.com/bytedance/sonic"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	consts "github.com/cloudwego/hertz/pkg/protocol/consts"
@@ -24,6 +25,7 @@ import (
 const feishuOpenBase = "https://open.feishu.cn/open-apis"
 
 // tenantToken 获取 tenant_access_token（有效期 2h，FC 单次执行内不缓存也够用）。
+// 网络类错误重试 3 次（DNS 抖动实测出现过）。
 func tenantToken(ctx context.Context, appID, appSecret string) (string, error) {
 	body, _ := sonic.Marshal(map[string]string{"app_id": appID, "app_secret": appSecret})
 	var resp struct {
@@ -31,8 +33,11 @@ func tenantToken(ctx context.Context, appID, appSecret string) (string, error) {
 		Msg   string `json:"msg"`
 		Token string `json:"tenant_access_token"`
 	}
-	_, err := httplib.Do(ctx, feishuOpenBase+"/auth/v3/tenant_access_token/internal",
-		map[string]string{consts.HeaderContentType: consts.MIMEApplicationJSON}, body, &resp)
+	err := retry.Do(func() error {
+		_, err := httplib.Do(ctx, feishuOpenBase+"/auth/v3/tenant_access_token/internal",
+			map[string]string{consts.HeaderContentType: consts.MIMEApplicationJSON}, body, &resp)
+		return err
+	}, retry.Attempts(3), retry.Delay(time.Second), retry.Context(ctx))
 	if err != nil {
 		return "", err
 	}

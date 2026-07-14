@@ -148,6 +148,17 @@ func wechatFeedCheck(ctx context.Context, from, to time.Time) (report.Rows, erro
 		jobs = append(jobs, acctJob{channelID: cid, titles: titles})
 	}
 
+	// 熔断探测：先拨一个账号，连不通（重试一次仍失败）直接放弃整个核验。
+	// 环境不可达时避免上千次无谓拨号——实测拨号风暴会塞满进程的 DNS 解析队列，
+	// 殃及同进程后续所有网络调用（本机复现两次，均死在紧随其后的查询上）。
+	if len(jobs) > 0 {
+		if _, err := fetchFeedHits(ctx, jobs[0].channelID, jobs[0].titles); err != nil {
+			if _, err2 := fetchFeedHits(ctx, jobs[0].channelID, jobs[0].titles); err2 != nil {
+				return nil, fmt.Errorf("feed 接口不可达（探测失败）: %w", err2)
+			}
+		}
+	}
+
 	var mu sync.Mutex
 	var hit, missing, feedErrs int
 	sem := make(chan struct{}, feedConcurrency)

@@ -140,11 +140,10 @@ func (b *blockBatch) mdToBlocks(content string) {
 		case strings.HasPrefix(line, "- "):
 			b.add(12, "bullet", map[string]any{"elements": txtEls(strings.TrimPrefix(line, "- "))}, nil, true)
 		case strings.HasPrefix(noIcon, "第一层") || strings.HasPrefix(noIcon, "第二层") ||
-			strings.HasPrefix(noIcon, "第三层") || strings.HasPrefix(noIcon, "四、") ||
-			trimmed == "今日健康总览":
-			b.add(4, "heading2", map[string]any{"elements": txtEls(trimmed)}, nil, true)
+			strings.HasPrefix(noIcon, "第三层") || strings.HasPrefix(noIcon, "四、"):
+			b.add(3, "heading1", map[string]any{"elements": txtEls(trimmed)}, nil, true)
 		case reSectionNo.MatchString(noIcon):
-			b.add(5, "heading3", map[string]any{"elements": txtEls(trimmed)}, nil, true)
+			b.add(4, "heading2", map[string]any{"elements": txtEls(trimmed)}, nil, true)
 		default:
 			b.add(2, "text", map[string]any{"elements": txtEls(line)}, nil, true)
 		}
@@ -288,21 +287,16 @@ func sinkWikiDaily(ctx context.Context, day time.Time, msgs []fcMsg) string {
 		return ""
 	}
 
-	// 逐卡片写入：卡标题(｜后半段)作一级标题，副标题作引用，元素逐一转换。
-	// 每个元素单独一批（表格含单元格块多，合批容易超请求上限）。
+	// 逐卡片写入：卡片标题不落文档（"两张卡"是群投递的限制，文档里层就是一级标题）；
+	// 首卡副标题（统计周期）作引用置顶。每个元素单独一批（表格含单元格块多，合批易超限）。
 	for i, m := range msgs {
-		head := &blockBatch{}
-		title := m.Card.Header.Title.Content
-		if p := strings.SplitN(title, "｜", 2); len(p) == 2 {
-			title = strings.TrimSpace(p[1])
-		}
-		head.add(3, "heading1", map[string]any{"elements": txtEls(title)}, nil, true)
 		if i == 0 && m.Card.Header.Subtitle != nil {
+			head := &blockBatch{}
 			head.add(15, "quote", map[string]any{"elements": txtEls(m.Card.Header.Subtitle.Content)}, nil, true)
-		}
-		if err := appendBatch(ctx, token, node.ObjToken, head); err != nil {
-			hlog.CtxErrorf(ctx, "[wiki-daily] append head: %v", err)
-			return ""
+			if err := appendBatch(ctx, token, node.ObjToken, head); err != nil {
+				hlog.CtxErrorf(ctx, "[wiki-daily] append head: %v", err)
+				return ""
+			}
 		}
 		for _, el := range m.Card.Body.Elements {
 			b := &blockBatch{}

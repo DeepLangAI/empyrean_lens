@@ -8,6 +8,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -119,18 +120,30 @@ func (b *blockBatch) add(blockType int, key string, payload map[string]any, chil
 
 var mdCleaner = strings.NewReplacer("**", "", "~~", "", "<u>", "", "</u>", "")
 
-// mdToBlocks 把卡片 markdown 文本降级为 docx 文本/引用/无序列表块（按行拆）。
+var reSectionNo = regexp.MustCompile(`^\d+\.\d+\s`)
+
+// mdToBlocks 把卡片 markdown 文本转 docx 块（按行拆）。
+// 层标题（第X层/四、告警/健康总览）升 H2、小节标题（1.1 这类）升 H3——
+// 文档目录树由此立起来，一眼可跳转。
 func (b *blockBatch) mdToBlocks(content string) {
 	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimRight(mdCleaner.Replace(line), " ")
-		if strings.TrimSpace(line) == "" {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
 			continue
 		}
+		noIcon := strings.TrimSpace(strings.TrimLeft(trimmed, "🟢🟡🔴⚪⚠️❌✅"))
 		switch {
 		case strings.HasPrefix(line, "> "):
 			b.add(15, "quote", map[string]any{"elements": txtEls(strings.TrimPrefix(line, "> "))}, nil, true)
 		case strings.HasPrefix(line, "- "):
 			b.add(12, "bullet", map[string]any{"elements": txtEls(strings.TrimPrefix(line, "- "))}, nil, true)
+		case strings.HasPrefix(noIcon, "第一层") || strings.HasPrefix(noIcon, "第二层") ||
+			strings.HasPrefix(noIcon, "第三层") || strings.HasPrefix(noIcon, "四、") ||
+			trimmed == "今日健康总览":
+			b.add(4, "heading2", map[string]any{"elements": txtEls(trimmed)}, nil, true)
+		case reSectionNo.MatchString(noIcon):
+			b.add(5, "heading3", map[string]any{"elements": txtEls(trimmed)}, nil, true)
 		default:
 			b.add(2, "text", map[string]any{"elements": txtEls(line)}, nil, true)
 		}

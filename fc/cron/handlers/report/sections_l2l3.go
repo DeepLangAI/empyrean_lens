@@ -624,6 +624,14 @@ func secFunnel() *Section {
 			out := &Output{}
 			g := func(key string) float64 { return all[key].Value }
 
+			// 上游失效防御：漏斗的每个输入节都可能因查询失败被隔离，缺哪个都不能
+			// 拿零值硬算——那会产出"净新增 0、15 万篇未上架"级别的鬼话（2026-07-14 实测）。
+			for _, dep := range []string{"supplier.recv.total", "resource_add.total", "m22.failed", "m22.uniq_success", "eff.total"} {
+				if _, ok := all[dep]; !ok {
+					return nil, fmt.Errorf("上游指标 %s 缺失（对应节生成失败），漏斗不可算", dep)
+				}
+			}
+
 			top := g("supplier.recv.total") + g("self.push") + g("supplier.push.1") + g("supplier.push.15")
 			converge := g("resource_add.total")
 			acts := g("m22.failed") + sumSuccActs(all)

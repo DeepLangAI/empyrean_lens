@@ -34,6 +34,10 @@ func TestDailyReport_DryRun(t *testing.T) {
 		saveSnapshot(ctx, day, snapshot)
 		t.Logf("snapshot SAVED to redis for %s (%d metrics)", dayStr, len(snapshot))
 	}
+	if os.Getenv("DAILY_REPORT_SINK") == "1" {
+		sinkMetrics(ctx, day, results)
+		t.Logf("metrics SINKED to bitable for %s", dayStr)
+	}
 
 	for _, r := range results {
 		if r == nil {

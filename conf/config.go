@@ -21,6 +21,21 @@ type Config struct {
 	Notice         Notice          `yaml:"notice"`
 	Feishu         Feishu          `yaml:"feishu"`
 	Redis          Redis           `yaml:"redis"`
+	MetricsSink    MetricsSink     `yaml:"metrics_sink"`
+}
+
+// MetricsSink 巡检指标落飞书多维表格 + 日报归档知识库的配置。
+// bitable_app_token 留空即整体禁用；写入失败只降级为日志，不影响发报。
+// 应用是独立的数据平台机器人（非 SSO 应用），需 bitable:app / wiki:wiki / docx 权限，
+// 且已通过机器人群加入目标知识库。
+type MetricsSink struct {
+	FeishuAppID     string `yaml:"feishu_app_id"`
+	FeishuAppSecret string `yaml:"feishu_app_secret"`
+	BitableAppToken string `yaml:"bitable_app_token"` // 知识库「数据表」节点的 obj_token
+	MetricsTableID  string `yaml:"metrics_table_id"`  // 指标日表
+	SitesTableID    string `yaml:"sites_table_id"`    // 失败站点日志表
+	WikiSpaceID     string `yaml:"wiki_space_id"`
+	DailyNodeToken  string `yaml:"daily_node_token"` // 「每日日报」父节点
 }
 
 type Redis struct {

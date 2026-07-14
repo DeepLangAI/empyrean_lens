@@ -38,3 +38,5 @@ feishu:
   cookie_domain: ".lingowhale.com"
   issuer: "https://pre-empyrean-lens.lingowhale.com"
 
+
+metrics_sink: {}

@@ -39,3 +39,12 @@ feishu:
   cookie_domain: ".lingowhale.com"
   issuer: "https://empyrean-lens.lingowhale.com"
 
+
+metrics_sink:
+  feishu_app_id: "cli_a6a257801e74d00c"
+  feishu_app_secret: "REDACTED"
+  bitable_app_token: "REDACTED"
+  metrics_table_id: "tbl9njjvVZmd0VT5"
+  sites_table_id: "tbl207BOlzBPugIz"
+  wiki_space_id: "7662305126790613991"
+  daily_node_token: "S8D3wvshQiK0D3kTmmRc3mmdnfJ"

@@ -191,7 +191,7 @@ func evalThresholds(r *Result, all map[string]Metric, prevDays []Snapshot) {
 		}
 		lvl := t.Eval(m.Value, pv)
 		if lvl > LevelOK {
-			r.Hits = append(r.Hits, Hit{Level: lvl, Msg: fmt.Sprintf(t.Msg, m.Text)})
+			r.Hits = append(r.Hits, Hit{Level: lvl, Msg: fmt.Sprintf(t.Msg, m.Text), MetricKey: t.MetricKey})
 			if lvl > r.Level && r.Level != LevelBroken {
 				r.Level = lvl
 			}

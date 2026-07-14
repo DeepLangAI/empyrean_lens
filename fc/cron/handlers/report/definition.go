@@ -211,4 +211,6 @@ type Result struct {
 type Hit struct {
 	Level Level
 	Msg   string
+	// MetricKey 命中的指标（勾稽类 Hit 为空）。指标落表时用它标注单指标状态灯。
+	MetricKey string
 }

@@ -72,9 +72,10 @@ func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) erro
 	results, snapshot := report.Run(ctx, day, report.Sections(), queryFunc, prevDays)
 	if webhookOverride == "" {
 		saveSnapshot(ctx, day, snapshot)
+		sinkMetrics(ctx, day, results) // 指标落多维表格（旁路，失败不影响发报）
 	} else {
-		// 验收模式（覆盖 webhook）不写快照：发布日等截面口径重跑值会漂，避免污染环比基线
-		hlog.CtxInfof(ctx, "[daily-report] webhook override, snapshot NOT saved")
+		// 验收模式（覆盖 webhook）不写快照不落表：截面口径重跑值会漂，避免污染基线和表数据
+		hlog.CtxInfof(ctx, "[daily-report] webhook override, snapshot/sink SKIPPED")
 	}
 
 	msgs := renderDailyReport(day, results, prevDays)

@@ -45,3 +45,5 @@ feishu:
         - "https://006f-39-98-121-22.ngrok-free.app/auth/callback"
 
 
+
+metrics_sink: {}

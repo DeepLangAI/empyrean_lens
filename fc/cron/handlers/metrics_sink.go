@@ -63,24 +63,73 @@ func layerDisplay(sectionKey, layer string) string {
 	return ""
 }
 
-// 维度：从指标 Key 的已知后缀推导（Phase 1 用映射表，Phase 2 让 Metric 自带 Dims）。
-var dimSuffix = map[string]string{
-	"12": "供应商=人民网", "14": "供应商=清博", "11": "渠道=自采集", "15": "渠道=小宇宙",
-	"SubRSS": "渠道=自有RSS", "SubWeb": "渠道=自有网站",
-	"Renminwang": "渠道=人民网", "Qingbo": "渠道=清博", "FromMonitoring": "渠道=自采集",
-	"weixin": "类型=公众号", "web": "类型=网站", "pdf": "类型=PDF",
+// 渠道/内容类型：从指标 Key 的已知后缀推导（Phase 1 用映射表，Phase 2 让 Metric 自带 Dims）。
+// 两类切片正交、各占一列（渠道=从哪条路进来，类型=内容长什么样，一篇公众号文章
+// 可能来自任一渠道）；混在一列会让筛选下拉渠道和类型掺在一起，2026-07-15 拆开。
+var channelSuffix = map[string]string{
+	"12": "人民网", "14": "清博", "11": "自采集", "15": "小宇宙",
+	"SubRSS": "自有RSS", "SubWeb": "自有网站",
+	"Renminwang": "人民网", "Qingbo": "清博", "FromMonitoring": "自采集",
 }
 
-func metricDim(key string) string {
+var contentTypeSuffix = map[string]string{
+	"weixin": "公众号", "web": "网站", "pdf": "PDF",
+}
+
+func metricDims(key string) (channel, contentType string) {
 	parts := strings.Split(key, ".")
 	for i := len(parts) - 1; i > 0; i-- {
-		if d, ok := dimSuffix[parts[i]]; ok {
-			return d
+		if c, ok := channelSuffix[parts[i]]; ok && channel == "" {
+			channel = c
+		}
+		if t, ok := contentTypeSuffix[parts[i]]; ok && contentType == "" {
+			contentType = t
 		}
 	}
-	return ""
+	return
 }
 
+
+// deleteDayRecords 删除指标日表中指定日期的全部记录（写入前清场，保证幂等）。
+func deleteDayRecords(ctx context.Context, token string, cfg conf.MetricsSink, dayMs int64) error {
+	searchURL := fmt.Sprintf("%s/bitable/v1/apps/%s/tables/%s/records/search?page_size=500",
+		feishuOpenBase, cfg.BitableAppToken, cfg.MetricsTableID)
+	filter := map[string]any{"filter": map[string]any{
+		"conjunction": "and",
+		"conditions": []map[string]any{{
+			"field_name": "日期", "operator": "is",
+			"value": []string{"ExactDate", fmt.Sprintf("%d", dayMs)},
+		}},
+	}}
+	for {
+		resp, err := feishuCall(ctx, "POST", searchURL, token, filter)
+		if err != nil {
+			return err
+		}
+		var data struct {
+			Items []struct {
+				RecordID string `json:"record_id"`
+			} `json:"items"`
+			HasMore bool `json:"has_more"`
+		}
+		_ = sonic.Unmarshal(resp.Data, &data)
+		if len(data.Items) == 0 {
+			return nil
+		}
+		ids := make([]string, 0, len(data.Items))
+		for _, it := range data.Items {
+			ids = append(ids, it.RecordID)
+		}
+		delURL := fmt.Sprintf("%s/bitable/v1/apps/%s/tables/%s/records/batch_delete",
+			feishuOpenBase, cfg.BitableAppToken, cfg.MetricsTableID)
+		if _, err := feishuCall(ctx, "POST", delURL, token, map[string]any{"records": ids}); err != nil {
+			return err
+		}
+		if !data.HasMore {
+			return nil
+		}
+	}
+}
 
 // sinkMetrics 把当日全量指标批量写入指标日表。失败只记日志。
 func sinkMetrics(ctx context.Context, day time.Time, results []*report.Result) {
@@ -95,6 +144,11 @@ func sinkMetrics(ctx context.Context, day time.Time, results []*report.Result) {
 	}
 
 	dayMs := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, cstLoc).UnixMilli()
+	// 幂等：先删同日旧记录再写（重跑/回填不产生重复行）
+	if err := deleteDayRecords(ctx, token, cfg, dayMs); err != nil {
+		hlog.CtxErrorf(ctx, "[metrics-sink] delete old records: %v", err)
+		return
+	}
 	var records []map[string]any
 	for _, r := range results {
 		if r == nil || r.Output == nil {
@@ -125,8 +179,13 @@ func sinkMetrics(ctx context.Context, day time.Time, results []*report.Result) {
 				"状态":   status,
 				"是否异常": hitLevel[m.Key] > report.LevelOK,
 			}
-			if d := metricDim(m.Key); d != "" {
-				fields["维度"] = d
+			if ch, ct := metricDims(m.Key); true {
+				if ch != "" {
+					fields["渠道"] = ch
+				}
+				if ct != "" {
+					fields["内容类型"] = ct
+				}
 			}
 			if u := string(m.Dimension); u != "" {
 				fields["单位"] = u // Dimension 值本身就是单位名，与表单选项对齐

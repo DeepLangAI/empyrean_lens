@@ -454,9 +454,12 @@ func secSubscription() *Section {
 		Extract: extractSubscription,
 		Thresholds: []Threshold{
 			{
+				// 长期水位就是 75%~80%：调度器批量扫描每 30min 一轮、判定不带容差，
+				// A 级源(frequency=30)固定错过隔次扫描，实际 60min 一轮（2026-07 排查定性，业务接受）。
+				// 阈值只抓显著恶化（调度停摆/队列积压），不再对慢性缺口天天报警。
 				MetricKey: "sub.sched.completion",
-				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 80, 60) },
-				Msg:       "调度完成率 %s：实际轮询远低于期望，疑似调度器/队列异常",
+				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 55, 40) },
+				Msg:       "调度完成率 %s：显著低于长期水位（75%%~80%%），疑似调度停摆或队列积压",
 			},
 			{
 				MetricKey: "sub.task_rate",

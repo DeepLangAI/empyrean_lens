@@ -137,8 +137,8 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 	}
 	backlogPct := pct(backlog, maxf(recvOK, 1))
 	out.Metrics = append(out.Metrics,
-		Metric{Key: "supplier.recv.total", Display: "网关接收", Value: recvTotal, Text: fmtI(recvTotal), Dimension: DimTask},
-		Metric{Key: "supplier.recv.ok", Display: "网关接收成功", Value: recvOK, Text: fmtI(recvOK), Dimension: DimTask},
+		Metric{Key: "supplier.recv.total", Display: "供应商网关接收", Value: recvTotal, Text: fmtI(recvTotal), Dimension: DimTask},
+		Metric{Key: "supplier.recv.ok", Display: "供应商网关接收成功", Value: recvOK, Text: fmtI(recvOK), Dimension: DimTask},
 		Metric{Key: "supplier.backlog", Display: "供应商队列积压", Value: backlogPct, Text: fmt.Sprintf("%s 条（占受理 %.1f%%）", fmtI(backlog), backlogPct), Dimension: DimPercent},
 	)
 	if unattributed > recvTotal*0.005 {
@@ -342,14 +342,14 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 	out.Metrics = append(out.Metrics,
 		Metric{Key: "self.push", Display: "自采推送到达", Value: pushCnt, Text: fmtI(pushCnt), Dimension: DimTask},
 		Metric{Key: "self.accept", Display: "自采受理", Value: accept, Text: fmtI(accept), Dimension: DimTask},
-		Metric{Key: "self.accept.rate", Display: "受理成功率", Value: acceptRate, Text: fmtPct1(acceptRate), Dimension: DimPercent},
+		Metric{Key: "self.accept.rate", Display: "自采推送受理成功率", Value: acceptRate, Text: fmtPct1(acceptRate), Dimension: DimPercent},
 	)
 
 	sp := first(r["spider"])
 	regular := num(sp["n"])
 	if regular > 0 {
 		out.Metrics = append(out.Metrics,
-			Metric{Key: "self.regular", Display: "按发布日采集量", Value: regular, Text: fmtI(regular), Dimension: DimDoc},
+			Metric{Key: "self.regular", Display: "自采按发布日采集量", Value: regular, Text: fmtI(regular), Dimension: DimDoc},
 			Metric{Key: "self.backfill_ratio", Display: "到达/常规比", Value: pushCnt / regular, Text: fmt.Sprintf("%.1f", pushCnt/regular), Dimension: DimNone},
 		)
 		// 分桶边界: 15/60/180/720/1440 分钟，插值出 P50/P90
@@ -359,17 +359,17 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 		p90 := bucketPercentile(regular, 0.9, bounds, cums)
 		p99 := bucketPercentile(regular, 0.99, bounds, cums)
 		out.Metrics = append(out.Metrics,
-			Metric{Key: "self.lat.p50", Display: "采集时效P50", Value: p50, Text: fmtMin(p50), Dimension: DimMinutes},
-			Metric{Key: "self.lat.p90", Display: "采集时效P90", Value: p90, Text: fmtMin(p90), Dimension: DimMinutes},
-			Metric{Key: "self.lat.p99", Display: "采集时效P99", Value: p99, Text: fmtMin(p99), Dimension: DimMinutes},
+			Metric{Key: "self.lat.p50", Display: "自采集时效P50", Value: p50, Text: fmtMin(p50), Dimension: DimMinutes},
+			Metric{Key: "self.lat.p90", Display: "自采集时效P90", Value: p90, Text: fmtMin(p90), Dimension: DimMinutes},
+			Metric{Key: "self.lat.p99", Display: "自采集时效P99", Value: p99, Text: fmtMin(p99), Dimension: DimMinutes},
 		)
 	}
 
 	total, active := num(first(r["acct_total"])["total"]), num(first(r["acct_active"])["active"])
 	if total > 0 {
 		out.Metrics = append(out.Metrics,
-			Metric{Key: "self.accounts.total", Display: "监控账号总数", Value: total, Text: fmtI(total), Dimension: DimAccount},
-			Metric{Key: "self.accounts.active", Display: "有产出账号", Value: active, Text: fmtI(active), Dimension: DimAccount},
+			Metric{Key: "self.accounts.total", Display: "公众号监控账号总数", Value: total, Text: fmtI(total), Dimension: DimAccount},
+			Metric{Key: "self.accounts.active", Display: "公众号有产出账号", Value: active, Text: fmtI(active), Dimension: DimAccount},
 		)
 	}
 
@@ -384,11 +384,11 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 	}
 	if covN+uncovN > 0 {
 		out.Metrics = append(out.Metrics,
-			Metric{Key: "self.covered", Display: "语鲸已覆盖", Value: covN, Text: fmtI(covN), Dimension: DimDoc},
-			Metric{Key: "self.covered.le1h", Display: "覆盖时效≤1h占比", Value: pct(covLe1h, maxf(covN, 1)), Text: fmtPct1(pct(covLe1h, maxf(covN, 1))), Dimension: DimPercent},
-			Metric{Key: "self.covered.buckets", Display: "覆盖时效分桶", Value: covN,
+			Metric{Key: "self.covered", Display: "自采语鲸已覆盖", Value: covN, Text: fmtI(covN), Dimension: DimDoc},
+			Metric{Key: "self.covered.le1h", Display: "自采覆盖时效≤1h占比", Value: pct(covLe1h, maxf(covN, 1)), Text: fmtPct1(pct(covLe1h, maxf(covN, 1))), Dimension: DimPercent},
+			Metric{Key: "self.covered.buckets", Display: "自采覆盖时效分桶", Value: covN,
 				Text: fmt.Sprintf("≤1h %s ｜ 1-3h %s ｜ >3h %s", fmtI(covLe1h), fmtI(covLe3h-covLe1h), fmtI(covN-covLe3h)), Dimension: DimDoc},
-			Metric{Key: "self.uncovered", Display: "未覆盖(spider兜底)", Value: uncovN, Text: fmtI(uncovN), Dimension: DimDoc},
+			Metric{Key: "self.uncovered", Display: "自采未覆盖(spider兜底)", Value: uncovN, Text: fmtI(uncovN), Dimension: DimDoc},
 			Metric{Key: "self.spider_push.rate", Display: "spider推送成功率", Value: pct(uncovPushOK, maxf(uncovN, 1)), Text: fmtPct1(pct(uncovPushOK, maxf(uncovN, 1))), Dimension: DimPercent},
 		)
 	}
@@ -398,10 +398,10 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 		checked, hits, missing := num(fc["checked"]), num(fc["hit"]), num(fc["missing"])
 		missingPct := pct(missing, maxf(checked, 1))
 		out.Metrics = append(out.Metrics,
-			Metric{Key: "self.feed.checked", Display: "Feed核验文章数", Value: checked, Text: fmtI(checked), Dimension: DimDoc},
-			Metric{Key: "self.feed.hit", Display: "进入语鲸", Value: hits, Text: fmtI(hits), Dimension: DimDoc},
-			Metric{Key: "self.missing", Display: "缺失数", Value: missing, Text: fmtI(missing), Dimension: DimDoc},
-			Metric{Key: "self.missing.rate", Display: "缺失率", Value: missingPct, Text: fmtPct1(missingPct), Dimension: DimPercent},
+			Metric{Key: "self.feed.checked", Display: "自采Feed核验文章数", Value: checked, Text: fmtI(checked), Dimension: DimDoc},
+			Metric{Key: "self.feed.hit", Display: "自采进入语鲸(Feed核验)", Value: hits, Text: fmtI(hits), Dimension: DimDoc},
+			Metric{Key: "self.missing", Display: "自采缺失数", Value: missing, Text: fmtI(missing), Dimension: DimDoc},
+			Metric{Key: "self.missing.rate", Display: "自采缺失率", Value: missingPct, Text: fmtPct1(missingPct), Dimension: DimPercent},
 		)
 		if errs := num(fc["errs"]); errs > 0 {
 			out.Notes = append(out.Notes, fmt.Sprintf("⚠️ Feed 核验有 %s 个账号接口失败（已剔除，不计缺失）", fmtI(errs)))
@@ -412,9 +412,9 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 	okURLs, netFail := num(c["ok_urls"]), num(c["net_fail"])
 	crawlRate := pct(okURLs, maxf(okURLs+netFail, 1))
 	out.Metrics = append(out.Metrics,
-		Metric{Key: "self.crawl.ok", Display: "正文抓取成功", Value: okURLs, Text: fmtI(okURLs), Dimension: DimURL},
-		Metric{Key: "self.crawl.fail", Display: "正文净失败", Value: netFail, Text: fmtI(netFail), Dimension: DimURL},
-		Metric{Key: "self.crawl.rate", Display: "抓取成功率", Value: crawlRate, Text: fmtPct1(crawlRate), Dimension: DimPercent},
+		Metric{Key: "self.crawl.ok", Display: "自采正文抓取成功", Value: okURLs, Text: fmtI(okURLs), Dimension: DimURL},
+		Metric{Key: "self.crawl.fail", Display: "自采正文净失败", Value: netFail, Text: fmtI(netFail), Dimension: DimURL},
+		Metric{Key: "self.crawl.rate", Display: "自采正文抓取成功率", Value: crawlRate, Text: fmtPct1(crawlRate), Dimension: DimPercent},
 	)
 	return out, nil
 }
@@ -488,8 +488,8 @@ func extractSubscription(day time.Time, r map[string]Rows, prev []Snapshot) (*Ou
 	okT, failT := num(t["ok_tasks"]), num(t["fail_tasks"])
 	taskRate := pct(okT, maxf(okT+failT, 1))
 	out.Metrics = append(out.Metrics,
-		Metric{Key: "sub.tasks", Display: "抓取任务总量", Value: okT + failT, Text: fmtI(okT + failT), Dimension: DimTask},
-		Metric{Key: "sub.task_rate", Display: "任务成功率", Value: taskRate, Text: fmtPct1(taskRate), Dimension: DimPercent},
+		Metric{Key: "sub.tasks", Display: "自有RSS/网站抓取任务总量", Value: okT + failT, Text: fmtI(okT + failT), Dimension: DimTask},
+		Metric{Key: "sub.task_rate", Display: "自有RSS/网站抓取成功率", Value: taskRate, Text: fmtPct1(taskRate), Dimension: DimPercent},
 		Metric{Key: "sub.ok_urls", Display: "内容覆盖", Value: num(t["ok_urls"]), Text: fmtI(num(t["ok_urls"])), Dimension: DimURL},
 	)
 
@@ -498,7 +498,7 @@ func extractSubscription(day time.Time, r map[string]Rows, prev []Snapshot) (*Ou
 		if expected > 0 {
 			completion := pct(okT+failT, expected)
 			out.Metrics = append(out.Metrics,
-				Metric{Key: "sub.sched.completion", Display: "调度完成率", Value: completion, Text: fmtPct1(completion), Dimension: DimPercent},
+				Metric{Key: "sub.sched.completion", Display: "自有RSS/网站调度完成率", Value: completion, Text: fmtPct1(completion), Dimension: DimPercent},
 			)
 			out.Notes = append(out.Notes, fmt.Sprintf("调度基准：%s 个活跃信源 × 自适应频率 → 期望轮询 %s 次/日", fmtI(num(s["sources"])), fmtI(expected)))
 		}
@@ -506,10 +506,10 @@ func extractSubscription(day time.Time, r map[string]Rows, prev []Snapshot) (*Ou
 
 	if f := first(r["fresh"]); f != nil {
 		out.Metrics = append(out.Metrics,
-			Metric{Key: "sub.fresh.p50", Display: "新文时效P50", Value: num(f["p50"]), Text: fmtMin(num(f["p50"])), Dimension: DimMinutes},
-			Metric{Key: "sub.fresh.p90", Display: "新文时效P90", Value: num(f["p90"]), Text: fmtMin(num(f["p90"])), Dimension: DimMinutes},
-			Metric{Key: "sub.fresh.le4h", Display: "≤4h 占比", Value: num(f["le4h_pct"]), Text: fmtPct1(num(f["le4h_pct"])), Dimension: DimPercent},
-			Metric{Key: "sub.backfill", Display: "历史回补", Value: num(f["backfill_cnt"]), Text: fmtI(num(f["backfill_cnt"])), Dimension: DimDoc},
+			Metric{Key: "sub.fresh.p50", Display: "自有RSS/网站新文时效P50", Value: num(f["p50"]), Text: fmtMin(num(f["p50"])), Dimension: DimMinutes},
+			Metric{Key: "sub.fresh.p90", Display: "自有RSS/网站新文时效P90", Value: num(f["p90"]), Text: fmtMin(num(f["p90"])), Dimension: DimMinutes},
+			Metric{Key: "sub.fresh.le4h", Display: "自有RSS/网站新文≤4h占比", Value: num(f["le4h_pct"]), Text: fmtPct1(num(f["le4h_pct"])), Dimension: DimPercent},
+			Metric{Key: "sub.backfill", Display: "自有RSS/网站历史回补", Value: num(f["backfill_cnt"]), Text: fmtI(num(f["backfill_cnt"])), Dimension: DimDoc},
 		)
 	}
 

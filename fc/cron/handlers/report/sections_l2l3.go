@@ -581,9 +581,9 @@ func extractEffective(day time.Time, r map[string]Rows, prev []Snapshot) (*Outpu
 	total := article + pdf
 	out.Metrics = append(out.Metrics,
 		Metric{Key: "eff.total", Display: "有效入库", Value: total, Text: fmtI(total), Dimension: DimDoc},
-		Metric{Key: "eff.weixin", Display: "公众号文章", Value: weixin, Text: fmtI(weixin), Dimension: DimDoc},
-		Metric{Key: "eff.web", Display: "网站文章", Value: web, Text: fmtI(web), Dimension: DimDoc},
-		Metric{Key: "eff.pdf", Display: "PDF/文档", Value: pdf, Text: fmtI(pdf), Dimension: DimDoc},
+		Metric{Key: "eff.weixin", Display: "有效入库公众号文章", Value: weixin, Text: fmtI(weixin), Dimension: DimDoc},
+		Metric{Key: "eff.web", Display: "有效入库网站文章", Value: web, Text: fmtI(web), Dimension: DimDoc},
+		Metric{Key: "eff.pdf", Display: "有效入库PDF文档", Value: pdf, Text: fmtI(pdf), Dimension: DimDoc},
 	)
 
 	rows := []map[string]string{
@@ -600,7 +600,7 @@ func extractEffective(day time.Time, r map[string]Rows, prev []Snapshot) (*Outpu
 			fmtPct1(pct(num(row["le30m"]), n)), fmtPct1(pct(num(row["le4h"]), n)), fmtPct1(pct(num(row["le24h"]), n)))
 		if row["_id"] == "weixin" {
 			rows[0]["e2e"] = text
-			out.Metrics = append(out.Metrics, Metric{Key: "eff.e2e.weixin.le30m", Display: "公众号≤30min占比", Value: pct(num(row["le30m"]), n), Text: fmtPct1(pct(num(row["le30m"]), n)), Dimension: DimPercent})
+			out.Metrics = append(out.Metrics, Metric{Key: "eff.e2e.weixin.le30m", Display: "公众号端到端≤30min占比", Value: pct(num(row["le30m"]), n), Text: fmtPct1(pct(num(row["le30m"]), n)), Dimension: DimPercent})
 		} else {
 			rows[1]["e2e"] = text
 		}

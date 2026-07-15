@@ -86,7 +86,17 @@ func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) erro
 	if webhook == "" {
 		webhook = conf.GetConfig().Notice.LingowhaleStabilityWebhook
 	}
-	for i, msg := range msgs {
+
+	// 群消息瘦身（2026-07-15）：先归档知识库拿到文档链接，群里只发摘要卡 + 链接；
+	// 归档失败（docURL 为空）则降级发完整两张卡，保证群里永远看得到全文。
+	// sinkWikiDaily 幂等（当日已有文档则直接返回链接），验收模式重复触发也安全。
+	docURL := sinkWikiDaily(ctx, day, msgs)
+	toSend := msgs
+	if docURL != "" {
+		aiText := aiDailySummary(ctx, day, results, prevDays) // 旁路：失败返回空串，卡片省略该段
+		toSend = []fcMsg{renderSummaryCard(day, results, prevDays, docURL, aiText)}
+	}
+	for i, msg := range toSend {
 		err := retry.Do(func() error { return sendFeishuWebhook(ctx, webhook, msg) },
 			retry.Attempts(3), retry.Delay(2*time.Second), retry.Context(ctx))
 		if err != nil {
@@ -94,11 +104,144 @@ func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) erro
 			return err
 		}
 	}
-	if webhookOverride == "" {
-		sinkWikiDaily(ctx, day, msgs) // 归档知识库（旁路，放发送之后不拖时效）
-	}
-	hlog.CtxInfof(ctx, "[daily-report] sent, sections=%d", len(results))
+	hlog.CtxInfof(ctx, "[daily-report] sent, sections=%d summary=%v", len(results), docURL != "")
 	return nil
+}
+
+// renderSummaryCard 摘要卡：AI 解读（可选）、核心数字行、核心指标表、告警清单（最多 4 条）、链接。
+// 目标是 10 秒判断"今天要不要点进去"；全文在知识库文档里。aiText 为空时省略 AI 段。
+func renderSummaryCard(day time.Time, results []*report.Result, prevDays []report.Snapshot, docURL, aiText string) fcMsg {
+	all := map[string]report.Metric{}
+	var hits []report.Hit
+	var broken []string
+	for _, r := range results {
+		if r == nil {
+			continue
+		}
+		if r.Output != nil {
+			for _, m := range r.Output.Metrics {
+				all[m.Key] = m
+			}
+		}
+		hits = append(hits, r.Hits...)
+		if r.Err != nil {
+			broken = append(broken, r.Section.Title)
+		}
+	}
+	mtx := func(key string) string {
+		if m, ok := all[key]; ok {
+			return m.Text
+		}
+		return "—"
+	}
+	// 指标 → 命中最高级别（表格状态灯）
+	hitLevel := map[string]report.Level{}
+	for _, h := range hits {
+		if h.MetricKey != "" && h.Level > hitLevel[h.MetricKey] {
+			hitLevel[h.MetricKey] = h.Level
+		}
+	}
+	statusOf := func(key string) string {
+		switch hitLevel[key] {
+		case report.LevelCrit:
+			return "🔴"
+		case report.LevelWarn:
+			return "🟡"
+		}
+		if _, ok := all[key]; !ok {
+			return "—"
+		}
+		return "🟢"
+	}
+
+	var b strings.Builder
+	if aiText != "" {
+		fmt.Fprintf(&b, "🤖 **AI 解读**：%s\n\n", aiText)
+	}
+	fmt.Fprintf(&b, "**净新增可见 %s**（环比 %s）｜ 一层接收 %s ｜ 自采缺失率 %s",
+		mtx("eff.total"), report.DeltaPct(all["eff.total"].Value, prevDays, "eff.total"),
+		mtx("funnel.top"), mtx("self.missing.rate"))
+
+	// 核心指标表：三层各挑当家指标，不点链接也能看到全貌骨架
+	coreRows := []struct{ name, key string }{
+		{"供应商推送(清博+人民网)", "supplier.push.suppliers"},
+		{"自有RSS/网站抓取成功率", "sub.task_rate"},
+		{"自采按发布日采集量", "self.regular"},
+		{"自采缺失率(Feed核验)", "self.missing.rate"},
+		{"处理成功率(剔除去重)", "m22.clean_rate"},
+		{"内容生成成功率", "gen.text_rate"},
+		{"有效入库总量", "eff.total"},
+		{"公众号端到端≤30min", "eff.e2e.weixin.le30m"},
+	}
+	rows := make([]map[string]string, 0, len(coreRows))
+	for _, cr := range coreRows {
+		rows = append(rows, map[string]string{
+			"metric": cr.name, "today": mtx(cr.key),
+			"delta":  report.DeltaPct(all[cr.key].Value, prevDays, cr.key),
+			"status": statusOf(cr.key),
+		})
+	}
+
+	var alerts strings.Builder
+	if len(hits) == 0 && len(broken) == 0 {
+		alerts.WriteString("今日无告警事项 🟢\n")
+	} else {
+		for i, h := range hits {
+			if i >= 4 {
+				fmt.Fprintf(&alerts, "- ……等 %d 项，详见文档\n", len(hits)-4)
+				break
+			}
+			fmt.Fprintf(&alerts, "- %s %s\n", h.Level.Icon(), h.Msg)
+		}
+		for _, t := range broken {
+			fmt.Fprintf(&alerts, "- ⚠️ 「%s」生成失败（已隔离），该节数字缺失\n", t)
+		}
+	}
+	// 深链定位：wiki 内嵌多维表格的 table 参数要用内部 blk ID（API 的 tbl ID 会被忽略），
+	// blk ID 只能从浏览器地址栏取（2026-07-15 由用户提供）
+	fmt.Fprintf(&alerts, "\n📄 [完整日报](%s) ｜ 📊 [指标与趋势](https://deeplang.feishu.cn/wiki/JZO1wa084iuQdokXf6DcBHygn0e?table=blk2zRVC7HdGziwV)", docURL)
+
+	overall := report.OverallLevel(results)
+	template := map[report.Level]string{
+		report.LevelOK: "green", report.LevelWarn: "yellow",
+		report.LevelCrit: "red", report.LevelBroken: "yellow",
+	}[overall]
+	var crit, warn int
+	for _, h := range hits {
+		if h.Level == report.LevelCrit {
+			crit++
+		} else if h.Level == report.LevelWarn {
+			warn++
+		}
+	}
+	var tags []fcTextTag
+	if crit > 0 {
+		tags = append(tags, fcTextTag{Tag: "text_tag", Text: fcText{Tag: "plain_text", Content: fmt.Sprintf("%d 项严重", crit)}, Color: "red"})
+	}
+	if warn > 0 {
+		tags = append(tags, fcTextTag{Tag: "text_tag", Text: fcText{Tag: "plain_text", Content: fmt.Sprintf("%d 项关注", warn)}, Color: "yellow"})
+	}
+	if crit == 0 && warn == 0 {
+		tags = append(tags, fcTextTag{Tag: "text_tag", Text: fcText{Tag: "plain_text", Content: "今日正常"}, Color: "green"})
+	}
+	sub := fmt.Sprintf("统计周期 %s 00:00–24:00", day.Format("01-02"))
+	return fcMsg{MsgType: "interactive", Card: fcCard{
+		Schema: "2.0", Config: fcConfig{WideScreenMode: true},
+		Header: fcHeader{
+			Title:       fcText{Tag: "plain_text", Content: fmt.Sprintf("数据平台日报 · %s", day.Format("2006-01-02"))},
+			Subtitle:    &fcText{Tag: "plain_text", Content: sub},
+			TextTagList: tags,
+			Template:    template,
+		},
+		Body: fcBody{Direction: "vertical", Elements: []interface{}{
+			md(b.String()),
+			makeTable([]fcTableCol{
+				col("metric", "核心指标", "40%"), col("today", "今日", "26%"),
+				col("delta", "环比", "18%"), col("status", "状态", "16%"),
+			}, rows),
+			md(alerts.String()),
+		}},
+	}}
 }
 
 // ─── 数据源注入 ──────────────────────────────────────────────────────────────

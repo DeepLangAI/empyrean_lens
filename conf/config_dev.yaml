@@ -56,3 +56,9 @@ metrics_sink:
   sites_table_id: "tbl207BOlzBPugIz"
   wiki_space_id: "7662305126790613991"
   daily_node_token: "S8D3wvshQiK0D3kTmmRc3mmdnfJ"
+
+# new-api 模型网关（AI 日报解读用，与 resource 服务同一网关）
+new_api:
+  host: "new-api.lingowhale.com"
+  key: "REDACTED"
+  model: "qwen-plus"

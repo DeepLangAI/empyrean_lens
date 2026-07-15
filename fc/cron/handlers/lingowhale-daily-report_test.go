@@ -72,14 +72,20 @@ func TestDailyReport_DryRun(t *testing.T) {
 	_ = os.WriteFile(out, data, 0644)
 	t.Logf("card json written to %s (%d bytes)", out, len(data))
 
-	// 设置 DAILY_REPORT_WEBHOOK 时实际发送（验收用）
+	// 设置 DAILY_REPORT_WEBHOOK 时实际发送（验收用）。与线上一致：有文档链接发摘要卡，否则发全文
 	if wh := os.Getenv("DAILY_REPORT_WEBHOOK"); wh != "" {
-		for i, m := range msgs {
+		toSend := msgs
+		if docURL := sinkWikiDaily(ctx, day, msgs); docURL != "" {
+			aiText := aiDailySummary(ctx, day, results, prevDays)
+			t.Logf("AI 解读: %s", aiText)
+			toSend = []fcMsg{renderSummaryCard(day, results, prevDays, docURL, aiText)}
+		}
+		for i, m := range toSend {
 			if err := sendFeishuWebhook(ctx, wh, m); err != nil {
 				t.Fatalf("send card %d failed: %v", i+1, err)
 			}
 		}
-		t.Logf("%d cards SENT to %s", len(msgs), wh)
+		t.Logf("%d cards SENT to %s", len(toSend), wh)
 	} else {
 		t.Log("NOT sent (set DAILY_REPORT_WEBHOOK to send)")
 	}

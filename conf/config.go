@@ -22,6 +22,15 @@ type Config struct {
 	Feishu         Feishu          `yaml:"feishu"`
 	Redis          Redis           `yaml:"redis"`
 	MetricsSink    MetricsSink     `yaml:"metrics_sink"`
+	NewApi         NewApi          `yaml:"new_api"`
+}
+
+// NewApi 内部 new-api 模型网关（Anthropic 兼容 Messages 接口，与 resource 服务同一套）。
+// host 留空即禁用 AI 总结；model 透传网关上配置的模型名（qwen-plus / gpt-4o-mini 等）。
+type NewApi struct {
+	Host  string `yaml:"host"`
+	Key   string `yaml:"key"`
+	Model string `yaml:"model"`
 }
 
 // MetricsSink 巡检指标落飞书多维表格 + 日报归档知识库的配置。

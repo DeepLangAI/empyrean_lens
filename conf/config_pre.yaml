@@ -40,3 +40,5 @@ feishu:
 
 
 metrics_sink: {}
+
+new_api: {}

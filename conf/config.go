@@ -43,8 +43,10 @@ type MetricsSink struct {
 	BitableAppToken string `yaml:"bitable_app_token"` // 知识库「数据表」节点的 obj_token
 	MetricsTableID  string `yaml:"metrics_table_id"`  // 指标日表
 	SitesTableID    string `yaml:"sites_table_id"`    // 失败站点日志表
+	IssuesTableID   string `yaml:"issues_table_id"`   // 问题跟踪表（告警自动开卡）
 	WikiSpaceID     string `yaml:"wiki_space_id"`
-	DailyNodeToken  string `yaml:"daily_node_token"` // 「每日日报」父节点
+	DailyNodeToken  string `yaml:"daily_node_token"`  // 「每日日报」父节点
+	WeeklyNodeToken string `yaml:"weekly_node_token"` // 「周报月报」父节点
 }
 
 type Redis struct {

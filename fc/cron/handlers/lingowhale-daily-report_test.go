@@ -38,6 +38,11 @@ func TestDailyReport_DryRun(t *testing.T) {
 		sinkMetrics(ctx, day, results)
 		t.Logf("metrics SINKED to bitable for %s", dayStr)
 	}
+	if os.Getenv("DAILY_REPORT_OPS") == "1" {
+		sinkFailedSites(ctx, day, results)
+		syncIssueTracker(ctx, day, results)
+		t.Logf("ops sinks done for %s", dayStr)
+	}
 	if os.Getenv("DAILY_REPORT_WIKI") == "1" {
 		url := sinkWikiDaily(ctx, day, renderDailyReport(day, results, prevDays))
 		t.Logf("wiki doc: %s", url)

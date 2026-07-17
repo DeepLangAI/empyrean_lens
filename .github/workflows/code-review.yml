@@ -1,0 +1,102 @@
+name: Code Review
+
+# PR 自动 code review：复用 .github/actions/claude-code（token 轮换）+
+# prompts 叠加模式（base-rules.md 底座 + code-review.md 场景）。
+# review 结论是建议性的（event=COMMENT），是否阻塞合并由人决定。
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+# 同一 PR 只保留最新一轮 review：旧 run 直接取消（review 旧 commit 没有意义）。
+concurrency:
+  group: code-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # draft 不 review（ready_for_review 时会再触发）。
+    # fork PR 也跳过：pull_request 事件对 fork 不下发 secrets，App token
+    # 第一步就会失败留红 check，不如显式不跑；fork PR 由人工 review。
+    if: ${{ !github.event.pull_request.draft && !github.event.pull_request.head.repo.fork }}
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    timeout-minutes: 30
+    # 实际访问权限由 App（lingowhale-niuma）的安装配置决定——checkout 和 gh 全程
+    # 用 App token，不用 GITHUB_TOKEN。这里只收紧未被使用的 GITHUB_TOKEN。
+    # 注意：App 安装当前没有 Actions: read，reviewer 读不到 CI 状态（见 code-review.md）；
+    # 给 App 补该权限后即可自查 CI，无需改本文件。
+    permissions:
+      contents: read
+
+    steps:
+      # 评论身份与 niuma 一致（lingowhale-niuma[bot]），gh 全程用 App token。
+      - name: 生成 GitHub App token
+        uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ secrets.LINGOWHALE_NIUMA_CLIENT_ID }}
+          private-key: ${{ secrets.LINGOWHALE_NIUMA_PRIVATE_KEY }}
+
+      # 用 head sha checkout；fetch-depth: 0 让 reviewer 能 diff 任意 ref
+      # （origin/<base>...HEAD）。
+      - name: Checkout PR head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Configure Claude settings
+        run: |
+          echo '{"hasCompletedOnboarding": true}' > ~/.claude.json
+
+      - name: 运行 code review
+        id: claude-code
+        uses: ./.github/actions/claude-code
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          NODE_VERSION: "24"
+        with:
+          token_pool: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN_POOL }}
+          oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            对下面这个 PR 做一轮 code review，按 system prompt 的使命书执行。
+
+            - **仓库**: ${{ github.repository }}
+            - **PR**: #${{ github.event.pull_request.number }} ${{ github.event.pull_request.title }}
+            - **作者**: ${{ github.event.pull_request.user.login }}
+            - **分支**: ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}
+            - **触发**: ${{ github.event.action }}（synchronize = 作者 push 了新 commit，聚焦增量）
+            - **本次 workflow run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            PR head 已 checkout 到当前目录。diff / PR 描述 / 历史 review / CI 状态
+            按使命书用 `git` / `gh` 自己取。
+          show_full_output: true
+          append_system_prompt_files: |
+            .github/prompts/base-rules.md
+            .github/prompts/code-review.md
+          claude_args: >-
+            --dangerously-skip-permissions
+            --max-turns 150
+            --model opus
+
+      - name: 输出报告
+        if: always() && steps.claude-code.outputs.execution_file != ''
+        shell: bash
+        run: |
+          if bun run .github/scripts/format-turns.ts "${{ steps.claude-code.outputs.execution_file }}" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null; then
+            echo "Successfully formatted report"
+          else
+            {
+              echo "## Code Review 运行轨迹 (Raw Output)"
+              echo ""
+              echo '```json'
+              cat "${{ steps.claude-code.outputs.execution_file }}"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

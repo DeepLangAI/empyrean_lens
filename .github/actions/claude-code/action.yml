@@ -1,0 +1,302 @@
+name: Claude Code (with token rotation)
+description: >-
+  Wraps anthropics/claude-code-base-action with OAuth token pool rotation.
+  Reads `token_pool` (multi-line `token|weight`) and picks a token via
+  weighted random selection. Falls back to `oauth_token` when pool is empty.
+  When base-action fails with 401 / Invalid bearer token / authentication_failed
+  (token revoked / expired / leaked), the failing token is excluded and a new
+  one is picked from the remaining pool — up to `max_attempts` total tries.
+
+inputs:
+  token_pool:
+    description: >-
+      Multi-line OAuth token pool. Each line: `<token>` or `<token>|<weight>`.
+      Weight is a positive integer (default 1). Lines starting with `#` are ignored.
+      Typically sourced from a single secret (e.g. secrets.CLAUDE_CODE_OAUTH_TOKEN_POOL)
+      so adding/removing tokens never requires touching workflows.
+    required: false
+    default: ""
+  oauth_token:
+    description: Single OAuth token fallback when token_pool is empty.
+    required: false
+    default: ""
+  prompt:
+    required: false
+    default: ""
+  prompt_file:
+    required: false
+    default: ""
+  claude_args:
+    required: false
+    default: ""
+  append_system_prompt_files:
+    description: >-
+      多行路径列表（每行一个），由本 action 合并为单个文件后以
+      `--append-system-prompt-file` 传入 Claude Code。用来绕开 CLI 只认最后一个
+      `--append-system-prompt-file` 的限制。按列表顺序 cat（每个文件之间两个换行）。
+      行首 `#` 视为注释，空行忽略。
+    required: false
+    default: ""
+  show_full_output:
+    required: false
+    default: "true"
+  max_attempts:
+    description: >-
+      仅 401 / Invalid bearer token / authentication_failed 等"token 失效"类错误
+      触发的重试上限（含首次尝试）。其它失败（任务级错误、超时、network）原样上抛，
+      不再重试，避免在重试里耗双倍 token / 双倍时间。默认 3，最大 3（静态实现）。
+    required: false
+    default: "3"
+
+outputs:
+  # 从后往前 fallback：每个 check step 都写 final_*（即便本次决定重试），
+  # 取最后一次实际跑过 base-action 的 attempt 的产物。这样即便后续 attempt
+  # 因 token 池耗尽 / step skipped 没机会跑，上游仍能拿到上一次 attempt 的 execution_file。
+  execution_file:
+    value: ${{ steps.check3.outputs.final_execution_file || steps.check2.outputs.final_execution_file || steps.check1.outputs.final_execution_file }}
+  session_id:
+    value: ${{ steps.check3.outputs.final_session_id || steps.check2.outputs.final_session_id || steps.check1.outputs.final_session_id }}
+  conclusion:
+    value: ${{ steps.check3.outputs.final_conclusion || steps.check2.outputs.final_conclusion || steps.check1.outputs.final_conclusion }}
+
+runs:
+  using: composite
+  steps:
+    - name: 初始化 token rotation 状态
+      id: pool
+      shell: bash
+      env:
+        MAX_ATTEMPTS_INPUT: ${{ inputs.max_attempts }}
+      run: |
+        set -euo pipefail
+        EXCLUDED_FILE="${RUNNER_TEMP:-/tmp}/claude-excluded-tokens.txt"
+        : > "$EXCLUDED_FILE"
+        max="${MAX_ATTEMPTS_INPUT:-3}"
+        if ! [[ "$max" =~ ^[1-9][0-9]*$ ]]; then max=3; fi
+        # 静态写了 3 个 attempt step，超过 3 截断；少于 3 后续 attempt 通过 if 短路。
+        if [ "$max" -gt 3 ]; then max=3; fi
+        echo "excluded_file=$EXCLUDED_FILE" >> "$GITHUB_OUTPUT"
+        echo "max=$max" >> "$GITHUB_OUTPUT"
+        echo "max_attempts resolved to $max" >&2
+
+    - name: 合并 append-system-prompt 文件
+      id: merge_sys
+      shell: bash
+      env:
+        FILES_INPUT: ${{ inputs.append_system_prompt_files }}
+        CLAUDE_ARGS_INPUT: ${{ inputs.claude_args }}
+      run: |
+        set -euo pipefail
+
+        FINAL_ARGS="${CLAUDE_ARGS_INPUT}"
+
+        if [ -n "${FILES_INPUT:-}" ]; then
+          MERGED="${RUNNER_TEMP:-/tmp}/claude-append-system-prompt.md"
+          : > "$MERGED"
+
+          first=1
+          while IFS= read -r line; do
+            # trim 前后空白
+            line="${line#"${line%%[![:space:]]*}"}"
+            line="${line%"${line##*[![:space:]]}"}"
+            [ -z "$line" ] && continue
+            case "$line" in \#*) continue ;; esac
+
+            if [ ! -f "$line" ]; then
+              echo "::error::append-system-prompt file not found: $line"
+              exit 1
+            fi
+
+            if [ "$first" -eq 0 ]; then
+              printf '\n\n' >> "$MERGED"
+            fi
+            cat "$line" >> "$MERGED"
+            first=0
+          done <<< "$FILES_INPUT"
+
+          if [ -s "$MERGED" ]; then
+            echo "merged append-system-prompt files into $MERGED (bytes=$(wc -c < "$MERGED"))" >&2
+            FINAL_ARGS="${FINAL_ARGS} --append-system-prompt-file ${MERGED}"
+          fi
+        fi
+
+        # 物理屏蔽 ScheduleWakeup：GitHub Actions 是一次性 session，调用此工具
+        # Claude 会立即 end_turn，runner 直接 Complete job 退出，wakeup 永不触发——
+        # 整个 review/任务静默卡死。详见 base-rules.md「行为约束」。
+        if echo "$FINAL_ARGS" | grep -qE -- '--disallowed-tools[[:space:]]'; then
+          FINAL_ARGS=$(printf '%s' "$FINAL_ARGS" | sed -E '
+            s/(--disallowed-tools[[:space:]]+)"([^"]*)"/\1"\2,ScheduleWakeup"/
+            t
+            s/(--disallowed-tools[[:space:]]+)([^[:space:]]+)/\1\2,ScheduleWakeup/
+          ')
+        else
+          FINAL_ARGS="${FINAL_ARGS} --disallowed-tools ScheduleWakeup"
+        fi
+
+        {
+          echo "claude_args<<CLAUDE_ARGS_EOF"
+          echo "$FINAL_ARGS"
+          echo "CLAUDE_ARGS_EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    # === Attempt 1 ===
+    - name: 选 OAuth token (attempt 1)
+      id: pick1
+      shell: bash
+      env:
+        TOKEN_POOL_INPUT: ${{ inputs.token_pool }}
+        OAUTH_TOKEN_FALLBACK: ${{ inputs.oauth_token }}
+        EXCLUDED_FILE: ${{ steps.pool.outputs.excluded_file }}
+      run: |
+        set -euo pipefail
+        TOKEN=$(bash "${{ github.action_path }}/pick-token.sh")
+        echo "::add-mask::$TOKEN"
+        echo "::add-mask::${TOKEN//$'\n'/}"
+        {
+          echo "token<<TOKEN_EOF"
+          echo "$TOKEN"
+          echo "TOKEN_EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: 运行 Claude Code (attempt 1)
+      id: cc1
+      uses: anthropics/claude-code-base-action@main
+      continue-on-error: true
+      with:
+        claude_code_oauth_token: ${{ steps.pick1.outputs.token }}
+        prompt: ${{ inputs.prompt }}
+        prompt_file: ${{ inputs.prompt_file }}
+        claude_args: ${{ steps.merge_sys.outputs.claude_args }}
+        show_full_output: ${{ inputs.show_full_output }}
+
+    - name: 判定 attempt 1
+      id: check1
+      shell: bash
+      env:
+        OUTCOME: ${{ steps.cc1.outcome }}
+        EXEC_FILE: ${{ steps.cc1.outputs.execution_file }}
+        FINAL_EXECUTION_FILE: ${{ steps.cc1.outputs.execution_file }}
+        FINAL_SESSION_ID: ${{ steps.cc1.outputs.session_id }}
+        FINAL_CONCLUSION: ${{ steps.cc1.outputs.conclusion }}
+        PICKED_TOKEN: ${{ steps.pick1.outputs.token }}
+        EXCLUDED_FILE: ${{ steps.pool.outputs.excluded_file }}
+        ATTEMPT_NUM: "1"
+        MAX_ATTEMPTS: ${{ steps.pool.outputs.max }}
+      run: bash "${{ github.action_path }}/check-attempt.sh"
+
+    # === Attempt 2 ===
+    - name: 选 OAuth token (attempt 2)
+      id: pick2
+      if: steps.check1.outputs.retry == 'true'
+      shell: bash
+      env:
+        TOKEN_POOL_INPUT: ${{ inputs.token_pool }}
+        OAUTH_TOKEN_FALLBACK: ${{ inputs.oauth_token }}
+        EXCLUDED_FILE: ${{ steps.pool.outputs.excluded_file }}
+      run: |
+        set -euo pipefail
+        TOKEN=$(bash "${{ github.action_path }}/pick-token.sh")
+        echo "::add-mask::$TOKEN"
+        echo "::add-mask::${TOKEN//$'\n'/}"
+        {
+          echo "token<<TOKEN_EOF"
+          echo "$TOKEN"
+          echo "TOKEN_EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: 运行 Claude Code (attempt 2)
+      id: cc2
+      if: steps.check1.outputs.retry == 'true'
+      uses: anthropics/claude-code-base-action@main
+      continue-on-error: true
+      with:
+        claude_code_oauth_token: ${{ steps.pick2.outputs.token }}
+        prompt: ${{ inputs.prompt }}
+        prompt_file: ${{ inputs.prompt_file }}
+        claude_args: ${{ steps.merge_sys.outputs.claude_args }}
+        show_full_output: ${{ inputs.show_full_output }}
+
+    - name: 判定 attempt 2
+      id: check2
+      if: steps.check1.outputs.retry == 'true'
+      shell: bash
+      env:
+        OUTCOME: ${{ steps.cc2.outcome }}
+        EXEC_FILE: ${{ steps.cc2.outputs.execution_file }}
+        FINAL_EXECUTION_FILE: ${{ steps.cc2.outputs.execution_file }}
+        FINAL_SESSION_ID: ${{ steps.cc2.outputs.session_id }}
+        FINAL_CONCLUSION: ${{ steps.cc2.outputs.conclusion }}
+        PICKED_TOKEN: ${{ steps.pick2.outputs.token }}
+        EXCLUDED_FILE: ${{ steps.pool.outputs.excluded_file }}
+        ATTEMPT_NUM: "2"
+        MAX_ATTEMPTS: ${{ steps.pool.outputs.max }}
+      run: bash "${{ github.action_path }}/check-attempt.sh"
+
+    # === Attempt 3 ===
+    - name: 选 OAuth token (attempt 3)
+      id: pick3
+      if: steps.check2.outputs.retry == 'true'
+      shell: bash
+      env:
+        TOKEN_POOL_INPUT: ${{ inputs.token_pool }}
+        OAUTH_TOKEN_FALLBACK: ${{ inputs.oauth_token }}
+        EXCLUDED_FILE: ${{ steps.pool.outputs.excluded_file }}
+      run: |
+        set -euo pipefail
+        TOKEN=$(bash "${{ github.action_path }}/pick-token.sh")
+        echo "::add-mask::$TOKEN"
+        echo "::add-mask::${TOKEN//$'\n'/}"
+        {
+          echo "token<<TOKEN_EOF"
+          echo "$TOKEN"
+          echo "TOKEN_EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: 运行 Claude Code (attempt 3)
+      id: cc3
+      if: steps.check2.outputs.retry == 'true'
+      uses: anthropics/claude-code-base-action@main
+      continue-on-error: true
+      with:
+        claude_code_oauth_token: ${{ steps.pick3.outputs.token }}
+        prompt: ${{ inputs.prompt }}
+        prompt_file: ${{ inputs.prompt_file }}
+        claude_args: ${{ steps.merge_sys.outputs.claude_args }}
+        show_full_output: ${{ inputs.show_full_output }}
+
+    - name: 判定 attempt 3
+      id: check3
+      if: steps.check2.outputs.retry == 'true'
+      shell: bash
+      env:
+        OUTCOME: ${{ steps.cc3.outcome }}
+        EXEC_FILE: ${{ steps.cc3.outputs.execution_file }}
+        FINAL_EXECUTION_FILE: ${{ steps.cc3.outputs.execution_file }}
+        FINAL_SESSION_ID: ${{ steps.cc3.outputs.session_id }}
+        FINAL_CONCLUSION: ${{ steps.cc3.outputs.conclusion }}
+        PICKED_TOKEN: ${{ steps.pick3.outputs.token }}
+        EXCLUDED_FILE: ${{ steps.pool.outputs.excluded_file }}
+        ATTEMPT_NUM: "3"
+        MAX_ATTEMPTS: ${{ steps.pool.outputs.max }}
+      run: bash "${{ github.action_path }}/check-attempt.sh"
+
+    # 最终结论：取最后一次实际跑过的 attempt 的 outcome；非 success 则整体 fail。
+    # 与 outputs 的 fallback 方向一致——从 check3 往 check1 找第一个有值的。
+    - name: 汇总最终结果
+      shell: bash
+      env:
+        OUTCOME_1: ${{ steps.check1.outputs.final_outcome }}
+        OUTCOME_2: ${{ steps.check2.outputs.final_outcome }}
+        OUTCOME_3: ${{ steps.check3.outputs.final_outcome }}
+        REASON_1: ${{ steps.check1.outputs.reason }}
+        REASON_2: ${{ steps.check2.outputs.reason }}
+        REASON_3: ${{ steps.check3.outputs.reason }}
+      run: |
+        set -euo pipefail
+        FINAL_OUTCOME="${OUTCOME_3:-${OUTCOME_2:-${OUTCOME_1:-}}}"
+        FINAL_REASON="${REASON_3:-${REASON_2:-${REASON_1:-}}}"
+        echo "final outcome: ${FINAL_OUTCOME} (reason: ${FINAL_REASON})" >&2
+        if [ "$FINAL_OUTCOME" != "success" ]; then
+          echo "::error::Claude Code failed across attempts (final: ${FINAL_REASON:-unknown})"
+          exit 1
+        fi

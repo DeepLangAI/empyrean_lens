@@ -177,6 +177,10 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 			Metric{Key: "supplier.unprocessed.rate", Display: "供应商文章当日未进处理(URL去重)", Value: unprocPct, Text: fmt.Sprintf("%s 篇（%.1f%%）", fmtI(unproc), unprocPct), Dimension: DimPercent},
 			Metric{Key: "supplier.dup.rate", Display: "供应商推送重复率", Value: dupRate, Text: fmtPct1(dupRate), Dimension: DimPercent},
 		)
+		// 展示层注记：已知问题（消费失败零重投）修复前保持每日可见，阈值只管恶化（>3%）
+		out.Notes = append(out.Notes, fmt.Sprintf(
+			"当日未进处理 %s 篇（%.1f%%，URL 去重口径）≈ 真实丢失，根因为消费失败无重投（跟踪卡处理中）；推送重复率 %.1f%%（人民网同秒多份）",
+			fmtI(unproc), unprocPct, dupRate))
 	}
 	if unattributed > recvTotal*0.005 {
 		out.Notes = append(out.Notes, fmt.Sprintf("⚠️ 有 %s 次推送来自未登记 IP（供应商 IP 变更？需更新归属表）", fmtI(unattributed)))

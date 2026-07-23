@@ -55,6 +55,7 @@ metrics_sink:
   metrics_table_id: "tbl9njjvVZmd0VT5"
   sites_table_id: "tbl207BOlzBPugIz"
   issues_table_id: "tblP7V6YZL0RxTkp"
+  articles_table_id: "tblYbCoQSYG9E1FN"
   wiki_space_id: "7662305126790613991"
   daily_node_token: "S8D3wvshQiK0D3kTmmRc3mmdnfJ"
   weekly_node_token: "PHwrwJZLtiljS4khkMscQaPLnLb"

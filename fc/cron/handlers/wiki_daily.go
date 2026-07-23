@@ -8,6 +8,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -98,6 +99,33 @@ func txtEls(s string) []map[string]any {
 	return []map[string]any{{"text_run": map[string]any{"content": s}}}
 }
 
+// mdLinkRe 匹配 markdown 链接 [text](url)。卡片 markdown 原生支持；docx 需转 text_run link。
+var mdLinkRe = regexp.MustCompile(`\[([^\]]+)\]\((https?://[^\s)]+)\)`)
+
+// txtElsMd 同 txtEls，但把 markdown 链接转为 docx 超链接元素（link.url 需整体 URL 编码）。
+func txtElsMd(s string) []map[string]any {
+	ms := mdLinkRe.FindAllStringSubmatchIndex(s, -1)
+	if len(ms) == 0 {
+		return txtEls(s)
+	}
+	var els []map[string]any
+	last := 0
+	for _, m := range ms {
+		if m[0] > last {
+			els = append(els, map[string]any{"text_run": map[string]any{"content": s[last:m[0]]}})
+		}
+		els = append(els, map[string]any{"text_run": map[string]any{
+			"content":            s[m[2]:m[3]],
+			"text_element_style": map[string]any{"link": map[string]any{"url": url.QueryEscape(s[m[4]:m[5]])}},
+		}})
+		last = m[1]
+	}
+	if last < len(s) {
+		els = append(els, map[string]any{"text_run": map[string]any{"content": s[last:]}})
+	}
+	return els
+}
+
 // blockBatch 一批要追加到文档根的块（含嵌套后代）。
 type blockBatch struct {
 	seq      int
@@ -145,7 +173,7 @@ func (b *blockBatch) mdToBlocks(content string) {
 		case reSectionNo.MatchString(noIcon):
 			b.add(4, "heading2", map[string]any{"elements": txtEls(trimmed)}, nil, true)
 		default:
-			b.add(2, "text", map[string]any{"elements": txtEls(line)}, nil, true)
+			b.add(2, "text", map[string]any{"elements": txtElsMd(line)}, nil, true)
 		}
 	}
 }
@@ -157,7 +185,7 @@ func (b *blockBatch) tableToBlocks(t fcTable) {
 	}
 	var cellIDs []string
 	addCell := func(content string) {
-		textID := b.add(2, "text", map[string]any{"elements": txtEls(content)}, nil, false)
+		textID := b.add(2, "text", map[string]any{"elements": txtElsMd(content)}, nil, false)
 		cellIDs = append(cellIDs, b.add(32, "table_cell", map[string]any{}, []string{textID}, false))
 	}
 	for _, c := range t.Columns {

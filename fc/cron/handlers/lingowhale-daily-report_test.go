@@ -41,6 +41,7 @@ func TestDailyReport_DryRun(t *testing.T) {
 	if os.Getenv("DAILY_REPORT_OPS") == "1" {
 		sinkFailedSites(ctx, day, results)
 		syncIssueTracker(ctx, day, results)
+		sinkFailedArticles(ctx, day)
 		t.Logf("ops sinks done for %s", dayStr)
 	}
 	if os.Getenv("DAILY_REPORT_WIKI") == "1" {

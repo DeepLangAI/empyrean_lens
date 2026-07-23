@@ -105,6 +105,10 @@ func extractPipeline(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 
 // ─── 2.2 入库失败矩阵（阶段 × 渠道） ────────────────────────────────────────
 
+// failArticlesURL 失败文章明细表（bitable）直达链接：失败原因表的次数下钻入口。
+// 用 /base/{app_token} 独立地址而非 wiki 嵌入地址——wiki 地址会忽略 table 参数（2026-07 踩坑）。
+const failArticlesURL = "https://deeplang.feishu.cn/base/Hi9BbBUgDaKAbMsBhn3cjCUGn8e?table=tblYbCoQSYG9E1FN"
+
 // 管线阶段真实执行顺序（resource_processor.go Do() 的 handleFunc 链）。
 // 死得越靠下成本越高（已消耗抓取/解析/生成算力）。
 var stageOrder = []struct {
@@ -157,6 +161,24 @@ func secFailureMatrix() *Section {
 				PipelineJSON: `[{"$match": {"source_type": {"$ne": 1}, "status": 1}}, {"$project": {"url": 1, "_id": 0}}, {"$limit": 800}]`,
 				Optional:     true,
 			},
+			{
+				// 四个关键失败环节的原因细分：error 文本归一化（IP:端口 等易变段抹平）后取 Top。
+				// 判重淘汰(310001)不进这里——那是正确行为，已单独成行。
+				Name: "failreason", Source: SourceSLS, Limit: 20, Optional: true,
+				SQL: `ResourceProcessor and error | select regexp_extract(message, 'lastest status: ([A-Za-z]+)', 1) as stage, substr(regexp_replace(regexp_replace(regexp_extract(message, 'handle resource error: (?s)(.*?) lastest status', 1), '[\r\n]+', ' '), '\d+\.\d+\.\d+\.\d+:\d+', 'IP'), 1, 45) as reason, count(*) as cnt from log where message like '%handle resource error%' and regexp_extract(message, 'lastest status: ([A-Za-z]+)', 1) in ('ResourceCrawled', 'ResourceParsed', 'AbstractGenerated', 'Validated') group by stage, reason order by cnt desc limit 20`,
+			},
+			{
+				// 判无意义按域名 Top：定位是哪些站在批量出空页（过滤 OSS 存档地址，取文章 URL 域名）
+				Name: "worthless_domains", Source: SourceSLS, Limit: 6, Optional: true,
+				SQL: `OutRequest and base_parse | select element_at(filter(regexp_extract_all(message, '"url":"https?://([^/"]+)', 1), x -> x not like 'wcd-file%'), 1) as dom, count(*) as cnt from log where message like '%"worthless":true%' group by dom order by cnt desc limit 6`,
+			},
+			{
+				// 判无意义丢弃：base-parse 实时抓取后 worthless=true 的解析调用。
+				// 微信域名占比是反爬验证页误杀的代理信号——真实公众号文章几乎不存在空正文，
+				// text_length=0 基本等于抓回了验证页（2026-07 中科创达 case 定性）。
+				Name: "worthless", Source: SourceSLS, Limit: 1, Optional: true,
+				SQL: `OutRequest and base_parse | select count_if(message like '%mp.weixin%') as wx, count(*) as total from log where message like '%"worthless":true%'`,
+			},
 		},
 		Extract: extractMatrix,
 		Thresholds: []Threshold{
@@ -164,6 +186,21 @@ func secFailureMatrix() *Section {
 				MetricKey: "m22.clean_rate",
 				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 88, 80) },
 				Msg:       "处理成功率(剔除去重) %s（真实故障水平，与供应商重复行为无关）",
+			},
+			{
+				// 基线 1600~1900/日（逐天单查校准；大窗口分组查询会因扫描不完整低估）。
+				// 较昨日翻倍且过 3500 = 微信风控升级批量误杀；8000 兜底红线。
+				MetricKey: "m22.worthless.wx",
+				Eval: func(cur float64, prev *float64) Level {
+					if cur > 8000 {
+						return LevelCrit
+					}
+					if prev != nil && *prev > 0 && cur > *prev*2 && cur > 3500 {
+						return LevelWarn
+					}
+					return LevelOK
+				},
+				Msg: "微信判无意义丢弃 %s 篇（基线 1600~1900）：疑似微信验证页批量误杀，好文章被当空文丢弃",
 			},
 		},
 	}
@@ -381,6 +418,54 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 		)
 	}
 	out.Metrics = append(out.Metrics, Metric{Key: "m22.failed", Display: "入库处理失败数", Value: failedTotal, Text: fmtI(failedTotal), Dimension: DimTask})
+
+	// 判无意义丢弃量（微信部分 ≈ 反爬验证页误杀，混在「内容解析失败」行里不单独可见）
+	if w := first(r["worthless"]); w != nil {
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "m22.worthless.wx", Display: "微信判无意义丢弃(疑似验证页)", Value: num(w["wx"]), Text: fmtI(num(w["wx"])), Dimension: DimTask},
+			Metric{Key: "m22.worthless.total", Display: "判无意义丢弃合计", Value: num(w["total"]), Text: fmtI(num(w["total"])), Dimension: DimTask},
+		)
+	}
+	if rows := r["worthless_domains"]; len(rows) > 0 {
+		var parts []string
+		for _, row := range rows {
+			if row["dom"] == "" || row["dom"] == "null" || num(row["cnt"]) < 30 {
+				continue
+			}
+			parts = append(parts, fmt.Sprintf("%s %s", row["dom"], fmtI(num(row["cnt"]))))
+		}
+		if len(parts) > 0 {
+			out.Notes = append(out.Notes, "判无意义按域名 Top（微信部分多为验证页误杀）："+strings.Join(parts, "、"))
+		}
+	}
+	// 关键环节失败原因 Top：正文抓取/内容解析/摘要生成/字段校验四个环节按错误签名聚合
+	if rows := r["failreason"]; len(rows) > 0 {
+		stageName := map[string]string{}
+		for _, s := range stageOrder {
+			stageName[s.stage] = strings.TrimPrefix(s.display, "− ")
+		}
+		var t []map[string]string
+		for _, row := range rows {
+			if num(row["cnt"]) < 20 { // 按次数降序，尾部碎片截断
+				break
+			}
+			if len(t) >= 10 {
+				break
+			}
+			t = append(t, map[string]string{
+				"stage": stageName[row["stage"]], "reason": row["reason"],
+				// 次数挂失败文章明细表深链（wiki 渲染为超链接；进表后按日期+环节筛选）
+				"cnt": fmt.Sprintf("[%s](%s)", fmtI(num(row["cnt"])), failArticlesURL),
+			})
+		}
+		if len(t) > 0 {
+			out.Tables = append(out.Tables, Table{
+				Title: "关键环节失败原因 Top（错误文本归一化聚合，<20 次尾部省略）。「html is worthless」含微信验证页误杀，见上方微信判无意义指标",
+				Cols:  []TableCol{{Name: "stage", Display: "环节", Width: "20%"}, {Name: "reason", Display: "原因(截断45字符)"}, {Name: "cnt", Display: "次数", Width: "12%"}},
+				Rows:  t,
+			})
+		}
+	}
 
 	if len(webHosts) == 0 {
 		out.Notes = append(out.Notes, "⚠️ 网站类信源清单查询失败，本日「自有网站」并入「自有RSS」列")

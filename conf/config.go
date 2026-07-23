@@ -44,6 +44,7 @@ type MetricsSink struct {
 	MetricsTableID  string `yaml:"metrics_table_id"`  // 指标日表
 	SitesTableID    string `yaml:"sites_table_id"`    // 失败站点日志表
 	IssuesTableID   string `yaml:"issues_table_id"`   // 问题跟踪表（告警自动开卡）
+	ArticlesTableID string `yaml:"articles_table_id"` // 失败文章明细表（2.2 失败数字下钻）
 	WikiSpaceID     string `yaml:"wiki_space_id"`
 	DailyNodeToken  string `yaml:"daily_node_token"`  // 「每日日报」父节点
 	WeeklyNodeToken string `yaml:"weekly_node_token"` // 「周报月报」父节点

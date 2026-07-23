@@ -86,20 +86,21 @@ func secSupplierPush() *Section {
 		Extract: extractSupplier,
 		Thresholds: []Threshold{
 			{
-				// 当前基线 1.2~1.5% ≈ 全部是真实丢失（跨零点尾巴实测仅 ~8 篇/日）：
-				// 同一篇的同秒重复副本遇网络抖动一起死 + MNS 消费失败无重投 → 每天 ~1,400 篇
-				// 从未进入处理。后端修复重投后本值应趋近 0，届时可收紧阈值。
+				// 当前 1.2~1.5% ≈ 全部真实丢失（跨零点尾巴实测仅 ~8 篇/日）：同秒重复副本
+				// 遇网络抖动一起死 + MNS 消费失败无重投 → 每天 ~1,400 篇从未进入处理。
+				// 阈值 1% 让它在修复前保持黄牌（2026-07-23 拍板：1,300+/日不该安静）；
+				// 后端修复重投后应归零，>1% 复发即报。
 				MetricKey: "supplier.unprocessed.rate",
 				Eval: func(cur float64, prev *float64) Level {
-					if cur > 6 {
+					if cur > 3 {
 						return LevelCrit
 					}
-					if cur > 3 {
+					if cur > 1 {
 						return LevelWarn
 					}
 					return LevelOK
 				},
-				Msg: "供应商文章未进入处理 %s（URL 去重，基本为真实丢失）——消费失败无重投所致，恶化时查 api-inner 连通性与 MNS 消费",
+				Msg: "供应商文章未进入处理 %s（URL 去重，基本为真实丢失）——根因为消费失败无重投（跟踪卡处理中），修复后本值应归零；恶化查 api-inner 连通性",
 			},
 			{
 				// 人民网同秒重复推送 bug 的观测指标；基线 ~37%，显著抬升说明上游恶化

@@ -66,6 +66,17 @@ func secSupplierPush() *Section {
 				SQL: `wechat_article | select client_ip, count(*) as total, count_if(status = 200) as ok from log where url in ('/api/feed/v1/resource/wechat_article/add', '/api/resource/v1/wechat_article/add') group by client_ip order by total desc limit 10`,
 			},
 			{
+				// 去重口径两端：受理篇数（接收 handler 日志带 url）与进入处理篇数（/resource/add 带 orig_url）。
+				// 次数口径会被供应商重复推送（2026-07 实测人民网同秒推 3~4 份、整体重复率 37%）
+				// 和消费重试双重污染，按 URL 去重后才是"文章"量纲。
+				Name: "recv_uniq", Source: SourceSLS, Limit: 1, Optional: true,
+				SQL: `add wechat article | select count(distinct regexp_extract(message, 'url: (http[^ ,]+)', 1)) as urls from log where message like '%add wechat article%'`,
+			},
+			{
+				Name: "proc_uniq", Source: SourceSLS, Limit: 1, Optional: true,
+				SQL: `RequestRout and resource and add | select count(distinct regexp_extract(message, '"orig_url":"([^"]+)"', 1)) as urls from log where message like '%RequestRout:/iapi/resource/v1/resource/add,%' and regexp_extract(message, '"source":([0-9]+)', 1) in ('12', '14')`,
+			},
+			{
 				// 推送时效：body 自带 pub_time（unix 秒）。样本有偏（长文的请求日志易被截丢，
 				// 覆盖率 ~72%），根治需埋点：让 ResponseRath 带 pub_time+source。
 				Name: "lat", Source: SourceSLS, Limit: 10,
@@ -75,14 +86,31 @@ func secSupplierPush() *Section {
 		Extract: extractSupplier,
 		Thresholds: []Threshold{
 			{
-				MetricKey: "supplier.backlog",
+				// 当前基线 1.2~1.5% ≈ 全部是真实丢失（跨零点尾巴实测仅 ~8 篇/日）：
+				// 同一篇的同秒重复副本遇网络抖动一起死 + MNS 消费失败无重投 → 每天 ~1,400 篇
+				// 从未进入处理。后端修复重投后本值应趋近 0，届时可收紧阈值。
+				MetricKey: "supplier.unprocessed.rate",
 				Eval: func(cur float64, prev *float64) Level {
-					if cur > 2 {
+					if cur > 6 {
+						return LevelCrit
+					}
+					if cur > 3 {
 						return LevelWarn
 					}
 					return LevelOK
 				},
-				Msg: "供应商推送已受理但当日未进入处理 %s——队列积压，爆推日常见，通常次日自动消化；若连续多日出现需排查",
+				Msg: "供应商文章未进入处理 %s（URL 去重，基本为真实丢失）——消费失败无重投所致，恶化时查 api-inner 连通性与 MNS 消费",
+			},
+			{
+				// 人民网同秒重复推送 bug 的观测指标；基线 ~37%，显著抬升说明上游恶化
+				MetricKey: "supplier.dup.rate",
+				Eval: func(cur float64, prev *float64) Level {
+					if cur > 55 {
+						return LevelWarn
+					}
+					return LevelOK
+				},
+				Msg: "供应商推送重复率 %s（基线 ~37%%，主要为人民网同秒多份）——上游发送端异常恶化",
 			},
 			dropOrZero("supplier.arrive.12", "人民网推送量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
 			dropOrZero("supplier.arrive.14", "清博推送量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
@@ -131,16 +159,25 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 			unattributed += total
 		}
 	}
-	backlog := recvOK - (push["12"] + push["14"])
-	if backlog < 0 {
-		backlog = 0 // 泄洪日：当日进入处理量含昨日积压，视为无新增积压
-	}
-	backlogPct := pct(backlog, maxf(recvOK, 1))
 	out.Metrics = append(out.Metrics,
 		Metric{Key: "supplier.recv.total", Display: "供应商网关接收", Value: recvTotal, Text: fmtI(recvTotal), Dimension: DimTask},
 		Metric{Key: "supplier.recv.ok", Display: "供应商网关接收成功", Value: recvOK, Text: fmtI(recvOK), Dimension: DimTask},
-		Metric{Key: "supplier.backlog", Display: "供应商队列积压", Value: backlogPct, Text: fmt.Sprintf("%s 条（占受理 %.1f%%）", fmtI(backlog), backlogPct), Dimension: DimPercent},
 	)
+	// 去重口径（文章量纲）：受理篇数 vs 进入处理篇数。差值≈真实丢失（跨零点尾巴实测仅个位数；
+	// 旧的次数口径被人民网重复副本撞锁死亡放大近 5 倍，2026-07-23 定性后弃用告警）。
+	recvUniq, procUniq := num(first(r["recv_uniq"])["urls"]), num(first(r["proc_uniq"])["urls"])
+	if recvUniq > 0 {
+		unproc := recvUniq - procUniq
+		if unproc < 0 {
+			unproc = 0
+		}
+		unprocPct := pct(unproc, recvUniq)
+		dupRate := pct(recvOK-recvUniq, maxf(recvOK, 1))
+		out.Metrics = append(out.Metrics,
+			Metric{Key: "supplier.unprocessed.rate", Display: "供应商文章当日未进处理(URL去重)", Value: unprocPct, Text: fmt.Sprintf("%s 篇（%.1f%%）", fmtI(unproc), unprocPct), Dimension: DimPercent},
+			Metric{Key: "supplier.dup.rate", Display: "供应商推送重复率", Value: dupRate, Text: fmtPct1(dupRate), Dimension: DimPercent},
+		)
+	}
 	if unattributed > recvTotal*0.005 {
 		out.Notes = append(out.Notes, fmt.Sprintf("⚠️ 有 %s 次推送来自未登记 IP（供应商 IP 变更？需更新归属表）", fmtI(unattributed)))
 	}

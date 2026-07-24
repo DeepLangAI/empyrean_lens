@@ -192,6 +192,7 @@ var bizRe = regexp.MustCompile(`__biz=([^&"]+)`)
 // escaped=清博 \xNN 转义字面残留（unescape 未生效）；htmlLen 区分空体与海报体。
 type artInfo struct {
 	title, url, author              string
+	contentHead                     string
 	verify, isVideo, isAudio, isPay bool
 	escaped                         bool
 	htmlLen, contentLen, imgs       float64
@@ -253,6 +254,13 @@ func classifyFailReason(stage, reason, host string, ai artInfo) string {
 		}
 	case "字段校验失败":
 		if strings.Contains(reason, "Title") {
+			// 微信删文提示页：有 94 字模板文案躲过无意义判定、无标题死于校验。
+			// 属正常淘汰（文章已不存在），与真·标题解析失败分开
+			if strings.Contains(ai.contentHead, "content has been deleted") ||
+				strings.Contains(ai.contentHead, "已被发布者删除") ||
+				strings.Contains(ai.contentHead, "内容因违规") {
+				return "文章已删除(作者删文)"
+			}
 			return "标题缺失"
 		}
 	}
@@ -310,7 +318,8 @@ func sinkFailedArticles(ctx context.Context, day time.Time) {
 				{"$project": map[string]any{
 					"title": 1, "orig_url": 1, "author_name": 1,
 					"verify":      has("secitptpage"),
-					"content_len": map[string]any{"$strLenCP": map[string]any{"$ifNull": []any{"$content", ""}}},
+					"content_len":  map[string]any{"$strLenCP": map[string]any{"$ifNull": []any{"$content", ""}}},
+					"content_head": map[string]any{"$substrCP": []any{map[string]any{"$ifNull": []any{"$content", ""}}, 0, 60}},
 					"imgs":        map[string]any{"$size": map[string]any{"$ifNull": []any{"$source_multimedia.img_urls", []any{}}}},
 					"is_video": map[string]any{"$or": []any{has("video_iframe"), has("t=pages/video")}},
 					"is_audio": map[string]any{"$or": []any{has("mpaudio"), has("plain-music")}},
@@ -342,9 +351,10 @@ func sinkFailedArticles(ctx context.Context, day time.Time) {
 			htmlLen, _ := doc["html_len"].(float64)
 			contentLen, _ := doc["content_len"].(float64)
 			imgs, _ := doc["imgs"].(float64)
+			contentHead, _ := doc["content_head"].(string)
 			arts[id] = artInfo{title: title, url: u, author: author, verify: verify,
 				isVideo: isVideo, isAudio: isAudio, isPay: isPay, escaped: escaped,
-				htmlLen: htmlLen, contentLen: contentLen, imgs: imgs}
+				htmlLen: htmlLen, contentLen: contentLen, imgs: imgs, contentHead: contentHead}
 		}
 	}
 

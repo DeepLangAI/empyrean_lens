@@ -100,7 +100,7 @@ func secSupplierPush() *Section {
 					}
 					return LevelOK
 				},
-				Msg: "供应商文章未进入处理 %s（URL 去重，基本为真实丢失）——根因为消费失败无重投（跟踪卡处理中），修复后本值应归零；恶化查 api-inner 连通性",
+				Msg: "供应商推送的文章当日未进入处理 %s（URL 去重口径）",
 			},
 			{
 				// 人民网同秒重复推送 bug 的观测指标；基线 ~37%，显著抬升说明上游恶化
@@ -111,7 +111,7 @@ func secSupplierPush() *Section {
 					}
 					return LevelOK
 				},
-				Msg: "供应商推送重复率 %s（基线 ~37%%，主要为人民网同秒多份）——上游发送端异常恶化",
+				Msg: "供应商推送重复率 %s（基线 ~37%%）显著抬升",
 			},
 			dropOrZero("supplier.arrive.12", "人民网推送量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
 			dropOrZero("supplier.arrive.14", "清博推送量异常：%s（较昨日与上周同日均跌超 30% 或归零）"),
@@ -178,9 +178,9 @@ func extractSupplier(day time.Time, r map[string]Rows, prev []Snapshot) (*Output
 			Metric{Key: "supplier.unprocessed.rate", Display: "供应商文章当日未进处理(URL去重)", Value: unprocPct, Text: fmt.Sprintf("%s 篇（%.1f%%）", fmtI(unproc), unprocPct), Dimension: DimPercent},
 			Metric{Key: "supplier.dup.rate", Display: "供应商推送重复率", Value: dupRate, Text: fmtPct1(dupRate), Dimension: DimPercent},
 		)
-		// 展示层注记：已知问题（消费失败零重投）修复前保持每日可见，阈值只管恶化（>3%）
+		// 展示层注记：只描述现象；定性与根因见问题跟踪表
 		out.Notes = append(out.Notes, fmt.Sprintf(
-			"当日未进处理 %s 篇（%.1f%%，URL 去重口径）≈ 真实丢失，根因为消费失败无重投（跟踪卡处理中）；推送重复率 %.1f%%（人民网同秒多份）",
+			"当日未进处理 %s 篇（%.1f%%，URL 去重口径）；推送重复率 %.1f%%",
 			fmtI(unproc), unprocPct, dupRate))
 	}
 	if unattributed > recvTotal*0.005 {

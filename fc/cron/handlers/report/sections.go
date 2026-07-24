@@ -344,16 +344,8 @@ func secSelfCollect() *Section {
 				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 100, 99) },
 				Msg:       "自采推送受理成功率 %s（推送量−受理量 = 受理失败篇数）",
 			},
-			{
-				MetricKey: "self.backfill_ratio",
-				Eval: func(cur float64, prev *float64) Level {
-					if cur > 1.5 {
-						return LevelWarn
-					}
-					return LevelOK
-				},
-				Msg: "自采到达量为常规链路 %s 倍：当日有历史回灌在跑，下游各层环比会连带波动",
-			},
+			// self.backfill_ratio 不再告警（2026-07-24 拍板：回灌是常态运维动作，
+			// 天天报只添噪声）；指标保留，趋势在多维表格可查。
 			{
 				MetricKey: "self.crawl.rate",
 				Eval:      func(cur float64, prev *float64) Level { return warnBelow(cur, 90, 80) },

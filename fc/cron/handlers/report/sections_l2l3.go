@@ -173,6 +173,12 @@ func secFailureMatrix() *Section {
 				SQL: `OutRequest and base_parse | select element_at(filter(regexp_extract_all(message, '"url":"https?://([^/"]+)', 1), x -> x not like 'wcd-file%'), 1) as dom, count(*) as cnt from log where message like '%"worthless":true%' group by dom order by cnt desc limit 6`,
 			},
 			{
+				// 安全拦截：处理链路判 is not safe 后仍记 status:success，但不写产品可见库。
+				// 按 entry_id 去重（2026-07-25 实测 754 篇全 Subscription），供 3.2 从"成功未上架"中剔除。
+				Name: "unsafe", Source: SourceSLS, Limit: 1, Optional: true,
+				SQL: `ResourceProcessor | select count(distinct regexp_extract(message, 'entry_id: ([^;\]]+)', 1)) as cnt from log where message like '%is not safe%'`,
+			},
+			{
 				// 判无意义丢弃：base-parse 实时抓取后 worthless=true 的解析调用。
 				// 微信域名占比是反爬验证页误杀的代理信号——真实公众号文章几乎不存在空正文，
 				// text_length=0 基本等于抓回了验证页（2026-07 中科创达 case 定性）。
@@ -418,6 +424,11 @@ func extractMatrix(day time.Time, r map[string]Rows, prev []Snapshot) (*Output, 
 		)
 	}
 	out.Metrics = append(out.Metrics, Metric{Key: "m22.failed", Display: "入库处理失败数", Value: failedTotal, Text: fmtI(failedTotal), Dimension: DimTask})
+
+	// 安全拦截（判不安全后按成功收尾，不进产品可见库）
+	if u := first(r["unsafe"]); u["cnt"] != "" {
+		out.Metrics = append(out.Metrics, Metric{Key: "m22.unsafe", Display: "安全拦截丢弃(判不安全)", Value: num(u["cnt"]), Text: fmtI(num(u["cnt"])), Dimension: DimDoc})
+	}
 
 	// 判无意义丢弃量（微信部分 ≈ 反爬验证页误杀，混在「内容解析失败」行里不单独可见）
 	if w := first(r["worthless"]); w != nil {
@@ -745,12 +756,15 @@ func secFunnel() *Section {
 
 			digestRate := pct(eff, maxf(unique, 1))
 			dupRate := pct(dupTotal, maxf(top, 1))
-			lost := uniq - eff
+			// 安全拦截在处理链路按成功收尾但不进可见库，从"成功未上架"中剔除；
+			// 剩余基线 ~3% 是跨日存量更新（重推旧文按成功计但不新增可见，2026-07-25 抽样定性），阈值容忍
+			unsafe := g("m22.unsafe")
+			lost := uniq - unsafe - eff
 			if lost < 0 {
 				lost = 0 // 可见库多出=昨日积压到账，非丢失
 			}
 			out.Metrics = append(out.Metrics,
-				Metric{Key: "funnel.lost_pct", Display: "成功未上架", Value: pct(lost, maxf(uniq, 1)), Text: fmtI(lost) + " 篇", Dimension: DimPercent},
+				Metric{Key: "funnel.lost_pct", Display: "成功未上架(剔除安全拦截)", Value: pct(lost, maxf(uniq, 1)), Text: fmtI(lost) + " 篇", Dimension: DimPercent},
 				Metric{Key: "funnel.top", Display: "一层接收合计", Value: top, Text: fmtI(top), Dimension: DimDoc},
 				Metric{Key: "funnel.unique", Display: "独有新内容", Value: unique, Text: fmtI(unique), Dimension: DimDoc},
 				Metric{Key: "funnel.digest_rate", Display: "消化率", Value: digestRate, Text: fmtPct1(digestRate), Dimension: DimPercent},
@@ -766,7 +780,7 @@ func secFunnel() *Section {
 				{"layer": "− 处理失败", "cnt": fmtI(failNonDup), "loss": "明细见 2.2"},
 			}
 			if residual >= 0 {
-				rows = append(rows, map[string]string{"layer": "− 其他损耗", "cnt": fmtI(residual), "loss": "安全拦截、跨日零头"})
+				rows = append(rows, map[string]string{"layer": "− 其他损耗", "cnt": fmtI(residual), "loss": fmt.Sprintf("安全拦截 %s · 跨日零头", fmtI(unsafe))})
 			} else {
 				rows = append(rows, map[string]string{"layer": "＋ 昨日积压今日到账", "cnt": fmtI(-residual), "loss": "昨天收的文章今天入库，补记"})
 			}
@@ -783,22 +797,25 @@ func secFunnel() *Section {
 		},
 		Thresholds: []Threshold{
 			{
-				// 方向感知：处理成功但未出现在可见库 = 真问题；可见库多出（昨日积压到账）不报
+				// 方向感知：处理成功但未出现在可见库 = 真问题；可见库多出（昨日积压到账）不报。
+				// 阈值 5/10：跨日存量更新贡献 ~3% 常态基线（2026-07-25 抽样：真丢失 0、存量更新 2.8%），只抓显著恶化
 				MetricKey: "funnel.lost_pct",
 				Eval: func(cur float64, prev *float64) Level {
-					if cur > 5 {
+					if cur > 10 {
 						return LevelCrit
 					}
-					if cur > 2 {
+					if cur > 5 {
 						return LevelWarn
 					}
 					return LevelOK
 				},
-				Msg: "有 %s 处理成功的文章未出现在产品可见库，需排查下游写入",
+				Msg: "有 %s 处理成功的文章未出现在产品可见库（已剔除安全拦截）",
 			},
 		},
 		Checks: []Check{
-			{LeftKey: "funnel.top", RightKey: "resource_add.total", TolerancePct: 8, Msg: "一层接收与处理入口脱钩"},
+			// 单向：汇聚点多出是回灌/监控渠道/供应商重复推送的常态（07-24~26 实测 2.4万~6.2万/日），
+			// 只有一层接收 > 汇聚点（入口后丢失方向）才是勾稽失败
+			{LeftKey: "funnel.top", RightKey: "resource_add.total", TolerancePct: 8, OneSided: true, Msg: "一层接收超出汇聚点到达，入口后存在丢失"},
 		},
 	}
 }

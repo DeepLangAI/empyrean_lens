@@ -170,6 +170,9 @@ type Check struct {
 	RightKey     string
 	TolerancePct float64
 	Msg          string
+	// OneSided：只在 Left 超出 Right 的方向告警（丢失方向），反向超出视为常态。
+	// 例：汇聚点到达 > 一层接收是回灌/监控渠道/供应商重复推送的常态，不算勾稽失败。
+	OneSided bool
 }
 
 // ─── Section ────────────────────────────────────────────────────────────────

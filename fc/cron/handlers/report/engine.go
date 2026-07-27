@@ -207,7 +207,11 @@ func evalChecks(r *Result, all map[string]Metric) {
 			continue
 		}
 		base := math.Max(math.Abs(rt.Value), 1)
-		if math.Abs(l.Value-rt.Value)/base > c.TolerancePct/100 {
+		diff := math.Abs(l.Value - rt.Value)
+		if c.OneSided {
+			diff = l.Value - rt.Value
+		}
+		if diff/base > c.TolerancePct/100 {
 			r.Hits = append(r.Hits, Hit{
 				Level: LevelWarn,
 				Msg:   fmt.Sprintf("勾稽失败：%s（%s=%.0f vs %s=%.0f）", c.Msg, l.Display, l.Value, rt.Display, rt.Value),

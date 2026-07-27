@@ -813,7 +813,7 @@ func secFunnel() *Section {
 			},
 		},
 		Checks: []Check{
-			// 单向：汇聚点多出是回灌/监控渠道/供应商重复推送的常态（07-24~26 实测 2.4万~6.2万/日），
+			// 单向：补偿器任务会向汇聚点补数据，汇聚点多出是常态（07-24~26 实测 2.4万~6.2万/日，业务确认），
 			// 只有一层接收 > 汇聚点（入口后丢失方向）才是勾稽失败
 			{LeftKey: "funnel.top", RightKey: "resource_add.total", TolerancePct: 8, OneSided: true, Msg: "一层接收超出汇聚点到达，入口后存在丢失"},
 		},

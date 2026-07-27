@@ -362,7 +362,7 @@ func secSelfCollect() *Section {
 					}
 					return LevelOK
 				},
-				Msg: "监控账号文章缺失率 %s（当日落库文章在订阅 Feed 中查不到，与语鲸监控9同口径）",
+				Msg: "监控账号文章缺失率 %s（当日落库文章在订阅 Feed 中查不到，已剔除作者删文）",
 			},
 		},
 	}
@@ -427,7 +427,8 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 		)
 	}
 
-	// 缺失口径 = 语鲸监控9同款：Feed 接口逐账号核验（可核验 = 进入 + 缺失）
+	// 缺失口径 = 语鲸监控9同款：Feed 接口逐账号核验（可核验 = 进入 + 缺失），
+	// 再剔除作者删文（正常淘汰，缺失与可核验同时减，见 feedcheck.go）
 	if fc := first(r["feedcheck"]); fc["checked"] != "" {
 		checked, hits, missing := num(fc["checked"]), num(fc["hit"]), num(fc["missing"])
 		missingPct := pct(missing, maxf(checked, 1))
@@ -435,8 +436,12 @@ func extractSelfCollect(day time.Time, r map[string]Rows, prev []Snapshot) (*Out
 			Metric{Key: "self.feed.checked", Display: "自采Feed核验文章数", Value: checked, Text: fmtI(checked), Dimension: DimDoc},
 			Metric{Key: "self.feed.hit", Display: "自采进入语鲸(Feed核验)", Value: hits, Text: fmtI(hits), Dimension: DimDoc},
 			Metric{Key: "self.missing", Display: "自采缺失数", Value: missing, Text: fmtI(missing), Dimension: DimDoc},
-			Metric{Key: "self.missing.rate", Display: "自采缺失率", Value: missingPct, Text: fmtPct1(missingPct), Dimension: DimPercent},
+			Metric{Key: "self.missing.rate", Display: "自采缺失率(剔除作者删文)", Value: missingPct, Text: fmtPct1(missingPct), Dimension: DimPercent},
 		)
+		if deleted := num(fc["deleted"]); deleted > 0 {
+			out.Metrics = append(out.Metrics,
+				Metric{Key: "self.feed.deleted", Display: "自采作者删文(不计缺失)", Value: deleted, Text: fmtI(deleted), Dimension: DimDoc})
+		}
 		if errs := num(fc["errs"]); errs > 0 {
 			out.Notes = append(out.Notes, fmt.Sprintf("⚠️ Feed 核验有 %s 个账号接口失败（已剔除，不计缺失）", fmtI(errs)))
 		}

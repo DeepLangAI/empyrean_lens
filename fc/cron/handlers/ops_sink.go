@@ -255,10 +255,8 @@ func classifyFailReason(stage, reason, host string, ai artInfo) string {
 	case "字段校验失败":
 		if strings.Contains(reason, "Title") {
 			// 微信删文提示页：有 94 字模板文案躲过无意义判定、无标题死于校验。
-			// 属正常淘汰（文章已不存在），与真·标题解析失败分开
-			if strings.Contains(ai.contentHead, "content has been deleted") ||
-				strings.Contains(ai.contentHead, "已被发布者删除") ||
-				strings.Contains(ai.contentHead, "内容因违规") {
+			// 属正常淘汰（文章已不存在），与真·标题解析失败分开。标记见 feedcheck.go
+			if isDeletedContentHead(ai.contentHead) {
 				return "文章已删除(作者删文)"
 			}
 			return "标题缺失"

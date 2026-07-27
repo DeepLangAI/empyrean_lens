@@ -70,7 +70,7 @@ func wechatFeedCheck(ctx context.Context, from, to time.Time) (report.Rows, erro
 			return nil, fmt.Errorf("spider article (skip=%d): %w", skip, err)
 		}
 		for _, row := range articles {
-			t, acct := strings.TrimSpace(row["title"]), row["acct"]
+			t, acct := firstLine(row["title"]), row["acct"]
 			if t == "" || acct == "" {
 				continue
 			}
@@ -229,6 +229,19 @@ func wechatFeedCheck(ctx context.Context, from, to time.Time) (report.Rows, erro
 	}}, nil
 }
 
+// firstLine 取标题的第一行非空文本做匹配键。
+// 段子体/朋友圈体短文没有独立标题，spider 从微信列表页拿到的 title 是带换行的全文，
+// 而语鲸解析只取首行做标题——两边整串精确匹配永远失败，曾把在库在 Feed 的文章
+// 记成缺失（2026-07-27 定性：当日 23 篇"缺失"主体即此），归一到首行后再比对。
+func firstLine(s string) string {
+	for _, ln := range strings.Split(s, "\n") {
+		if t := strings.TrimSpace(ln); t != "" {
+			return t
+		}
+	}
+	return ""
+}
+
 // isDeletedContentHead 判断资源正文头部是否为微信删文/违规不可见提示模板
 // （与失败明细分类「文章已删除(作者删文)」同款标记，见 ops_sink.go classifyFailReason）。
 // "发送失败无法查看" = 平台判违规下架（"此内容因涉嫌违反相关法律法规和政策发送失败"），
@@ -298,7 +311,7 @@ func fetchFeedHits(ctx context.Context, channelID string, want map[string]string
 			return nil, fmt.Errorf("feed api code=%d msg=%s", resp.Code, resp.Msg)
 		}
 		for _, item := range resp.Data.FeedList {
-			t := strings.TrimSpace(item.Title)
+			t := firstLine(item.Title)
 			if t != "" {
 				if _, ok := want[t]; ok {
 					found[t] = true

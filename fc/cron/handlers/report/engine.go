@@ -261,10 +261,20 @@ func WeeklyMinBaseline(prevDays []Snapshot, key string) *float64 {
 }
 
 func DeltaPct(cur float64, prevDays []Snapshot, key string) string {
-	if len(prevDays) == 0 || prevDays[0] == nil {
+	return deltaPctAt(cur, prevDays, key, 0)
+}
+
+// WeekDeltaPct 周同比文本（vs 上周同日，prevDays[6]）。周末量天然低于工作日，
+// 环比在周六/周一必然大幅波动，周同比才能看出真实趋势。上周快照缺失返回 "—"。
+func WeekDeltaPct(cur float64, prevDays []Snapshot, key string) string {
+	return deltaPctAt(cur, prevDays, key, 6)
+}
+
+func deltaPctAt(cur float64, prevDays []Snapshot, key string, idx int) string {
+	if idx >= len(prevDays) || prevDays[idx] == nil {
 		return "—"
 	}
-	p, ok := prevDays[0][key]
+	p, ok := prevDays[idx][key]
 	if !ok || p == 0 {
 		return "—"
 	}

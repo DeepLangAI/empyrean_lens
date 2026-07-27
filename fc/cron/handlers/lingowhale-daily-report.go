@@ -161,8 +161,9 @@ func renderSummaryCard(day time.Time, results []*report.Result, prevDays []repor
 	if aiText != "" {
 		fmt.Fprintf(&b, "🤖 **AI 解读**：%s\n\n", aiText)
 	}
-	fmt.Fprintf(&b, "**净新增可见 %s**（环比 %s）｜ 一层接收 %s ｜ 自采缺失率 %s",
+	fmt.Fprintf(&b, "**净新增可见 %s**（环比 %s ｜ 周同比 %s）｜ 一层接收 %s ｜ 自采缺失率 %s",
 		mtx("eff.total"), report.DeltaPct(all["eff.total"].Value, prevDays, "eff.total"),
+		report.WeekDeltaPct(all["eff.total"].Value, prevDays, "eff.total"),
 		mtx("funnel.top"), mtx("self.missing.rate"))
 
 	// 核心指标表：三层各挑当家指标，不点链接也能看到全貌骨架
@@ -181,6 +182,7 @@ func renderSummaryCard(day time.Time, results []*report.Result, prevDays []repor
 		rows = append(rows, map[string]string{
 			"metric": cr.name, "today": mtx(cr.key),
 			"delta":  report.DeltaPct(all[cr.key].Value, prevDays, cr.key),
+			"wow":    report.WeekDeltaPct(all[cr.key].Value, prevDays, cr.key),
 			"status": statusOf(cr.key),
 		})
 	}
@@ -239,8 +241,8 @@ func renderSummaryCard(day time.Time, results []*report.Result, prevDays []repor
 		Body: fcBody{Direction: "vertical", Elements: []interface{}{
 			md(b.String()),
 			makeTable([]fcTableCol{
-				col("metric", "核心指标", "40%"), col("today", "今日", "26%"),
-				col("delta", "环比", "18%"), col("status", "状态", "16%"),
+				col("metric", "核心指标", "34%"), col("today", "今日", "22%"),
+				col("delta", "环比", "15%"), col("wow", "周同比", "15%"), col("status", "状态", "14%"),
 			}, rows),
 			md(alerts.String()),
 		}},

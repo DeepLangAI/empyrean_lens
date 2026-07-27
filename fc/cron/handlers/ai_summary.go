@@ -34,11 +34,12 @@ var aiContextKeys = []struct{ key, name string }{
 	{"eff.e2e.weixin.le30m", "公众号端到端≤30min占比(%)"},
 }
 
-const aiSummarySystem = `你是数据平台的值班分析师，负责给团队写日报的一句话解读。输入是近几天的核心指标序列（最后一列是今天）和今天的告警列表。要求：
+const aiSummarySystem = `你是数据平台的值班分析师，负责给团队写日报的一句话解读。输入是近几天的核心指标序列（每个值标了周几，最后一个是今天，序列第一个点是上周同日）和今天的告警列表。要求：
 1. 3-4 句话、120 字以内，先说整体结论（平稳/好转/恶化），再点出最值得关注的 1-2 件事
-2. 结合序列说趋势（如"连续三天下降""恢复到上周水平"），不要逐条复述数字
-3. 告警项要判断是新出现的还是持续存在的
-4. 讲人话，不用黑话不用表格，不要客套开场白，直接输出正文`
+2. 量类指标（推送量/入库量/采集量/接收量）周末天然比工作日低 30%~50%、周一回升，这是正常节奏：判断涨跌一律以每行末尾的周同比为准，周同比在 ±15% 内的周末回落是正常波动，禁止说成"恶化/暴跌/下滑"
+3. 结合序列说趋势（如"周同比持平""恢复到上周水平"），不要逐条复述数字
+4. 告警项要判断是新出现的还是持续存在的，只依据输入判断，不要编造输入里没有的时长/天数/影响面
+5. 讲人话，不用黑话不用表格，不要客套开场白，直接输出正文`
 
 // aiDailySummary 生成 AI 解读文本；任何失败返回空串（旁路降级）。
 func aiDailySummary(ctx context.Context, day time.Time, results []*report.Result, prevDays []report.Snapshot) string {
@@ -62,24 +63,27 @@ func aiDailySummary(ctx context.Context, day time.Time, results []*report.Result
 		hits = append(hits, r.Hits...)
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "报表日：%s（%s）\n\n核心指标（历史→今天）：\n", day.Format("2006-01-02"), weekdayCN(day))
+	fmt.Fprintf(&b, "报表日：%s（%s）\n\n核心指标（历史→今天，每值前是周几；行尾周同比=今天 vs 上周同日）：\n", day.Format("2006-01-02"), weekdayCN(day))
 	for _, k := range aiContextKeys {
 		vals := make([]string, 0, len(prevDays)+1)
 		for i := len(prevDays) - 1; i >= 0; i-- { // prevDays[0]=昨天，倒序成时间正序
+			wd := weekdayCN(day.AddDate(0, 0, -(i + 1)))
 			if prevDays[i] == nil {
-				vals = append(vals, "-")
+				vals = append(vals, wd+"-")
 			} else if v, ok := prevDays[i][k.key]; ok {
-				vals = append(vals, fmtI(v))
+				vals = append(vals, wd+fmtI(v))
 			} else {
-				vals = append(vals, "-")
+				vals = append(vals, wd+"-")
 			}
 		}
+		wow := "—"
 		if m, ok := all[k.key]; ok {
-			vals = append(vals, m.Text)
+			vals = append(vals, "今天"+m.Text)
+			wow = report.WeekDeltaPct(m.Value, prevDays, k.key)
 		} else {
-			vals = append(vals, "-")
+			vals = append(vals, "今天-")
 		}
-		fmt.Fprintf(&b, "%s: %s\n", k.name, strings.Join(vals, " → "))
+		fmt.Fprintf(&b, "%s: %s（周同比 %s）\n", k.name, strings.Join(vals, " → "), wow)
 	}
 	b.WriteString("\n今天的告警：\n")
 	if len(hits) == 0 {

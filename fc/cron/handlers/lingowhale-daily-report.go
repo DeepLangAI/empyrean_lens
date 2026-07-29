@@ -70,6 +70,7 @@ func (h *LingowhaleDailyReport) Handle(ctx context.Context, payload string) erro
 
 	prevDays := loadSnapshots(ctx, day, snapshotDays)
 	results, snapshot := report.Run(ctx, day, report.Sections(), queryFunc, prevDays)
+	classifyOutages(ctx, results) // 整站故障病因分流：对端死亡不告警，我方被拦才告警
 	if webhookOverride == "" {
 		saveSnapshot(ctx, day, snapshot)
 		sinkMetrics(ctx, day, results)      // 指标落多维表格（旁路，失败不影响发报）
